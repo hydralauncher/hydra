@@ -7,7 +7,9 @@ use hydra_core::download_directories::{self, Prepared};
 use serde_json::{Map, Value, json};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
-use crate::{AppWindow, SelectOption, SettingsCategory, SettingsData, prefs, shell, toast};
+use crate::{
+    AppWindow, CheckRow, SelectOption, SettingsCategory, SettingsData, prefs, shell, toast,
+};
 
 thread_local! {
     static UI: RefCell<slint::Weak<AppWindow>> = RefCell::new(slint::Weak::default());
@@ -28,7 +30,9 @@ fn pref_bool(p: &Map<String, Value>, key: &str) -> bool {
             | "leaderboardDropNotificationsEnabled"
             | "achievementNotificationsEnabled"
             | "achievementCustomNotificationsEnabled"
-    );
+            | "autoplayGameTrailers"
+            | "enableNewDownloadOptionsBadges"
+    ) || (key == "enableAchievementSouvenirs" && !cfg!(target_os = "linux"));
     p.get(key).and_then(Value::as_bool).unwrap_or(default)
 }
 
@@ -154,6 +158,34 @@ pub fn init(ui: &AppWindow) {
     });
     data.on_change_downloads_path(change_downloads_path);
     data.on_max_speed_committed(commit_max_speed);
+    data.on_open_guide(|article| eprintln!("TODO(help): open guide article {article}"));
+    data.on_hydra_cloud(|| eprintln!("TODO(cloud): showHydraCloudModal(\"achievements\")"));
+    data.on_change_screenshots_path(|| {
+        let current = screenshots_path(&prefs::get());
+        if let Some(folder) = rfd::FileDialog::new().set_directory(&current).pick_folder() {
+            prefs::update(Map::from_iter([(
+                "achievementScreenshotsPath".to_string(),
+                json!(folder.to_string_lossy()),
+            )]));
+            refresh();
+        }
+    });
+    data.on_reset_screenshots_path(|| {
+        let mut p = prefs::get();
+        p.remove("achievementScreenshotsPath");
+        if let Some(db) = shell::db() {
+            let _ = db.put(hydra_db::keys::USER_PREFERENCES, &p);
+        }
+        refresh();
+    });
+    data.on_open_screenshots_path(|| {
+        let path = screenshots_path(&prefs::get());
+        let _ = std::fs::create_dir_all(&path);
+        #[cfg(windows)]
+        let _ = std::process::Command::new("explorer").arg(&path).spawn();
+        #[cfg(not(windows))]
+        let _ = std::process::Command::new("xdg-open").arg(&path).spawn();
+    });
     data.on_position_selected(|value| {
         prefs::update(Map::from_iter([(
             "achievementCustomNotificationPosition".to_string(),
@@ -305,6 +337,110 @@ pub fn refresh() {
     });
     refresh_downloads(&p);
     refresh_notifications(&p);
+    refresh_content(&p);
+}
+
+/// getAchievementScreenshotsDirectory: the preference, else <userData>/Screenshots.
+fn screenshots_path(p: &Map<String, Value>) -> String {
+    p.get("achievementScreenshotsPath")
+        .and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            hydra_db::paths::native_user_data()
+                .map(|d| d.join("Screenshots").to_string_lossy().into_owned())
+                .unwrap_or_default()
+        })
+}
+
+fn rows(p: &Map<String, Value>, list: &[(&str, &str, &str)]) -> ModelRc<CheckRow> {
+    let rows: Vec<CheckRow> = list
+        .iter()
+        .map(|(key, label, guide)| CheckRow {
+            key: (*key).into(),
+            label: t(&format!("settings.{label}")).into(),
+            checked: pref_bool(p, key),
+            guide: (*guide).into(),
+        })
+        .collect();
+    ModelRc::new(VecModel::from(rows))
+}
+
+fn refresh_content(p: &Map<String, Value>) {
+    let mut content = vec![
+        ("autoplayGameTrailers", "autoplay_trailers_on_game_page", ""),
+        ("disableNsfwAlert", "disable_nsfw_alert", ""),
+    ];
+    if crate::features::enabled("SCREENSHOTS") {
+        content.push(("showSensitiveScreenshots", "screenshots_show_sensitive", ""));
+    }
+    content.extend([
+        (
+            "showHiddenAchievementsDescription",
+            "show_hidden_achievement_description",
+            "",
+        ),
+        (
+            "enableNewDownloadOptionsBadges",
+            "enable_new_download_options_badges",
+            "",
+        ),
+        (
+            "persistFiltersAndSorting",
+            "persist_filters_and_sorting",
+            "",
+        ),
+    ]);
+    let library = [
+        ("hideLibraryGameBadges", "hide_library_game_badges", ""),
+        (
+            "hideLibraryReadySizeBadges",
+            "hide_library_ready_size_badges",
+            "",
+        ),
+        (
+            "hideLibraryClassicsBadges",
+            "hide_library_classics_badges",
+            "",
+        ),
+        ("hideSteamLibraryBadges", "hide_library_steam_badges", ""),
+        ("hideEpicLibraryBadges", "hide_library_epic_badges", ""),
+        (
+            "hideLibraryAchievementProgress",
+            "hide_library_achievement_progress",
+            "",
+        ),
+        ("autoplayAnimatedArtwork", "autoplay_animated_artwork", ""),
+    ];
+    let classics = [
+        ("hideClassicsBookmark", "hide_classics_bookmark", ""),
+        ("classicsUseHeroLayout", "classics_use_hero_layout", ""),
+    ];
+    let mut subscribed = false;
+    with_ui(|ui| subscribed = ui.global::<crate::Session>().get_has_subscription());
+    let path = screenshots_path(p);
+    let custom = p
+        .get("achievementScreenshotsPath")
+        .and_then(Value::as_str)
+        .is_some_and(|s| !s.is_empty());
+    with_ui(|ui| {
+        let data = ui.global::<SettingsData>();
+        data.set_content_rows(rows(p, &content));
+        data.set_metadata_rows(rows(
+            p,
+            &[(
+                "enableSteamAchievements",
+                "enable_steam_achievements",
+                "steam-achievements",
+            )],
+        ));
+        data.set_library_rows(rows(p, &library));
+        data.set_classics_rows(rows(p, &classics));
+        data.set_has_subscription(subscribed);
+        data.set_souvenirs(pref_bool(p, "enableAchievementSouvenirs"));
+        data.set_screenshots_path(path.into());
+        data.set_custom_screenshots_path(custom);
+    });
 }
 
 /// userDetails.allowLeaderboardNotifications ?? true
@@ -613,6 +749,32 @@ fn toggle(key: &str) {
     if key == "achievementCustomNotificationsEnabled"
         && !pref_bool(&p, "achievementNotificationsEnabled")
     {
+        return;
+    }
+    // handleAchievementSouvenirsChange: Wayland asks first
+    if key == "enableAchievementSouvenirs"
+        && !pref_bool(&p, key)
+        && cfg!(target_os = "linux")
+        && std::env::var_os("WAYLAND_DISPLAY").is_some()
+    {
+        crate::dialogs::confirm(
+            crate::dialogs::Confirm {
+                title: &t("settings.wayland_souvenirs_warning_title"),
+                description: &t("settings.wayland_souvenirs_warning_description"),
+                body: "",
+                confirm_label: &t("settings.wayland_souvenirs_warning_confirm"),
+                cancel_label: &t("settings.wayland_souvenirs_warning_cancel"),
+                danger: false,
+            },
+            || {
+                crate::dialogs::close();
+                prefs::update(Map::from_iter([(
+                    "enableAchievementSouvenirs".to_string(),
+                    json!(true),
+                )]));
+                refresh();
+            },
+        );
         return;
     }
     if key == "appendGlobalTrackers" || key == "appendGlobalTrackersUrl" {

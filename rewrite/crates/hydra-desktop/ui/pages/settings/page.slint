@@ -14,6 +14,14 @@ export struct SettingsCategory {
     group-start: bool,
 }
 
+// A checkbox bound to a preference key; `guide` adds GuideLink's question icon.
+export struct CheckRow {
+    key: string,
+    label: string,
+    checked: bool,
+    guide: string,
+}
+
 // One download source (settings-download-sources__item).
 export struct SourceCard {
     id: string,
@@ -90,6 +98,21 @@ export global SettingsData {
     callback position-selected(string);
     callback test-notification();
     callback volume-changed(int);
+
+    // ---- Content & gameplay (checkbox values by preference key, filled by Rust)
+    in property <[CheckRow]> content-rows;
+    in property <[CheckRow]> metadata-rows;
+    in property <[CheckRow]> library-rows;
+    in property <[CheckRow]> classics-rows;
+    in property <bool> has-subscription;
+    in property <bool> souvenirs;
+    in property <string> screenshots-path;
+    in property <bool> custom-screenshots-path;
+    callback open-guide(string);
+    callback hydra-cloud();
+    callback change-screenshots-path();
+    callback reset-screenshots-path();
+    callback open-screenshots-path();
 
     // ---- Download sources
     in property <[SourceCard]> sources;
@@ -754,6 +777,172 @@ component NotificationsPanel inherits VerticalLayout {
     }
 }
 
+// A CheckRow; with a guide, the label reads like GuideLink (text + 12px question icon).
+component RowCheck inherits Rectangle {
+    in property <CheckRow> item;
+    height: 20px;
+    CheckboxField {
+        x: 0;
+        width: root.item.guide == "" ? parent.width : 20px;
+        label: root.item.guide == "" ? root.item.label : "";
+        checked: root.item.checked;
+        toggled => {
+            SettingsData.toggle(root.item.key);
+        }
+    }
+    if root.item.guide != "": HorizontalLayout {
+        x: 28px;
+        spacing: 4px;
+        alignment: start;
+        Text {
+            text: root.item.label;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            vertical-alignment: center;
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    SettingsData.toggle(root.item.key);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 12px;
+                height: 12px;
+                source: @image-url("../../icons/question-12.svg");
+                color: Theme.body;
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        SettingsData.open-guide(root.item.guide);
+                    }
+                }
+            }
+        }
+    }
+}
+
+component RowGroup inherits VerticalLayout {
+    in property <string> title;
+    in property <[CheckRow]> rows;
+    padding-top: 12px;
+    spacing: 12px;
+    GroupTitle {
+        text: root.title;
+    }
+    for entry in root.rows: RowCheck {
+        item: entry;
+    }
+    @children
+}
+
+// hydra-cloud-badge: teal-to-blue gradient (both 30% darker), white 12px
+component HydraCloudBadge inherits Rectangle {
+    height: label.preferred-height;
+    width: label.preferred-width + 16px;
+    border-radius: 4px;
+    background: @linear-gradient(270deg, #0f7c68 50%, #2b4587 100%);
+    label := Text {
+        text: "Hydra Cloud";
+        color: #ffffff;
+        font-size: Theme.small-size;
+    }
+}
+
+// settings-context-content-gameplay.tsx
+component ContentPanel inherits VerticalLayout {
+    spacing: 16px;
+    RowGroup {
+        title: T.tr("settings.content_preferences");
+        rows: SettingsData.content-rows;
+    }
+    RowGroup {
+        title: T.tr("settings.gameplay_metadata");
+        rows: SettingsData.metadata-rows;
+        // achievement souvenirs: a Hydra Cloud feature
+        if SettingsData.has-subscription: Check {
+            key: "enableAchievementSouvenirs";
+            label: T.tr("settings.enable_achievement_souvenirs");
+            checked: SettingsData.souvenirs;
+        }
+        if !SettingsData.has-subscription: HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+            CheckboxField {
+                label: T.tr("settings.enable_achievement_souvenirs");
+                checked: false;
+                enabled: false;
+            }
+            HydraCloudBadge {
+                y: (parent.height - self.height) / 2;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    SettingsData.hydra-cloud();
+                }
+            }
+        }
+        // __screenshots-directory: the field and the open button, 8px apart
+        VerticalLayout {
+        spacing: 8px;
+        Labeled {
+            label: T.tr("settings.screenshots_directory");
+            HorizontalLayout {
+                spacing: 8px;
+                TextField {
+                    text: SettingsData.screenshots-path;
+                    read-only: true;
+                }
+                HydraButton {
+                    kind: "outline";
+                    icon: @image-url("../../icons/file-directory-14.svg");
+                    icon-size: 14px;
+                    text: T.tr("settings.change_screenshots_directory");
+                    enabled: SettingsData.has-subscription && SettingsData.souvenirs;
+                    clicked => {
+                        SettingsData.change-screenshots-path();
+                    }
+                }
+                if SettingsData.custom-screenshots-path: HydraButton {
+                    kind: "outline";
+                    icon: @image-url("../../icons/history-14.svg");
+                    icon-size: 14px;
+                    tooltip: T.tr("settings.reset_screenshots_directory");
+                    enabled: SettingsData.has-subscription && SettingsData.souvenirs;
+                    clicked => {
+                        SettingsData.reset-screenshots-path();
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                kind: "outline";
+                icon: @image-url("../../icons/file-directory-14.svg");
+                icon-size: 14px;
+                text: T.tr("settings.open_screenshots_directory");
+                enabled: SettingsData.has-subscription && SettingsData.souvenirs;
+                clicked => {
+                    SettingsData.open-screenshots-path();
+                }
+            }
+        }
+        }
+    }
+    RowGroup {
+        title: T.tr("settings.library_appearance");
+        rows: SettingsData.library-rows;
+    }
+    RowGroup {
+        title: T.tr("settings.classics_appearance");
+        rows: SettingsData.classics-rows;
+    }
+}
+
 // settings-download-sources.tsx
 component SourcesPanel inherits VerticalLayout {
     property <bool> busy: SettingsData.sources-syncing || SettingsData.sources-removing;
@@ -1035,7 +1224,8 @@ export component SettingsPage inherits Rectangle {
                             if SettingsData.category == "downloads": DownloadsPanel { }
                             if SettingsData.category == "download_sources": SourcesPanel { }
                             if SettingsData.category == "notifications": NotificationsPanel { }
-                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications": Text {
+                            if SettingsData.category == "content_gameplay": ContentPanel { }
+                            if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications" && SettingsData.category != "content_gameplay": Text {
                                 text: "TODO(settings): " + SettingsData.category + " not ported yet";
                                 color: Theme.subtle;
                                 font-size: Theme.small-size;
