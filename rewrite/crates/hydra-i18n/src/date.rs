@@ -185,7 +185,9 @@ pub fn format_pattern(date_ms: i64, pattern: &str) -> String {
             ('M', 2) => out.push_str(&format!("{:02}", d.month())),
             ('y', 4) => out.push_str(&format!("{:04}", d.year())),
             ('H', 2) => out.push_str(&format!("{:02}", d.hour())),
+            ('H', 1) => out.push_str(&format!("{}", d.hour())),
             ('h', 2) => out.push_str(&format!("{hour12:02}")),
+            ('h', 1) => out.push_str(&format!("{hour12}")),
             ('m', 2) => out.push_str(&format!("{:02}", d.minute())),
             ('a', 1) => out.push_str(if pm { "PM" } else { "AM" }),
             _ => (0..run).for_each(|_| out.push(c)),
@@ -361,6 +363,25 @@ pub fn format_date_time(language: &str, date_ms: i64) -> String {
             "dd/MM/yyyy HH:mm"
         },
     )
+}
+
+/// formatAchievementUnlockDateTime: Intl day (2-digit, numeric year) and
+/// timeStyle "short", joined by " · ". English and Intl's dotted/slashed
+/// European orders; other locales fall back to day/month/year.
+pub fn format_achievement_unlock(language: &str, date_ms: i64) -> String {
+    let base = language
+        .split(['-', '_'])
+        .next()
+        .unwrap_or("en")
+        .to_lowercase();
+    let pattern = match base.as_str() {
+        "en" => "MM/dd/yyyy · h:mm a",
+        "de" | "ru" | "uk" | "pl" | "cs" | "fi" | "nb" | "da" | "tr" | "ro" | "be" | "kk"
+        | "bg" => "dd.MM.yyyy · HH:mm",
+        "hu" => "yyyy. MM. dd. · H:mm",
+        _ => "dd/MM/yyyy · HH:mm",
+    };
+    format_pattern(date_ms, pattern)
 }
 
 /// `formatDate` (shared/index.ts).

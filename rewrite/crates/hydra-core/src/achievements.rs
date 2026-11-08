@@ -30,6 +30,8 @@ pub struct Achievement {
     /// Souvenir screenshot, when the user has one.
     pub image_url: Option<String>,
     pub global_unlock_percentage: Option<f64>,
+    /// Hydra Cloud achievement points (from the game's achievement data).
+    pub points: Option<i64>,
 }
 
 fn text(value: &Value, key: &str) -> String {
@@ -184,6 +186,7 @@ pub fn unlocked_achievements(
                 unlock_time,
                 image_url: unlock_time.and(souvenirs.get(&key).cloned()),
                 global_unlock_percentage: d.get("globalUnlockPercentage").and_then(Value::as_f64),
+                points: d.get("points").and_then(Value::as_f64).map(|p| p as i64),
                 name,
             }
         })
@@ -253,6 +256,16 @@ fn present_combined(groups: &[Value], catalogue: &[Value]) -> Vec<Achievement> {
                     .and_then(Value::as_str)
                     .map(str::to_string),
                 global_unlock_percentage: percentage,
+                points: selected
+                    .get("points")
+                    .and_then(Value::as_f64)
+                    .or_else(|| {
+                        definitions
+                            .get(&text(selected, "name").to_uppercase())
+                            .and_then(|d| d.get("points"))
+                            .and_then(Value::as_f64)
+                    })
+                    .map(|p| p as i64),
                 name,
             })
         })
