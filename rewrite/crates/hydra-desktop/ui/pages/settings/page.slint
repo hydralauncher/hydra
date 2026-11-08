@@ -5,6 +5,7 @@ import { Icon, HydraButton, ScrollBar } from "../../components/widgets.slint";
 import { TextField, CheckboxField, SelectField, SelectOption } from "../../components/fields.slint";
 import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
 import { T } from "../../globals.slint";
+import { IntegrationCardView, IntegrationsData } from "integrations.slint";
 
 export struct SettingsCategory {
     id: string,
@@ -1157,13 +1158,19 @@ component DebridSection inherits VerticalLayout {
     }
 }
 
-// settings-context-integrations.tsx (Steam, Epic and RetroAchievements cards are TODO)
+// settings-context-integrations.tsx: the Steam, Epic Games and
+// RetroAchievements cards (integrations.slint), then the debrid services.
 component IntegrationsPanel inherits VerticalLayout {
+    // page-max-width(760px) on .container__content
+    in property <bool> narrow;
     spacing: 16px;
-    Text {
-        text: "TODO(settings): Steam, Epic Games and RetroAchievements cards";
-        color: Theme.subtle;
-        font-size: Theme.small-size;
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        for card in IntegrationsData.cards: IntegrationCardView {
+            card: card;
+            narrow: root.narrow;
+        }
     }
     // settings-context-panel__divider
     Rectangle {
@@ -1590,6 +1597,16 @@ export component SettingsPage inherits Rectangle {
         root.tween.active = false;
         root.scroll-y = 0;
     }
+    // overflow: auto with a classic 9px scrollbar: it takes its width from
+    // the panel's content while the panel scrolls (set imperatively: the
+    // content height depends on that width)
+    property <bool> scrolls;
+    changed max-scroll => {
+        root.scrolls = root.max-scroll > 0;
+    }
+    init => {
+        root.scrolls = root.max-scroll > 0;
+    }
 
     // settings__container: padding 24px, inside .container__content's 9px
     // scrollbar gutter (scrollbar-gutter: stable)
@@ -1672,7 +1689,7 @@ export component SettingsPage inherits Rectangle {
                             accept
                         }
                         column := VerticalLayout {
-                            width: panel.width;
+                            width: panel.width - (root.scrolls ? 9px : 0);
                             padding: 20px;
                             spacing: 20px;
                             alignment: start;
@@ -1690,7 +1707,9 @@ export component SettingsPage inherits Rectangle {
                             if SettingsData.category == "notifications": NotificationsPanel { }
                             if SettingsData.category == "content_gameplay": ContentPanel { }
                             if SettingsData.category == "account_privacy" && SettingsData.account-loaded: AccountPanel { }
-                            if SettingsData.category == "integrations": IntegrationsPanel { }
+                            if SettingsData.category == "integrations": IntegrationsPanel {
+                                narrow: root.width <= 760px;
+                            }
                             if SettingsData.category != "general" && SettingsData.category != "downloads" && SettingsData.category != "download_sources" && SettingsData.category != "notifications" && SettingsData.category != "content_gameplay" && SettingsData.category != "account_privacy" && SettingsData.category != "integrations": Text {
                                 text: "TODO(settings): " + SettingsData.category + " not ported yet";
                                 color: Theme.subtle;

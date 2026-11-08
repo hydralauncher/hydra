@@ -95,7 +95,7 @@ pub fn handle(uri: &str) {
         }
         // Themes are gone from the rewrite (decided 2026-11-08).
         "install-theme" => {}
-        "steam-connected" => eprintln!("TODO(steam): completeSteamOpenIdConnection"),
+        "steam-connected" => crate::settings_integrations::handle_steam_connected_link(uri),
         other => eprintln!("deep link: unknown host {other:?}"),
     }
 }

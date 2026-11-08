@@ -190,6 +190,12 @@ const icons = {
   "lucide-chevrons-right": [lucide.ChevronsRight, { size: 18, strokeWidth: 2.25, absoluteStrokeWidth: true }],
   question: [oct.QuestionIcon, { size: 28 }],
   "arrow-down-24": [oct.ArrowDownIcon, { size: 24 }],
+  // Settings: integrations, screenshots, compatibility, emulation
+  "link-external-14": [oct.LinkExternalIcon, { size: 14 }],
+  "link-external-16": [oct.LinkExternalIcon, { size: 16 }],
+  "desktop-download": [oct.DesktopDownloadIcon, { size: 16 }],
+  "chevron-right-12": [oct.ChevronRightIcon, { size: 12 }],
+  "eye-16": [oct.EyeIcon, { size: 16 }],
 };
 
 for (const [name, [Icon, props]] of Object.entries(icons)) {

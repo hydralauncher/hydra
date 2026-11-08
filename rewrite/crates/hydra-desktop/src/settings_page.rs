@@ -7,9 +7,7 @@ use hydra_core::download_directories::{self, Prepared};
 use serde_json::{Map, Value, json};
 use slint::{ComponentHandle, ModelRc, VecModel};
 
-use crate::{
-    AppWindow, CheckRow, SelectOption, SettingsCategory, SettingsData, prefs, shell, toast,
-};
+use crate::{AppWindow, CheckRow, SelectOption, SettingsCategory, SettingsData, prefs, shell};
 
 thread_local! {
     static UI: RefCell<slint::Weak<AppWindow>> = RefCell::new(slint::Weak::default());
@@ -266,6 +264,7 @@ fn select(id: &str) {
     }
     if id == "integrations" {
         crate::settings_debrid::refresh();
+        crate::settings_integrations::refresh();
     }
     let label = categories()
         .into_iter()
@@ -824,11 +823,11 @@ fn toggle(key: &str) {
     let value = !pref_bool(&p, key);
     prefs::update(Map::from_iter([(key.to_string(), json!(value))]));
     if key == "runAtStartup" || key == "startMinimized" {
-        // TODO(settings): window.electron.autoLaunch (the OS login item).
-        eprintln!(
-            "TODO(settings): autoLaunch enabled={} minimized={}",
-            prefs::flag(&prefs::get(), "runAtStartup"),
-            prefs::flag(&prefs::get(), "startMinimized")
+        // window.electron.autoLaunch with the toggled form values
+        let p = prefs::get();
+        crate::autolaunch::apply(
+            prefs::flag(&p, "runAtStartup"),
+            prefs::flag(&p, "startMinimized"),
         );
     }
     refresh();
@@ -856,9 +855,18 @@ fn change_downloads_path() {
             prefs::update(preferences);
             refresh();
         }
-        Prepared::ReplaceRequired { .. } => {
-            // TODO(settings): DownloadDirectoryReplacementModal (all four saved slots are used).
-            toast::error(&t("settings.replace_download_directory"));
+        Prepared::ReplaceRequired {
+            next_path,
+            replaceable,
+            recommended,
+        } => {
+            // all saved slots are used: DownloadDirectoryReplacementModal
+            crate::settings_modals::open_replacement(
+                &next_path,
+                &replaceable,
+                &recommended,
+                refresh,
+            );
         }
     }
 }

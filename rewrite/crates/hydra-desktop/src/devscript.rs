@@ -129,6 +129,8 @@ fn next<C: ComponentHandle + 'static>(
         "notify-extract" => {
             crate::notify::extraction_complete(args.first().copied().unwrap_or_default())
         }
+        // settings states the account can't reach on its own (settings_integrations::dev)
+        "settings-dev" => crate::settings_integrations::dev(&args),
         "quit" => {
             let _ = slint::quit_event_loop();
             return;

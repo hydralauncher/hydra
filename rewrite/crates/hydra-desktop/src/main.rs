@@ -6,6 +6,7 @@
 
 mod achievements_page;
 mod auth;
+mod autolaunch;
 mod catalogue_page;
 mod classics_bookmark;
 mod collections;
@@ -40,12 +41,18 @@ mod playtime_modals;
 mod popup;
 mod prefs;
 mod realtime;
+mod retroachievements;
 mod search;
 mod settings_account;
 mod settings_debrid;
+mod settings_integrations;
+mod settings_modals;
 mod settings_page;
 mod settings_sources;
 mod shell;
+mod steam_openid;
+mod steam_sync;
+mod text_metrics;
 mod toast;
 mod tray;
 
@@ -253,6 +260,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     settings_sources::init(&ui);
     settings_account::init(&ui);
     settings_debrid::init(&ui);
+    settings_modals::init(&ui);
+    settings_integrations::init(&ui);
     auth::init(&ui);
     notifications_page::init(&ui);
     search::init(&ui);

@@ -38,6 +38,8 @@ dirs = "6"
 if-addrs = "0.13"
 fs2 = "0.4"
 interprocess = "2"
+# Noto Sans advances for line breaks Slint can't report (text_metrics.rs)
+ttf-parser = "0.25"
 
 # OS notifications: Windows toasts (Electron sets the icon as appLogoOverride),
 # libnotify-style D-Bus notifications elsewhere.

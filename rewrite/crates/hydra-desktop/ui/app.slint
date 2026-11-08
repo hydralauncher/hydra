@@ -27,6 +27,10 @@ import { AchievementsPage, AchievementsData, AchievementRow } from "pages/achiev
 import { SearchDropdown, SearchData, SearchPart, SearchSuggestionRow } from "shell/search-dropdown.slint";
 import { NotificationsPage, NotificationsData, NotificationRow } from "pages/notifications/page.slint";
 import { SettingsPage, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow } from "pages/settings/page.slint";
+import { SettingsModalsHost, SettingsModals } from "pages/settings/modals.slint";
+import { IntegrationsData, IntegrationCard, IntegrationAction } from "pages/settings/integrations.slint";
+import { RetroAchievementsWindow, RaWindowStrings } from "retroachievements-window.slint";
+import { WebWindow } from "web-window.slint";
 import { Bookmark } from "pages/game-details/bookmark.slint";
 import { GameModalsHost } from "pages/game-details/modals.slint";
 import { DownloadSettings, DownloaderRow } from "pages/game-details/download-settings.slint";
@@ -52,6 +56,7 @@ export { SearchData, SearchPart, SearchSuggestionRow }
 export { AchievementsData, AchievementRow }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
+export { SettingsModals, IntegrationsData, IntegrationCard, IntegrationAction, RetroAchievementsWindow, RaWindowStrings, WebWindow }
 export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
 
 export component AppWindow inherits Window {
@@ -160,6 +165,12 @@ export component AppWindow inherits Window {
     }
 
     DialogHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Settings modals with their own layout (z-index 5, like the dialogs).
+    SettingsModalsHost {
         width: root.width;
         height: root.height;
     }
