@@ -163,7 +163,8 @@ export component AchievementNotificationCard inherits Rectangle {
                     spacing: 4px;
                     // __title: bold, three lines; the hidden eye inline before it
                     Rectangle {
-                        height: title-text.preferred-height;
+                        // -webkit-line-clamp: 3 (p line-height 20px)
+                        height: Math.min(title-text.preferred-height, 3 * 20px);
                         opacity: root.frame.title-opacity;
                         title-text := Text {
                             x: root.card.hidden ? 20px : 0;
@@ -173,9 +174,9 @@ export component AchievementNotificationCard inherits Rectangle {
                             font-size: Theme.body-size;
                             font-weight: 700;
                             color: Theme.muted;
+                            height: parent.height;
                             wrap: word-wrap;
                             overflow: elide;
-                            max-height: 3 * 19px;
                         }
                         if root.card.hidden: Image {
                             x: 0;
@@ -189,7 +190,8 @@ export component AchievementNotificationCard inherits Rectangle {
                     }
                     // __description: two lines
                     if root.card.description != "": Rectangle {
-                        height: description-text.preferred-height;
+                        // -webkit-line-clamp: 2 (p line-height 20px)
+                        height: Math.min(description-text.preferred-height, 2 * 20px);
                         opacity: root.frame.description-opacity;
                         description-text := Text {
                             x: 0;
@@ -198,9 +200,9 @@ export component AchievementNotificationCard inherits Rectangle {
                             text: root.card.description;
                             font-size: Theme.body-size;
                             color: Theme.body;
+                            height: parent.height;
                             wrap: word-wrap;
                             overflow: elide;
-                            max-height: 2 * 19px;
                         }
                     }
                 }
