@@ -120,6 +120,88 @@ pub fn has_markup(text: &str) -> bool {
     plain(text).len() != text.len()
 }
 
+/// The editor text as the HTML TipTap's `getHTML()` sends: one `<p>` per
+/// line, `<strong>`/`<em>`/`<u>` for the marks, text escaped.
+pub fn to_html(text: &str) -> String {
+    #[derive(Clone, Copy, PartialEq)]
+    enum M {
+        Bold,
+        Italic,
+        Underline,
+    }
+    fn tag(mark: M) -> &'static str {
+        match mark {
+            M::Bold => "strong",
+            M::Italic => "em",
+            M::Underline => "u",
+        }
+    }
+    let mut open: Vec<M> = Vec::new();
+    let mut out = String::new();
+    for line in text.split('\n') {
+        out.push_str("<p>");
+        for mark in &open {
+            out.push_str(&format!("<{}>", tag(*mark)));
+        }
+        let mut rest = line;
+        while !rest.is_empty() {
+            let (toggle, on, len) = if rest.starts_with("**") {
+                (Some(M::Bold), !open.contains(&M::Bold), 2)
+            } else if rest.starts_with("<u>") {
+                (Some(M::Underline), true, 3)
+            } else if rest.starts_with("</u>") {
+                (Some(M::Underline), false, 4)
+            } else if rest.starts_with('_') {
+                (Some(M::Italic), !open.contains(&M::Italic), 1)
+            } else {
+                (None, false, rest.chars().next().map_or(1, char::len_utf8))
+            };
+            match toggle {
+                Some(mark) if on && !open.contains(&mark) => {
+                    open.push(mark);
+                    out.push_str(&format!("<{}>", tag(mark)));
+                }
+                Some(mark) if !on => {
+                    if let Some(at) = open.iter().position(|m| *m == mark) {
+                        // Close down to the mark, then reopen the ones above it.
+                        for m in open[at..].iter().rev() {
+                            out.push_str(&format!("</{}>", tag(*m)));
+                        }
+                        open.remove(at);
+                        for m in &open[at..] {
+                            out.push_str(&format!("<{}>", tag(*m)));
+                        }
+                    }
+                }
+                Some(_) => {}
+                None => match &rest[..len] {
+                    "&" => out.push_str("&amp;"),
+                    "<" => out.push_str("&lt;"),
+                    ">" => out.push_str("&gt;"),
+                    "\"" => out.push_str("&quot;"),
+                    other => out.push_str(other),
+                },
+            }
+            rest = &rest[len..];
+        }
+        for mark in open.iter().rev() {
+            out.push_str(&format!("</{}>", tag(*mark)));
+        }
+        out.push_str("</p>");
+    }
+    // Marks that wrap nothing (an empty pair at the cursor) leave no tag.
+    loop {
+        let before = out.len();
+        for name in ["strong", "em", "u"] {
+            out = out.replace(&format!("<{name}></{name}>"), "");
+        }
+        if out.len() == before {
+            break;
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,6 +268,26 @@ mod tests {
     fn reports_open_marks() {
         assert_eq!(marks_at("**bold _both", 12), (true, true, false));
         assert_eq!(marks_at("**bold** <u>x", 13), (false, false, true));
+    }
+
+    #[test]
+    fn converts_to_tiptap_html() {
+        assert_eq!(to_html("hello"), "<p>hello</p>");
+        assert_eq!(
+            to_html("a **b _c_** <u>d</u> & <x>"),
+            "<p>a <strong>b <em>c</em></strong> <u>d</u> &amp; &lt;x&gt;</p>"
+        );
+        assert_eq!(to_html("one\n\ntwo"), "<p>one</p><p></p><p>two</p>");
+        assert_eq!(
+            to_html("**a\nb**"),
+            "<p><strong>a</strong></p><p><strong>b</strong></p>"
+        );
+        assert_eq!(to_html("x****y"), "<p>xy</p>");
+        // Closing an outer mark first keeps the HTML well nested.
+        assert_eq!(
+            to_html("**a _b** c_"),
+            "<p><strong>a <em>b</em></strong><em> c</em></p>"
+        );
     }
 
     #[test]

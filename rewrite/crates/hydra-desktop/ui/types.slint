@@ -39,6 +39,12 @@ export struct DescBlock {
 export struct SimilarGame {
     title: string,
     cover: image,
+    // useClassicsLayout: launchbox covers sit on a blurred backdrop
+    classics: bool,
+    // blur(16px) saturate(1.1) of the cover (classics only)
+    backdrop: image,
+    // Every source failed: the placeholder with the image icon.
+    missing: bool,
 }
 
 export struct Achievement {
@@ -62,29 +68,83 @@ export struct Language {
     audio: bool,
 }
 
-export struct Review {
-    id: int,
+// review-reply-item.tsx
+export struct ReviewReply {
+    id: string,
+    user-id: string,
     name: string,
-    score: int,
-    playtime: string,
+    avatar: image,
+    // useProcessedImage(backgroundImageUrl, 960x140): the header banner.
+    banner: image,
     date: string,
-    full-date: string,
     content: styled-text,
     original: styled-text,
-    original-language: string,
-    translated: bool,
+    // "Show original (translated from …)" when a translation is shown.
+    translated-from: string,
     show-original: bool,
     own: bool,
+    // formatNumber (compact)
+    upvotes: string,
+    downvotes: string,
+    has-upvoted: bool,
+    has-downvoted: bool,
+    voting: bool,
+    up-pulse: int,
+    down-pulse: int,
+}
+
+// review-thread.tsx + review-item.tsx
+export struct Review {
+    id: string,
+    user-id: string,
+    name: string,
+    avatar: image,
+    banner: image,
+    score: int,
+    rating-text: string,
+    playtime: string,
+    // "Played with {{name}}" (recompilations)
+    recompilation: string,
+    date: string,
+    content: styled-text,
+    original: styled-text,
+    translated-from: string,
+    show-original: bool,
+    own: bool,
+    // review.isBlocked, and whether the reader chose to show it anyway
+    blocked: bool,
+    blocked-visible: bool,
     upvotes: int,
     downvotes: int,
     prev-upvotes: int,
     prev-downvotes: int,
+    // formatNumber (compact) of the counts above
+    up-label: string,
+    down-label: string,
+    prev-up-label: string,
+    prev-down-label: string,
     has-upvoted: bool,
     has-downvoted: bool,
+    voting: bool,
     // Bumped by the backend whenever a count changes / a vote turns on.
     // Parity flips drive the "roll" and "pulse" animations.
     up-gen: int,
     down-gen: int,
     up-pulse: int,
     down-pulse: int,
+    // ---- the reply thread (the replies on screen)
+    replies: [ReviewReply],
+    // The total for "View all replies (n)".
+    reply-total: int,
+    has-replies: bool,
+    replies-loading: bool,
+    can-view-all: bool,
+    can-load-more: bool,
+    show-hide: bool,
+    replies-hidden: bool,
+    show-inline-reply: bool,
+    can-reply: bool,
+    composer-open: bool,
+    composer-prefill: string,
+    reply-submitting: bool,
 }

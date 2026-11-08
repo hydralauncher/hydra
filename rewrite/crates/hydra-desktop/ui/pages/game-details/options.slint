@@ -1,20 +1,53 @@
 // game-options-modal.tsx: a 210px category sidebar and one panel per
 // category (game-options-modal.scss). Rust fills `GameOptions` and handles
 // the actions (game_options.rs).
-import { Theme, Icons } from "../../theme.slint";
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
 import { HydraButton, Icon } from "../../components/widgets.slint";
 import { TextField, CheckboxField } from "../../components/fields.slint";
 import { T } from "../../globals.slint";
 import { GameData } from "state.slint";
+import { GameAssetsSettings } from "assets.slint";
 
 export struct OptionsCategory {
     id: string,
     label: string,
 }
 
+// ProtonPathPicker rows: "" is Auto.
+export struct GameProtonOption {
+    name: string,
+    path: string,
+    // The tooltip: the version's source (Steam / compatibilitytools.d).
+    description: string,
+}
+
 export global GameOptions {
     in property <[OptionsCategory]> categories;
     in-out property <string> category: "general";
+    // The modal title (presentation?.title ?? game.title)
+    in property <string> modal-title;
+
+    // Compatibility (Linux): compatibility-section.tsx
+    in property <string> wine-prefix;
+    in property <string> wine-prefix-placeholder;
+    // game.winePrefixPath (the Clear button)
+    in property <bool> has-custom-prefix;
+    in property <bool> winetricks-available;
+    in property <bool> gamemode-checked;
+    in property <bool> gamemode-disabled;
+    in property <string> gamemode-tooltip;
+    in property <bool> mangohud-checked;
+    in property <bool> mangohud-disabled;
+    in property <string> mangohud-tooltip;
+    in property <[GameProtonOption]> proton-versions;
+    in property <string> proton-path;
+    callback select-wine-prefix();
+    callback clear-wine-prefix();
+    callback open-winetricks();
+    callback toggle-gamemode();
+    callback toggle-mangohud();
+    callback select-proton(string);
+    callback open-link(string);
 
     // General
     in-out property <string> title-text;
@@ -28,12 +61,29 @@ export global GameOptions {
     in property <bool> has-launch-options;
     in property <bool> show-launch-options: true;
 
+    // Shortcuts (General): hasShortcutLaunchTarget || steamShortcutExists
+    in property <bool> has-shortcut-target;
+    in property <bool> steam-shortcut-exists;
+    in property <bool> creating-steam-shortcut;
+    // not a custom game: the Steam shortcut button
+    in property <bool> show-steam-shortcut;
+    // win32: "Create Start Menu shortcut"
+    in property <bool> show-start-menu-shortcut;
+    callback create-shortcut(string);
+    callback steam-shortcut();
+
     // Locations
     in property <string> executable;
     // win32 and not a custom game
     in property <bool> show-save-folder;
     in property <bool> save-folder-loading;
     in property <bool> has-save-folder;
+    // supportsTrackingExecutables (.exe/.bat/.cmd) / isBatchExecutable
+    in property <bool> supports-tracking;
+    in property <bool> bat-warning;
+    in property <[string]> tracking-paths;
+    callback add-tracking-executable();
+    callback remove-tracking-executable(int);
 
     // Downloads
     in property <bool> custom;
@@ -114,6 +164,10 @@ component SidebarButton inherits Rectangle {
 component Header inherits VerticalLayout {
     in property <string> title;
     in property <string> description;
+    // The panel's text width: Slint sizes a wrapping Text by its preferred
+    // width when the modal asks for the panel's height, so the description
+    // prefers the real width and the modal grows with it like Electron's.
+    in property <length> wrap-width: 548px;
     spacing: 8px;
     Text {
         text: root.title;
@@ -128,13 +182,184 @@ component Header inherits VerticalLayout {
         font-size: Theme.body-size;
         color: Theme.body;
         wrap: word-wrap;
+        preferred-width: root.wrap-width;
+    }
+}
+
+// radio-field.tsx: a 20px round control (the accent var is undefined in
+// Hydra's CSS, so the selected control keeps the text color border and a
+// white dot), the label underlined dotted with the source as tooltip.
+component RadioRow inherits Rectangle {
+    in property <string> label;
+    in property <string> tooltip;
+    in property <bool> selected;
+    callback picked();
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    height: Math.max(24px, row.preferred-height) + 8px;
+    row := HorizontalLayout {
+        y: 4px;
+        height: parent.height - 8px;
+        spacing: 8px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: root.selected ? Theme.body : Theme.border;
+                background: root.selected ? transparent : Theme.dark-background;
+                animate border-color, background { duration: 200ms; easing: ease; }
+                Rectangle {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 4px;
+                    background: #ffffff;
+                    opacity: root.selected ? 1 : 0;
+                    transform-scale: root.selected ? 1 : 0;
+                    animate opacity, transform-scale { duration: 150ms; easing: ease; }
+                }
+            }
+        }
+        label := Text {
+            text: root.label;
+            color: Theme.body;
+            font-size: Theme.body-size;
+            vertical-alignment: center;
+            // text-decoration: underline dotted (1px dots, 1px apart)
+            for i in Math.floor(label.preferred-width / 2px): Rectangle {
+                x: i * 2px;
+                y: label.height - 2px;
+                width: 1px;
+                height: 1px;
+                background: Theme.body;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, label.absolute-position.x, label.absolute-position.y, label.width, label.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// The GameMode / MangoHud toggles: "Automatically run with" + the site link.
+component ToolToggle inherits HorizontalLayout {
+    in property <string> name;
+    in property <string> url;
+    in property <bool> checked;
+    in property <bool> disabled;
+    in property <string> tooltip;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    callback toggled();
+    spacing: 8px;
+    alignment: start;
+    opacity: root.disabled ? Theme.disabled-opacity : 1;
+    box := Rectangle {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border-width: 1px;
+        background: root.checked ? #ffffff : Theme.dark-background;
+        border-color: root.checked ? #ffffff : box-touch.has-hover && !root.disabled ? rgba(255, 255, 255, 0.5) : Theme.border;
+        animate background, border-color { duration: 200ms; easing: ease; }
+        Icon {
+            width: 14px;
+            height: 14px;
+            source: Icons.check;
+            color: Theme.dark-background;
+            opacity: root.checked ? 1 : 0;
+            transform-scale: root.checked ? 1 : 0.65;
+            animate opacity, transform-scale { duration: 200ms; easing: ease; }
+        }
+        box-touch := TouchArea {
+            mouse-cursor: root.disabled ? MouseCursor.not-allowed : MouseCursor.pointer;
+            clicked => {
+                if (!root.disabled) {
+                    root.toggled();
+                }
+            }
+        }
+    }
+    label := HorizontalLayout {
+        spacing: 4px;
+        Text {
+            text: root.name == "MangoHud" ? T.tr("game_details.run_with_mangohud_prefix") : T.tr("game_details.run_with_gamemode_prefix");
+            color: Theme.body;
+            font-size: Theme.body-size;
+            vertical-alignment: center;
+            label-touch := TouchArea {
+                changed has-hover => {
+                    if (self.has-hover && root.tooltip != "") {
+                        Tip.show(root.tip-id, root.tooltip, label.absolute-position.x, label.absolute-position.y, label.width, label.height, "top");
+                    } else {
+                        Tip.hide(root.tip-id);
+                    }
+                }
+            }
+        }
+        // .link (#c0c1c7) with LinkExternalIcon
+        Rectangle {
+            width: link.preferred-width;
+            link := HorizontalLayout {
+                spacing: 4px;
+                Text {
+                    text: root.name;
+                    color: #c0c1c7;
+                    font-size: Theme.body-size;
+                    vertical-alignment: center;
+                    Rectangle {
+                        visible: link-touch.has-hover;
+                        y: parent.height - 3px;
+                        height: 1px;
+                        background: #c0c1c7;
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: Icons.link-external;
+                        width: 16px;
+                        height: 16px;
+                        color: #c0c1c7;
+                    }
+                }
+            }
+            link-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    GameOptions.open-link(root.url);
+                }
+            }
+        }
     }
 }
 
 export component GameOptionsBody inherits Rectangle {
     min-height: 520px;
+    // The modal grows with the panel (Electron's modal is as tall as its content).
+    preferred-height: Math.max(520px, panel.preferred-height);
+    // The large modal's width (GameModalsHost): 800px, or the window less 48px.
+    in property <length> modal-width: 800px;
+    // minus the 1px borders, the 210px sidebar and the 20px panel padding
+    property <length> text-width: root.modal-width - 2px - 210px - 40px;
 
-    HorizontalLayout {
+    body-row := HorizontalLayout {
         // ---- game-options-modal__sidebar
         Rectangle {
             width: 210px;
@@ -162,8 +387,12 @@ export component GameOptionsBody inherits Rectangle {
         // ---- game-options-modal__panel: padding 20px, gap 20px
         panel := VerticalLayout {
             padding: 20px;
+            // game-options-modal__panel--assets: padding-bottom 0
+            padding-bottom: GameOptions.category == "assets" ? 0 : 20px;
             spacing: 20px;
             alignment: start;
+
+            if GameOptions.category == "assets": GameAssetsSettings { }
 
             if GameOptions.category == "general": VerticalLayout {
                 spacing: 20px;
@@ -201,6 +430,7 @@ export component GameOptionsBody inherits Rectangle {
                 if GameOptions.steam-import: VerticalLayout {
                     spacing: 12px;
                     Header {
+                        wrap-width: root.text-width;
                         title: GameOptions.steam-playtime-title;
                         description: GameOptions.steam-playtime-description;
                     }
@@ -213,9 +443,69 @@ export component GameOptionsBody inherits Rectangle {
                     }
                 }
 
+                // Shortcuts: desktop, Steam, Start Menu (game-options-modal__row wraps)
+                if GameOptions.has-shortcut-target || GameOptions.steam-shortcut-exists: VerticalLayout {
+                    spacing: 12px;
+                    Header {
+                        wrap-width: root.text-width;
+                        title: T.tr("game_details.shortcuts_section_title");
+                        description: T.tr("game_details.shortcuts_section_description");
+                    }
+                    shortcuts := Rectangle {
+                        property <length> w1: GameOptions.has-shortcut-target ? s1.preferred-width : 0;
+                        property <length> w2: GameOptions.show-steam-shortcut && (GameOptions.steam-shortcut-exists || GameOptions.has-shortcut-target) ? s2.preferred-width : 0;
+                        property <length> w3: GameOptions.has-shortcut-target && GameOptions.show-start-menu-shortcut ? s3.preferred-width : 0;
+                        property <length> x2: self.w1 == 0 ? 0 : (self.w1 + 8px + self.w2 <= self.width ? self.w1 + 8px : 0);
+                        property <int> r2: self.w1 > 0 && self.x2 == 0 ? 1 : 0;
+                        property <length> e2: self.w2 == 0 ? (self.w1 == 0 ? 0 : self.w1) : self.x2 + self.w2;
+                        property <length> x3: self.e2 == 0 ? 0 : (self.e2 + 8px + self.w3 <= self.width ? self.e2 + 8px : 0);
+                        property <int> r3: self.e2 > 0 && self.x3 == 0 ? self.r2 + 1 : self.r2;
+                        height: ((self.w3 > 0 ? self.r3 : self.r2) + 1) * 48px - 8px;
+                        s1 := HydraButton {
+                            visible: shortcuts.w1 > 0;
+                            x: 0;
+                            y: 0;
+                            width: self.preferred-width;
+                            height: 40px;
+                            kind: "outline";
+                            text: T.tr("game_details.create_shortcut");
+                            clicked => {
+                                GameOptions.create-shortcut("desktop");
+                            }
+                        }
+                        s2 := HydraButton {
+                            visible: shortcuts.w2 > 0;
+                            x: shortcuts.x2;
+                            y: shortcuts.r2 * 48px;
+                            width: self.preferred-width;
+                            height: 40px;
+                            kind: GameOptions.steam-shortcut-exists ? "danger" : "outline";
+                            icon: Icons.steam-logo;
+                            text: GameOptions.steam-shortcut-exists ? T.tr("game_details.delete_steam_shortcut") : T.tr("game_details.create_steam_shortcut");
+                            enabled: !GameOptions.creating-steam-shortcut;
+                            clicked => {
+                                GameOptions.steam-shortcut();
+                            }
+                        }
+                        s3 := HydraButton {
+                            visible: shortcuts.w3 > 0;
+                            x: shortcuts.x3;
+                            y: shortcuts.r3 * 48px;
+                            width: self.preferred-width;
+                            height: 40px;
+                            kind: "outline";
+                            text: T.tr("game_details.create_start_menu_shortcut");
+                            clicked => {
+                                GameOptions.create-shortcut("start_menu");
+                            }
+                        }
+                    }
+                }
+
                 if GameOptions.show-launch-options: VerticalLayout {
                     spacing: 8px;
                     Header {
+                        wrap-width: root.text-width;
                         title: T.tr("game_details.launch_options");
                         description: T.tr("game_details.launch_options_description");
                     }
@@ -242,6 +532,7 @@ export component GameOptionsBody inherits Rectangle {
             if GameOptions.category == "locations": VerticalLayout {
                 spacing: 12px;
                 Header {
+                    wrap-width: root.text-width;
                     title: T.tr("game_details.executable_section_title");
                     description: T.tr("game_details.executable_section_description");
                 }
@@ -296,6 +587,139 @@ export component GameOptionsBody inherits Rectangle {
                         }
                     }
                 }
+                // .game-options-modal__tracking-executable: margin-top 8px, gap 8px
+                if GameOptions.supports-tracking: VerticalLayout {
+                    padding-top: 8px;
+                    spacing: 8px;
+                    if GameOptions.bat-warning: Text {
+                        text: T.tr("game_details.bat_tracking_warning");
+                        color: Theme.warning;
+                        font-size: Theme.small-size;
+                        wrap: word-wrap;
+                    }
+                    for path[index] in GameOptions.tracking-paths: HorizontalLayout {
+                        spacing: 8px;
+                        TextField {
+                            text: path;
+                            read-only: true;
+                        }
+                        HydraButton {
+                            text: T.tr("game_details.clear");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.remove-tracking-executable(index);
+                            }
+                        }
+                    }
+                    if GameOptions.tracking-paths.length < 2: HorizontalLayout {
+                        padding-top: 4px;
+                        alignment: start;
+                        HydraButton {
+                            icon: Icons.file;
+                            text: T.tr("game_details.add_tracking_executable");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.add-tracking-executable();
+                            }
+                        }
+                    }
+                }
+            }
+
+            // compatibility-section.tsx (Linux)
+            if GameOptions.category == "compatibility": VerticalLayout {
+                spacing: 20px;
+                // .game-options-modal__wine-prefix: gap 16px
+                VerticalLayout {
+                    spacing: 16px;
+                    Header {
+                        wrap-width: root.text-width;
+                        title: T.tr("game_details.wine_prefix");
+                        description: T.tr("game_details.wine_prefix_description");
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        TextField {
+                            placeholder: GameOptions.wine-prefix-placeholder != "" ? GameOptions.wine-prefix-placeholder : T.tr("game_details.no_directory_selected");
+                            text: GameOptions.wine-prefix;
+                            read-only: true;
+                        }
+                        HydraButton {
+                            icon: Icons.file-directory;
+                            text: T.tr("game_details.select_executable");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.select-wine-prefix();
+                            }
+                        }
+                        if GameOptions.has-custom-prefix: HydraButton {
+                            text: T.tr("game_details.clear");
+                            kind: "outline";
+                            clicked => {
+                                GameOptions.clear-wine-prefix();
+                            }
+                        }
+                    }
+                    HorizontalLayout {
+                        alignment: start;
+                        HydraButton {
+                            text: T.tr("game_details.open_winetricks");
+                            kind: "outline";
+                            enabled: GameOptions.winetricks-available;
+                            tooltip: GameOptions.winetricks-available ? "" : T.tr("game_details.winetricks_not_available_tooltip");
+                            clicked => {
+                                GameOptions.open-winetricks();
+                            }
+                        }
+                    }
+                }
+                VerticalLayout {
+                    spacing: 12px;
+                    Header {
+                        wrap-width: root.text-width;
+                        title: T.tr("game_details.additional_options");
+                    }
+                    ToolToggle {
+                        name: "GameMode";
+                        url: "https://github.com/FeralInteractive/gamemode";
+                        checked: GameOptions.gamemode-checked;
+                        disabled: GameOptions.gamemode-disabled;
+                        tooltip: GameOptions.gamemode-tooltip;
+                        toggled => {
+                            GameOptions.toggle-gamemode();
+                        }
+                    }
+                    ToolToggle {
+                        name: "MangoHud";
+                        url: "https://github.com/flightlessmango/MangoHud";
+                        checked: GameOptions.mangohud-checked;
+                        disabled: GameOptions.mangohud-disabled;
+                        tooltip: GameOptions.mangohud-tooltip;
+                        toggled => {
+                            GameOptions.toggle-mangohud();
+                        }
+                    }
+                }
+                VerticalLayout {
+                    spacing: 12px;
+                    Header {
+                        wrap-width: root.text-width;
+                        title: T.tr("game_details.proton_version");
+                        description: T.tr("game_details.proton_version_description");
+                    }
+                    // .proton-path-picker: gap 4px
+                    VerticalLayout {
+                        spacing: 4px;
+                        for option in GameOptions.proton-versions: RadioRow {
+                            label: option.name;
+                            tooltip: option.description;
+                            selected: GameOptions.proton-path == option.path;
+                            picked => {
+                                GameOptions.select-proton(option.path);
+                            }
+                        }
+                    }
+                }
             }
 
             if GameOptions.category == "downloads" && GameOptions.custom: Text {
@@ -306,6 +730,7 @@ export component GameOptionsBody inherits Rectangle {
             if GameOptions.category == "downloads" && !GameOptions.custom: VerticalLayout {
                 spacing: 8px;
                 Header {
+                    wrap-width: root.text-width;
                     title: T.tr("game_details.downloads_section_title");
                     description: T.tr("game_details.downloads_section_description");
                 }
@@ -334,6 +759,7 @@ export component GameOptionsBody inherits Rectangle {
             if GameOptions.category == "danger_zone": VerticalLayout {
                 spacing: 8px;
                 Header {
+                    wrap-width: root.text-width;
                     title: T.tr("game_details.danger_zone_section_title");
                     description: T.tr("game_details.danger_zone_section_description");
                 }

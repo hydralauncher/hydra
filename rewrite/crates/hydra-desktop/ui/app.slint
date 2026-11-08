@@ -13,14 +13,16 @@ import { TooltipHost } from "components/widgets.slint";
 import { ContextMenuHost, ContextMenu, MenuEntry, MenuLeaf } from "components/context-menu.slint";
 import { ToastHost, Toast } from "components/toast.slint";
 import { DialogHost, Dialogs } from "components/dialogs.slint";
-import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, RepackRow, RepackSource } from "types.slint";
-import { ReviewEditor, FormatEdit, Marks } from "pages/game-details/reviews.slint";
+import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewReply, RepackRow, RepackSource } from "types.slint";
+import { ReviewEditor, Reviews, FormatEdit, Marks } from "pages/game-details/reviews.slint";
 import { Playback } from "components/video.slint";
 import { T, Nav, Session, Chrome, SidebarState, SidebarGame, Popup, SidebarFilterOption } from "globals.slint";
 import { GameData, Input } from "pages/game-details/state.slint";
 import { SmoothScroll } from "components/smooth-scroll.slint";
-import { GameOptions, OptionsCategory } from "pages/game-details/options.slint";
+import { GameOptions, OptionsCategory, GameProtonOption } from "pages/game-details/options.slint";
 import { PlaytimeModals, PlaytimeColumn } from "pages/game-details/playtime.slint";
+import { OptionModals } from "pages/game-details/option-modals.slint";
+import { GameAssets, ArtworkTile } from "pages/game-details/assets.slint";
 import { AuthWindow } from "auth-window.slint";
 import { HosterBrowserWindow } from "hoster-browser-window.slint";
 import { FriendsWindow, FriendsData, FriendRow } from "friends-window.slint";
@@ -64,8 +66,8 @@ import { ProfilePage } from "pages/profile/page.slint";
 import { ProfileData, ProfileGameCard, ProfileBadge, ProfileFriend, ProfileRecentGame, ProfileReview, ProfileSouvenirCard, ProfileSouvenirGroup } from "pages/profile/state.slint";
 import { ProfileModalsHost, ProfileModals } from "pages/profile/modals.slint";
 
-export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource }
-export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, HosterBrowserWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, TorrentStep, TorrentRow, RealDebridInfo, DownloadCard, Dropdown, DropdownItem, Flight }
+export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource, ReviewReply, Reviews }
+export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, HosterBrowserWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, TorrentStep, TorrentRow, RealDebridInfo, DownloadCard, Dropdown, DropdownItem, Flight, GameProtonOption, OptionModals, GameAssets, ArtworkTile }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { SearchData, SearchPart, SearchSuggestionRow }
 export { AchievementsData, AchievementRow }

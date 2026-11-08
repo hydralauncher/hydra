@@ -99,7 +99,6 @@ pub fn init(ui: &AppWindow) {
             }
         }
     });
-    options.on_open_save_folder(|| eprintln!("TODO(game options): openGameSaveFolder (Ludusavi)"));
     options.on_open_download_options(|| {
         with_ui(|ui| {
             // Stacked on the options modal: the backdrop snapshot includes it.
@@ -118,7 +117,7 @@ pub fn init(ui: &AppWindow) {
         }
     });
     options.on_remove_from_library(remove_from_library);
-    options.on_reset_achievements(|| eprintln!("TODO(game options): ResetAchievementsModal"));
+    options.on_reset_achievements(crate::game_option_actions::open_reset_achievements);
     options.on_update_playtime(|| {
         if let Some((shop, object_id, _)) = game_key() {
             crate::playtime_modals::open_update(&shop, &object_id);
@@ -144,6 +143,24 @@ fn open(category: &str) {
     let Some((shop, object_id)) = crate::game_page::current() else {
         return;
     };
+    open_game(shop, object_id, category);
+}
+
+/// The library context menu's "Customize" / "Properties": the same modal
+/// over the library (GameOptionsModal in game-context-menu.tsx).
+pub fn open_for(shop: &str, object_id: &str, category: &str) {
+    open_game(shop.to_string(), object_id.to_string(), category);
+    // The blurred backdrop is a snapshot: take it after the menu item's
+    // handler returns and the context menu closes, so it isn't frozen in.
+    slint::Timer::single_shot(Duration::ZERO, || {
+        with_ui(|ui| {
+            ui.global::<GameData>().invoke_modal_opening();
+            ui.global::<GameData>().set_options_open(true);
+        });
+    });
+}
+
+fn open_game(shop: String, object_id: String, category: &str) {
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.shop = shop.clone();
@@ -151,6 +168,9 @@ fn open(category: &str) {
         s.launch_timer = None;
     });
     refresh();
+    crate::game_option_actions::opened(&shop, &object_id);
+    crate::game_compat::opened(&shop, &object_id);
+    crate::game_assets::opened(&shop, &object_id);
     with_ui(|ui| ui.global::<GameOptions>().set_category(category.into()));
 }
 
@@ -161,6 +181,7 @@ pub fn refresh_open() {
         .is_some_and(|ui| ui.global::<GameData>().get_options_open());
     if open {
         refresh();
+        crate::game_option_actions::refresh();
     }
 }
 
@@ -198,6 +219,13 @@ fn refresh() {
             id: "assets".into(),
             label: t("game_details.settings_category_customization").into(),
         });
+        // shouldShowWinePrefixConfiguration (Linux)
+        if crate::game_compat::available() {
+            categories.push(OptionsCategory {
+                id: "compatibility".into(),
+                label: t("game_details.settings_category_compatibility").into(),
+            });
+        }
         if !custom {
             categories.push(OptionsCategory {
                 id: "downloads".into(),
@@ -209,6 +237,7 @@ fn refresh() {
             label: t("game_details.settings_category_danger_zone").into(),
         });
         options.set_categories(ModelRc::new(VecModel::from(categories)));
+        options.set_modal_title(title.clone().into());
         options.set_title_text(title.into());
         options.set_title_busy(false);
         options.set_steam_import(steam_import);
@@ -242,7 +271,6 @@ fn refresh() {
                 .is_some_and(|d| !text(d, "downloadPath").is_empty()),
         );
         options.set_deleting(false);
-        options.set_can_reset_achievements(false);
         // getRemoveFilesTarget (Hydra downloads; the Steam uninstall target is a TODO)
         let has_files = download
             .as_ref()
@@ -293,6 +321,7 @@ fn set_title(key: &str, title: &str) {
         Ok(Some(_)) => {
             STATE.with(|s| s.borrow_mut().title = title.to_string());
             with_ui(|ui| {
+                ui.global::<GameOptions>().set_modal_title(title.into());
                 ui.global::<GameOptions>().set_title_text(title.into());
                 ui.global::<GameData>().set_game_title(title.into());
             });
@@ -467,6 +496,7 @@ fn set_executable(path: Option<String>) {
         ui.global::<GameOptions>()
             .set_executable(path.clone().unwrap_or_default().into())
     });
+    crate::game_option_actions::refresh();
     shell::load_library();
 }
 
@@ -494,9 +524,30 @@ fn remove_from_library() {
             let (Some(db), Some(api)) = (shell::db(), shell::api()) else {
                 return;
             };
-            let (shop, object_id) = (shop.clone(), object_id.clone());
+            // applyLibraryGroupAction(presentation.members): every member
+            // (a Steam game and its Epic copy), cancelling active downloads.
+            let members: Vec<(String, String)> = shell::find_library_game(&shop, &object_id)
+                .map(|group| {
+                    group
+                        .members
+                        .iter()
+                        .map(|m| {
+                            if m.download()
+                                .and_then(|d| d.get("status"))
+                                .and_then(Value::as_str)
+                                == Some("active")
+                            {
+                                crate::downloads::cancel(m.shop(), m.object_id());
+                            }
+                            (m.shop().to_string(), m.object_id().to_string())
+                        })
+                        .collect()
+                })
+                .unwrap_or_else(|| vec![(shop.clone(), object_id.clone())]);
             std::thread::spawn(move || {
-                let result = library_actions::remove_from_library(&db, &api, &shop, &object_id);
+                let result = members.iter().try_for_each(|(shop, object_id)| {
+                    library_actions::remove_from_library(&db, &api, shop, object_id)
+                });
                 let _ = slint::invoke_from_event_loop(move || {
                     match result {
                         Ok(()) => {
@@ -515,12 +566,19 @@ fn remove_from_library() {
     );
 }
 
-/// DeleteGameModal + deleteGameFolder from the danger zone.
+/// DeleteGameModal + deleteGameFolder from the danger zone, or Steam's
+/// uninstall when the files belong to a Steam install.
 fn remove_files() {
     let Some((_, _, key)) = game_key() else {
         return;
     };
     let Some(db) = shell::db() else { return };
+    let has_download = db
+        .get_in::<Map<String, Value>>(keys::DOWNLOADS, &key)
+        .is_some_and(|d| !text(&d, "downloadPath").is_empty());
+    if !has_download && crate::game_option_actions::steam_target_remove_files() {
+        return;
+    }
     let has_archive = hydra_downloads::removal::has_source_archive(&db, &key);
     crate::dialogs::confirm(
         crate::dialogs::Confirm {

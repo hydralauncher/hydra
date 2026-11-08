@@ -1,5 +1,5 @@
 // Game page data and actions; the backend (game_page.rs) fills this.
-import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, RepackRow, RepackSource } from "../../types.slint";
+import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, RepackRow, RepackSource } from "../../types.slint";
 
 export global GameData {
     in property <string> game-title;
@@ -17,7 +17,10 @@ export global GameData {
     in property <string> last-played;
     in property <[MediaItem]> media;
     in property <[DescBlock]> description;
+    // similar-games.tsx: "hidden" | "loading" | "ready" | "empty"
+    in property <string> similar-state: "hidden";
     in property <[SimilarGame]> similar;
+    callback similar-clicked(int);
     in property <[Achievement]> achievements;
     in property <int> achievements-unlocked;
     in property <int> achievements-total;
@@ -28,17 +31,20 @@ export global GameData {
     in property <string> rating;
     // "full" | "partial" | "none" (Steam appdetails `controller_support`).
     in property <string> controller-support: "none";
+    // HowLongToBeat: skeleton rows while loading, hidden when empty.
+    in property <bool> hltb-loading;
     in property <[HltbCategory]> hltb;
+    // No custom/launchbox requirements (shop !== "launchbox").
+    in property <bool> show-requirements: true;
+    in property <string> no-minimum-requirements;
+    in property <string> no-recommended-requirements;
     in property <styled-text> requirements-minimum;
     in property <styled-text> requirements-recommended;
     in property <[Language]> languages;
-    in property <[Review]> reviews;
-    in property <int> reviews-total;
-    in property <bool> reviews-loading;
-    in property <bool> reviews-loading-more;
-    in property <bool> reviews-has-more;
-    in property <bool> has-reviewed;
-    in property <bool> submitting-review;
+    // shop !== "custom": the reviews and the sidebar
+    in property <bool> show-reviews: true;
+    // Bumped to scroll the reviews into view (`?reviews=true`).
+    in property <int> scroll-reviews-request;
     // -1 hidden (no cloud save info), 0 synced, 1 syncing
     in property <int> cloud-state: -1;
     in property <float> cloud-progress;
@@ -59,12 +65,6 @@ export global GameData {
     callback close-game();
     callback cloud-sync();
     callback modal-opening();
-    callback review-sort(string);
-    callback review-vote(int, bool);
-    callback review-delete(int);
-    callback review-toggle-original(int);
-    callback review-load-more();
-    callback review-submit(string, int);
     // Viewer fullscreen (the window goes fullscreen with it).
     callback fullscreen-changed(bool);
     // Game page modals (hosted in app.slint, see modals.slint)

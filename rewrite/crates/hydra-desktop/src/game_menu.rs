@@ -377,7 +377,19 @@ fn activated(id: &str) {
             nav::navigate(&path);
             eprintln!("TODO(downloads): open the repacks modal on the game page");
         }
-        "download-location" => eprintln!("TODO(downloads): openGameInstallerPath"),
+        // openGameInstallerPath: the download folder, selected in the file manager
+        "download-location" => {
+            if let Some(download) = group.members.iter().find_map(|m| m.download()) {
+                let field = |k: &str| {
+                    download
+                        .get(k)
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string()
+                };
+                reveal(&std::path::Path::new(&field("downloadPath")).join(field("folderName")));
+            }
+        }
         "remove-library" => {
             context_menu::force_submenu("manage");
             let description = shell::tr_with(
@@ -396,8 +408,21 @@ fn activated(id: &str) {
                 remove_from_library,
             );
         }
-        "customize" | "properties" => eprintln!("TODO(game options): GameOptionsModal"),
-        "desktop-shortcut" | "steam-shortcut" => eprintln!("TODO(shortcuts): {id}"),
+        // GameOptionsModal over the library: Customization / General
+        "customize" | "properties" => crate::game_options::open_for(
+            game.shop(),
+            game.object_id(),
+            if id == "customize" {
+                "assets"
+            } else {
+                "general"
+            },
+        ),
+        // use-game-actions.ts handleCreateShortcut: desktop (+ Start Menu on Windows)
+        "desktop-shortcut" => {
+            crate::game_shortcuts::create_all_with_toast(game.shop(), game.object_id())
+        }
+        "steam-shortcut" => eprintln!("TODO(steam-integration): {id}"),
         other => eprintln!("game menu: unhandled {other}"),
     }
 }

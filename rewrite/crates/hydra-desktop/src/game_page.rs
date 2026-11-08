@@ -44,6 +44,10 @@ struct App {
     started_at: Instant,
     video: Option<video::Session>,
     video_timer: Timer,
+    /// useReviewPrompt isDismissed: "Yes" hides the prompt for this visit.
+    prompt_dismissed: bool,
+    /// The shop's hero and logo before custom artwork (for refresh_artwork).
+    base_assets: (Option<String>, Option<String>),
 }
 
 thread_local! {
@@ -78,7 +82,6 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
     let media = Rc::new(VecModel::from(Vec::<MediaItem>::new()));
     gd(ui).set_media(ModelRc::from(media.clone()));
     gd(ui).set_description(ModelRc::new(VecModel::from(Vec::<DescBlock>::new())));
-    gd(ui).set_reviews(ModelRc::new(VecModel::from(Vec::<crate::Review>::new())));
     APP.with(|app| {
         *app.borrow_mut() = Some(App {
             ui: ui.as_weak(),
@@ -98,6 +101,8 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
             started_at: Instant::now(),
             video: None,
             video_timer: Timer::default(),
+            prompt_dismissed: false,
+            base_assets: (None, None),
         })
     });
     wire_callbacks(ui, loader);
@@ -121,6 +126,7 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
     gd(ui).on_review_prompt_yes({
         let weak = ui.as_weak();
         move || {
+            with_app(|app| app.prompt_dismissed = true);
             if let Some(ui) = weak.upgrade() {
                 gd(&ui).set_review_prompt(0);
             }
@@ -131,6 +137,7 @@ pub fn init(ui: &AppWindow, loader: &Loader) {
         let weak = ui.as_weak();
         move || {
             crate::shell::storage_set(REVIEW_PROMPT_DISMISSED_STORAGE_KEY, &now_ms().to_string());
+            with_app(|app| app.prompt_dismissed = true);
             if let Some(ui) = weak.upgrade() {
                 gd(&ui).set_review_prompt(0);
             }
@@ -170,6 +177,7 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
         } else {
             0
         };
+        app.prompt_dismissed = false;
     });
     let g = gd(&ui);
     g.set_loaded(false);
@@ -193,6 +201,12 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     g.set_release_date(SharedString::default());
     g.set_publisher(SharedString::default());
     g.set_controller_support("none".into());
+    // game-details-content.tsx: reviews (and the sidebar) for every shop but
+    // custom games; sidebar.tsx: no requirements for classics.
+    g.set_show_reviews(shop != "custom");
+    g.set_show_requirements(shop != "launchbox");
+    crate::game_reviews::open(shop, object_id);
+    crate::game_sidebar::open(shop, object_id);
     apply_library_state(&ui, shop, object_id);
     g.set_achievements(ModelRc::new(VecModel::from(
         Vec::<crate::Achievement>::new(),
@@ -204,6 +218,124 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     crate::game_repacks::open(shop, object_id);
     apply_download_state(crate::downloads::last_packet().as_ref());
     on_games_running();
+}
+
+/// game-details-content.tsx heroImage / game-logo.tsx: the custom asset
+/// (customHeroImageUrl / customLogoImageUrl), else the SteamGridDB pick
+/// (composeAssetsWithArtwork), else the shop's.
+fn custom_artwork(shop: &str, object_id: &str) -> (Option<String>, Option<String>) {
+    let Some(db) = crate::shell::db() else {
+        return (None, None);
+    };
+    let key = hydra_db::keys::game(shop, object_id);
+    let game: Option<serde_json::Value> = db.get_in(hydra_db::keys::GAMES, &key);
+    let selection: Option<serde_json::Value> = db.get_in(hydra_db::keys::ARTWORK_SELECTION, &key);
+    let field = |v: &Option<serde_json::Value>, path: &[&str]| {
+        path.iter()
+            .try_fold(v.as_ref()?, |v, k| v.get(*k))
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+    };
+    let hero = field(&game, &["customHeroImageUrl"])
+        .or_else(|| field(&selection, &["selected", "hero", "url"]));
+    let logo = field(&game, &["customLogoImageUrl"])
+        .or_else(|| field(&selection, &["selected", "logo", "url"]));
+    (hero, logo)
+}
+
+/// `local:<path>` URLs are files.
+fn image_source(url: String) -> images::Source {
+    match url.strip_prefix("local:") {
+        Some(path) => images::Source::Path(std::path::PathBuf::from(path)),
+        None => images::Source::Url(url),
+    }
+}
+
+/// The custom artwork changed (Customization tab): reload the hero and logo.
+pub fn refresh_artwork() {
+    let Some((ui, loader, shop, object_id, base)) = with_app(|app| {
+        app.ui.upgrade().map(|ui| {
+            (
+                ui,
+                app.loader.clone(),
+                app.shop.clone(),
+                app.object_id.clone(),
+                app.base_assets.clone(),
+            )
+        })
+    })
+    .flatten() else {
+        return;
+    };
+    if shop == "launchbox" {
+        return;
+    }
+    let (hero, logo) = custom_artwork(&shop, &object_id);
+    let hero = hero.or(base.0);
+    let logo = logo.or(base.1);
+    let generation = with_app(|app| app.generation);
+    if let Some(url) = hero {
+        let weak = ui.as_weak();
+        loader.load(image_source(url.clone()), Op::Full, move |img| {
+            if let Some(ui) = weak.upgrade()
+                && with_app(|app| app.generation) == generation
+            {
+                gd(&ui).set_hero(img);
+            }
+        });
+        let weak = ui.as_weak();
+        loader.load(
+            image_source(url),
+            Op::Blur {
+                shrink: 4,
+                sigma: 3.75,
+            },
+            move |img| {
+                if let Some(ui) = weak.upgrade()
+                    && with_app(|app| app.generation) == generation
+                {
+                    gd(&ui).set_hero_blur(img);
+                }
+            },
+        );
+    }
+    match logo {
+        Some(url) => {
+            let weak = ui.as_weak();
+            loader.load(image_source(url), Op::Full, move |img| {
+                if let Some(ui) = weak.upgrade()
+                    && with_app(|app| app.generation) == generation
+                {
+                    gd(&ui).set_logo(img);
+                }
+            });
+        }
+        None => gd(&ui).set_logo(Image::default()),
+    }
+}
+
+/// `?reviews=true`: scrollIntoView the reviews 500ms after the page opens.
+pub fn scroll_to_reviews_later() {
+    let Some(generation) = with_app(|app| app.generation) else {
+        return;
+    };
+    Timer::single_shot(Duration::from_millis(500), move || {
+        if with_app(|app| app.generation) != Some(generation) {
+            return;
+        }
+        if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
+            let g = gd(&ui);
+            g.set_scroll_reviews_request(g.get_scroll_reviews_request() + 1);
+        }
+    });
+}
+
+/// The open game's achievements changed (reset): load them again.
+pub fn refresh_achievements() {
+    if let Some((shop, object_id)) = current() {
+        fetch_achievements(&shop, &object_id);
+    }
 }
 
 /// game-details.context.tsx: `getUnlockedAchievements` once the user is known.
@@ -295,12 +427,6 @@ const REVIEW_MIN_PLAYTIME_IN_MS: f64 = 60.0 * 60.0 * 1000.0;
 const REVIEW_PROMPT_DISMISS_TTL_IN_MS: i64 = 7 * 24 * 60 * 60 * 1000;
 const REVIEW_PROMPT_DISMISSED_STORAGE_KEY: &str = "reviewPromptDismissedAt";
 
-thread_local! {
-    /// use-user-review-status.ts reviewStatusCache: last answer per game, so a
-    /// revisit doesn't move the page when the prompt appears.
-    static REVIEW_STATUS: RefCell<std::collections::HashMap<String, bool>> = RefCell::new(Default::default());
-}
-
 fn now_ms() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -336,52 +462,24 @@ fn update_review_prompt(
         && !object_id.is_empty()
         && crate::shell::signed_in()
         && in_library
+        && !with_app(|app| app.prompt_dismissed).unwrap_or(false)
         && !review_prompt_dismissed()
         && play_time >= REVIEW_MIN_PLAYTIME_IN_MS;
     if !eligible {
         g.set_review_prompt(0);
         return;
     }
-    let identity = format!("{shop}:{object_id}");
-    match REVIEW_STATUS.with(|c| c.borrow().get(&identity).copied()) {
+    // The review check (game_reviews.rs) is shared with the reviews section.
+    match crate::game_reviews::review_status() {
         Some(true) => g.set_review_prompt(0),
         Some(false) => g.set_review_prompt(2),
         None => g.set_review_prompt(1),
     }
-    let Some(api) = crate::shell::api() else {
-        return;
-    };
-    let Some(generation) = with_app(|app| app.generation) else {
-        return;
-    };
-    let (shop, object_id) = (shop.to_string(), object_id.to_string());
-    std::thread::spawn(move || {
-        let result = api.get(
-            &format!("/games/{shop}/{object_id}/reviews/check"),
-            &[],
-            hydra_core::api::Options::default(),
-        );
-        let _ = slint::invoke_from_event_loop(move || {
-            let has_reviewed = match result {
-                Ok(body) => body
-                    .get("hasReviewed")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false),
-                // The hook treats a failed check as "not reviewed".
-                Err(_) => false,
-            };
-            REVIEW_STATUS.with(|c| c.borrow_mut().insert(identity, has_reviewed));
-            if with_app(|app| app.generation) != Some(generation) {
-                return;
-            }
-            if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
-                let g = gd(&ui);
-                if g.get_review_prompt() != 0 {
-                    g.set_review_prompt(if has_reviewed { 0 } else { 2 });
-                }
-            }
-        });
-    });
+}
+
+/// The review check answered, or a review was posted or deleted.
+pub fn on_review_status(_has_reviewed: bool) {
+    on_library_changed();
 }
 
 /// The hero panel's library state (hero-panel-playtime.tsx, hero-panel-actions.tsx).
@@ -537,6 +635,8 @@ pub fn on_downloads_updated() {
 /// Navigating away from the game page.
 pub fn close() {
     crate::classics_bookmark::stop();
+    crate::game_reviews::close();
+    crate::game_sidebar::close();
     if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
         // Leaving the page unmounts its modals (they live in the page in Electron).
         gd(&ui).set_options_open(false);
@@ -751,18 +851,27 @@ fn apply_game(
         }
         .into(),
     );
-    gd(&ui).set_requirements_minimum(md(&details
-        .pc_requirements
-        .minimum
-        .as_deref()
-        .map(html::requirements_markdown)
-        .unwrap_or_default()));
-    gd(&ui).set_requirements_recommended(md(&details
-        .pc_requirements
-        .recommended
-        .as_deref()
-        .map(html::requirements_markdown)
-        .unwrap_or_default()));
+    // t(`no_${activeRequirement}_requirements`, { gameTitle }) without data.
+    let requirements = |html: Option<&str>, kind: &str| {
+        md(&html
+            .filter(|h| !h.is_empty())
+            .map(html::requirements_markdown)
+            .unwrap_or_else(|| {
+                crate::shell::tr_with(
+                    &format!("game_details.no_{kind}_requirements"),
+                    &[("gameTitle", details.name.clone().into())],
+                )
+                .replace('_', "\\_")
+            }))
+    };
+    gd(&ui).set_requirements_minimum(requirements(
+        details.pc_requirements.minimum.as_deref(),
+        "minimum",
+    ));
+    gd(&ui).set_requirements_recommended(requirements(
+        details.pc_requirements.recommended.as_deref(),
+        "recommended",
+    ));
     gd(&ui).set_languages(ModelRc::new(VecModel::from(
         html::languages(&details.supported_languages)
             .into_iter()
@@ -884,24 +993,26 @@ fn apply_game(
     }
 
     // ---- hero artwork (the skeleton stays until hero + logo arrive)
+    with_app(|app| app.base_assets = (assets.hero.clone(), assets.logo.clone()));
+    let (custom_hero, custom_logo) = current()
+        .map(|(shop, object_id)| custom_artwork(&shop, &object_id))
+        .unwrap_or_default();
+    let hero_url = custom_hero.or(assets.hero.clone());
+    let logo_url = custom_logo.or(assets.logo.clone());
     let startup: Vec<(Option<String>, Op, SetImage)> = match &classics {
         Some(classics) => classics_startup(&ui, classics),
         None => vec![
-            (assets.hero.clone(), Op::Full, |ui, img| {
-                gd(&ui).set_hero(img)
-            }),
+            (hero_url.clone(), Op::Full, |ui, img| gd(&ui).set_hero(img)),
             // blur(10px) on a ~1280px-wide hero shown from a 1920px image ~= sigma 3.75 at 1/4 size
             (
-                assets.hero.clone(),
+                hero_url,
                 Op::Blur {
                     shrink: 4,
                     sigma: 3.75,
                 },
                 |ui, img| gd(&ui).set_hero_blur(img),
             ),
-            (assets.logo.clone(), Op::Full, |ui, img| {
-                gd(&ui).set_logo(img)
-            }),
+            (logo_url, Op::Full, |ui, img| gd(&ui).set_logo(img)),
         ],
     };
     with_app(|app| {
@@ -909,7 +1020,7 @@ fn apply_game(
     });
     for (url, op, set) in startup {
         let Some(url) = url else { continue };
-        loader.load(url, op, move |img| {
+        loader.load(image_source(url), op, move |img| {
             if let Some(ui) = with_app(|app| app.ui.upgrade()).flatten() {
                 set(&ui, img);
             }
@@ -1077,6 +1188,7 @@ fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
     editor.on_plain_length(|text| format::plain(&text).chars().count() as i32);
     editor.on_has_markup(|text| format::has_markup(&text));
     editor.on_render(|text| md(&text));
+    editor.on_byte_length(|text| text.len() as i32);
 
     // ---- modal backdrop: snapshot + blur stands in for backdrop-filter: blur(2px)
     ui.global::<GameData>().on_modal_opening({
@@ -1133,19 +1245,32 @@ fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
 
     ui.global::<GameData>().on_reload(fetch_game);
 
-    // ---- library (owned by Hydra's main process today; not ported yet)
+    // hero-panel-actions.tsx addGameToLibrary: addGameToLibrary, then updateLibrary.
     ui.global::<GameData>().on_add_to_library({
         let weak = ui.as_weak();
         move || {
-            // TODO(library): persist like add-game-to-library.ts; in memory for now.
-            if let Some(ui) = weak.upgrade() {
-                gd(&ui).set_in_library(true);
-            }
+            let (Some(db), Some(api)) = (crate::shell::db(), crate::shell::api()) else {
+                return;
+            };
+            let Some((shop, object_id)) = current() else {
+                return;
+            };
+            let title = weak
+                .upgrade()
+                .map(|ui| gd(&ui).get_game_title().to_string())
+                .unwrap_or_default();
+            std::thread::spawn(move || {
+                if let Err(error) = hydra_core::library_actions::add_to_library(
+                    &db, &api, &shop, &object_id, &title, None,
+                ) {
+                    eprintln!("Failed to add game to library: {error}");
+                }
+                let _ = slint::invoke_from_event_loop(crate::shell::load_library);
+            });
         }
     });
-    ui.global::<GameData>().on_open_download_options(|| {
-        eprintln!("TODO(downloads): repacks modal / download sources")
-    });
+    // Unused: the hero opens the repacks modal itself (page.slint).
+    ui.global::<GameData>().on_open_download_options(|| {});
     ui.global::<GameData>().on_play(|| {
         if let Some((shop, object_id)) = with_app(|app| (app.shop.clone(), app.object_id.clone())) {
             crate::games::play(&shop, &object_id);
@@ -1158,20 +1283,6 @@ fn wire_callbacks(ui: &AppWindow, loader: &Loader) {
     });
     ui.global::<GameData>()
         .on_cloud_sync(|| eprintln!("TODO(cloud-save): cloud save v2 sync"));
-
-    // ---- reviews (Hydra API; not ported yet)
-    ui.global::<GameData>()
-        .on_review_sort(|mode| eprintln!("TODO(reviews): fetch reviews sorted by {mode}"));
-    ui.global::<GameData>()
-        .on_review_load_more(|| eprintln!("TODO(reviews): next page"));
-    ui.global::<GameData>()
-        .on_review_vote(|id, up| eprintln!("TODO(reviews): vote {id} up={up}"));
-    ui.global::<GameData>()
-        .on_review_delete(|id| eprintln!("TODO(reviews): delete {id}"));
-    ui.global::<GameData>()
-        .on_review_toggle_original(|id| eprintln!("TODO(reviews): toggle original {id}"));
-    ui.global::<GameData>()
-        .on_review_submit(|_, score| eprintln!("TODO(reviews): submit review (score {score})"));
 }
 
 /// Quality menu index -> rendition height (0 = Auto).
@@ -1292,6 +1403,7 @@ pub fn on_library_changed() {
         && !shop.is_empty()
     {
         apply_library_state(&ui, &shop, &object_id);
+        crate::game_reviews::refresh_playtime();
     }
 }
 

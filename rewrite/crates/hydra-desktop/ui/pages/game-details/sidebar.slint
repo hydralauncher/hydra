@@ -180,71 +180,21 @@ export component AchievementsSection inherits SidebarSection {
     }
 }
 
+// sidebar.tsx stats: one row per stat, label left and value right.
 export component StatsSection inherits SidebarSection {
     in property <string> downloads;
     in property <string> players;
+    // averageScore.toFixed(1), or "…" with no rating yet (StarRating)
     in property <string> rating;
-    in property <bool> column;
-    title: "Stats";
+    title: T.tr("game_details.stats");
 
-    if !root.column: HorizontalLayout {
-        padding: 16px;
-        spacing: 8px;
-        alignment: space-between;
-        for stat in [
-            { icon: Icons.download, label: "Downloads", value: root.downloads, star: false },
-            { icon: Icons.people, label: "Active players", value: root.players, star: false },
-            { icon: Icons.star, label: "Rating", value: root.rating, star: true },
-        ]: VerticalLayout {
-            spacing: 4px;
-            HorizontalLayout {
-                spacing: 8px;
-                VerticalLayout {
-                    alignment: center;
-                    Icon {
-                        source: stat.icon;
-                        width: 18px;
-                        height: 18px;
-                    }
-                }
-                Text {
-                    text: stat.label;
-                    color: Theme.body;
-                    font-size: Theme.small-size;
-                    font-weight: 700;
-                    vertical-alignment: center;
-                }
-            }
-            HorizontalLayout {
-                spacing: 4px;
-                alignment: start;
-                if stat.star: VerticalLayout {
-                    alignment: center;
-                    Icon {
-                        source: Icons.star-fill;
-                        width: 16px;
-                        height: 16px;
-                        color: #ffffff;
-                    }
-                }
-                Text {
-                    text: stat.value;
-                    color: stat.star ? Theme.muted : Theme.body;
-                    font-size: stat.star ? 12px : Theme.body-size;
-                    font-weight: stat.star ? 500 : 400;
-                    vertical-alignment: center;
-                }
-            }
-        }
-    }
-    // >= 1024px: stats stack vertically, label left / value right
-    if root.column: VerticalLayout {
+    VerticalLayout {
         padding: 16px;
         spacing: 8px;
         for stat in [
-            { icon: Icons.download, label: "Downloads", value: root.downloads, star: false },
-            { icon: Icons.people, label: "Active players", value: root.players, star: false },
-            { icon: Icons.star, label: "Rating", value: root.rating, star: true },
+            { icon: Icons.download, label: T.tr("game_details.download_count"), value: root.downloads, star: false },
+            { icon: Icons.people, label: T.tr("game_details.player_count"), value: root.players, star: false },
+            { icon: Icons.star, label: T.tr("game_details.rating_count"), value: root.rating, star: true },
         ]: HorizontalLayout {
             spacing: 4px;
             HorizontalLayout {
@@ -267,7 +217,7 @@ export component StatsSection inherits SidebarSection {
                 }
             }
             HorizontalLayout {
-                spacing: 4px;
+                spacing: 6px;
                 alignment: end;
                 if stat.star: VerticalLayout {
                     alignment: center;
@@ -281,7 +231,7 @@ export component StatsSection inherits SidebarSection {
                 Text {
                     text: stat.value;
                     color: stat.star ? Theme.muted : Theme.body;
-                    font-size: stat.star ? 12px : Theme.body-size;
+                    font-size: stat.star ? Theme.small-size : Theme.body-size;
                     font-weight: stat.star ? 500 : 400;
                     vertical-alignment: center;
                 }
@@ -290,23 +240,41 @@ export component StatsSection inherits SidebarSection {
     }
 }
 
+// how-long-to-beat-section.tsx: three skeleton rows while loading.
 export component HowLongToBeatSection inherits SidebarSection {
     in property <[HltbCategory]> categories;
+    in property <bool> loading;
     title: "HowLongToBeat";
 
     VerticalLayout {
         padding: 16px;
         spacing: 16px;
+        if root.loading: VerticalLayout {
+            spacing: 16px;
+            for i in 3: Rectangle {
+                height: 80px;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: Theme.border;
+                clip: true;
+                Skeleton {
+                    x: 1px;
+                    y: 1px;
+                    width: parent.width - 2px;
+                    height: parent.height - 2px;
+                }
+            }
+        }
         for category in root.categories: Rectangle {
             border-radius: 4px;
             border-width: 1px;
             border-color: Theme.border;
             background: @linear-gradient(90deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.02) 100%);
             VerticalLayout {
-                padding-top: 8px;
-                padding-bottom: 8px;
-                padding-left: 16px;
-                padding-right: 16px;
+                padding-top: 9px;
+                padding-bottom: 9px;
+                padding-left: 17px;
+                padding-right: 17px;
                 spacing: 4px;
                 Text {
                     text: category.title;
@@ -318,9 +286,9 @@ export component HowLongToBeatSection inherits SidebarSection {
                     color: Theme.muted;
                 }
                 if category.accuracy != "": Text {
-                    text: category.accuracy + "% accuracy";
+                    text: T.tr-with("game_details.accuracy", ["accuracy", category.accuracy]);
                     color: Theme.body;
-                    font-size: 11.6px;
+                    font-size: 11.67px;
                 }
             }
         }
@@ -330,7 +298,7 @@ export component HowLongToBeatSection inherits SidebarSection {
 export component ControllerSection inherits SidebarSection {
     // "full" | "partial" (controller-support-section.tsx)
     in property <string> support: "full";
-    title: "Controller support";
+    title: T.tr("game_details.controller_support");
 
     VerticalLayout {
         padding: 16px;
@@ -381,11 +349,11 @@ export component RequirementsSection inherits SidebarSection {
     in property <styled-text> minimum;
     in property <styled-text> recommended;
     in-out property <bool> show-recommended;
-    title: "System requirements";
+    title: T.tr("game_details.requirements");
 
     HorizontalLayout {
         HydraButton {
-            text: "Minimum";
+            text: T.tr("game_details.minimum");
             kind: root.show-recommended ? "outline" : "primary";
             square-corners: true;
             horizontal-stretch: 1;
@@ -394,7 +362,7 @@ export component RequirementsSection inherits SidebarSection {
             }
         }
         HydraButton {
-            text: "Recommended";
+            text: T.tr("game_details.recommended");
             kind: root.show-recommended ? "primary" : "outline";
             square-corners: true;
             horizontal-stretch: 1;
@@ -415,7 +383,7 @@ export component RequirementsSection inherits SidebarSection {
 
 export component LanguageSection inherits SidebarSection {
     in property <[Language]> languages;
-    title: "Language";
+    title: T.tr("game_details.language");
 
     Rectangle {
         background: rgba(255, 255, 255, 0.02);
@@ -423,7 +391,7 @@ export component LanguageSection inherits SidebarSection {
             Rectangle {
                 background: rgba(255, 255, 255, 0.05);
                 HorizontalLayout {
-                    for label[i] in ["Language", "Caption", "Audio"]: Text {
+                    for label[i] in [T.tr("game_details.language"), T.tr("game_details.caption"), T.tr("game_details.audio")]: Text {
                         text: label;
                         color: Theme.muted;
                         font-size: Theme.small-size;

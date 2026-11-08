@@ -283,6 +283,9 @@ fn apply(previous: Option<String>) {
         let title = location.param("title").unwrap_or("").to_string();
         game_page::open(&shop, &object_id, &title, &shell::shop_language());
         crate::game_leaderboard::open(&shop, &object_id);
+        if location.param("reviews") == Some("true") {
+            game_page::scroll_to_reviews_later();
+        }
     }
     let route_changed = previous_location.as_ref().map(|l| l.route()) != Some(location.route());
     nav.set_route(location.route().into());

@@ -18,6 +18,7 @@ use icu_plurals::{PluralCategory, PluralRules};
 
 pub mod date;
 pub mod intl;
+pub mod names;
 
 macro_rules! locales {
     ($($code:literal),* $(,)?) => {
