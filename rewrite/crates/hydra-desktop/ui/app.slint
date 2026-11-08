@@ -27,8 +27,9 @@ import { AuthWindow } from "auth-window.slint";
 import { HosterBrowserWindow } from "hoster-browser-window.slint";
 import { FriendsWindow, FriendsData, FriendRow } from "friends-window.slint";
 import { ChatWindow, ChatData, ChatConversationRow, ChatPickerRow, ChatReactionPill, ChatImageCell, ChatItem, ChatDraftImage, ChatEmoji } from "chat-window.slint";
+import { AchievementNotificationWindow, NotificationCard, NotificationFrame } from "achievement-notification.slint";
 import { SidebarFilterMenu } from "shell/filter-menu.slint";
-import { AchievementsPage, AchievementsData, AchievementRow } from "pages/achievements/page.slint";
+import { AchievementsPage, AchievementsData, AchievementRow, SouvenirLightbox } from "pages/achievements/page.slint";
 import { SearchDropdown, SearchData, SearchPart, SearchSuggestionRow } from "shell/search-dropdown.slint";
 import { NotificationsPage, NotificationsData, NotificationRow } from "pages/notifications/page.slint";
 import { SettingsPage, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow } from "pages/settings/page.slint";
@@ -71,6 +72,7 @@ export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
 export { SearchData, SearchPart, SearchSuggestionRow }
 export { AchievementsData, AchievementRow }
+export { AchievementNotificationWindow, NotificationCard, NotificationFrame }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
 export { SettingsModals, IntegrationsData, IntegrationCard, IntegrationAction, RetroAchievementsWindow, RaWindowStrings, WebWindow }
@@ -209,6 +211,12 @@ export component AppWindow inherits Window {
 
     // Settings modals with their own layout (z-index 5, like the dialogs).
     SettingsModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // the achievements page's souvenir (FullscreenMediaModal, portaled to the body)
+    if AchievementsData.souvenir-open: SouvenirLightbox {
         width: root.width;
         height: root.height;
     }

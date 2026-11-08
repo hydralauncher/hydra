@@ -83,12 +83,37 @@ pub(crate) fn tray_icon() -> Option<PathBuf> {
 
 /// new Notification({ title, body, icon }).show()
 fn show(title: &str, body: &str, icon: Option<&Path>) {
+    show_toast(title, body, icon, false, None);
+}
+
+/// A toast; `silent` drops the system sound, `progress` adds Windows' progress
+/// bar (value 0..1 and the text shown instead of the percentage), like
+/// notifications/xml.ts toXmlString.
+fn show_toast(
+    title: &str,
+    body: &str,
+    icon: Option<&Path>,
+    silent: bool,
+    progress: Option<(f32, String)>,
+) {
     #[cfg(windows)]
     {
-        use tauri_winrt_notification::{IconCrop, Toast};
+        use tauri_winrt_notification::{IconCrop, Progress, Toast};
         let mut toast = Toast::new(APP_USER_MODEL_ID).title(title).text1(body);
         if let Some(icon) = icon {
             toast = toast.icon(icon, IconCrop::Square, "");
+        }
+        if silent {
+            toast = toast.sound(None);
+        }
+        if let Some((value, value_string)) = progress {
+            toast = toast.progress(&Progress {
+                tag: format!("achievement-{}", fastrand_byte()),
+                title: String::new(),
+                status: String::new(),
+                value,
+                value_string,
+            });
         }
         if let Err(error) = toast.show() {
             eprintln!("Failed to show notification: {error:?}");
@@ -96,10 +121,15 @@ fn show(title: &str, body: &str, icon: Option<&Path>) {
     }
     #[cfg(not(windows))]
     {
+        // libnotify has no progress bar (Electron ignores toastXml there too)
+        let _ = progress;
         let mut notification = notify_rust::Notification::new();
         notification.appname("Hydra").summary(title).body(body);
         if let Some(icon) = icon.and_then(Path::to_str) {
             notification.image_path(icon);
+        }
+        if silent {
+            notification.hint(notify_rust::Hint::SuppressSound(true));
         }
         if let Err(error) = notification.show() {
             eprintln!("Failed to show notification: {error}");
@@ -202,6 +232,92 @@ pub fn show_clickable(
             Err(error) => eprintln!("Failed to show notification: {error}"),
         }
     }
+}
+
+static APP_ICON: &[u8] = include_bytes!("../../../../resources/icon.png");
+
+/// resources/icon.png, the achievement toasts' fallback icon.
+fn app_icon() -> Option<PathBuf> {
+    let path = icon_directory().join("icon.png");
+    if !path.exists() {
+        std::fs::write(&path, APP_ICON).ok()?;
+    }
+    Some(path)
+}
+
+/// publishNewAchievementNotification: silent (the app plays its own sound),
+/// with the game's progress bar. Several unlocks show the game's icon.
+pub fn achievement_unlocked(
+    titles: Vec<(String, String)>,
+    unlocked_count: usize,
+    total_count: usize,
+    game_title: String,
+    game_icon: Option<String>,
+) {
+    let Some(first) = titles.first().cloned() else {
+        return;
+    };
+    let (title, body, icon_url) = if titles.len() > 1 {
+        (
+            shell::tr_with(
+                "achievement.achievements_unlocked_for_game",
+                &[
+                    ("gameTitle", game_title.into()),
+                    ("achievementCount", (titles.len() as i64).into()),
+                ],
+            ),
+            titles
+                .iter()
+                .map(|(t, _)| t.as_str())
+                .collect::<Vec<_>>()
+                .join(", "),
+            game_icon,
+        )
+    } else {
+        (
+            shell::tr("achievement.achievement_unlocked"),
+            first.0,
+            Some(first.1),
+        )
+    };
+    let progress = (
+        if total_count > 0 {
+            unlocked_count as f32 / total_count as f32
+        } else {
+            0.0
+        },
+        shell::tr_with(
+            "achievement.achievement_progress",
+            &[
+                ("unlockedCount", (unlocked_count as i64).into()),
+                ("totalCount", (total_count as i64).into()),
+            ],
+        ),
+    );
+    std::thread::spawn(move || {
+        let icon = icon_url
+            .as_deref()
+            .filter(|u| !u.is_empty())
+            .and_then(icon_for)
+            .or_else(app_icon);
+        show_toast(&title, &body, icon.as_deref(), true, Some(progress));
+    });
+}
+
+/// publishCombinedNewAchievementNotification: silent, with the app icon.
+pub fn achievements_combined(achievement_count: usize, game_count: usize) {
+    let title = shell::tr("achievement.achievement_unlocked");
+    let body = shell::tr_with(
+        "achievement.new_achievements_unlocked",
+        &[
+            ("gameCount", (game_count as i64).into()),
+            ("achievementCount", (achievement_count as i64).into()),
+        ],
+    );
+    std::thread::spawn(move || {
+        let icon = app_icon();
+        show_toast(&title, &body, icon.as_deref(), true, None);
+    });
 }
 
 /// Shows an OS notification from a worker thread (the icon is downloaded first).

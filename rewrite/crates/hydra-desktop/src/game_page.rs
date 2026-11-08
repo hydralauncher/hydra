@@ -349,9 +349,10 @@ fn fetch_achievements(shop: &str, object_id: &str) {
     let Some(generation) = with_app(|app| app.generation) else {
         return;
     };
+    crate::achievement_watcher::viewing("game", shop, object_id);
     let (shop, object_id) = (shop.to_string(), object_id.to_string());
     std::thread::spawn(move || {
-        let result = hydra_core::achievements::unlocked_achievements(&api, &db, &shop, &object_id);
+        let result = crate::achievement_watcher::sync_and_get(&api, &db, &shop, &object_id);
         let _ = slint::invoke_from_event_loop(move || {
             if with_app(|app| app.generation) != Some(generation) {
                 return;
@@ -362,6 +363,21 @@ fn fetch_achievements(shop: &str, object_id: &str) {
             }
         });
     });
+}
+
+/// on-update-achievements-${objectId}-${shop}: the watcher merged new unlocks.
+pub fn on_achievements_updated(
+    shop: &str,
+    object_id: &str,
+    list: Vec<hydra_core::achievements::Achievement>,
+) {
+    let Some(generation) =
+        with_app(|app| (app.shop == shop && app.object_id == object_id).then_some(app.generation))
+            .flatten()
+    else {
+        return;
+    };
+    apply_achievements(list, generation);
 }
 
 fn apply_achievements(list: Vec<hydra_core::achievements::Achievement>, generation: u64) {

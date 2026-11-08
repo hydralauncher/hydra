@@ -10,5 +10,7 @@
 
 pub mod images;
 pub mod sound;
+// PCM WAV clips (the achievement sound); `sound` decodes anything through FFmpeg.
+pub mod wav;
 pub mod strips;
 pub mod video;

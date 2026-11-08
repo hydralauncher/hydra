@@ -248,6 +248,7 @@ fn apply(previous: Option<String>) {
             location.param("shop").unwrap_or("steam"),
             location.param("objectId").unwrap_or_default(),
             location.param("title").unwrap_or_default(),
+            location.param("userId"),
         );
     }
     if previous_location.as_ref().map(|l| l.route()) == Some("profile")

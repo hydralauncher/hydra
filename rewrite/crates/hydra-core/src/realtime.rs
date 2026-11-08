@@ -144,7 +144,7 @@ fn jwt_expiration(token: &str) -> Option<i64> {
         .map(|exp| (exp * 1000.0) as i64)
 }
 
-fn base64url_decode(input: &str) -> Option<Vec<u8>> {
+pub(crate) fn base64url_decode(input: &str) -> Option<Vec<u8>> {
     let value = |c: u8| -> Option<u32> {
         Some(match c {
             b'A'..=b'Z' => (c - b'A') as u32,

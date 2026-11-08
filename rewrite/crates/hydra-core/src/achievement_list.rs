@@ -39,7 +39,10 @@ impl Status {
 
 /// getAchievementKey
 pub fn key(achievement: &Achievement) -> &str {
-    &achievement.name
+    achievement
+        .canonical_id
+        .as_deref()
+        .unwrap_or(&achievement.name)
 }
 
 /// isAchievementConcealed
@@ -143,6 +146,126 @@ pub fn filter_and_sort(
     visible
 }
 
+// ---- achievement sets ---------------------------------------------------
+
+const NO_SET_KEY: &str = "none";
+
+/// getAchievementSetKey
+pub fn set_key(achievement: &Achievement) -> String {
+    achievement
+        .set
+        .as_ref()
+        .map_or_else(|| NO_SET_KEY.to_string(), |s| s.id.to_string())
+}
+
+/// AchievementSetGroup: indices into the full list.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SetGroup {
+    pub key: String,
+    pub set: Option<crate::achievements::AchievementSet>,
+    pub members: Vec<usize>,
+}
+
+/// groupAchievementsBySet: None unless there are at least two sets; sets by
+/// order then id, achievements without a set last.
+pub fn group_by_set(achievements: &[Achievement]) -> Option<Vec<SetGroup>> {
+    let mut groups: Vec<SetGroup> = Vec::new();
+    for (index, achievement) in achievements.iter().enumerate() {
+        let key = set_key(achievement);
+        match groups.iter_mut().find(|g| g.key == key) {
+            Some(group) => group.members.push(index),
+            None => groups.push(SetGroup {
+                key,
+                set: achievement.set.clone(),
+                members: vec![index],
+            }),
+        }
+    }
+    let without_set = groups
+        .iter()
+        .position(|g| g.set.is_none())
+        .map(|i| groups.remove(i));
+    if groups.len() < 2 {
+        return None;
+    }
+    groups.sort_by(|a, b| {
+        let (a, b) = (a.set.as_ref().unwrap(), b.set.as_ref().unwrap());
+        a.order.cmp(&b.order).then(a.id.cmp(&b.id))
+    });
+    groups.extend(without_set);
+    Some(groups)
+}
+
+/// VisibleAchievementSetGroup
+#[derive(Clone, Debug, PartialEq)]
+pub struct VisibleSet {
+    pub key: String,
+    pub set: Option<crate::achievements::AchievementSet>,
+    pub total: usize,
+    pub unlocked: usize,
+    /// visible achievements of this set, in display order
+    pub visible: Vec<usize>,
+}
+
+/// getVisibleSetGroups: each set with its visible achievements (empty sets dropped).
+/// `unlocked` says whether an achievement counts as unlocked for the progress.
+pub fn visible_sets(
+    groups: &[SetGroup],
+    visible: &[usize],
+    achievements: &[Achievement],
+    unlocked: impl Fn(&Achievement) -> bool,
+) -> Vec<VisibleSet> {
+    groups
+        .iter()
+        .map(|group| VisibleSet {
+            key: group.key.clone(),
+            set: group.set.clone(),
+            total: group.members.len(),
+            unlocked: group
+                .members
+                .iter()
+                .filter(|&&i| unlocked(&achievements[i]))
+                .count(),
+            visible: visible
+                .iter()
+                .copied()
+                .filter(|&i| set_key(&achievements[i]) == group.key)
+                .collect(),
+        })
+        .filter(|g| !g.visible.is_empty())
+        .collect()
+}
+
+/// AchievementListEntry: a set header (index into the visible sets) or an achievement.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Entry {
+    Set { set: usize, expanded: bool },
+    Achievement(usize),
+}
+
+/// buildAchievementListEntries: headers followed by their achievements unless collapsed.
+pub fn list_entries(
+    sets: Option<&[VisibleSet]>,
+    visible: &[usize],
+    collapsed: &std::collections::HashSet<String>,
+) -> Vec<Entry> {
+    let Some(sets) = sets else {
+        return visible.iter().map(|&i| Entry::Achievement(i)).collect();
+    };
+    let mut entries = Vec::new();
+    for (index, set) in sets.iter().enumerate() {
+        let expanded = !collapsed.contains(&set.key);
+        entries.push(Entry::Set {
+            set: index,
+            expanded,
+        });
+        if expanded {
+            entries.extend(set.visible.iter().map(|&i| Entry::Achievement(i)));
+        }
+    }
+    entries
+}
+
 /// Intl.NumberFormat decimal separators for the app's languages.
 fn decimal_comma(language: &str) -> bool {
     let base = language
@@ -225,9 +348,9 @@ mod tests {
             hidden: false,
             unlocked,
             unlock_time: time,
-            image_url: None,
             global_unlock_percentage: percentage,
             points,
+            ..Achievement::default()
         }
     }
 
@@ -295,6 +418,69 @@ mod tests {
             ["mid"]
         );
         assert!(filter_and_sort(&list, "mid", Status::All, Sort::MostCommon, |_| true).is_empty());
+    }
+
+    #[test]
+    fn groups_sets_and_builds_entries() {
+        use crate::achievements::AchievementSet;
+        let set = |id: i64, order: i64| {
+            Some(AchievementSet {
+                id,
+                name: Some(format!("Set {id}")),
+                order,
+            })
+        };
+        let mut list = vec![
+            achievement("a", true, Some(1), None, None),
+            achievement("b", false, None, None, None),
+            achievement("c", true, Some(2), None, None),
+            achievement("d", false, None, None, None),
+        ];
+        // one set only: no grouping
+        list[0].set = set(5, 2);
+        assert!(group_by_set(&list).is_none());
+        list[1].set = set(5, 2);
+        list[2].set = set(9, 1);
+        let groups = group_by_set(&list).unwrap();
+        let keys: Vec<&str> = groups.iter().map(|g| g.key.as_str()).collect();
+        assert_eq!(keys, ["9", "5", "none"]);
+        // "b" filtered out
+        let visible = vec![2, 0, 3];
+        let sets = visible_sets(&groups, &visible, &list, |a| a.unlocked);
+        assert_eq!(sets.len(), 3);
+        assert_eq!(
+            (sets[1].total, sets[1].unlocked, sets[1].visible.clone()),
+            (2, 1, vec![0])
+        );
+        let mut collapsed = std::collections::HashSet::new();
+        collapsed.insert("5".to_string());
+        assert_eq!(
+            list_entries(Some(&sets), &visible, &collapsed),
+            [
+                Entry::Set {
+                    set: 0,
+                    expanded: true
+                },
+                Entry::Achievement(2),
+                Entry::Set {
+                    set: 1,
+                    expanded: false
+                },
+                Entry::Set {
+                    set: 2,
+                    expanded: true
+                },
+                Entry::Achievement(3),
+            ]
+        );
+        assert_eq!(
+            list_entries(None, &visible, &collapsed),
+            [
+                Entry::Achievement(2),
+                Entry::Achievement(0),
+                Entry::Achievement(3)
+            ]
+        );
     }
 
     #[test]

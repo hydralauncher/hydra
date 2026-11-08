@@ -189,10 +189,11 @@ pub fn init(ui: &AppWindow) {
             "achievementCustomNotificationPosition".to_string(),
             json!(value.to_string()),
         )]));
-        // TODO(notifications): updateAchievementCustomNotificationWindow
+        // updateAchievementCustomNotificationWindow
+        crate::achievement_notification::dispose();
         refresh();
     });
-    data.on_test_notification(|| eprintln!("TODO(notifications): showAchievementTestNotification"));
+    data.on_test_notification(crate::achievement_notification::show_test);
     data.on_volume_changed(|value| {
         // 300ms debounce, stored as 0..1
         let timer = slint::Timer::default();
@@ -833,6 +834,10 @@ fn toggle(key: &str) {
     }
     let value = !pref_bool(&p, key);
     prefs::update(Map::from_iter([(key.to_string(), json!(value))]));
+    if key == "achievementNotificationsEnabled" || key == "achievementCustomNotificationsEnabled" {
+        // updateAchievementCustomNotificationWindow
+        crate::achievement_notification::dispose();
+    }
     if key == "runAtStartup" || key == "startMinimized" {
         // window.electron.autoLaunch with the toggled form values
         let p = prefs::get();

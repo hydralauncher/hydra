@@ -15,6 +15,8 @@
 //!   left, right, up, down, home, end, pagedown, space, escape, or a character
 //! - `open-friends`, `open-chat <friend id>`: open the social windows
 //! - `target main|friends|chat`: later steps go to that window
+//! - `notify-achievement-test`, `notify-achievement-combined <games> <n>`,
+//!   `shot-notification <name>` - the achievement notification window
 //! - `quit`
 
 use slint::platform::{Key, PointerEventButton, WindowEvent};
@@ -163,6 +165,26 @@ fn next<C: ComponentHandle + 'static>(
         }
         // settings states the account can't reach on its own (settings_integrations::dev)
         "settings-dev" => crate::settings_integrations::dev(&args),
+        // the Settings → Notifications test (plain, rare + hidden, platinum)
+        "notify-achievement-test" => crate::achievement_notification::show_test(),
+        // the combined "N achievements on M games" notification
+        "notify-achievement-combined" => crate::achievement_notification::publish_combined(
+            num(0).max(1.0) as usize,
+            num(1).max(1.0) as usize,
+        ),
+        // hold the notification at <ms> (4000+ is the closing), or `off`
+        "notification-time" => crate::achievement_notification::dev_pin(
+            args.first().and_then(|a| a.parse::<f32>().ok()),
+        ),
+        // a frame of the achievement notification window
+        "shot-notification" => match crate::achievement_notification::window() {
+            Some(notification) => snapshot(
+                notification.window(),
+                &out,
+                args.first().copied().unwrap_or("notification"),
+            ),
+            None => eprintln!("devscript: no notification window"),
+        },
         "quit" => {
             let _ = slint::quit_event_loop();
             return;
