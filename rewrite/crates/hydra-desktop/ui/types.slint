@@ -28,6 +28,9 @@ export struct Achievement {
     icon: image,
     unlocked: bool,
     date: string,
+    // Hidden and locked, with descriptions of hidden achievements off: eye icon + "Hidden achievement".
+    concealed: bool,
+    description: string,
 }
 
 export struct HltbCategory {

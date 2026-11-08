@@ -140,7 +140,84 @@ pub fn open(shop: &str, object_id: &str, title: &str, locale: &str) {
     g.set_publisher(SharedString::default());
     g.set_controller_support("none".into());
     apply_library_state(&ui, shop, object_id);
+    g.set_achievements(ModelRc::new(VecModel::from(Vec::<crate::Achievement>::new())));
+    g.set_achievements_total(0);
+    g.set_achievements_unlocked(0);
     fetch_game();
+    fetch_achievements(shop, object_id);
+}
+
+/// game-details.context.tsx: `getUnlockedAchievements` once the user is known.
+fn fetch_achievements(shop: &str, object_id: &str) {
+    let (Some(api), Some(db)) = (crate::shell::api(), crate::shell::db()) else { return };
+    if shop == "custom" || !api.is_logged_in() {
+        return;
+    }
+    let Some(generation) = with_app(|app| app.generation) else { return };
+    let (shop, object_id) = (shop.to_string(), object_id.to_string());
+    std::thread::spawn(move || {
+        let result = hydra_core::achievements::unlocked_achievements(&api, &db, &shop, &object_id);
+        let _ = slint::invoke_from_event_loop(move || {
+            if with_app(|app| app.generation) != Some(generation) {
+                return;
+            }
+            match result {
+                Ok(list) => apply_achievements(list, generation),
+                Err(error) => eprintln!("achievements: {error}"),
+            }
+        });
+    });
+}
+
+fn apply_achievements(list: Vec<hydra_core::achievements::Achievement>, generation: u64) {
+    let Some((ui, loader)) = with_app(|app| app.ui.upgrade().map(|ui| (ui, app.loader.clone()))).flatten() else {
+        return;
+    };
+    let language = crate::shell::i18n().map(|i| i.language().to_string()).unwrap_or_else(|| "en".into());
+    let show_hidden = crate::shell::preference("showHiddenAchievementsDescription");
+    let unlocked = list.iter().filter(|a| a.unlocked).count();
+    let rows: Vec<crate::Achievement> = list
+        .iter()
+        .take(4)
+        .map(|a| crate::Achievement {
+            name: a.display_name.clone().into(),
+            icon: Image::default(),
+            unlocked: a.unlocked,
+            date: a
+                .unlock_time
+                .map(|t| hydra_i18n::date::format_date_time(&language, t))
+                .unwrap_or_default()
+                .into(),
+            // isAchievementConcealed
+            concealed: a.hidden && !a.unlocked && !show_hidden,
+            description: a.description.clone().into(),
+        })
+        .collect();
+    let g = gd(&ui);
+    g.set_achievements_total(list.len() as i32);
+    g.set_achievements_unlocked(unlocked as i32);
+    let model = Rc::new(VecModel::from(rows));
+    g.set_achievements(ModelRc::from(model.clone()));
+    // .list__item-image 54px; locked icons are grayscale (filter: grayscale(100%)).
+    let size = (54.0 * ui.window().scale_factor()).ceil() as u32;
+    for (index, achievement) in list.iter().take(4).enumerate() {
+        if achievement.icon.is_empty() {
+            continue;
+        }
+        let op = if achievement.unlocked { Op::MaxWidth(size) } else { Op::Grayscale };
+        let weak = ui.as_weak();
+        loader.load(achievement.icon.clone(), op, move |img| {
+            if with_app(|app| app.generation) != Some(generation) {
+                return;
+            }
+            let Some(ui) = weak.upgrade() else { return };
+            let model = gd(&ui).get_achievements();
+            if let Some(mut row) = model.row_data(index) {
+                row.icon = img;
+                model.set_row_data(index, row);
+            }
+        });
+    }
 }
 
 /// The hero panel's library state (hero-panel-playtime.tsx, hero-panel-actions.tsx).

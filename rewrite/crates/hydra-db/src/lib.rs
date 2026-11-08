@@ -101,6 +101,11 @@ impl Db {
         serde_json::from_slice(&bytes).ok()
     }
 
+    /// `db.get(key, { valueEncoding: "utf8" })`: values stored as plain text.
+    pub fn get_utf8(&self, key: &str) -> Option<String> {
+        self.get_raw(key).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+    }
+
     pub fn get_value(&self, key: &str) -> Option<Value> {
         self.get(key)
     }

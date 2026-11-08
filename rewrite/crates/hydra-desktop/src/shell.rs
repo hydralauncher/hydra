@@ -98,6 +98,16 @@ pub fn find_library_game(shop: &str, object_id: &str) -> Option<Presentation> {
     .flatten()
 }
 
+/// The Hydra API client.
+pub fn api() -> Option<Arc<HydraApi>> {
+    with_shell(|s| s.api.clone())
+}
+
+/// A boolean user preference (userPreferences in LevelDB).
+pub fn preference(key: &str) -> bool {
+    with_shell(|s| pref_flag(&s.db.get::<Value>(keys::USER_PREFERENCES), key)).unwrap_or(false)
+}
+
 /// The local database (the rewrite's copy of Electron's).
 pub fn db() -> Option<Arc<Db>> {
     with_shell(|s| s.db.clone())

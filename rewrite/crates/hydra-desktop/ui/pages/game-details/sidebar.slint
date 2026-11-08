@@ -1,6 +1,7 @@
 // sidebar/sidebar.tsx + sidebar-section.tsx and the section components.
 import { Theme, Icons, Tip, Ids } from "../../theme.slint";
 import { Icon, HydraButton, Skeleton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
 import { Achievement, HltbCategory, Language } from "../../types.slint";
 
 // sidebar-section.tsx: header toggles; content max-height animates with
@@ -107,17 +108,27 @@ component AchievementRow inherits Rectangle {
             height: 54px;
             border-radius: 4px;
             clip: true;
-            Image {
+            if !root.achievement.concealed: Image {
                 width: parent.width;
                 height: parent.height;
                 source: root.achievement.icon;
                 image-fit: cover;
             }
+            // .list__item-image--concealed
+            if root.achievement.concealed: Rectangle {
+                background: rgba(255, 255, 255, 0.08);
+                Icon {
+                    source: Icons.eye-closed;
+                    width: 20px;
+                    height: 20px;
+                    color: Theme.muted;
+                }
+            }
         }
         VerticalLayout {
             alignment: center;
             Text {
-                text: root.achievement.name;
+                text: root.achievement.concealed ? T.tr("achievement.hidden_achievement") : root.achievement.name;
                 color: Theme.muted;
                 font-size: Theme.body-size;
             }
@@ -147,7 +158,7 @@ export component AchievementsSection inherits SidebarSection {
     in property <[Achievement]> achievements;
     in property <int> unlocked;
     in property <int> total;
-    title: "Achievements " + root.unlocked + "/" + root.total;
+    title: root.total > 0 ? T.tr-with("game_details.achievements_count", ["unlockedCount", "" + root.unlocked, "achievementsCount", "" + root.total]) : T.tr("game_details.achievements");
 
     VerticalLayout {
         padding: 16px;
@@ -156,7 +167,7 @@ export component AchievementsSection inherits SidebarSection {
             achievement: achievement;
         }
         Link {
-            text: "See all achievements";
+            text: T.tr("game_details.see_all_achievements");
         }
     }
 }
