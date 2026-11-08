@@ -53,6 +53,13 @@ notify-rust = "4"
 # The Linux tray: a StatusNotifierItem over D-Bus (what Electron's Linux tray
 # speaks), served from its own thread so the winit loop needs no GTK.
 [target.'cfg(target_os = "linux")'.dependencies]
+# Skia on OpenGL with a GPU, its CPU raster without one (linux::renderer),
+# like Chromium on Linux. Slint's default Skia surface tries wgpu (Vulkan)
+# first, which lands on lavapipe (CPU Vulkan) where there's no hardware
+# Vulkan driver (WSL, VMs): about 3 cores to draw a playing trailer.
+slint = { workspace = true, features = ["renderer-skia-opengl"] }
+# dlopen of libEGL to tell hardware GL from a software rasterizer
+libc = "0.2"
 ksni = { version = "0.3", default-features = false, features = ["blocking", "async-io"] }
 # The auth window's frame around WebKitGTK (the same gtk wry uses).
 gtk = "0.18"

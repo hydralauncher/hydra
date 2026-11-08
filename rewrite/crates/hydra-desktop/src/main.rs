@@ -160,9 +160,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         headless::Headless::install(width, height, scale)?;
     } else if std::env::var_os("SLINT_BACKEND").is_none() {
         // Skia measured best overall (see docs/decisions.md). SLINT_BACKEND overrides.
+        // Linux picks OpenGL or the CPU raster like Chromium (linux::renderer):
+        // Skia's default there is wgpu on Vulkan, which can land on a CPU
+        // Vulkan driver.
+        #[cfg(target_os = "linux")]
+        let renderer = linux::renderer();
+        #[cfg(not(target_os = "linux"))]
+        let renderer = "skia";
         slint::BackendSelector::new()
             .backend_name("winit".into())
-            .renderer_name("skia".into())
+            .renderer_name(renderer.into())
             .select()?;
     }
     #[cfg(target_os = "linux")]

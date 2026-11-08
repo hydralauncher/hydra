@@ -2798,6 +2798,7 @@ dependencies = [
  "image",
  "interprocess",
  "ksni",
+ "libc",
  "notify-rust",
  "reqwest",
  "rfd",

@@ -46,6 +46,14 @@ browse 10 screenshots in the viewer, scroll the whole page):
 pressure), and 60 MB is the triple-buffered 2880×1800 swapchain any GPU
 renderer pays. The app's own heap is about 65 MB.
 
+Linux picks its Skia surface the way Chromium picks its compositor: OpenGL
+when EGL lists a hardware device, Skia's CPU raster when the only GL would be
+a software rasterizer (Mesa's `EGL_MESA_device_software`). Slint's own
+default there is wgpu on Vulkan, which lands on lavapipe when no hardware
+Vulkan driver exists: in WSL without a working GPU, a playing trailer took
+333% of a core on lavapipe, about the same on llvmpipe GL, and 30% on Skia's
+raster (with half the memory).
+
 The software renderer uses the least memory but about 6× the CPU during
 animations. femtovg's GPU memory grows while browsing images and isn't
 released. The Electron app hasn't been measured on the same machine yet; do

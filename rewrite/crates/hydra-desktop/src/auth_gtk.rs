@@ -264,8 +264,7 @@ pub fn open(url: &str, on_navigation: fn(String) -> bool) {
 
 /// BrowserWindow({ icon }) for the auth window too.
 fn window_icon() -> Option<gtk::gdk_pixbuf::Pixbuf> {
-    static ICON: &[u8] = include_bytes!("../../../../resources/icon.png");
-    let image = image::load_from_memory(ICON)
+    let image = image::load_from_memory(crate::linux::ICON)
         .ok()?
         .resize_exact(64, 64, image::imageops::FilterType::Lanczos3)
         .into_rgba8();
