@@ -2785,6 +2785,7 @@ dependencies = [
  "base64 0.22.1",
  "dirs 6.0.0",
  "fs2",
+ "gtk",
  "hydra-core",
  "hydra-db",
  "hydra-downloads",
@@ -2848,8 +2849,12 @@ dependencies = [
  "hydra-core",
  "hydra-db",
  "libc",
+ "reqwest",
+ "rustls",
  "serde_json",
+ "sha2 0.10.9",
  "sysinfo",
+ "tar",
 ]
 
 [[package]]
