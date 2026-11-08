@@ -729,7 +729,11 @@ pub struct TorrentFiles {
 impl Manager {
     /// getDebridFiles: a magnet's files on TorBox (cached torrents only) or
     /// Real-Debrid, for the file picker. `Err` is the error key or message.
-    pub fn debrid_files(&self, magnet: &str, downloader: Downloader) -> Result<TorrentFiles, String> {
+    pub fn debrid_files(
+        &self,
+        magnet: &str,
+        downloader: Downloader,
+    ) -> Result<TorrentFiles, String> {
         if !magnet.starts_with("magnet:") {
             return Err(key::INVALID_MAGNET.into());
         }
@@ -756,7 +760,8 @@ impl Manager {
                 }
                 Downloader::RealDebrid => {
                     let token = need(tokens.real_debrid, key::REAL_DEBRID_ACCOUNT_NOT_AUTHORIZED)?;
-                    let (name, files) = RealDebrid::new(&token).download_files(magnet, None).await?;
+                    let (name, files) =
+                        RealDebrid::new(&token).download_files(magnet, None).await?;
                     Ok(TorrentFiles {
                         name,
                         total_size: files.iter().map(|f| f.size).sum(),

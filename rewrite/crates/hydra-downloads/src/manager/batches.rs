@@ -880,12 +880,14 @@ impl Manager {
             if url.is_empty() {
                 return Err(DlError::msg("The download link is unavailable."));
             }
+            // batch_refresh locks the batch itself: build it outside the lock.
+            let refresh = self.batch_refresh(batch, index);
             let options = {
                 let mut state = lock(batch);
                 state.active_index = Some(state.current_index);
                 let entry = state.entries[index].clone();
                 let mut options = entry_options(&state, &entry, &url);
-                options.refresh_url = self.batch_refresh(batch, index);
+                options.refresh_url = refresh;
                 options
             };
             log_url(&options.url);
