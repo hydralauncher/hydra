@@ -48,7 +48,12 @@ static SOUND: &[u8] = include_bytes!("../../../../resources/achievement.wav");
 
 /// CSS `ease-in-out`: cubic-bezier(0.42, 0, 0.58, 1).
 pub fn ease_in_out(x: f32) -> f32 {
-    let x = x.clamp(0.0, 1.0);
+    if x <= 0.0 {
+        return 0.0;
+    }
+    if x >= 1.0 {
+        return 1.0;
+    }
     let bezier = |t: f32, a: f32, b: f32| {
         let u = 1.0 - t;
         3.0 * u * u * t * a + 3.0 * u * t * t * b + t * t * t

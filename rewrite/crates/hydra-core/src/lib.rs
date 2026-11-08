@@ -1,6 +1,7 @@
 //! The Electron main process, ported: what `src/main` does behind IPC.
 //! Each module names the files it ports.
 
+pub mod achievement_compare;
 pub mod achievement_files;
 pub mod achievement_game_files;
 pub mod achievement_list;

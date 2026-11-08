@@ -46,6 +46,11 @@ const icons = {
   "bell-24": [oct.BellIcon, { size: 24 }],
   "clock-12": [oct.ClockIcon, { size: 12 }],
   unlock: [oct.UnlockIcon, { size: 16 }],
+  // achievements page: souvenir zoom, comparison status cells, global stats badge
+  "search-20": [oct.SearchIcon, { size: 20 }],
+  "lock-18": [oct.LockIcon, { size: 18 }],
+  "check-circle-fill-18": [oct.CheckCircleFillIcon, { size: 18 }],
+  "globe-hemisphere-west-26": [phosphor.GlobeHemisphereWest, { size: 26, weight: "duotone" }],
   "sort-asc": [oct.SortAscIcon, { size: 16 }],
   "eye-closed-12": [oct.EyeClosedIcon, { size: 12 }],
   "eye-closed-24": [oct.EyeClosedIcon, { size: 24 }],

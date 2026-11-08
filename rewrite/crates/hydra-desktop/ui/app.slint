@@ -24,7 +24,7 @@ import { PlaytimeModals, PlaytimeColumn } from "pages/game-details/playtime.slin
 import { AuthWindow } from "auth-window.slint";
 import { AchievementNotificationWindow, NotificationCard, NotificationFrame } from "achievement-notification.slint";
 import { SidebarFilterMenu } from "shell/filter-menu.slint";
-import { AchievementsPage, AchievementsData, AchievementRow } from "pages/achievements/page.slint";
+import { AchievementsPage, AchievementsData, AchievementRow, SouvenirLightbox } from "pages/achievements/page.slint";
 import { SearchDropdown, SearchData, SearchPart, SearchSuggestionRow } from "shell/search-dropdown.slint";
 import { NotificationsPage, NotificationsData, NotificationRow } from "pages/notifications/page.slint";
 import { SettingsPage, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow } from "pages/settings/page.slint";
@@ -162,6 +162,12 @@ export component AppWindow inherits Window {
     }
 
     DialogHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // the achievements page's souvenir (FullscreenMediaModal, portaled to the body)
+    if AchievementsData.souvenir-open: SouvenirLightbox {
         width: root.width;
         height: root.height;
     }
