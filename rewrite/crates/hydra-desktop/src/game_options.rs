@@ -129,7 +129,7 @@ pub fn init(ui: &AppWindow) {
             crate::playtime_modals::open_reset(&shop, &object_id);
         }
     });
-    options.on_remove_files(|| eprintln!("TODO(game options): remove files"));
+    options.on_remove_files(remove_files);
     options.on_opened(|category| open(&category));
 }
 
@@ -243,7 +243,11 @@ fn refresh() {
         );
         options.set_deleting(false);
         options.set_can_reset_achievements(false);
-        options.set_can_remove_files(false);
+        // getRemoveFilesTarget (Hydra downloads; the Steam uninstall target is a TODO)
+        let has_files = download
+            .as_ref()
+            .is_some_and(|d| !text(d, "downloadPath").is_empty());
+        options.set_can_remove_files(has_files && !downloading && !custom);
     });
 }
 
@@ -509,4 +513,55 @@ fn remove_from_library() {
             });
         },
     );
+}
+
+/// DeleteGameModal + deleteGameFolder from the danger zone.
+fn remove_files() {
+    let Some((_, _, key)) = game_key() else {
+        return;
+    };
+    let Some(db) = shell::db() else { return };
+    let has_archive = hydra_downloads::removal::has_source_archive(&db, &key);
+    crate::dialogs::confirm(
+        crate::dialogs::Confirm {
+            title: &t("downloads.delete_modal_title"),
+            description: &t("downloads.delete_modal_description"),
+            body: "",
+            confirm_label: &t("downloads.delete"),
+            cancel_label: &t("downloads.cancel"),
+            danger: true,
+        },
+        move || {
+            let delete_archive = has_archive && crate::dialogs::checkbox_checked();
+            crate::dialogs::close();
+            let Some(db) = shell::db() else { return };
+            // removeGameInstaller: still downloading or already deleting?
+            let downloading = db
+                .get_in::<Map<String, Value>>(keys::DOWNLOADS, &key)
+                .is_some_and(|d| d.get("status").and_then(Value::as_str) == Some("active"));
+            if downloading {
+                toast::error(&t("game_details.remove_files_downloading"));
+                return;
+            }
+            with_ui(|ui| ui.global::<GameOptions>().set_deleting(true));
+            let key = key.clone();
+            std::thread::spawn(move || {
+                let result =
+                    hydra_downloads::removal::delete_game_folder(&db, &key, delete_archive);
+                let _ = slint::invoke_from_event_loop(move || {
+                    with_ui(|ui| ui.global::<GameOptions>().set_deleting(false));
+                    if let Err(error) = result {
+                        eprintln!("Failed to remove files: {error}");
+                        toast::error(&t("game_details.remove_files_failed"));
+                    }
+                    refresh_open();
+                    crate::downloads_page::refresh();
+                    shell::load_library();
+                });
+            });
+        },
+    );
+    if has_archive {
+        crate::dialogs::set_checkbox(&t("downloads.delete_source_archive"));
+    }
 }

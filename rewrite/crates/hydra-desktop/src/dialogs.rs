@@ -107,12 +107,26 @@ pub fn confirm(spec: Confirm, on_confirm: impl Fn() + 'static) {
     dialogs.set_cancel_label(spec.cancel_label.into());
     dialogs.set_confirm_kind(if spec.danger { "danger" } else { "primary" }.into());
     dialogs.set_busy(false);
+    dialogs.set_checkbox_label("".into());
+    dialogs.set_checkbox_checked(false);
     STATE.with(|s| {
         if let Some(s) = s.borrow_mut().as_mut() {
             s.on_confirm = Some(Rc::new(on_confirm));
         }
     });
     dialogs.set_kind("confirm".into());
+}
+
+/// A checkbox above the confirm buttons (call right after `confirm`).
+pub fn set_checkbox(label: &str) {
+    if let Some(ui) = window() {
+        ui.global::<Dialogs>().set_checkbox_label(label.into());
+    }
+}
+
+/// The checkbox state when the dialog is confirmed.
+pub fn checkbox_checked() -> bool {
+    window().is_some_and(|ui| ui.global::<Dialogs>().get_checkbox_checked())
 }
 
 /// Close the open dialog with its exit animation.

@@ -12,4 +12,5 @@ pub mod http;
 pub mod layout;
 pub mod manager;
 pub mod range_state;
+pub mod removal;
 pub mod throttle;

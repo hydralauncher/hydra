@@ -4,6 +4,7 @@
 // handles the buttons (dialogs.rs).
 import { Theme } from "../theme.slint";
 import { HydraButton } from "widgets.slint";
+import { CheckboxField } from "fields.slint";
 import { Modal, ModalController } from "modal.slint";
 
 export global Dialogs {
@@ -18,6 +19,9 @@ export global Dialogs {
     // "primary" | "danger"
     in property <string> confirm-kind: "primary";
     in property <bool> busy;
+    // DeleteGameModal: "Delete source archive" when there is one
+    in property <string> checkbox-label;
+    in-out property <bool> checkbox-checked;
     // create-collection-modal: the name field
     in property <string> field-label;
     in property <string> field-placeholder;
@@ -137,6 +141,13 @@ export component DialogHost inherits Rectangle {
                 font-size: 16px;
                 color: Theme.body;
                 wrap: word-wrap;
+            }
+            if Dialogs.checkbox-label != "": CheckboxField {
+                label: Dialogs.checkbox-label;
+                checked: Dialogs.checkbox-checked;
+                toggled => {
+                    Dialogs.checkbox-checked = !Dialogs.checkbox-checked;
+                }
             }
             HorizontalLayout {
                 alignment: end;
