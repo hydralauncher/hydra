@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { EmulatorSaveLocation } from "@renderer/pages/settings/emulation/emulator-save-location";
-import { getRpcs3ConfigRootChoices } from "@renderer/pages/settings/emulation/rpcs3-config-root-choices";
+import { getEmulatorSaveLocationChoices } from "@renderer/pages/settings/emulation/emulator-save-location-choices";
 import { Button, VerticalFocusGroup } from "../../../components";
 import { useBigPictureToast } from "../../../hooks";
 import { EMULATION_DETAIL_SAVE_LOCATION_BROWSE_BUTTON_ID } from "../settings-navigation";
@@ -77,7 +77,7 @@ export function EmulatorSaveLocationSection({
   };
 
   const rootStatus = typeof status === "object" ? status : null;
-  const { selectedRoot, roots } = getRpcs3ConfigRootChoices(rootStatus);
+  const { selectedRoot, roots } = getEmulatorSaveLocationChoices(rootStatus);
   const controlsDisabled = busy || !config.executablePath;
   const statusKey = config.executablePath
     ? typeof status === "object"

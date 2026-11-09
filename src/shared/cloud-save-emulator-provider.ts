@@ -69,6 +69,10 @@ export const DISC_CLOUD_SAVE_EMULATOR_PROVIDERS = Object.keys(
   DISC_PROVIDER_SYSTEMS
 ) as DiscCloudSaveEmulatorProvider[];
 
+export const DISC_CLOUD_SAVE_EMULATOR_SYSTEMS = Object.values(
+  DISC_PROVIDER_SYSTEMS
+);
+
 export const isDiscCloudSaveEmulatorProvider = (
   provider: CloudSaveEmulatorProvider | null | undefined
 ): provider is DiscCloudSaveEmulatorProvider =>
