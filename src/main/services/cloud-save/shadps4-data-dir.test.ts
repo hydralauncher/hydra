@@ -70,6 +70,22 @@ describe("shadPS4 data folder", () => {
     );
   });
 
+  it("resolves a relative General.home_dir from the launcher folder", async () => {
+    await writeConfig(portable(), { General: { home_dir: "ps4-home" } });
+    await fs.mkdir(path.join(root, "emulator", "ps4-home"));
+    assert.equal(
+      (await validateShadps4DataDir(portable(), path.join(root, "emulator")))
+        ?.homeRoot,
+      await real(path.join(root, "emulator", "ps4-home"))
+    );
+    const { status, location } = await resolveShadps4DataDirStatus(exe(), null);
+    assert.equal(status.status, "ready");
+    assert.equal(
+      location?.homeRoot,
+      await real(path.join(root, "emulator", "ps4-home"))
+    );
+  });
+
   it("rejects folders without a usable config.json or home", async () => {
     await fs.mkdir(portable(), { recursive: true });
     assert.equal(await validateShadps4DataDir(portable()), null);

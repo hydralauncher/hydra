@@ -43,7 +43,10 @@ const readHomeDir = (configContent: string): string | null | undefined => {
  * the home folder it points to exists.
  */
 export const validateShadps4DataDir = async (
-  dir: string
+  dir: string,
+  /** shadPS4 resolves a relative home_dir from its working folder: the
+   * folder Hydra starts it from. */
+  workingDir?: string
 ): Promise<Shadps4SaveLocation | null> => {
   if (!path.isAbsolute(dir)) return null;
   try {
@@ -55,8 +58,14 @@ export const validateShadps4DataDir = async (
     if (configContent === null) return null;
     const homeDir = readHomeDir(configContent);
     if (homeDir === undefined) return null;
-    if (homeDir !== null && !path.isAbsolute(homeDir)) return null;
-    const homeRoot = await fs.realpath(homeDir ?? path.join(dataDir, "home"));
+    if (homeDir !== null && !path.isAbsolute(homeDir) && !workingDir) {
+      return null;
+    }
+    const homeRoot = await fs.realpath(
+      homeDir === null
+        ? path.join(dataDir, "home")
+        : path.resolve(workingDir ?? dataDir, homeDir)
+    );
     if (!(await isDirectory(homeRoot))) return null;
     return { dataDir, homeRoot };
   } catch {
@@ -94,9 +103,12 @@ export const resolveShadps4DataDirStatus = async (
   if (!executablePath || !(await fs.stat(executablePath).catch(() => null))) {
     return { status: { ...base, status: "not-configured" }, location: null };
   }
+  const workingDir = path.dirname(executablePath);
 
   const checked = await Promise.all(
-    candidateDirs.map((dir) => validateShadps4DataDir(path.resolve(dir)))
+    candidateDirs.map((dir) =>
+      validateShadps4DataDir(path.resolve(dir), workingDir)
+    )
   );
   const locations = [
     ...new Map(
@@ -108,7 +120,7 @@ export const resolveShadps4DataDirStatus = async (
   const candidates = locations.map((location) => location.dataDir);
 
   if (selectedDir) {
-    const selected = await validateShadps4DataDir(selectedDir);
+    const selected = await validateShadps4DataDir(selectedDir, workingDir);
     return selected
       ? {
           status: {
@@ -131,7 +143,7 @@ export const resolveShadps4DataDirStatus = async (
   const automaticDir = (await isDirectory(portableDir))
     ? portableDir
     : shadps4DefaultUserDir();
-  const location = await validateShadps4DataDir(automaticDir);
+  const location = await validateShadps4DataDir(automaticDir, workingDir);
   return {
     status: {
       ...base,

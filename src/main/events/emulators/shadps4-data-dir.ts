@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { registerEvent } from "../register-event";
 import {
   getEmulatorConfig,
@@ -26,7 +28,9 @@ const setShadps4DataDir = async (
   if (!config.executablePath) {
     throw new Error("cloud_save_shadps4_not_configured");
   }
-  const location = dir ? await validateShadps4DataDir(dir) : null;
+  const location = dir
+    ? await validateShadps4DataDir(dir, path.dirname(config.executablePath))
+    : null;
   if (dir && !location) {
     throw new Error("cloud_save_shadps4_config_invalid_selection");
   }

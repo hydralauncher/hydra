@@ -15,7 +15,7 @@ import path from "node:path";
 import {
   findManagedEmulatorExecutable,
   type ManagedExecutableBinary,
-} from "./find-managed-emulator-executable";
+} from "./find-managed-emulator-executable.js";
 
 export const SHADPS4_CORE_DIRECTORY = "core";
 
