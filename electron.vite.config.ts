@@ -26,6 +26,38 @@ const mangleIdentifiers = (): Plugin => ({
   },
 });
 
+const rendererContentSecurityPolicy = (
+  externalResourcesUrl: string | undefined
+): Plugin => ({
+  name: "hydra:renderer-content-security-policy",
+  transformIndexHtml: (_html, context) => {
+    const scriptSources = [
+      "'self'",
+      ...(externalResourcesUrl ? [new URL(externalResourcesUrl).origin] : []),
+      // React Refresh injects an inline preamble that only exists on the dev server.
+      ...(context.server ? ["'unsafe-inline'"] : []),
+    ];
+
+    return [
+      {
+        tag: "meta",
+        attrs: {
+          "http-equiv": "Content-Security-Policy",
+          content: [
+            "default-src 'self' 'unsafe-inline' * data: local: blob:",
+            `script-src ${scriptSources.join(" ")}`,
+            "worker-src 'self' blob:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "media-src 'self' 'unsafe-inline' * data: local: blob:",
+          ].join("; "),
+        },
+        injectTo: "head-prepend",
+      },
+    ];
+  },
+});
+
 const buildSeed = Math.floor(Math.random() * 2 ** 31);
 
 const obfuscate = (): Plugin => ({
@@ -62,7 +94,10 @@ const obfuscate = (): Plugin => ({
 });
 
 export default defineConfig(({ mode }) => {
-  loadEnv(mode);
+  const env = loadEnv(mode);
+  const contentSecurityPolicy = rendererContentSecurityPolicy(
+    env.RENDERER_VITE_EXTERNAL_RESOURCES_URL
+  );
 
   const isProduction = mode === "production";
   const minify = isProduction ? "esbuild" : false;
@@ -117,7 +152,7 @@ export default defineConfig(({ mode }) => {
           "@shared": resolve("src/shared"),
         },
       },
-      plugins: [svgr(), react()],
+      plugins: [svgr(), react(), contentSecurityPolicy],
     },
     renderer: {
       build: {
@@ -144,7 +179,7 @@ export default defineConfig(({ mode }) => {
           "@shared": resolve("src/shared"),
         },
       },
-      plugins: [svgr(), react()],
+      plugins: [svgr(), react(), contentSecurityPolicy],
     },
   };
 });
