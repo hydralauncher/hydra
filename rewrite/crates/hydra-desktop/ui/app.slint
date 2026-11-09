@@ -11,6 +11,7 @@ import "fonts/NotoSans-BoldItalic.ttf";
 import { Theme, Icons, Tip } from "theme.slint";
 import { TooltipHost } from "components/widgets.slint";
 import { ContextMenuHost, ContextMenu, MenuEntry, MenuLeaf } from "components/context-menu.slint";
+import { SecondaryMenuHost, SecondaryMenu } from "components/secondary-menu.slint";
 import { ToastHost, Toast } from "components/toast.slint";
 import { DialogHost, Dialogs } from "components/dialogs.slint";
 import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewReply, RepackRow, RepackSource } from "types.slint";
@@ -57,6 +58,7 @@ import { SelectPopupHost, SelectPopup, SelectOption } from "components/fields.sl
 import { HomeData, CatalogueCard } from "pages/home/state.slint";
 import { Gifs } from "components/animated.slint";
 import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages/library/state.slint";
+import { LibraryModalsHost, LibraryModals, ScanGameRow, ScanChoice, ScanAmbiguousRow } from "pages/library/modals.slint";
 import { TitleBar } from "shell/title-bar.slint";
 import { LeaderboardsPage, LeaderboardsData } from "pages/leaderboards/page.slint";
 import { LbMetric, LbSideGame, LbPodiumCard, LbRow, LbOption, LbMineRow, LbFriendStreak, LbHeatCell, LbMonth, LbBadge } from "pages/leaderboards/state.slint";
@@ -71,10 +73,12 @@ import { ResizeEdges } from "shell/resize-edges.slint";
 export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource, ReviewReply, Reviews }
 export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, HosterBrowserWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, TorrentStep, TorrentRow, RealDebridInfo, DownloadCard, Dropdown, DropdownItem, Flight, GameProtonOption, OptionModals, GameAssets, ArtworkTile }
 export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
+export { LibraryModals, ScanGameRow, ScanChoice, ScanAmbiguousRow }
 export { SearchData, SearchPart, SearchSuggestionRow }
 export { AchievementsData, AchievementRow }
 export { AchievementNotificationWindow, NotificationCard, NotificationFrame }
 export { ContextMenu, MenuEntry, MenuLeaf, Toast }
+export { SecondaryMenu }
 export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
 export { SettingsModals, IntegrationsData, IntegrationCard, IntegrationAction, RetroAchievementsWindow, RaWindowStrings, WebWindow }
 export { ScreenshotsData, CompatibilityData, ProtonOption, EmulationData, ConsoleCard, ConsoleRow }
@@ -193,6 +197,12 @@ export component AppWindow inherits Window {
         height: root.height;
     }
 
+    // The collection context menu, stacked on the first one.
+    SecondaryMenuHost {
+        width: root.width;
+        height: root.height;
+    }
+
     // Game page modals (z-index 5, like the dialogs).
     GameModalsHost {
         width: root.width;
@@ -201,6 +211,12 @@ export component AppWindow inherits Window {
 
     // The profile's modals (pages/profile), under the confirmation dialogs.
     ProfileModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Add custom game and scan games (library/sidebar), under the confirmations.
+    LibraryModalsHost {
         width: root.width;
         height: root.height;
     }

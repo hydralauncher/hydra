@@ -112,6 +112,8 @@ struct Page {
     collection: Option<String>,
     query: String,
     search_timer: slint::Timer,
+    /// classicsOnboardingTriggeredRef: once per visit to the page.
+    classics_onboarding_shown: bool,
 
     /// The cards in the grid, in order.
     shown: Vec<Rc<Presentation>>,
@@ -202,6 +204,7 @@ pub fn init(ui: &AppWindow) {
             collection: None,
             query: String::new(),
             search_timer: slint::Timer::default(),
+            classics_onboarding_shown: false,
             shown: Vec::new(),
             cards,
             card_px: (0, 0),
@@ -284,6 +287,7 @@ fn wire(ui: &AppWindow) {
             }
         });
         apply_filters(true);
+        maybe_classics_onboarding();
     });
     data.on_set_sort(|value| {
         with_page(|p| {
@@ -377,10 +381,17 @@ fn wire(ui: &AppWindow) {
         crate::dialogs::create_collection_modal(None);
     });
     data.on_collection_context_menu(|id, x, y| {
-        eprintln!("TODO(collections): collection context menu for {id} at {x},{y}");
+        let name = crate::collections::get()
+            .items
+            .into_iter()
+            .find(|(c, _)| *c == id.as_str())
+            .map(|(_, name)| name);
+        if let Some(name) = name {
+            crate::collections::open_context_menu(&id, &name, x, y, None);
+        }
     });
-    data.on_scan(|| eprintln!("TODO(scan): open the scan games modal"));
-    data.on_add_game(|| eprintln!("TODO(custom games): SidebarAddingCustomGameModal"));
+    data.on_scan(crate::library_modals::open_scan);
+    data.on_add_game(crate::library_modals::open_custom_game);
     data.on_retry_hidden(|| load_hidden());
 
     // The title bar search filters the library while on it (debounced 180ms).
@@ -477,6 +488,24 @@ pub fn open() {
     // refreshLibraryAssets: the account library (at most once a minute),
     // then the library, hidden games and collections again
     crate::library_sync::refresh_library_assets();
+    with_page(|p| p.classics_onboarding_shown = false);
+    maybe_classics_onboarding();
+}
+
+/// library.tsx: the Classics category shows the onboarding once per visit
+/// until it is dismissed for good.
+fn maybe_classics_onboarding() {
+    let due = with_page(|p| {
+        let due = p.category == Category::Classics && !p.classics_onboarding_shown;
+        if due {
+            p.classics_onboarding_shown = true;
+        }
+        due
+    })
+    .unwrap_or(false);
+    if due && !crate::library_modals::classics_onboarding_dismissed() {
+        crate::library_modals::open_classics_onboarding(|| {});
+    }
 }
 
 pub fn close() {
@@ -493,6 +522,32 @@ pub fn close() {
         p.pending.clear();
         p.wanted.lock().unwrap().clear();
     });
+}
+
+/// isScanning: the toolbar's sync icon spins while a scan runs.
+pub fn set_scanning(scanning: bool) {
+    if let Some(ui) = with_page(|p| p.ui.upgrade()).flatten() {
+        ui.global::<LibraryData>().set_scanning(scanning);
+    }
+}
+
+/// A collection was deleted: leave it if it is the selected one.
+pub fn on_collection_deleted(id: &str) {
+    let selected = with_page(|p| {
+        if p.collection.as_deref() == Some(id) {
+            p.collection = None;
+            true
+        } else {
+            false
+        }
+    })
+    .unwrap_or(false);
+    if selected {
+        shell::storage_remove("library-collection");
+        if on_library() {
+            apply_filters(true);
+        }
+    }
 }
 
 /// hydra:game-visibility-updated: hidden games and collections reload.

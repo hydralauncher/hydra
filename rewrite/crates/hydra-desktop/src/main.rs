@@ -50,6 +50,7 @@ mod home_page;
 mod hoster_browser;
 mod instance;
 mod leaderboards_page;
+mod library_modals;
 #[cfg(windows)]
 mod layered_window;
 mod library_page;
@@ -362,6 +363,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     downloads_menu::init(&ui);
     classics_bookmark::init(&ui);
     library_page::init(&ui);
+    library_modals::init(&ui);
     home_page::init(&ui, &loader);
     catalogue_page::init(&ui, &loader);
     {

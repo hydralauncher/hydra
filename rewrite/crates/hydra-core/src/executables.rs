@@ -117,6 +117,17 @@ pub fn for_game(object_id: &str) -> Option<Vec<Known>> {
         .cloned()
 }
 
+/// GameExecutables.getAllObjectIds / getExecutablesForGame over the whole
+/// catalogue (the installed-games scan), without copying it.
+pub fn with_catalog<R>(f: impl FnOnce(&HashMap<String, Vec<Known>>) -> R) -> Option<R> {
+    store().as_ref().map(|s| f(&s.catalog))
+}
+
+/// isRedistributableDirectory
+pub fn is_redistributable_directory(name: &str) -> bool {
+    REDIST_DIRECTORIES.contains(&name.to_lowercase().as_str())
+}
+
 // ---- game-executable-ranking.ts
 
 const REDIST_DIRECTORIES: &[&str] = &[

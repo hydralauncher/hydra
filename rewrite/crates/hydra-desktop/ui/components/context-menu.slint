@@ -111,7 +111,7 @@ export global ContextMenu {
 }
 
 // .context-menu__item: padding 8px 12px, gap 8, radius 4, 14px
-component MenuRow inherits Rectangle {
+export component MenuRow inherits Rectangle {
     in property <string> icon;
     in property <string> label;
     in property <bool> disabled;
@@ -191,7 +191,7 @@ component MenuRow inherits Rectangle {
 
 // .context-menu / .context-menu__submenu box: #0d0d0d, 1px border, radius 6,
 // box-shadow 0 4px 12px rgba(0, 0, 0, 0.4), padding 4px
-component MenuBox inherits Rectangle {
+export component MenuBox inherits Rectangle {
     background: Theme.dark-background;
     border-width: 1px;
     border-color: Theme.border;
@@ -204,7 +204,7 @@ component MenuBox inherits Rectangle {
 }
 
 // Row height plus what sits above it (separator 9px or the danger border 5px).
-component RowSlot inherits VerticalLayout {
+export component RowSlot inherits VerticalLayout {
     in property <bool> separator;
     in property <bool> danger-border;
     if root.separator: Rectangle {

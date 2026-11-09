@@ -33,9 +33,15 @@ export global Dialogs {
     in property <image> backdrop;
     // Bumped by the backend to close the open dialog with its exit animation.
     in property <int> close-request;
+    // disabled={!name.trim() || busy}: the confirm button waits for text.
+    in property <bool> confirm-disabled;
+    // A <form>: Enter in the field submits it.
+    in property <bool> submit-on-enter: true;
     callback confirmed();
     callback cancelled();
     callback field-edited(string);
+    // The exit animation finished (the dialog is gone).
+    callback closed();
 }
 
 // text-field (theme dark) with a label above and an error below.
@@ -90,7 +96,10 @@ component LabeledField inherits VerticalLayout {
                     Dialogs.field-edited(self.text);
                 }
                 accepted => {
-                    Dialogs.confirmed();
+                    // Only forms submit on Enter (the collection modals have none).
+                    if (Dialogs.submit-on-enter && !Dialogs.confirm-disabled && !Dialogs.busy) {
+                        Dialogs.confirmed();
+                    }
                 }
             }
         }
@@ -118,6 +127,7 @@ export component DialogHost inherits Rectangle {
     controller := ModalController {
         closed => {
             Dialogs.kind = "";
+            Dialogs.closed();
         }
     }
 
@@ -200,7 +210,7 @@ export component DialogHost inherits Rectangle {
                 }
                 HydraButton {
                     kind: "primary";
-                    enabled: !Dialogs.busy;
+                    enabled: !Dialogs.busy && !Dialogs.confirm-disabled;
                     icon: Dialogs.confirm-icon;
                     icon-size: 14px;
                     text: Dialogs.confirm-label;

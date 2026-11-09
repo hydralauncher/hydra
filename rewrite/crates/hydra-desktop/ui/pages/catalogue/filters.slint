@@ -174,6 +174,140 @@ export component SectionShell inherits Rectangle {
     }
 }
 
+// radio-field (proton-compatibility-section__option-item): a 20px round
+// control whose 8px dot scales in, the tier's orb and its 12px label.
+// --color-primary is undefined in the renderer, so the selected control's
+// border falls back to currentColor and its background to transparent.
+component TierRadio inherits Rectangle {
+    in property <string> label;
+    in property <color> orb;
+    in property <bool> checked;
+    callback activated();
+    height: 28px;
+    width: row.preferred-width;
+    accessible-role: radio-button;
+    accessible-checked: root.checked;
+    accessible-label: root.label;
+    row := HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            border-width: 1px;
+            border-color: root.checked ? Theme.body : Theme.border;
+            background: root.checked ? transparent : Theme.dark-background;
+            animate border-color, background { duration: 200ms; easing: ease; }
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: #ffffff;
+                opacity: root.checked ? 1 : 0;
+                transform-scale: root.checked ? 1 : 0;
+                animate opacity, transform-scale { duration: 150ms; easing: ease; }
+            }
+        }
+        // __option-orb: 8px, box-shadow 0 0 0 1px rgba(0,0,0,.35)
+        Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.35);
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: root.orb;
+            }
+        }
+        Text {
+            text: root.label;
+            font-size: Theme.small-size;
+            font-weight: 700; // 600 in scss; Electron has no SemiBold face
+            color: root.checked ? Theme.muted : rgba(255, 255, 255, 0.86);
+            vertical-alignment: center;
+        }
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.activated();
+        }
+    }
+}
+
+// proton-compatibility-section (Linux, modern games): the minimum ProtonDB
+// tier (clicking the chosen tier clears it) and Steam Deck compatibility.
+export component ProtonSection inherits SectionShell {
+    in property <string> value;
+    in property <bool> deck;
+    callback set-tier(string);
+    callback set-deck(bool);
+    title: T.tr("catalogue.protondb");
+    orb: #F50057;
+    content-height: inner.preferred-height;
+    inner := VerticalLayout {
+        // __content-inner: gap 12
+        spacing: 12px;
+        VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: T.tr("catalogue.protondb_minimum");
+                font-size: Theme.small-size;
+                color: Theme.muted;
+                height: 17px;
+            }
+            VerticalLayout {
+                spacing: 8px;
+                for tier in [
+                    { value: "silver_plus", key: "catalogue.protondb_silver_plus", color: rgb(166, 166, 166) },
+                    { value: "gold_plus", key: "catalogue.protondb_gold_plus", color: rgb(207, 181, 59) },
+                    { value: "platinum_only", key: "catalogue.protondb_platinum_only", color: rgb(180, 199, 220) },
+                ]: TierRadio {
+                    label: T.tr(tier.key);
+                    orb: tier.color;
+                    checked: root.value == tier.value;
+                    activated => {
+                        root.set-tier(root.value == tier.value ? "" : tier.value);
+                    }
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 8px;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 14px;
+                    height: 14px;
+                    source: @image-url("../../icons/steam-deck-logo.svg");
+                    color: #ffffff;
+                }
+                Text {
+                    text: T.tr("catalogue.steam_deck_minimum");
+                    font-size: Theme.small-size;
+                    color: Theme.muted;
+                    height: 17px;
+                    vertical-alignment: center;
+                }
+            }
+            CheckboxField {
+                label: T.tr("catalogue.steam_deck_compatible");
+                checked: root.deck;
+                toggled => {
+                    root.set-deck(!root.deck);
+                }
+            }
+        }
+    }
+}
+
 // filter-section__count / __clear-button
 component SectionHint inherits Rectangle {
     in property <string> text;
@@ -530,7 +664,6 @@ export component FilterChipItem inherits Rectangle {
     in property <FilterChip> chip;
     callback removed();
     height: 32px;
-    width: Math.min(row.preferred-width, 300px);
     border-radius: 8px;
     border-width: 1px;
     // color-mix(dark 84%, color 16%) / border color-mix(border 70%, color 30%)
@@ -540,6 +673,7 @@ export component FilterChipItem inherits Rectangle {
         padding-left: 9px;
         padding-right: 5px;
         spacing: 8px;
+        alignment: start;
         Rectangle {
             y: (parent.height - self.height) / 2;
             width: 9px;

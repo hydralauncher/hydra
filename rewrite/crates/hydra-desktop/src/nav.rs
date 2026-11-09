@@ -289,10 +289,32 @@ fn apply(previous: Option<String>) {
         }
     }
     let route_changed = previous_location.as_ref().map(|l| l.route()) != Some(location.route());
+    // useEffect([location.pathname, location.search]): scrollTop = 0. There is
+    // no per-entry restoration in Electron: back/forward land at the top too.
+    if previous.as_deref() != Some(path.as_str()) {
+        nav.set_location_key(nav.get_location_key().wrapping_add(1));
+    }
     nav.set_route(location.route().into());
     nav.set_path(location.pathname.clone().into());
     if route_changed {
         crate::search::sync_text(location.route());
+    }
+    // ScanGamesProvider: `?openScanModal=true` (the scan notification) opens
+    // the modal and leaves the URL (setSearchParams, replace).
+    if location.param("openScanModal") == Some("true") {
+        let rest: Vec<String> = location
+            .query
+            .iter()
+            .filter(|(k, _)| k != "openScanModal")
+            .map(|(k, v)| format!("{}={}", encode(k), encode(v)))
+            .collect();
+        let path = if rest.is_empty() {
+            location.pathname.clone()
+        } else {
+            format!("{}?{}", location.pathname, rest.join("&"))
+        };
+        replace_current(&path);
+        crate::library_modals::open_scan();
     }
 }
 

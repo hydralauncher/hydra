@@ -58,6 +58,10 @@ export struct FilterChip {
     color: color,
     key: string,
     value: string,
+    // Laid out by Rust: flex-wrap rows inside the wrapper.
+    x: length,
+    y: length,
+    width: length,
 }
 
 
@@ -74,6 +78,10 @@ export global CatalogueData {
     // "modern" | "classics"
     in property <string> mode: "modern";
     in property <[FilterChip]> chips;
+    // The wrapped chips' height (rows of 32px, 8px apart).
+    in property <length> chips-height: 32px;
+    // The wrapper's width changed: Rust lays the chips out again.
+    callback chips-width(length);
     in property <string> clear-all-label;
     // t("active_filters"), uppercased
     in property <string> active-filters-label;
@@ -89,6 +97,12 @@ export global CatalogueData {
     // Classics: the RECOMPILATIONS feature and its filter.
     in property <bool> recompilations-enabled;
     in property <bool> recompilation-only;
+    // Linux: the ProtonDB / Steam Deck section ("" | silver_plus | gold_plus | platinum_only)
+    in property <bool> show-proton;
+    in property <string> proton-tier;
+    in property <bool> deck-compatible;
+    callback set-proton-tier(string);
+    callback set-deck(bool);
 
     callback open-item(int);
     callback add-item(int);
@@ -107,4 +121,6 @@ export global CatalogueData {
     callback set-recompilation(bool);
     // formatNumber (Intl.NumberFormat of the UI language)
     pure callback format-page(int) -> string;
+    // onJumpChange: digits only, clamped to 1..total ("" stays empty)
+    pure callback jump-value(string, int) -> string;
 }

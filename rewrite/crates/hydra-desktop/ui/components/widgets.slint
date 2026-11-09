@@ -7,6 +7,39 @@ export component Icon inherits Image {
     image-fit: contain;
 }
 
+// A <button>'s keyboard side: Tab reaches it, Enter/Space activate it, and
+// `ring` is :focus-visible (focus that came from the keyboard). A pointer
+// press doesn't focus it, so clicking never moves focus off a text field.
+export component KeyboardFocus inherits FocusScope {
+    focus-on-click: false;
+    property <bool> keyboard;
+    out property <bool> ring: self.has-focus && self.keyboard;
+    callback activated();
+    focus-gained(reason) => {
+        self.keyboard = reason == FocusReason.tab-navigation;
+    }
+    focus-lost => {
+        self.keyboard = false;
+    }
+    key-pressed(event) => {
+        if (event.text == Key.Return || event.text == " ") {
+            root.activated();
+            return accept;
+        }
+        reject
+    }
+}
+
+// Chromium's `outline: auto` on :focus-visible: a 2px ring just outside the
+// element, following its corners. Place it with `x: -2px; y: -2px;` and the
+// element's size + 4px.
+export component FocusRing inherits Rectangle {
+    in property <length> radius;
+    border-width: 2px;
+    border-radius: root.radius + 2px;
+    border-color: Theme.focus-ring;
+}
+
 // src/renderer/src/components/button/button.scss
 export component HydraButton inherits Rectangle {
     in property <string> text;
@@ -104,6 +137,24 @@ export component HydraButton inherits Rectangle {
                 Tip.hide(root.tip-id);
             }
         }
+    }
+
+    // <button>: Tab reaches it, Enter/Space press it, and :focus-visible
+    // draws Chromium's `outline: auto` ring. A pointer press doesn't focus
+    // it (Chromium would, without the ring).
+    focus := KeyboardFocus {
+        enabled: root.enabled;
+        activated => {
+            root.clicked();
+        }
+    }
+    FocusRing {
+        x: -2px;
+        y: -2px;
+        width: root.width + 4px;
+        height: root.height + 4px;
+        visible: focus.ring;
+        radius: root.border-radius;
     }
 }
 

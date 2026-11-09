@@ -222,8 +222,8 @@ export component GameModalsHost inherits Rectangle {
     if cloud-state.mounted: Modal {
         width: root.width;
         height: root.height;
-        title: "Cloud Save V2 (BETA)";
-        description: "View and sync this game's saves.";
+        title: T.tr("game_details.cloud_save_v2_modal_title");
+        description: T.tr("game_details.cloud_save_v2_modal_description");
         closing: cloud-state.closing;
         blurred-page: GameData.modal-backdrop;
         request-close => {
@@ -235,7 +235,7 @@ export component GameModalsHost inherits Rectangle {
                 kind: "cloud";
                 icon: Icons.cloud-arrow-up;
                 icon-size: 20px;
-                text: "Sync now";
+                text: T.tr("game_details.cloud_save_v2_sync_now");
                 clicked => {
                     cloud-state.close();
                     GameData.cloud-sync();

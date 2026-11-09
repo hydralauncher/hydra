@@ -4,6 +4,7 @@ import { Icon } from "../../components/widgets.slint";
 import { MediaItem } from "../../types.slint";
 import { CornerButton } from "gallery.slint";
 import { VideoPlayer, Playback } from "../../components/video.slint";
+import { T } from "../../globals.slint";
 
 // .gallery-lightbox__icon-button / __nav-button
 component CircleButton inherits Rectangle {
@@ -151,7 +152,7 @@ component Layer inherits Rectangle {
             size: 40px;
             x: parent.width - self.width - 16px;
             y: parent.height - self.height - 8px;
-            tooltip: "Fullscreen (F)";
+            tooltip: T.tr("game_details.fullscreen") + " (F)";
             clicked => {
                 root.toggle-fullscreen();
             }
@@ -455,7 +456,7 @@ export component Lightbox inherits Rectangle {
                             horizontal-stretch: 0;
                             CircleButton {
                                 icon: Icons.x;
-                                tooltip: "Close (Esc)";
+                                tooltip: T.tr("game_details.close") + " (Esc)";
                                 clicked => {
                                     root.close();
                                 }
@@ -579,7 +580,7 @@ export component Lightbox inherits Rectangle {
                         size: 64px;
                         x: parent.width - 24px - self.width;
                         y: (parent.height - self.height) / 2;
-                        tooltip: "Exit fullscreen (F)";
+                        tooltip: T.tr("game_details.exit_fullscreen") + " (F)";
                         clicked => {
                             root.toggle-fullscreen();
                         }

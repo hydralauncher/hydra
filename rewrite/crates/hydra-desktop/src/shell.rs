@@ -687,8 +687,53 @@ fn wire_sidebar(ui: &AppWindow) {
         }
     });
     sidebar.on_game_double_clicked(|id| {
-        // TODO(launcher): useGameActions().handlePlayGame (or the no-executable toast).
-        eprintln!("TODO(launcher): play {id}");
+        // event.detail === 2: handlePlayGame, or the warning toast.
+        let game = with_shell(|s| {
+            s.library
+                .iter()
+                .find(|g| g.game.id() == id.as_str())
+                .map(|g| g.game.clone())
+        })
+        .flatten();
+        let Some(game) = game else { return };
+        let classics = game.shop() == "launchbox";
+        let can_play = game.executable_path().is_some_and(|p| !p.is_empty())
+            || (classics
+                && game
+                    .get("discs")
+                    .and_then(Value::as_array)
+                    .is_some_and(|d| !d.is_empty()));
+        if can_play {
+            crate::games::play(game.shop(), game.object_id());
+        } else if classics {
+            crate::toast::show(
+                crate::toast::Kind::Warning,
+                &tr_with(
+                    "sidebar.game_has_no_disc_hint",
+                    &[
+                        ("options", tr("game_details.options").into()),
+                        ("settings", tr("sidebar.settings").into()),
+                        ("emulation", tr("settings.emulation").into()),
+                    ],
+                ),
+                None,
+            );
+        } else {
+            crate::toast::show(
+                crate::toast::Kind::Warning,
+                &tr_with(
+                    "sidebar.game_has_no_executable_hint",
+                    &[
+                        ("options", tr("game_details.options").into()),
+                        (
+                            "locations",
+                            tr("game_details.settings_category_locations").into(),
+                        ),
+                    ],
+                ),
+                None,
+            );
+        }
     });
     sidebar.on_game_context_menu(|id, x, y| {
         let group = with_shell(|s| {

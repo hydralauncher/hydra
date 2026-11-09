@@ -66,6 +66,12 @@ export component GameDetailsPage inherits Rectangle {
     public function scroll-to-top() {
         root.scroll-y = 0;
     }
+    // app.tsx: a new location (another game, back/forward) starts at the top.
+    property <int> location-key: Nav.location-key;
+    changed location-key => {
+        root.tween.active = false;
+        root.scroll-y = 0;
+    }
 
     // reviewsRef.scrollIntoView({ behavior: "smooth" })
     property <length> reviews-top;

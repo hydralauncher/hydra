@@ -1,0 +1,78 @@
+// A second components/context-menu over the first one: the collection
+// context menu (context/collection-context-menu), opened by a right-click on
+// a collection in the library Filters menu or in the game context menu's
+// Collection submenu. Both menus stay up together (the first one ignores
+// presses inside `.context-menu`), so this one has its own state instead of
+// the `Popup` slot. The backend fills it (context_menu.rs `show_secondary`).
+import { MenuEntry, MenuBox, MenuRow, RowSlot } from "context-menu.slint";
+
+export global SecondaryMenu {
+    in-out property <bool> open;
+    in property <[MenuEntry]> items;
+    // The click position (window coordinates).
+    in property <length> x;
+    in property <length> y;
+    // Bumped on every show, so the fade-in replays.
+    in property <int> generation;
+    // The open menu's box, in window coordinates (popup.rs hit-tests it).
+    out property <length> box-x;
+    out property <length> box-y;
+    out property <length> box-width;
+    out property <length> box-height;
+    callback activated(string);
+
+    public function publish(x: length, y: length, w: length, h: length) {
+        self.box-x = x;
+        self.box-y = y;
+        self.box-width = w;
+        self.box-height = h;
+    }
+}
+
+export component SecondaryMenuHost inherits Rectangle {
+    // One instance per show: `generation` re-creates it so the fade replays.
+    for generation in SecondaryMenu.open ? [SecondaryMenu.generation] : []: menu := MenuBox {
+        property <bool> entered;
+        width: Math.max(180px, rows.preferred-width + 10px);
+        height: rows.preferred-height + 10px;
+        // Kept inside the window, 10px from the edges (like the first menu).
+        x: SecondaryMenu.x + self.width > root.width ? root.width - self.width - 10px : SecondaryMenu.x;
+        y: (SecondaryMenu.y + self.height > root.height ? root.height - self.height - 10px : SecondaryMenu.y) + (self.entered ? 0 : -4px);
+        // contextMenuFadeIn 0.15s ease-out
+        opacity: self.entered ? 1 : 0;
+        animate opacity, y { duration: 150ms; easing: ease-out; }
+        function publish() {
+            SecondaryMenu.publish(self.x, self.y + (self.entered ? 0 : 4px), self.width, self.height);
+        }
+        init => {
+            self.entered = true;
+            self.publish();
+        }
+        changed width => {
+            self.publish();
+        }
+        changed height => {
+            self.publish();
+        }
+
+        rows := VerticalLayout {
+            x: 5px;
+            y: 5px;
+            width: parent.width - 10px;
+            alignment: start;
+            for entry in SecondaryMenu.items: RowSlot {
+                separator: entry.separator;
+                danger-border: entry.danger-border;
+                MenuRow {
+                    icon: entry.icon;
+                    label: entry.label;
+                    disabled: entry.disabled;
+                    danger: entry.danger;
+                    activated => {
+                        SecondaryMenu.activated(entry.id);
+                    }
+                }
+            }
+        }
+    }
+}

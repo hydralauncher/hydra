@@ -27,10 +27,43 @@ pub fn pointer_pressed_at(x: f32, y: f32) {
 /// outside press and the wheel, so nothing below reacts (ui/app.slint).
 const MODAL: [&str; 1] = ["sidebar-filters"];
 
+/// A dialog opened from the open menu is up (create/rename collection, a
+/// confirmation): context-menu.tsx ignores presses inside `[data-hydra-dialog]`
+/// and the library Filters menu's onInteractOutside keeps it open too.
+fn dialog_over_menu(ui: &AppWindow, open: &str) -> bool {
+    (open == "context-menu" || open.starts_with("library-"))
+        && (!ui.global::<crate::Dialogs>().get_kind().is_empty()
+            || !ui.global::<crate::LibraryModals>().get_kind().is_empty())
+}
+
+/// The collection context menu stacked on a menu: a press inside it touches
+/// nothing else; a press outside closes it and goes on to the menu below.
+/// Returns true when the press was inside.
+fn secondary_pressed(ui: &AppWindow, x: f32, y: f32) -> bool {
+    let menu = ui.global::<crate::SecondaryMenu>();
+    if !menu.get_open() {
+        return false;
+    }
+    let inside = x >= menu.get_box_x()
+        && x < menu.get_box_x() + menu.get_box_width()
+        && y >= menu.get_box_y()
+        && y < menu.get_box_y() + menu.get_box_height();
+    if !inside {
+        crate::context_menu::close_secondary();
+    }
+    inside
+}
+
 /// Call before the window handles a press at `(x, y)` (logical coordinates).
 pub fn pointer_pressed(ui: &AppWindow, x: f32, y: f32) {
+    if secondary_pressed(ui, x, y) {
+        return;
+    }
     let popup = ui.global::<Popup>();
     if popup.get_open().is_empty() || MODAL.contains(&popup.get_open().as_str()) {
+        return;
+    }
+    if dialog_over_menu(ui, &popup.get_open()) {
         return;
     }
     let inside =
@@ -75,11 +108,21 @@ pub fn close(ui: &AppWindow) {
     let popup = ui.global::<Popup>();
     popup.set_open(Default::default());
     popup.set_box2_width(0.0);
+    crate::context_menu::close_secondary();
 }
 
 /// Scrolling outside the open context menu closes it (context-menu.tsx
 /// listens to scroll events in the capture phase).
 pub fn wheel_at(ui: &AppWindow, x: f32, y: f32) {
+    let secondary = ui.global::<crate::SecondaryMenu>();
+    if secondary.get_open()
+        && !(x >= secondary.get_box_x()
+            && x < secondary.get_box_x() + secondary.get_box_width()
+            && y >= secondary.get_box_y()
+            && y < secondary.get_box_y() + secondary.get_box_height())
+    {
+        crate::context_menu::close_secondary();
+    }
     let popup = ui.global::<Popup>();
     if popup.get_open() != "context-menu" {
         return;
@@ -101,12 +144,17 @@ pub fn wheel_at(ui: &AppWindow, x: f32, y: f32) {
     }
 }
 
-/// Escape closes the open menu.
+/// Escape closes the open menu (and the collection menu over it). Returns
+/// true when the key is used up; with a dialog over the menu, the dialog
+/// gets the key too (context-menu.tsx and the modal both listen for it).
 pub fn escape(ui: &AppWindow) -> bool {
+    let had_secondary = ui.global::<crate::SecondaryMenu>().get_open();
+    crate::context_menu::close_secondary();
     let popup = ui.global::<Popup>();
     if popup.get_open().is_empty() {
-        return false;
+        return had_secondary;
     }
+    let dialog = dialog_over_menu(ui, &popup.get_open());
     close(ui);
-    true
+    !dialog
 }

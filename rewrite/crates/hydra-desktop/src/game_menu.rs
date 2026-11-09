@@ -11,6 +11,7 @@ use std::rc::Rc;
 use hydra_core::library::Presentation;
 use hydra_core::library_actions::{self, Visibility};
 use serde_json::Value;
+use slint::ComponentHandle;
 
 use crate::context_menu::{self, Item};
 use crate::{collections, nav, shell, toast};
@@ -27,6 +28,8 @@ struct Open {
     favorite_pending: bool,
     collection_pending: Option<String>,
     visibility_pending: bool,
+    /// isDeleting: its files are being removed.
+    deleting: bool,
     /// The library's selected collection (closing rules when a game leaves it).
     selected_collection: Option<String>,
 }
@@ -56,8 +59,13 @@ fn items(open: &Open) -> Vec<Item> {
     let signed_in = shell::signed_in();
     let has_executable = game.executable_path().is_some_and(|p| !p.is_empty());
     let collections_state = collections::get();
-    // TODO(launcher): isGameRunning from onGamesRunning; TODO(downloads): isDeleting / isGameDownloading.
-    let running = false;
+    let running = crate::games::is_running(game.id());
+    // isGameDownloading (the download member) / isDeleting
+    let downloading = group
+        .members
+        .iter()
+        .any(hydra_core::library::is_downloading);
+    let deleting = open.deleting;
     let playable = can_play(group);
 
     let mut collection_items = vec![
@@ -115,7 +123,8 @@ fn items(open: &Open) -> Vec<Item> {
             } else {
                 "download"
             },
-        ),
+        )
+        .disabled(deleting || (!playable && !running && downloading)),
         Item::new("collection", t("game_details.collection"), "folder")
             .disabled(open.favorite_pending || open.collection_pending.is_some())
             .submenu(collection_submenu),
@@ -188,11 +197,14 @@ fn items(open: &Open) -> Vec<Item> {
             t("game_details.open_folder"),
             "folder",
         ));
-        manage.push(Item::new(
-            "download-options",
-            t("game_details.open_download_options"),
-            "download",
-        ));
+        manage.push(
+            Item::new(
+                "download-options",
+                t("game_details.open_download_options"),
+                "download",
+            )
+            .disabled(deleting || downloading),
+        );
     }
     let download_path = group.members.iter().find_map(|m| {
         m.download()
@@ -210,9 +222,18 @@ fn items(open: &Open) -> Vec<Item> {
     manage.push(
         Item::new("remove-library", t("game_details.remove_from_library"), "x")
             .danger()
-            .keep_open(),
+            .keep_open()
+            .disabled(deleting),
     );
-    // TODO(downloads): "remove-files" (getRemoveFilesTarget / Steam uninstall probe).
+    // getRemoveFilesTarget (the Hydra download; the Steam uninstall probe is a TODO)
+    if remove_files_target(group).is_some() || download_path.is_some() {
+        manage.push(
+            Item::new("remove-files", t("game_details.remove_files"), "trash")
+                .danger()
+                .keep_open()
+                .disabled(deleting || downloading),
+        );
+    }
     list.push(Item::new("manage", t("game_details.options"), "gear").submenu(manage));
     list.push(Item::new("properties", t("game_details.properties"), "pencil").separator(true));
     list
@@ -235,13 +256,38 @@ pub fn show(group: Rc<Presentation>, x: f32, y: f32, selected_collection: Option
         favorite_pending: false,
         collection_pending: None,
         visibility_pending: false,
+        deleting: group
+            .members
+            .iter()
+            .any(|m| DELETING.with(|d| d.borrow().contains(m.id()))),
         selected_collection,
         group: group.clone(),
     };
     let list = items(&open);
     let plain_danger = !game.executable_path().is_some_and(|p| !p.is_empty());
     OPEN.with(|o| *o.borrow_mut() = Some(open));
-    context_menu::show(x, y, list, plain_danger, activated, None);
+    // onCollectionContextMenu on the Collection submenu's collections.
+    let secondary: context_menu::Secondary = Rc::new(|id: &str, x: f32, y: f32| {
+        let Some(collection) = id.strip_prefix("collection-") else {
+            return;
+        };
+        if collection == "create" || collection == "loading" {
+            return;
+        }
+        let name = collections::get()
+            .items
+            .into_iter()
+            .find(|(c, _)| c == collection)
+            .map(|(_, name)| name);
+        if let Some(name) = name {
+            // forceOpenSubmenuId: "collection" while that menu or its modals are up.
+            let on_change: Rc<dyn Fn(bool)> = Rc::new(|open: bool| {
+                context_menu::force_submenu(if open { "collection" } else { "" });
+            });
+            collections::open_context_menu(collection, &name, x, y, Some(on_change));
+        }
+    });
+    context_menu::show(x, y, list, plain_danger, activated, Some(secondary));
     // useEffect([visible]): collections load whenever the menu opens.
     if shell::signed_in() {
         collections::load();
@@ -309,12 +355,15 @@ fn activated(id: &str) {
     );
     match id {
         "play" => {
-            if can_play(&group) {
-                eprintln!("TODO(launcher): open-game.ts for {}", game.title());
+            if crate::games::is_running(game.id()) {
+                // handleCloseGame
+                crate::games::close(game.shop(), game.object_id());
+            } else if can_play(&group) {
+                // handlePlayGame: openGame (classics launch through their emulator)
+                crate::games::play(game.shop(), game.object_id());
             } else {
-                // handleOpenDownloadOptions: the game page with the repacks modal.
-                nav::navigate(&path);
-                eprintln!("TODO(downloads): open the repacks modal on the game page");
+                // the game page with the repacks modal (navigate state openRepacks)
+                open_on_game_page(&path, GamePageModal::Repacks);
             }
         }
         "favorite" => toggle_favorite(),
@@ -329,6 +378,8 @@ fn activated(id: &str) {
                 context_menu::force_submenu("");
                 toggle_collection(id);
             })));
+            // Cancelled too: the submenu stops being forced open.
+            crate::dialogs::set_on_closed(|| context_menu::force_submenu(""));
         }
         id if id.starts_with("collection-") => {
             toggle_collection(id.trim_start_matches("collection-").to_string())
@@ -373,22 +424,43 @@ fn activated(id: &str) {
                 open_folder_of(exe);
             }
         }
-        "download-options" => {
-            nav::navigate(&path);
-            eprintln!("TODO(downloads): open the repacks modal on the game page");
-        }
-        // openGameInstallerPath: the download folder, selected in the file manager
+        "download-options" => open_on_game_page(&path, GamePageModal::Repacks),
         "download-location" => {
-            if let Some(download) = group.members.iter().find_map(|m| m.download()) {
-                let field = |k: &str| {
-                    download
-                        .get(k)
-                        .and_then(Value::as_str)
-                        .unwrap_or_default()
-                        .to_string()
-                };
-                reveal(&std::path::Path::new(&field("downloadPath")).join(field("folderName")));
+            // openGameInstallerPath: the download member's folder, selected
+            let download = group.members.iter().find_map(|m| {
+                let d = m.download()?;
+                let folder = d.get("folderName").and_then(Value::as_str)?;
+                let base = d.get("downloadPath").and_then(Value::as_str)?;
+                (!folder.is_empty() && !base.is_empty())
+                    .then(|| std::path::Path::new(base).join(folder))
+            });
+            if let Some(path) = download {
+                reveal(&path);
             }
+        }
+        "remove-files" => {
+            context_menu::force_submenu("manage");
+            let Some((shop, object_id)) = remove_files_target(&group) else {
+                return;
+            };
+            let key = format!("{shop}:{object_id}");
+            let has_archive = shell::db()
+                .is_some_and(|db| hydra_downloads::removal::has_source_archive(&db, &key));
+            crate::dialogs::confirm(
+                crate::dialogs::Confirm {
+                    title: &t("downloads.delete_modal_title"),
+                    description: &t("downloads.delete_modal_description"),
+                    body: "",
+                    confirm_label: &t("downloads.delete"),
+                    cancel_label: &t("downloads.cancel"),
+                    danger: true,
+                },
+                move || remove_files(&shop, &object_id, has_archive),
+            );
+            if has_archive {
+                crate::dialogs::set_checkbox(&t("downloads.delete_source_archive"));
+            }
+            crate::dialogs::set_on_closed(|| context_menu::force_submenu(""));
         }
         "remove-library" => {
             context_menu::force_submenu("manage");
@@ -407,6 +479,7 @@ fn activated(id: &str) {
                 },
                 remove_from_library,
             );
+            crate::dialogs::set_on_closed(|| context_menu::force_submenu(""));
         }
         // GameOptionsModal over the library: Customization / General
         "customize" | "properties" => crate::game_options::open_for(
@@ -435,12 +508,15 @@ fn remove_from_library() {
     let Some(group) = with_open(|o| o.group.clone()) else {
         return;
     };
+    // cancelGameDownload first for a member that is downloading
+    for member in &group.members {
+        if member.download_status() == Some("active") {
+            crate::downloads::cancel(member.shop(), member.object_id());
+        }
+    }
     run_for_members(
         &group,
-        |db, api, shop, object_id| {
-            // TODO(downloads): cancelGameDownload when member.download.status === "active"
-            library_actions::remove_from_library(db, api, shop, object_id)
-        },
+        |db, api, shop, object_id| library_actions::remove_from_library(db, api, shop, object_id),
         |result| {
             match result {
                 Ok(()) => toast::success(&t("game_details.game_removed_from_library")),
@@ -453,6 +529,85 @@ fn remove_from_library() {
             collections::load();
         },
     );
+}
+
+/// getRemoveFilesTarget's Hydra target: the member with a download folder.
+fn remove_files_target(group: &Presentation) -> Option<(String, String)> {
+    group.members.iter().find_map(|m| {
+        m.download()
+            .and_then(|d| d.get("downloadPath"))
+            .and_then(Value::as_str)
+            .filter(|p| !p.is_empty())
+            .map(|_| (m.shop().to_string(), m.object_id().to_string()))
+    })
+}
+
+/// handleRemoveFiles: removeGameInstaller (deleteGameFolder), then the toast.
+fn remove_files(shop: &str, object_id: &str, has_archive: bool) {
+    let delete_archive = has_archive && crate::dialogs::checkbox_checked();
+    crate::dialogs::close();
+    context_menu::force_submenu("");
+    context_menu::close();
+    let Some(db) = shell::db() else { return };
+    let key = format!("{shop}:{object_id}");
+    // isLibraryGameDownloading(target) || isGameDeleting(target): nothing to do
+    let downloading = db
+        .get_in::<Value>(hydra_db::keys::DOWNLOADS, &key)
+        .is_some_and(|d| d.get("status").and_then(Value::as_str) == Some("active"));
+    if downloading || DELETING.with(|d| d.borrow().contains(&key)) {
+        return;
+    }
+    DELETING.with(|d| d.borrow_mut().insert(key.clone()));
+    std::thread::spawn(move || {
+        let result = hydra_downloads::removal::delete_game_folder(&db, &key, delete_archive);
+        let _ = slint::invoke_from_event_loop(move || {
+            DELETING.with(|d| d.borrow_mut().remove(&key));
+            match result {
+                Ok(_) => toast::success(&t("game_details.files_removed_success")),
+                Err(error) => {
+                    eprintln!("Failed to remove files: {error}");
+                    toast::error(&t("game_details.failed_remove_files"));
+                }
+            }
+            crate::downloads_page::refresh();
+            crate::game_options::refresh_open();
+            shell::load_library();
+        });
+    });
+}
+
+thread_local! {
+    /// isGameDeleting: games whose files are being removed from this menu
+    static DELETING: RefCell<std::collections::HashSet<String>> =
+        RefCell::new(std::collections::HashSet::new());
+}
+
+enum GamePageModal {
+    Repacks,
+}
+
+/// navigate(path, { state: { openRepacks } }): the game page opens the
+/// modal once it is up. (Options and Customize open over the library,
+/// game_options::open_for.)
+fn open_on_game_page(path: &str, modal: GamePageModal) {
+    nav::navigate(path);
+    // One frame later, so the modal's backdrop snapshot shows the game page.
+    slint::Timer::single_shot(std::time::Duration::from_millis(32), move || {
+        let Some(ui) = crate::downloads::ui() else {
+            return;
+        };
+        if ui.global::<crate::Nav>().get_route() != "game" {
+            return;
+        }
+        let game = ui.global::<crate::GameData>();
+        game.invoke_modal_opening();
+        match modal {
+            GamePageModal::Repacks => {
+                game.invoke_repacks_opened();
+                game.set_repacks_open(true);
+            }
+        }
+    });
 }
 
 /// handleToggleFavoriteStatus
