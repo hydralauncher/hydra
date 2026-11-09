@@ -70,7 +70,6 @@ const lstatIfExists = (target: string) =>
       error.code === "ENOENT" ? null : undefined
     );
 
-/** Lists files under `root`. Any symlink or unreadable folder marks it partial. */
 const listSafeFiles = async (root: string) => {
   const files: string[] = [];
   const stack = [root];
@@ -153,10 +152,6 @@ const scanSaveTitle = async (
   return { files, coverage: coverage(rawPath, variantId, complete) };
 };
 
-/**
- * Scans `<home>/<user_id>/savedata/<save title id>/<save dir>/` for every
- * shadPS4 user. Every user is synced the same way.
- */
 export const scanShadps4SaveRoot = async (
   context: EmulatorProviderContext,
   homeRoot: string
@@ -190,12 +185,6 @@ export const scanShadps4SaveRoot = async (
   return result;
 };
 
-/**
- * Scans one user's saves. Any symlink on the way (the user folder, its
- * `savedata` folder or a title folder) leaves coverage partial, so files
- * outside the home folder are never read and local deletions are never
- * inferred.
- */
 const scanUser = async (
   context: EmulatorProviderContext,
   homeRoot: string,

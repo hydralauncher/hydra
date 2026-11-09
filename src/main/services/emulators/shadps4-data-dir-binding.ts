@@ -1,6 +1,5 @@
 import type { EmulatorConfig } from "@types";
 
-/** A data folder picked for one shadPS4 build is not valid for another. */
 export const clearShadps4DataDirOnExecutableChange = (
   previous: EmulatorConfig | undefined,
   next: EmulatorConfig

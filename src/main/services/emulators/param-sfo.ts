@@ -25,7 +25,6 @@ const readStringValue = (
   return rawValue.trim() || null;
 };
 
-/** The value exactly as stored, without SKU normalization. */
 export const parseParamSfoRawValue = (
   data: Buffer,
   requestedKey: string

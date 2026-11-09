@@ -42,8 +42,6 @@ const restoreBaseForRoot = (root: string, rawPath: string) => {
   if (parseRpcs3GamedataRawPath(rawPath) && path.basename(root) === "game") {
     return path.dirname(root);
   }
-  // shadPS4 restores into <home>/<user_id>/savedata/<id>; the user folder may
-  // not exist yet on this PC, so check from the home folder.
   const shadps4Save = parseShadps4SaveRawPath(rawPath);
   if (
     shadps4Save &&

@@ -54,7 +54,6 @@ const sameBytes = (
   return left.hash === right.hash && left.sizeBytes === right.sizeBytes;
 };
 
-// An RPCS3 slot or a shadPS4 save folder is restored or kept as a whole.
 const emulatorSlotKey = (
   file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
 ) => {
