@@ -4,7 +4,11 @@ import { Wine } from "@main/services/wine";
 import { logger } from "@main/services/logger";
 import { getSteamStoreUserContext } from "@main/services/steam-login-users";
 import type { CloudSavePathContext, Game, GameShop } from "@types";
-import { getCloudSaveEmulatorProvider } from "@shared";
+import {
+  discCloudSaveEmulatorSystem,
+  getCloudSaveEmulatorProvider,
+  isDiscCloudSaveEmulatorProvider,
+} from "@shared";
 import { getEmulatorConfig } from "../emulators/emulators-repository";
 import { getRetroArchConfig } from "../retroarch/retroarch-repository";
 import { getEmulatorSaveEnvironmentKey } from "./emulator-save-provider";
@@ -71,11 +75,16 @@ export const getCloudSaveGameContext = async (
       : { known: [] };
   const platform = getCloudSavePlatform();
   const emulatorProvider = getCloudSaveEmulatorProvider(shop, game?.platform);
-  const emulatorExecutablePath = emulatorProvider
-    ? emulatorProvider === "retroarch"
+  const emulatorExecutablePath =
+    emulatorProvider === "retroarch"
       ? (await getRetroArchConfig().catch(() => null))?.executablePath
-      : (await getEmulatorConfig("ps3").catch(() => null))?.executablePath
-    : null;
+      : isDiscCloudSaveEmulatorProvider(emulatorProvider)
+        ? (
+            await getEmulatorConfig(
+              discCloudSaveEmulatorSystem(emulatorProvider)
+            ).catch(() => null)
+          )?.executablePath
+        : null;
   const executablePath = emulatorProvider
     ? (emulatorExecutablePath ?? undefined)
     : (overrides?.executablePath ?? game?.executablePath ?? undefined);

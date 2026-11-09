@@ -31,7 +31,7 @@ export interface EmulatorProviderContext {
   environmentId: string;
   variantId: string;
   remoteFiles?: RestoreManifestFile[];
-  rpcs3SavedataTitleIds?: readonly string[];
+  savedataTitleIds?: readonly string[];
 }
 
 export interface EmulatorProvider {
@@ -41,7 +41,7 @@ export interface EmulatorProvider {
   restoreRules(
     game: Game,
     files: RestoreManifestFile[],
-    rpcs3SavedataTitleIds?: readonly string[]
+    savedataTitleIds?: readonly string[]
   ): Promise<Map<string, CloudSaveRule>>;
   afterRestore?(actions: ResolvedRestoreTarget[]): Promise<void>;
 }

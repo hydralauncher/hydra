@@ -4,7 +4,7 @@ import { it } from "node:test";
 import {
   canSelectCloudSaveCustomFile,
   hasCloudSaveExecutableSelection,
-  hasRpcs3CloudSaveDisc,
+  hasCloudSaveDisc,
   isCloudSaveV2Eligible,
 } from "./cloud-save-emulator-provider.js";
 
@@ -81,7 +81,7 @@ it("requires a registered RPCS3 disc regardless of active disc selection", () =>
     selectedDiscPath: null,
   };
 
-  assert.equal(hasRpcs3CloudSaveDisc(game), false);
+  assert.equal(hasCloudSaveDisc(game), false);
   assert.equal(hasCloudSaveExecutableSelection(game), false);
   assert.equal(
     hasCloudSaveExecutableSelection({ ...game, discs: [{ path: " " }] }),
@@ -89,7 +89,7 @@ it("requires a registered RPCS3 disc regardless of active disc selection", () =>
   );
 
   const oneDisc = { ...game, discs: [{ path: "/games/Minecraft.iso" }] };
-  assert.equal(hasRpcs3CloudSaveDisc(oneDisc), true);
+  assert.equal(hasCloudSaveDisc(oneDisc), true);
   assert.equal(hasCloudSaveExecutableSelection(oneDisc), true);
   assert.equal(
     hasCloudSaveExecutableSelection({

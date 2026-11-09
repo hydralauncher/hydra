@@ -33,7 +33,7 @@ export interface EmulatorConfig {
 
 export type EmulatorConfigMap = Record<EmulatorSystem, EmulatorConfig>;
 
-export interface Rpcs3ConfigRootStatus {
+export interface EmulatorSaveLocationStatus {
   status:
     | "ready"
     | "not-configured"
@@ -45,7 +45,9 @@ export interface Rpcs3ConfigRootStatus {
   candidates: string[];
 }
 
-export interface Rpcs3DiscIdentityStatus {
+export type Rpcs3ConfigRootStatus = EmulatorSaveLocationStatus;
+
+export interface EmulatorDiscIdentityStatus {
   status:
     | "ready"
     | "missing"
@@ -56,6 +58,8 @@ export interface Rpcs3DiscIdentityStatus {
   path: string | null;
   titleId: string | null;
 }
+
+export type Rpcs3DiscIdentityStatus = EmulatorDiscIdentityStatus;
 
 export interface DetectedRom {
   objectId: string;
