@@ -8,7 +8,7 @@ import type { EmulatorConfig, EmulatorSaveLocationStatus } from "@types";
 
 import { EmulatorResourceRow } from "./emulator-resource-row";
 import type { EmulatorSaveLocation } from "./emulator-save-location";
-import { getRpcs3ConfigRootChoices } from "./rpcs3-config-root-choices";
+import { getEmulatorSaveLocationChoices } from "./emulator-save-location-choices";
 
 interface Props {
   config: EmulatorConfig;
@@ -69,7 +69,7 @@ export function EmulatorSaveLocationSection({
   };
 
   const state = status?.status ?? "not-configured";
-  const { selectedRoot, roots } = getRpcs3ConfigRootChoices(status);
+  const { selectedRoot, roots } = getEmulatorSaveLocationChoices(status);
   const controlsDisabled = disabled || busy || !config.executablePath;
 
   if (!status || (state === "ready" && roots.length <= 1)) return null;

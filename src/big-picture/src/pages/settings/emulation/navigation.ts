@@ -1,3 +1,6 @@
+import type { EmulatorSystem } from "@types";
+import { DISC_CLOUD_SAVE_EMULATOR_SYSTEMS } from "../../../../../shared/cloud-save-emulator-provider.js";
+
 export const isRetroArchEmulationDeepLink = (search: string): boolean => {
   const params = new URLSearchParams(search);
   return (
@@ -7,9 +10,13 @@ export const isRetroArchEmulationDeepLink = (search: string): boolean => {
 
 export const getEmulatorDetailDeepLinkSystem = (
   search: string
-): "ps3" | "ps4" | null => {
+): EmulatorSystem | null => {
   const params = new URLSearchParams(search);
   if (params.get("tab") !== "emulation") return null;
   const system = params.get("system");
-  return system === "ps3" || system === "ps4" ? system : null;
+  return (
+    DISC_CLOUD_SAVE_EMULATOR_SYSTEMS.find(
+      (candidate) => candidate === system
+    ) ?? null
+  );
 };

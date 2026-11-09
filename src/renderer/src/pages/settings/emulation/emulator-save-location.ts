@@ -4,22 +4,27 @@ import type {
   EmulatorSystem,
 } from "@types";
 
+import {
+  EMULATOR_SAVE_LOCATION_KEY_PREFIXES,
+  type EmulatorSaveLocationKeyPrefix,
+} from "./emulator-save-location-keys";
+
 export interface EmulatorSaveLocation {
-  keyPrefix: "rpcs3_config" | "shadps4_data_dir";
+  keyPrefix: EmulatorSaveLocationKeyPrefix;
   getStatus: () => Promise<EmulatorSaveLocationStatus>;
   select: (dir: string) => Promise<EmulatorConfig>;
   selectedDir: (config: EmulatorConfig) => string | null | undefined;
 }
 
 const RPCS3: EmulatorSaveLocation = {
-  keyPrefix: "rpcs3_config",
+  keyPrefix: EMULATOR_SAVE_LOCATION_KEY_PREFIXES.ps3,
   getStatus: () => window.electron.getRpcs3ConfigRootStatus(),
   select: (dir) => window.electron.setRpcs3ConfigRoot(dir),
   selectedDir: (config) => config.rpcs3ConfigRoot,
 };
 
 const SHADPS4: EmulatorSaveLocation = {
-  keyPrefix: "shadps4_data_dir",
+  keyPrefix: EMULATOR_SAVE_LOCATION_KEY_PREFIXES.ps4,
   getStatus: () => window.electron.getShadps4DataDirStatus(),
   select: (dir) => window.electron.setShadps4DataDir(dir),
   selectedDir: (config) => config.shadps4DataDir,
