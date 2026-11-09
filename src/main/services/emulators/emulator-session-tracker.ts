@@ -65,9 +65,12 @@ export const emulatorSessions = new Map<string, EmulatorSession>();
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
 const SHADPS4_RELAUNCH_POLL_INTERVAL_MS = 2_000;
 
+const isShadps4ProcessName = (name: string): boolean =>
+  name.toLowerCase().includes("shadps4");
+
 const listShadps4Processes = async () => {
   const processes = await NativeAddon.listProcesses().catch(() => []);
-  return processes.filter(({ name }) => name.toLowerCase().includes("shadps4"));
+  return processes.filter(({ name }) => isShadps4ProcessName(name));
 };
 
 export const listShadps4ProcessIds = async (): Promise<number[]> =>
@@ -80,6 +83,17 @@ const isProcessAlive = (pid: number): boolean => {
   } catch {
     return false;
   }
+};
+
+const isRelaunchedProcessRunning = async (pid: number): Promise<boolean> => {
+  if (!isProcessAlive(pid)) return false;
+
+  const processes = await NativeAddon.listProcesses().catch(() => []);
+  if (processes.length === 0) return true;
+
+  return processes.some(
+    (candidate) => candidate.pid === pid && isShadps4ProcessName(candidate.name)
+  );
 };
 
 const killRelaunchedProcess = (pid: number): void => {
@@ -248,7 +262,8 @@ const finalizeOrFollowRelaunch = async (
             ...session.knownShadps4Pids,
             ...listOtherSessionPids(session),
           ]),
-          session.executablePath
+          session.executablePath,
+          session.relaunchedPid ?? session.child.pid
         )
       : null;
 
@@ -264,12 +279,22 @@ const finalizeOrFollowRelaunch = async (
   session.relaunchedPid = relaunchedPid;
   session.knownShadps4Pids.add(relaunchedPid);
   session.relaunchWatch = setInterval(() => {
-    if (isProcessAlive(relaunchedPid)) return;
-    if (session.relaunchWatch) clearInterval(session.relaunchWatch);
-    session.relaunchWatch = null;
-    void finalizeOrFollowRelaunch(gameKey, session);
+    void followRelaunchedProcess(gameKey, session, relaunchedPid);
   }, SHADPS4_RELAUNCH_POLL_INTERVAL_MS);
   session.relaunchWatch.unref?.();
+};
+
+const followRelaunchedProcess = async (
+  gameKey: string,
+  session: EmulatorSession,
+  relaunchedPid: number
+): Promise<void> => {
+  if (await isRelaunchedProcessRunning(relaunchedPid)) return;
+  if (!session.relaunchWatch) return;
+
+  clearInterval(session.relaunchWatch);
+  session.relaunchWatch = null;
+  await finalizeOrFollowRelaunch(gameKey, session);
 };
 
 const refreshShadps4DetectedVersion = async (

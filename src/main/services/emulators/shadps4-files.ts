@@ -131,6 +131,7 @@ export const readShadps4VersionAfterSession = (
 
 interface Shadps4ProcessIdentity {
   pid: number;
+  parentPid?: number | null;
   exe?: string | null;
   environ?: Record<string, string> | null;
 }
@@ -161,13 +162,21 @@ const isSameExecutable = (
   );
 };
 
+const isChildOfExitedProcess = (
+  { parentPid }: Shadps4ProcessIdentity,
+  exitedPid: number | undefined
+): boolean =>
+  process.platform !== "win32" || parentPid == null || parentPid === exitedPid;
+
 export const findNewShadps4Pid = (
   processes: ReadonlyArray<Shadps4ProcessIdentity>,
   knownPids: ReadonlySet<number>,
-  executablePath: string
+  executablePath: string,
+  exitedPid: number | undefined
 ): number | null =>
   processes.find(
     (candidate) =>
       !knownPids.has(candidate.pid) &&
-      isSameExecutable(candidate, executablePath)
+      isSameExecutable(candidate, executablePath) &&
+      isChildOfExitedProcess(candidate, exitedPid)
   )?.pid ?? null;
