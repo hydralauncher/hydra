@@ -771,6 +771,9 @@ declare global {
       system: EmulatorSystem,
       language?: string
     ) => Promise<EmulatorConfig>;
+    checkShadps4TrophyKey: (
+      executablePath: string | null
+    ) => Promise<{ installed: boolean; path: string }>;
     checkEmulatorFirmware: (
       system: EmulatorSystem,
       executablePath: string | null

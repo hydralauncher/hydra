@@ -314,6 +314,7 @@ export const launchClassicsGame = async (
         child: processRef,
         souvenirSession,
         existingEmulatorPids,
+        discPath: bootTarget,
       });
       sessionStarted = true;
     }

@@ -26,6 +26,11 @@ import {
   findNewShadps4Pid,
   readShadps4VersionAfterSession,
 } from "./shadps4-files";
+import {
+  startShadps4TrophyWatcher,
+  type Shadps4TrophyWatcher,
+} from "./shadps4-trophy-watcher";
+import { launchedGamePids } from "../launched-game-pids";
 import { NativeAddon } from "../native-addon";
 import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
 import {
@@ -58,6 +63,7 @@ export interface EmulatorSession {
   knownShadps4Pids: Set<number>;
   relaunchedPid: number | null;
   relaunchWatch: ReturnType<typeof setInterval> | null;
+  trophyWatcher: Shadps4TrophyWatcher | null;
 }
 
 export const emulatorSessions = new Map<string, EmulatorSession>();
@@ -127,6 +133,7 @@ interface StartEmulatorSessionOptions {
   child: ChildProcess;
   souvenirSession?: EmulatorSouvenirSession | null;
   existingEmulatorPids?: number[];
+  discPath?: string;
 }
 
 export const startEmulatorSession = async ({
@@ -137,6 +144,7 @@ export const startEmulatorSession = async ({
   child,
   souvenirSession = null,
   existingEmulatorPids = [],
+  discPath,
 }: StartEmulatorSessionOptions): Promise<void> => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
@@ -162,8 +170,13 @@ export const startEmulatorSession = async ({
     ]),
     relaunchedPid: null,
     relaunchWatch: null,
+    trophyWatcher:
+      system === "ps4" && discPath
+        ? startShadps4TrophyWatcher({ gameKey, executablePath, discPath })
+        : null,
   };
 
+  if (system === "ps4" && child.pid) launchedGamePids.set(gameKey, child.pid);
   emulatorSessions.set(gameKey, session);
   setEmulatorGameRunning(gameKey);
   void onScreenshotGameStarted(gameKey);
@@ -278,6 +291,7 @@ const finalizeOrFollowRelaunch = async (
 
   session.relaunchedPid = relaunchedPid;
   session.knownShadps4Pids.add(relaunchedPid);
+  launchedGamePids.set(gameKey, relaunchedPid);
   session.relaunchWatch = setInterval(() => {
     void followRelaunchedProcess(gameKey, session, relaunchedPid);
   }, SHADPS4_RELAUNCH_POLL_INTERVAL_MS);
@@ -322,6 +336,8 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   if (session.heartbeat) clearInterval(session.heartbeat);
   if (session.relaunchWatch) clearInterval(session.relaunchWatch);
   stopEmulatorSouvenirWatcher(gameKey);
+  if (session.system === "ps4") launchedGamePids.delete(gameKey);
+  const trophyWatcherFinished = session.trophyWatcher?.finish();
   await cleanupEmulatorSouvenirSession(session.souvenirSession);
 
   const game = await gamesSublevel.get(gameKey);
@@ -354,6 +370,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   };
 
   await gamesSublevel.put(gameKey, updated);
+  await trophyWatcherFinished;
 
   if (session.system === "ps4") {
     await refreshShadps4DetectedVersion(session.executablePath);

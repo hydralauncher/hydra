@@ -13,6 +13,7 @@ import "./rescan-emulator";
 import "./get-classics-import-status";
 import "./get-active-classics-import";
 import "./check-emulator-firmware";
+import "./check-shadps4-trophy-key";
 import "./check-emulator-bios";
 import "./get-emulator-install-options";
 import "./install-emulator";

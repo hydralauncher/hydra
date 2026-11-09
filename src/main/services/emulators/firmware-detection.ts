@@ -4,7 +4,10 @@ import path from "node:path";
 
 import type { EmulatorSystem } from "@types";
 
-import { resolveShadps4UserDir } from "./shadps4-files.js";
+import {
+  readShadps4ConfiguredDirectory,
+  resolveShadps4UserDir,
+} from "./shadps4-files.js";
 
 const firmwareSearchDirs = (executablePath: string | null): string[] => {
   const home = homedir();
@@ -53,32 +56,11 @@ export const findPs3FirmwareDirectory = async (
   return null;
 };
 
-const readConfiguredSysModulesDirectory = async (
-  userDir: string
-): Promise<string | null> => {
-  try {
-    const config = JSON.parse(
-      await fs.readFile(path.join(userDir, "config.json"), "utf8")
-    ) as { General?: { sys_modules_dir?: unknown } };
-    const configured = config.General?.sys_modules_dir;
-    return typeof configured === "string" && configured.trim()
-      ? configured
-      : null;
-  } catch {
-    return null;
-  }
-};
-
 export const findPs4SysModulesDirectory = async (
   executablePath: string | null
-): Promise<string> => {
-  const userDir = resolveShadps4UserDir(executablePath);
-  const configured = await readConfiguredSysModulesDirectory(userDir);
-  if (!configured) return path.join(userDir, "sys_modules");
-  return executablePath
-    ? path.resolve(path.dirname(executablePath), configured)
-    : configured;
-};
+): Promise<string> =>
+  (await readShadps4ConfiguredDirectory(executablePath, "sys_modules_dir")) ??
+  path.join(resolveShadps4UserDir(executablePath), "sys_modules");
 
 const hasPs4SysModules = async (directory: string): Promise<boolean> => {
   try {

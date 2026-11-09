@@ -50,6 +50,48 @@ export const resolveShadps4UserDir = (
   return defaultUserDir();
 };
 
+export const readShadps4ConfiguredDirectory = async (
+  executablePath: string | null,
+  key: "sys_modules_dir" | "home_dir"
+): Promise<string | null> => {
+  try {
+    const config = JSON.parse(
+      await fs.readFile(
+        path.join(resolveShadps4UserDir(executablePath), "config.json"),
+        "utf8"
+      )
+    ) as { General?: Record<string, unknown> };
+    const configured = config.General?.[key];
+    if (typeof configured !== "string" || !configured.trim()) return null;
+
+    return executablePath
+      ? path.resolve(path.dirname(executablePath), configured)
+      : configured;
+  } catch {
+    return null;
+  }
+};
+
+const TROPHY_KEY_RE = /^[0-9a-f]{32}$/i;
+
+export const getShadps4TrophyKeyStatus = async (
+  executablePath: string | null
+): Promise<{ installed: boolean; path: string }> => {
+  const userDir = resolveShadps4UserDir(executablePath);
+  try {
+    const keys = JSON.parse(
+      await fs.readFile(path.join(userDir, "keys.json"), "utf8")
+    ) as { TrophyKeySet?: { ReleaseTrophyKey?: unknown } };
+    const trophyKey = keys.TrophyKeySet?.ReleaseTrophyKey;
+    return {
+      installed: typeof trophyKey === "string" && TROPHY_KEY_RE.test(trophyKey),
+      path: userDir,
+    };
+  } catch {
+    return { installed: false, path: userDir };
+  }
+};
+
 const versionRecordPath = (executablePath: string): string =>
   path.join(path.dirname(executablePath), VERSION_RECORD_FILE);
 

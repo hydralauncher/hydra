@@ -13,6 +13,7 @@ import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { BiosSection } from "./bios-section";
 import { FirmwareSection } from "./firmware-section";
+import { TrophyKeySection } from "./trophy-key-section";
 import {
   DetailHeader,
   DetailRemoveModals,
@@ -382,6 +383,10 @@ export function EmulatorDetail({
 
           {supportsFirmware && (
             <FirmwareSection config={config} disabled={busy} />
+          )}
+
+          {config.system === "ps4" && (
+            <TrophyKeySection config={config} disabled={busy} />
           )}
 
           {isConfigured && (
