@@ -2,7 +2,7 @@ import type { LibraryGame } from "@types";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem } from "@renderer/helpers";
+import { isPs4GameFolder, platformToSystem } from "@renderer/helpers";
 import { useIsNonSteamExecutable } from "@renderer/hooks/use-non-steam-executable";
 import {
   getGameExecutableFilters,
@@ -664,9 +664,16 @@ export function useGameSettingsModalState({
 
   const handleProcessDiscPath = useCallback(
     async (path: string) => {
+      if (
+        platformToSystem(game?.platform) === "ps4" &&
+        !(await isPs4GameFolder(path))
+      ) {
+        showErrorToast(t("ps4_folder_missing_eboot"));
+        return;
+      }
       await addDiscFromPath(path);
     },
-    [addDiscFromPath]
+    [addDiscFromPath, game?.platform, showErrorToast, t]
   );
 
   const handleProcessDiscExecutablePath = useCallback(

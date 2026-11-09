@@ -30,6 +30,11 @@ import { groupedSouvenirWorker } from "./grouped-souvenir-worker";
 import { launchedGamePids } from "../launched-game-pids";
 import { Wine } from "../wine";
 
+interface MergeAchievementsOptions {
+  skipSouvenirCapture?: boolean;
+  alwaysUpdateInterface?: boolean;
+}
+
 const captureAchievementSouvenirs = async (
   game: Game,
   newAchievements: UnlockedAchievement[],
@@ -174,6 +179,7 @@ const mergeAchievementsLocally = async (
   game: Game,
   achievements: UnlockedAchievement[],
   publishNotification: boolean,
+  options: MergeAchievementsOptions,
   current: () => boolean
 ) => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
@@ -233,7 +239,7 @@ const mergeAchievementsLocally = async (
     newAchievements,
     achievementsData,
     userPreferences,
-    publishNotification,
+    publishNotification && !options.skipSouvenirCapture,
     current
   );
 
@@ -269,7 +275,7 @@ const mergeAchievementsLocally = async (
     game.objectId,
     game.shop,
     achievementsToSync,
-    publishNotification,
+    publishNotification || options.alwaysUpdateInterface === true,
     current
   );
   if (!current()) throw new Error("achievement-sync-context-changed");
@@ -294,7 +300,8 @@ const mergeAchievementsLocally = async (
 export const mergeAchievements = async (
   game: Game,
   achievements: UnlockedAchievement[],
-  publishNotification: boolean
+  publishNotification: boolean,
+  options: MergeAchievementsOptions = {}
 ) => {
   if (game.shop === "epic") return 0;
   const context = HydraApi.getAuthContext();
@@ -305,7 +312,13 @@ export const mergeAchievements = async (
   const result = await achievementSyncCoordinator.runMerge(
     levelKeys.game(game.shop, game.objectId),
     (valid) =>
-      mergeAchievementsLocally(game, achievements, publishNotification, valid),
+      mergeAchievementsLocally(
+        game,
+        achievements,
+        publishNotification,
+        options,
+        valid
+      ),
     current
   );
   void achievementSyncWorker.trigger();

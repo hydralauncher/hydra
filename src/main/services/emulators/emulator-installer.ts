@@ -18,12 +18,21 @@ import { SevenZip } from "../7zip";
 import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
-import { resolveInstallOptions } from "./emulator-install-sources";
+import {
+  resolveInstallOptions,
+  resolveShadps4CoreOption,
+} from "./emulator-install-sources";
 import {
   findManagedEmulatorExecutable,
   requireManagedEmulatorExecutable,
+  type ManagedExecutableBinary,
 } from "./find-managed-emulator-executable";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
+import {
+  SHADPS4_CORE_BINARY,
+  SHADPS4_CORE_DIRECTORY,
+  writeShadps4VersionRecord,
+} from "./shadps4-files";
 import { assertValidEmulatorExecutable } from "./validate-emulator-executable";
 
 const execFileAsync = promisify(execFile);
@@ -68,6 +77,7 @@ const BINARY_TO_SYSTEM: Record<EmulatorBinary, EmulatorSystem> = {
   duckstation: "ps1",
   pcsx2: "ps2",
   rpcs3: "ps3",
+  shadps4: "ps4",
   ppsspp: "psp",
   dolphin: "dolphin",
 };
@@ -139,6 +149,82 @@ const installMacosDmg = async (
   }
 };
 
+const addOwnerExecuteBit = async (filePath: string): Promise<void> => {
+  const { mode } = await fs.promises.stat(filePath);
+  await fs.promises.chmod(filePath, mode | 0o100);
+};
+
+const ensureExtractedExecutableBit = async (
+  extractDir: string,
+  binary: ManagedExecutableBinary
+): Promise<void> => {
+  if (process.platform === "win32") return;
+
+  const executable = findManagedEmulatorExecutable(extractDir, binary);
+  if (!executable) return;
+
+  await addOwnerExecuteBit(executable);
+};
+
+const extractManagedEmulator = async (
+  archivePath: string,
+  extractDir: string,
+  binary: EmulatorBinary
+): Promise<string> => {
+  await fs.promises.mkdir(extractDir, { recursive: true });
+  await SevenZip.extractFile({ filePath: archivePath, outputPath: extractDir });
+
+  const knownBinary = KNOWN_BINARIES[BINARY_TO_SYSTEM[binary]];
+  if (binary === "shadps4") {
+    await ensureExtractedExecutableBit(extractDir, knownBinary);
+  }
+
+  return requireManagedEmulatorExecutable(extractDir, knownBinary);
+};
+
+const installShadps4Core = async (
+  launcherExecutable: string,
+  installDirectory: string,
+  optionId: string
+): Promise<void> => {
+  const option = await resolveShadps4CoreOption(process.platform, process.arch);
+  if (!option?.downloadUrl) {
+    throw new Error("No shadPS4 core release available to install");
+  }
+
+  const archivePath = path.join(
+    SystemPath.getPath("temp"),
+    path.basename(option.fileName ?? option.downloadUrl)
+  );
+  const extractDir = path.join(installDirectory, SHADPS4_CORE_DIRECTORY);
+
+  try {
+    await downloadToFile(option.downloadUrl, archivePath, (loaded, total) => {
+      sendProgress({
+        binary: "shadps4",
+        optionId,
+        phase: "downloading",
+        loaded,
+        total: total ?? undefined,
+      });
+    });
+    sendProgress({ binary: "shadps4", optionId, phase: "extracting" });
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: extractDir,
+    });
+    await ensureExtractedExecutableBit(extractDir, SHADPS4_CORE_BINARY);
+    requireManagedEmulatorExecutable(extractDir, SHADPS4_CORE_BINARY);
+    await writeShadps4VersionRecord(launcherExecutable, option.version).catch(
+      (error) => {
+        logger.warn("Failed to record shadPS4 version", error);
+      }
+    );
+  } finally {
+    await removeFileQuietly(archivePath);
+  }
+};
+
 /**
  * Downloads the resolved installer for an emulator option and runs it. The
  * option id is re-resolved server-side so the renderer never supplies the URL.
@@ -201,8 +287,7 @@ export const downloadAndInstallEmulator = async (
     }
 
     if (option.kind === "linux-appimage") {
-      const { mode } = await fs.promises.stat(dest);
-      await fs.promises.chmod(dest, mode | 0o100);
+      await addOwnerExecuteBit(dest);
       assertValidEmulatorExecutable(dest);
       shell.showItemInFolder(dest);
       sendProgress({ binary, optionId, phase: "done", path: dest });
@@ -220,14 +305,11 @@ export const downloadAndInstallEmulator = async (
 
     sendProgress({ binary, optionId, phase: "extracting" });
     const extractDir = installDirectory;
-    await fs.promises.mkdir(extractDir, { recursive: true });
-    await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
-    const system = BINARY_TO_SYSTEM[binary];
-    const executable = requireManagedEmulatorExecutable(
-      extractDir,
-      KNOWN_BINARIES[system]
-    );
+    const executable = await extractManagedEmulator(dest, extractDir, binary);
     await removeTempDownload();
+    if (binary === "shadps4") {
+      await installShadps4Core(executable, installDirectory, optionId);
+    }
     shell.showItemInFolder(executable);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });
     return { ok: true, path: extractDir };

@@ -28,6 +28,7 @@ import {
 } from "@main/services/achievements/grouped-souvenir-worker";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { updateGameRecord } from "@main/services/game-record-updater";
+import { removeShadps4TrophyFile } from "@main/services/emulators/shadps4-trophy-watcher";
 
 const deleteRemoteAchievements = async (
   levelKey: string,
@@ -110,6 +111,8 @@ const resetGameAchievementsNow = async (
         recursive: true,
       });
     }
+
+    await removeShadps4TrophyFile(game);
 
     assertCurrent();
     AchievementWatcherManager.forgetAchievementFiles(

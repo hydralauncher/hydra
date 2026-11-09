@@ -1,9 +1,10 @@
-export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "psp" | "dolphin";
+export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "ps4" | "psp" | "dolphin";
 
 export type EmulatorBinary =
   | "duckstation"
   | "pcsx2"
   | "rpcs3"
+  | "shadps4"
   | "ppsspp"
   | "dolphin";
 
