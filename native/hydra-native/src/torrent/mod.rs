@@ -283,16 +283,8 @@ impl Engine {
         {
             params.append_tracker(&tracker, tier)?;
         }
-        let mut handle = self.session.add(&params)?;
-        let mut replaced = None;
-        if game.is_some() {
-            if let Some(index) = self.unowned_entry_elsewhere(&handle, path)? {
-                let stale = self.pool.remove(index);
-                self.session.remove(&stale.handle, stale.delete_partfile)?;
-                handle = self.session.add(&params)?;
-                replaced = Some(stale.handle);
-            }
-        }
+        let handle = self.session.add(&params)?;
+        let (handle, replaced) = self.replace_unowned_handle(handle, &params, path, game)?;
         // libtorrent may return an existing handle for the same info hash.
         // Metadata lookup must not remove or change the active download.
         for entry in &self.pool {
@@ -340,15 +332,36 @@ impl Engine {
             delete_partfile: true,
             save_path: path.to_string(),
         });
-        if let Some(stale) = replaced {
-            for job in &mut self.jobs {
-                if Rc::ptr_eq(&job.handle, &stale) {
-                    job.handle = handle.clone();
-                }
-            }
-        }
+        self.move_jobs(replaced, &handle);
         handle.resume()?;
         Ok(handle)
+    }
+    fn replace_unowned_handle(
+        &mut self,
+        handle: Handle,
+        params: &Params,
+        path: &str,
+        game: Option<&str>,
+    ) -> Result<(Handle, Option<Rc<Handle>>)> {
+        if game.is_none() {
+            return Ok((handle, None));
+        }
+        let Some(index) = self.unowned_entry_elsewhere(&handle, path)? else {
+            return Ok((handle, None));
+        };
+        let stale = self.pool.remove(index);
+        self.session.remove(&stale.handle, stale.delete_partfile)?;
+        Ok((self.session.add(params)?, Some(stale.handle)))
+    }
+    fn move_jobs(&mut self, stale: Option<Rc<Handle>>, handle: &Rc<Handle>) {
+        let Some(stale) = stale else {
+            return;
+        };
+        for job in &mut self.jobs {
+            if Rc::ptr_eq(&job.handle, &stale) {
+                job.handle = handle.clone();
+            }
+        }
     }
     fn unowned_entry_elsewhere(&self, handle: &Handle, path: &str) -> Result<Option<usize>> {
         for (index, entry) in self.pool.iter().enumerate() {
