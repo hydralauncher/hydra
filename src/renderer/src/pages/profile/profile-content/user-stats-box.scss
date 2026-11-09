@@ -38,7 +38,7 @@
   }
 
   &__list-title {
-    font-size: 0.8rem;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     overflow: hidden;
     white-space: nowrap;
@@ -46,7 +46,7 @@
   }
 
   &__list-description {
-    font-size: 0.75rem;
+    font-size: globals.$small-font-size;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
@@ -73,7 +73,7 @@
 
   &__karma-info-text {
     color: globals.$muted-color;
-    font-size: 0.75rem;
+    font-size: globals.$small-font-size;
     line-height: 1.4;
   }
 
@@ -83,7 +83,7 @@
     padding: 0;
     text-align: start;
     color: globals.$body-color;
-    font-size: 0.875rem;
+    font-size: globals.$body-font-size;
     cursor: pointer;
     text-decoration: underline;
   }

@@ -18,27 +18,16 @@
 
   &__main {
     flex: 1;
+    min-width: 0;
   }
 
   &__right-content {
-    width: 100%;
+    width: globals.$page-rail-width;
+    flex-shrink: 0;
     height: 100%;
     display: flex;
     gap: calc(globals.$spacing-unit * 2);
     flex-direction: column;
-    transition:
-      width ease 0.2s,
-      max-width ease 0.2s;
-
-    @media (min-width: 1024px) {
-      max-width: 300px;
-      width: 100%;
-    }
-
-    @media (min-width: 1280px) {
-      width: 100%;
-      max-width: 400px;
-    }
   }
 
   &__no-games {
@@ -81,7 +70,7 @@
     color: rgba(255, 255, 255, 0.7);
     padding: 4px 8px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
     min-width: 24px;
     text-align: center;
@@ -124,18 +113,22 @@
   &__tab {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: globals.$subtle-color;
     padding: calc(globals.$spacing-unit) calc(globals.$spacing-unit * 2);
     cursor: pointer;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 500;
     transition: color ease 0.2s;
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit * 0.5);
 
+    &:hover {
+      color: globals.$body-color;
+    }
+
     &--active {
-      color: white;
+      color: globals.$muted-color;
     }
   }
 
@@ -145,10 +138,10 @@
     justify-content: center;
     min-width: 18px;
     height: 18px;
-    padding: 0 6px;
+    padding: 0 calc(globals.$spacing-unit / 2);
     background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 9px;
-    font-size: 11px;
+    border-radius: 999px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     line-height: 1;
@@ -205,7 +198,7 @@
   &__screenshots-hotkey {
     display: inline-block;
     margin: 0 4px;
-    padding: 1px 6px;
+    padding: 1px calc(globals.$spacing-unit / 2);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-bottom-width: 2px;
     border-radius: 4px;
@@ -248,7 +241,7 @@
 
     strong {
       color: globals.$muted-color;
-      font-size: 14px;
+      font-size: globals.$body-font-size;
     }
 
     span {
@@ -291,7 +284,7 @@
     gap: calc(globals.$spacing-unit * 2);
 
     > p {
-      font-size: 14px;
+      font-size: globals.$body-font-size;
       line-height: 1.5;
     }
   }
@@ -312,7 +305,7 @@
       display: flex;
       padding: calc(globals.$spacing-unit * 1.5);
       border: 1px solid globals.$border-color;
-      border-radius: 6px;
+      border-radius: 8px;
       background: rgba(255, 255, 255, 0.03);
       flex-direction: column;
       gap: globals.$spacing-unit;
@@ -354,7 +347,7 @@
 
       strong {
         color: globals.$muted-color;
-        font-size: 14px;
+        font-size: globals.$body-font-size;
       }
 
       span {
@@ -437,7 +430,7 @@
       border-radius: 6px;
       background-color: rgba(255, 255, 255, 0.1);
       color: globals.$body-color;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
       font-weight: 600;
       text-align: center;
     }
@@ -579,8 +572,8 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: calc(globals.$spacing-unit * 1.25);
-      padding: calc(globals.$spacing-unit * 1.25);
+      gap: globals.$spacing-unit;
+      padding: calc(globals.$spacing-unit * 1.5);
     }
 
     &-achievement-icon {
@@ -635,7 +628,7 @@
       flex-shrink: 0;
       margin-left: 2px;
       color: globals.$body-color;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
       font-weight: 400;
       line-height: 1;
     }
@@ -715,7 +708,7 @@
       justify-content: center;
       gap: 4px;
       height: 24px;
-      padding: 0 6px;
+      padding: 0 globals.$spacing-unit;
       border: solid 1px rgba(255, 255, 255, 0.15);
       border-radius: 4px;
       background: rgba(0, 0, 0, 0.4);
@@ -765,27 +758,9 @@
     padding: 0;
     display: grid;
     gap: calc(globals.$spacing-unit * 2);
-    grid-template-columns: repeat(2, 1fr);
-
-    @container #{globals.$app-container} (min-width: 900px) {
-      grid-template-columns: repeat(4, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 1300px) {
-      grid-template-columns: repeat(5, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 2000px) {
-      grid-template-columns: repeat(6, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 2600px) {
-      grid-template-columns: repeat(8, 1fr);
-    }
-
-    @container #{globals.$app-container} (min-width: 3000px) {
-      grid-template-columns: repeat(12, 1fr);
-    }
+    // Sized by the library column itself, which shares the page with the
+    // stats rail, so covers stay as large as the Library page's.
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 
     &--drag-over {
       background: rgba(255, 255, 255, 0.05);
@@ -802,7 +777,7 @@
         left: 50%;
         transform: translate(-50%, -50%);
         color: globals.$muted-color;
-        font-size: 14px;
+        font-size: globals.$body-font-size;
         font-weight: 500;
         z-index: 10;
         pointer-events: none;
@@ -893,7 +868,7 @@
 .user-reviews__review-meta-row {
   display: flex;
   align-items: center;
-  gap: calc(globals.$spacing-unit * 0.75);
+  gap: calc(globals.$spacing-unit / 2);
 }
 
 .user-reviews__review-footer {
@@ -923,7 +898,7 @@
 .user-reviews__game-details {
   display: flex;
   align-items: center;
-  gap: calc(globals.$spacing-unit * 0.75);
+  gap: globals.$spacing-unit;
 }
 
 .user-reviews__game-title {
@@ -955,7 +930,7 @@
   border-radius: 8px;
   padding: 2px 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 11px;
+  font-size: globals.$tiny-font-size;
   font-weight: 500;
 }
 
@@ -981,7 +956,7 @@
   align-items: center;
   gap: 4px;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 11px;
+  font-size: globals.$tiny-font-size;
   font-weight: 500;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
@@ -1010,7 +985,7 @@
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.875rem;
+  font-size: globals.$body-font-size;
   cursor: pointer;
   text-decoration: none;
   transition: color 0.2s ease;
@@ -1038,13 +1013,13 @@
 .user-reviews__vote-button {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(globals.$spacing-unit / 2);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
-  padding: 6px 12px;
-  color: #ccc;
-  font-size: 14px;
+  padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5);
+  color: globals.$body-color;
+  font-size: globals.$body-font-size;
   cursor: pointer;
   transition:
     background-color 0.2s ease,

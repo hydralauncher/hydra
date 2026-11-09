@@ -1,3 +1,5 @@
+@use "../../../scss/globals.scss";
+
 .game-artwork {
   display: flex;
   flex-direction: column;
@@ -12,7 +14,7 @@
 
   &__title {
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
   }
 
@@ -49,7 +51,7 @@
 
   &__scroll-content {
     box-sizing: border-box;
-    padding-right: 10px;
+    padding-right: calc(globals.$spacing-unit * 1.5);
   }
 
   &__scrollbar {
@@ -64,7 +66,7 @@
     position: absolute;
     inset: 0 0 auto;
     width: 100%;
-    border-radius: 24px;
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.15);
     cursor: grab;
     touch-action: none;
@@ -178,13 +180,13 @@
       img,
       video {
         object-fit: contain;
-        padding: 6px;
+        padding: globals.$spacing-unit;
       }
     }
 
     &--active {
-      border-color: #8f8f8f;
-      box-shadow: 0 0 0 1px #8f8f8f;
+      border-color: globals.$subtle-color;
+      box-shadow: 0 0 0 1px globals.$subtle-color;
     }
   }
 
@@ -222,7 +224,7 @@
   }
 
   &__hint {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     opacity: 0.7;
   }
 }

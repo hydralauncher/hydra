@@ -21,8 +21,7 @@
       aspect-ratio: 388 / 56;
       min-height: 76px;
       max-height: 132px;
-      padding: calc(globals.$spacing-unit * 1.5)
-        calc(globals.$spacing-unit * 1.25);
+      padding: calc(globals.$spacing-unit * 1.5);
       border-radius: 8px;
 
       &::after {
@@ -89,7 +88,7 @@
   &__review-user-info {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: calc(globals.$spacing-unit / 2);
     flex: 1;
     min-width: 0;
   }
@@ -104,7 +103,7 @@
   &__review-meta-left {
     display: inline-flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: calc(globals.$spacing-unit / 2);
     min-height: 22px;
   }
 
@@ -121,7 +120,7 @@
     white-space: nowrap;
     display: block;
     text-align: left;
-    color: rgba(255, 255, 255, 0.9);
+    color: globals.$muted-color;
     font-size: globals.$body-font-size;
     font-weight: 600;
 
@@ -167,24 +166,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(244, 67, 54, 0.1);
-    border: 1px solid rgba(244, 67, 54, 0.3);
+    background: rgba(globals.$error-color, 0.1);
+    border: 1px solid rgba(globals.$error-color, 0.3);
     border-radius: 6px;
-    padding: 6px;
-    color: #f44336;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
+    color: globals.$error-color;
     cursor: pointer;
     transition: all 0.2s ease;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
 
     &:hover {
-      background: rgba(244, 67, 54, 0.2);
-      border-color: #f44336;
-      color: #ff5722;
+      background: rgba(globals.$error-color, 0.2);
+      border-color: globals.$error-color;
     }
   }
 
   &__blocked-review-simple {
-    color: rgba(255, 255, 255, 0.6);
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
     display: flex;
     align-items: center;
@@ -194,7 +192,7 @@
   &__blocked-review-show-link {
     background: none;
     border: none;
-    color: #ffc107;
+    color: globals.$warning-color;
     font-size: globals.$small-font-size;
     cursor: pointer;
     text-decoration: underline;
@@ -209,7 +207,7 @@
   &__blocked-review-hide-link {
     background: none;
     border: none;
-    color: #ffc107;
+    color: globals.$warning-color;
     font-size: globals.$small-font-size;
     cursor: pointer;
     text-decoration: underline;
@@ -228,10 +226,10 @@
     height: 22px;
     box-sizing: border-box;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 2px 6px;
+    border-radius: 6px;
+    padding: 2px globals.$spacing-unit;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
   }
 
@@ -264,11 +262,11 @@
     align-items: center;
     align-self: flex-start;
     flex-shrink: 0;
-    padding-right: calc(globals.$spacing-unit * 1.75);
+    padding-right: calc(globals.$spacing-unit * 2);
     gap: 4px;
     white-space: nowrap;
     line-height: 1;
-    color: rgba(255, 255, 255, 0.6);
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
   }
 
@@ -278,7 +276,7 @@
     height: 22px;
     box-sizing: border-box;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
     padding: 2px 0;
   }
@@ -290,11 +288,11 @@
     height: 22px;
     box-sizing: border-box;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 2px 6px;
+    border-radius: 6px;
+    padding: 2px globals.$spacing-unit;
     border: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: 0;
 
@@ -323,15 +321,15 @@
     padding: 0;
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.875rem;
+    color: globals.$subtle-color;
+    font-size: globals.$body-font-size;
     cursor: pointer;
     text-decoration: none;
     transition: all 0.2s ease;
 
     &:hover {
       text-decoration: underline;
-      color: rgba(255, 255, 255, 0.9);
+      color: globals.$muted-color;
     }
   }
 }
