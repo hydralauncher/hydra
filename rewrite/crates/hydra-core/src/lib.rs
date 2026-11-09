@@ -27,6 +27,7 @@ pub mod ludusavi;
 pub mod profile;
 pub mod profile_image;
 pub mod realtime;
+pub mod remote_library;
 pub mod repacks;
 pub mod reviews;
 pub mod screenshot_prefs;

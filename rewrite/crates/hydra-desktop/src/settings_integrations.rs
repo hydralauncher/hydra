@@ -25,7 +25,6 @@ use crate::{
 };
 
 const STEAM_ENDPOINT: &str = "/profile/integrations/steam";
-const EPIC_ENDPOINT: &str = "/profile/integrations/epic";
 const RA_USER_PIC_URL: &str = "https://media.retroachievements.org/UserPic";
 
 #[derive(Default)]
@@ -47,6 +46,10 @@ struct Epic {
     disconnecting: bool,
     state: Option<EpicState>,
     request_error: Option<String>,
+    /// EpicSyncState (getEpicSyncState / onEpicSyncProgress)
+    sync: hydra_epic::sync::SyncState,
+    /// connection.latestSyncRun.status === "PENDING"
+    latest_run_pending: bool,
 }
 
 #[derive(Default)]
@@ -757,47 +760,141 @@ fn steam_card() -> IntegrationCard {
 
 // ---- Epic ---------------------------------------------------------------
 
-/// Legendary.getBinaryPath + availability(): the rewrite doesn't bundle
-/// Legendary yet, so this reports it missing unless a packaged copy exists.
-fn epic_availability() -> (bool, Option<String>) {
-    if !(cfg!(windows) || cfg!(target_os = "linux") || cfg!(target_os = "macos")) {
-        return (false, Some("unsupported-platform".into()));
+/// The integration's state as the card sees it (EpicConnectionState).
+fn epic_view(state: &crate::epic::PublicState) -> EpicState {
+    let connection = state.connected();
+    EpicState {
+        hydra_logged_in: state.hydra_logged_in,
+        available: state.reason.is_none(),
+        availability_reason: state.reason.clone(),
+        connected: connection.is_some(),
+        connection_id: connection
+            .map(|c| c.connection_id.clone())
+            .unwrap_or_default(),
+        display_name: connection
+            .map(|c| c.display_name.clone())
+            .unwrap_or_default(),
+        last_synced_at: connection.and_then(|c| c.last_synced_at.clone()),
+        confirmed: state.confirmed,
+        session_state: state.session_state.as_str().into(),
+        operation: state.operation_status().unwrap_or_default().into(),
+        error: state.error.clone(),
     }
-    if !(cfg!(target_arch = "x86_64") || cfg!(target_arch = "aarch64")) {
-        return (false, Some("unsupported-architecture".into()));
+}
+
+/// isEpicStateForUser
+fn epic_for_user(state: &crate::epic::PublicState) -> bool {
+    let user = crate::epic::auth_context().map(|c| c.user_id);
+    state.hydra_user_id == user || (!state.hydra_logged_in && state.hydra_user_id.is_none())
+}
+
+/// onEpicConnectionChanged → applyState: the toasts and the card.
+pub fn on_epic_state(previous: Option<&crate::epic::PublicState>, next: &crate::epic::PublicState) {
+    if !epic_for_user(next) {
+        return;
     }
-    let binary = if cfg!(windows) {
-        "legendary.exe"
-    } else {
-        "legendary"
-    };
-    let present = std::env::current_exe()
-        .ok()
-        .and_then(|exe| exe.parent().map(|d| d.join("legendary").join(binary)))
-        .is_some_and(|p| p.is_file());
-    if present {
-        // TODO(epic): the managed runtime check (managed-runtime.json, hashes)
-        (true, None)
-    } else {
-        (false, Some("legendary-missing".into()))
+    if let Some(previous) = previous {
+        if previous.hydra_user_id == next.hydra_user_id
+            && previous.operation_status() == Some("connecting")
+            && next.operation.is_none()
+            && next.confirmed
+            && next.connected().is_some()
+            && next.session_state == hydra_epic::store::SessionState::Ready
+            && next.error.is_none()
+        {
+            toast::success(&t("epic_account_linked"));
+        }
+        // getEpicAuthFailure
+        if let Some(error) = next.error.as_deref()
+            && previous
+                .operation_status()
+                .is_some_and(|s| s != "disconnecting")
+            && previous.hydra_user_id == next.hydra_user_id
+            && next.hydra_logged_in
+            && next.operation.is_none()
+            && error != "operation-cancelled"
+        {
+            toast::error(&t(logic::epic_error_key(error)));
+        }
     }
+    with(|s| {
+        s.epic.state = Some(epic_view(next));
+        s.epic.latest_run_pending = next
+            .connected()
+            .and_then(|c| c.latest_sync_run.as_ref())
+            .is_some_and(|r| r.status == "PENDING");
+        s.epic.request_error = None;
+        s.epic.loading = false;
+    });
+    render();
+}
+
+/// onEpicSyncProgress
+pub fn on_epic_sync(state: &hydra_epic::sync::SyncState) {
+    let stale = with(|s| {
+        s.epic.state.as_ref().is_some_and(|v| {
+            v.connected
+                && state
+                    .connection_id
+                    .as_ref()
+                    .is_some_and(|id| *id != v.connection_id)
+        })
+    });
+    if stale {
+        return;
+    }
+    with(|s| s.epic.sync = state.clone());
+    render();
+}
+
+/// onEpicSyncFinished: toasts for a manual sync, then refreshStatus.
+pub fn on_epic_sync_finished(finished: &hydra_epic::sync::Finished) {
+    let same = with(|s| {
+        s.epic
+            .state
+            .as_ref()
+            .is_some_and(|v| v.connected && v.connection_id == finished.connection_id)
+    });
+    if !same {
+        return;
+    }
+    if finished.origin == "manual" {
+        if finished.ok {
+            let summary = finished.achievement_summary.as_ref();
+            let partial = summary
+                .and_then(|s| s.get("status"))
+                .and_then(Value::as_str)
+                == Some("partial");
+            let pending = summary
+                .and_then(|s| s.get("gamesPending"))
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            toast::success(&shell::tr_with(
+                if partial {
+                    "settings.epic_sync_partial"
+                } else {
+                    "settings.epic_sync_success"
+                },
+                &[("count", pending.into())],
+            ));
+        } else if finished.error.as_deref() != Some("operation-cancelled") {
+            toast::error(&t(if finished.requires_merge {
+                "epic_sync_merge_pending"
+            } else {
+                logic::epic_error_key(finished.error.as_deref().unwrap_or("network"))
+            }));
+        }
+    }
+    epic_refresh(false);
 }
 
 /// refreshStatus → getEpicConnection
 fn epic_refresh(show_loading: bool) {
     let signed_in = shell::signed_in();
-    let (available, reason) = epic_availability();
-    with(|s| {
-        if show_loading {
-            s.epic.loading = signed_in;
-        }
-        let state = s.epic.state.get_or_insert_with(EpicState::default);
-        state.hydra_logged_in = signed_in;
-        state.available = available;
-        state.availability_reason = reason;
-        // EpicConnectionStore: no local Legendary session in the rewrite yet
-        state.session_state = "missing".into();
-    });
+    if show_loading {
+        with(|s| s.epic.loading = signed_in);
+        render();
+    }
     if !signed_in {
         with(|s| {
             s.epic.loading = false;
@@ -806,43 +903,90 @@ fn epic_refresh(show_loading: bool) {
         render();
         return;
     }
-    let Some(api) = shell::api() else { return };
-    std::thread::spawn(move || {
-        let result = api.get(EPIC_ENDPOINT, &[], Options::default());
-        let _ = slint::invoke_from_event_loop(move || {
-            with(|s| {
-                let state = s.epic.state.get_or_insert_with(EpicState::default);
-                match result {
-                    Ok(value) => {
-                        state.apply_connection(&value);
-                        s.epic.request_error = None;
-                    }
-                    Err(error) => {
-                        eprintln!("Epic connection status: {error}");
-                        state.confirmed = false;
-                        state.error = Some(match error {
-                            ApiError::Status { status: 404, .. } => "api-unavailable".into(),
-                            _ => "network".into(),
-                        });
-                        s.epic.request_error = Some("network".into());
-                    }
-                }
-                s.epic.loading = false;
-            });
-            render();
+    crate::epic::get_connection(Some(Box::new(|state| {
+        with(|s| {
+            if epic_for_user(&state) {
+                s.epic.state = Some(epic_view(&state));
+            }
+            s.epic.loading = false;
+            if state.error.as_deref() == Some("network") {
+                s.epic.request_error = Some("network".into());
+            }
         });
+        render();
+    })));
+}
+
+/// runOperation: the submit lock, the result toasts and a refresh.
+fn epic_run(start: impl FnOnce(Box<dyn FnOnce(Result<(), String>)>), disconnected: bool) {
+    if with(|s| s.epic.submitting) {
+        return;
+    }
+    with(|s| {
+        s.epic.submitting = true;
+        s.epic.disconnecting = disconnected;
+        s.epic.request_error = None;
     });
+    render();
+    start(Box::new(move |result| {
+        with(|s| {
+            s.epic.submitting = false;
+            s.epic.disconnecting = false;
+        });
+        match result {
+            Err(error) => {
+                if error != "operation-cancelled" {
+                    with(|s| s.epic.request_error = Some(error.clone()));
+                    toast::error(&t(logic::epic_error_key(&error)));
+                }
+            }
+            Ok(()) if disconnected => toast::success(&t("epic_account_unlinked")),
+            Ok(()) => {}
+        }
+        epic_refresh(false);
+    }));
 }
 
 fn epic_action(action: &str) {
     match action {
         "sign-in" => crate::auth::open(crate::auth::Page::SignIn),
-        // TODO(epic): the Epic login window and Legendary's `auth --code`
-        // (integration-core.ts startAuth); Connect is disabled until the
-        // rewrite bundles Legendary.
-        "connect" => eprintln!("TODO(epic): startEpicAuth"),
-        "sync" => eprintln!("TODO(epic): startEpicSync"),
-        "cancel" => eprintln!("TODO(epic): cancelEpicAuth / cancelEpicSync"),
+        // handleConnect → startEpicAuth
+        "connect" => epic_run(|done| crate::epic::start_auth(done), false),
+        // handleSync → startEpicSync
+        "sync" => {
+            let connection = with(|s| {
+                s.epic
+                    .state
+                    .as_ref()
+                    .filter(|v| v.connected)
+                    .map(|v| v.connection_id.clone())
+            });
+            if let Some(connection) = connection {
+                crate::epic::start_sync(&connection);
+            }
+        }
+        // handleCancel (sign-in) / handleCancelSync
+        "cancel" => {
+            if let Some(id) = crate::epic::operation_id() {
+                crate::epic::cancel_auth(&id, |result| {
+                    if let Err(error) = result
+                        && error != "operation-cancelled"
+                    {
+                        with(|s| s.epic.request_error = Some(error));
+                    }
+                    with(|s| s.epic.submitting = false);
+                    epic_refresh(false);
+                });
+            } else if let Some(connection) = with(|s| {
+                s.epic
+                    .state
+                    .as_ref()
+                    .filter(|v| v.connected)
+                    .map(|v| v.connection_id.clone())
+            }) {
+                crate::epic::cancel_sync(&connection);
+            }
+        }
         "check" => epic_refresh(true),
         "disconnect" => epic_confirm_disconnect(),
         _ => {}
@@ -871,51 +1015,13 @@ fn epic_confirm_disconnect() {
         },
         move || {
             crate::dialogs::close();
-            epic_disconnect(connection_id.clone());
+            let connection_id = connection_id.clone();
+            epic_run(
+                move |done| crate::epic::disconnect(connection_id, done),
+                true,
+            );
         },
     );
-}
-
-/// disconnectEpic → DELETE /profile/integrations/epic?connectionId=
-fn epic_disconnect(connection_id: String) {
-    with(|s| {
-        s.epic.submitting = true;
-        s.epic.disconnecting = true;
-        if let Some(state) = s.epic.state.as_mut() {
-            state.operation = "disconnecting".into();
-        }
-    });
-    render();
-    let Some(api) = shell::api() else { return };
-    std::thread::spawn(move || {
-        let encoded: String =
-            reqwest::Url::parse_with_params("http://q/", &[("connectionId", &connection_id)])
-                .ok()
-                .and_then(|u| u.query().map(str::to_string))
-                .unwrap_or_default();
-        let result = api.delete(&format!("{EPIC_ENDPOINT}?{encoded}"), Options::default());
-        let _ = slint::invoke_from_event_loop(move || {
-            with(|s| {
-                s.epic.submitting = false;
-                s.epic.disconnecting = false;
-                if let Some(state) = s.epic.state.as_mut() {
-                    state.operation.clear();
-                }
-            });
-            match result {
-                Ok(_) => {
-                    // TODO(epic): clearEpicImports (the imported Epic library) and the
-                    // local session store.
-                    toast::success(&t("epic_account_unlinked"));
-                }
-                Err(error) => {
-                    eprintln!("Epic disconnect: {error}");
-                    toast::error(&t("epic_error_network"));
-                }
-            }
-            epic_refresh(false);
-        });
-    });
 }
 
 fn epic_card() -> IntegrationCard {
@@ -928,9 +1034,15 @@ fn epic_card() -> IntegrationCard {
         let connected = visible.is_some_and(|v| v.connected);
         let operation = visible.map(|v| v.operation.as_str()).unwrap_or_default();
         let disconnecting = epic.disconnecting || operation == "disconnecting";
-        let requires_reconnect = presentation.requires_reconnect;
+        let sync = &epic.sync;
+        let requires_reconnect = presentation.requires_reconnect || sync.requires_reconnect;
+        let syncing = connected
+            && (!sync.is_idle()
+                || (sync.error.as_deref() == Some("sync-active") && epic.latest_run_pending));
         let (status_key, tone) = if disconnecting {
             ("epic_status_disconnecting", "neutral")
+        } else if sync.requires_reconnect {
+            ("epic_status_reconnect_required", "warning")
         } else {
             (presentation.status_key, presentation.tone)
         };
@@ -942,7 +1054,15 @@ fn epic_card() -> IntegrationCard {
         } else if !operation.is_empty() {
             actions.push(action("cancel", &t("cancel"), "outline", "", true));
         } else {
-            if !connected || requires_reconnect {
+            if syncing {
+                actions.push(action(
+                    "cancel",
+                    &t("cancel"),
+                    "outline",
+                    "",
+                    sync.status != "cancelling" && !epic.submitting,
+                ));
+            } else if !connected || requires_reconnect {
                 actions.push(action(
                     "connect",
                     &t(if connected {
@@ -997,6 +1117,26 @@ fn epic_card() -> IntegrationCard {
         if disconnecting {
             card.progress = true;
             card.progress_label = t("epic_status_disconnecting").into();
+        } else if !sync.is_idle() {
+            card.progress = true;
+            let phase = if sync.status == "cancelling" {
+                "cancelling"
+            } else {
+                sync.phase.map_or("starting", |p| p.as_str())
+            };
+            card.progress_label = t(&format!("epic_sync_{phase}")).into();
+            if let Some(total) = sync.total.filter(|t| *t > 0)
+                && matches!(
+                    sync.phase,
+                    Some(
+                        hydra_epic::sync::Phase::Publishing
+                            | hydra_epic::sync::Phase::Achievements
+                            | hydra_epic::sync::Phase::Merging
+                    )
+                )
+            {
+                card.progress_count = format!("{} / {total}", sync.processed).into();
+            }
         }
         let show_reconnect = connected && requires_reconnect;
         if show_reconnect {
@@ -1008,6 +1148,7 @@ fn epic_card() -> IntegrationCard {
         let error = epic
             .request_error
             .clone()
+            .or_else(|| sync.error.clone())
             .or_else(|| visible.and_then(|v| v.error.clone()))
             .or_else(|| visible.and_then(|v| v.availability_reason.clone()));
         if let Some(error) =
@@ -1485,6 +1626,47 @@ pub fn dev(args: &[&str]) {
         "ra-disconnect" => ra_action("disconnect"),
         "steam-disconnect" => steam_confirm_disconnect(),
         "epic-disconnect" => epic_confirm_disconnect(),
+        // the real Connect (opens the Epic window; nothing is linked without a code)
+        "epic-connect" => epic_action("connect"),
+        "epic-cancel" => epic_action("cancel"),
+        "epic-redirect" => {
+            crate::epic_auth_window::dev_load_redirect();
+            return;
+        }
+        "epic-status" => {
+            eprintln!("[epic] {}", crate::epic::describe());
+            return;
+        }
+        // settings-dev epic-sync <phase> <processed> <total>: the progress row
+        "epic-sync" => {
+            use hydra_epic::sync::Phase;
+            let phase = match args.get(1).copied().unwrap_or("publishing") {
+                "starting" => Phase::Starting,
+                "library" => Phase::Library,
+                "playtime" => Phase::Playtime,
+                "achievements" => Phase::Achievements,
+                "merging" => Phase::Merging,
+                "finishing" => Phase::Finishing,
+                _ => Phase::Publishing,
+            };
+            with(|s| {
+                s.epic.sync = hydra_epic::sync::SyncState {
+                    status: "running",
+                    hydra_user_id: crate::epic::auth_context().map(|c| c.user_id),
+                    phase: Some(phase),
+                    processed: args.get(2).and_then(|a| a.parse().ok()).unwrap_or(1),
+                    total: args.get(3).and_then(|a| a.parse().ok()),
+                    ..Default::default()
+                }
+            });
+        }
+        "epic-sync-reconnect" => with(|s| {
+            s.epic.sync = hydra_epic::sync::SyncState {
+                status: "idle",
+                requires_reconnect: true,
+                ..Default::default()
+            }
+        }),
         other => eprintln!("settings-dev: unknown {other:?}"),
     }
     render();

@@ -1,0 +1,31 @@
+[package]
+name = "hydra-epic"
+description = "The Epic Games integration of the Rust rewrite: the bundled Legendary runtime, the Epic session store, library sync and imports (src/main/services/epic, services/legendary.ts)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hydra-db = { path = "../hydra-db" }
+hydra-core = { path = "../hydra-core" }
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+# managed-runtime.json hashes, the session store scope key, workspace paths
+sha2 = "0.10"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+uuid = { version = "1", features = ["v4"] }
+# localeCompare(…, "en") in library-normalizer.ts (stable artifact/name order)
+icu_collator = "2"
+
+[target.'cfg(windows)'.dependencies]
+# Legendary's PyInstaller bootloader and its Python child run in one Job Object
+# (hydra-epic-process.exe in Electron), so cancelling stops the whole tree.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
