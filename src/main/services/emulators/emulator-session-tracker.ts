@@ -326,6 +326,29 @@ const refreshShadps4DetectedVersion = async (
   });
 };
 
+const resolveSessionPlaytimeSeconds = async (
+  session: EmulatorSession
+): Promise<number> => {
+  let deltaSeconds = 0;
+  if (session.sku && isEmulatorSystem(session.system)) {
+    const after = await readEmulatorPlaytimeSeconds(
+      session.system,
+      session.executablePath,
+      session.sku
+    );
+    const before = session.beforeTotalSeconds;
+    if (after !== null && before === null && after > 0) {
+      deltaSeconds = after;
+    } else if (after !== null && before !== null && after > before) {
+      deltaSeconds = after - before;
+    }
+  }
+
+  return deltaSeconds > 0
+    ? deltaSeconds
+    : Math.max(0, (performance.now() - session.startedAt) / 1000);
+};
+
 const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return;
@@ -343,26 +366,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const game = await gamesSublevel.get(gameKey);
   if (!game) return;
 
-  let deltaSeconds = 0;
-  if (session.sku && isEmulatorSystem(session.system)) {
-    const after = await readEmulatorPlaytimeSeconds(
-      session.system,
-      session.executablePath,
-      session.sku
-    );
-    const before = session.beforeTotalSeconds;
-    if (after !== null && before === null && after > 0) {
-      deltaSeconds = after;
-    } else if (after !== null && before !== null && after > before) {
-      deltaSeconds = after - before;
-    }
-  }
-
-  if (deltaSeconds <= 0) {
-    deltaSeconds = Math.max(0, (performance.now() - session.startedAt) / 1000);
-  }
-
-  const deltaMs = deltaSeconds * 1000;
+  const deltaMs = (await resolveSessionPlaytimeSeconds(session)) * 1000;
   const updated: Game = {
     ...game,
     playTimeInMilliseconds: (game.playTimeInMilliseconds ?? 0) + deltaMs,

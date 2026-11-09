@@ -162,6 +162,32 @@ const ensureExtractedExecutableBit = async (
   await addOwnerExecuteBit(executable);
 };
 
+const extractManagedEmulator = async (
+  archivePath: string,
+  extractDir: string,
+  binary: EmulatorBinary,
+  releaseVersion: string | null
+): Promise<string> => {
+  await fs.promises.mkdir(extractDir, { recursive: true });
+  await SevenZip.extractFile({ filePath: archivePath, outputPath: extractDir });
+
+  const knownBinary = KNOWN_BINARIES[BINARY_TO_SYSTEM[binary]];
+  if (binary === "shadps4") {
+    await ensureExtractedExecutableBit(extractDir, knownBinary);
+  }
+
+  const executable = requireManagedEmulatorExecutable(extractDir, knownBinary);
+  if (binary === "shadps4") {
+    await writeShadps4VersionRecord(executable, releaseVersion).catch(
+      (error) => {
+        logger.warn("Failed to record shadPS4 version", error);
+      }
+    );
+  }
+
+  return executable;
+};
+
 /**
  * Downloads the resolved installer for an emulator option and runs it. The
  * option id is re-resolved server-side so the renderer never supplies the URL.
@@ -242,23 +268,12 @@ export const downloadAndInstallEmulator = async (
 
     sendProgress({ binary, optionId, phase: "extracting" });
     const extractDir = installDirectory;
-    await fs.promises.mkdir(extractDir, { recursive: true });
-    await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
-    const system = BINARY_TO_SYSTEM[binary];
-    if (binary === "shadps4") {
-      await ensureExtractedExecutableBit(extractDir, KNOWN_BINARIES[system]);
-    }
-    const executable = requireManagedEmulatorExecutable(
+    const executable = await extractManagedEmulator(
+      dest,
       extractDir,
-      KNOWN_BINARIES[system]
+      binary,
+      option.version
     );
-    if (binary === "shadps4") {
-      await writeShadps4VersionRecord(executable, option.version).catch(
-        (error) => {
-          logger.warn("Failed to record shadPS4 version", error);
-        }
-      );
-    }
     await removeTempDownload();
     shell.showItemInFolder(executable);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });

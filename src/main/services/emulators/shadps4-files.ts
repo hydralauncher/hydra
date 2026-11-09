@@ -17,7 +17,7 @@ const LOG_DIR = "log";
 const LOG_READ_LIMIT_BYTES = 64 * 1024;
 const LOG_EXTENSIONS = new Set([".log", ".txt"]);
 const LOG_VERSION_RE = /Starting shadps4 emulator v(\S+)/;
-const RELEASE_VERSION_RE = /\d+\.\d+(?:\.\d+)?/;
+const RELEASE_VERSION_RE = /\d{1,9}\.\d{1,9}(?:\.\d{1,9})?/;
 const VERSION_RECORD_FILE = "shadps4-version.json";
 
 interface Shadps4VersionRecord {

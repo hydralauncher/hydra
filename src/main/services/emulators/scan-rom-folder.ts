@@ -414,6 +414,21 @@ const collectPs4Directory = (
   }
 };
 
+const collectEntries = (
+  entries: Dirent[],
+  dir: string,
+  binary: KnownBinary,
+  scanSubfolders: boolean,
+  candidates: Candidate[],
+  queue: string[],
+  signal?: { cancelled: boolean }
+): void => {
+  for (const entry of entries) {
+    if (signal?.cancelled) break;
+    collectEntry(entry, dir, binary, scanSubfolders, candidates, queue);
+  }
+};
+
 const collectCandidates = async (
   rootPath: string,
   binary: KnownBinary,
@@ -452,10 +467,15 @@ const collectCandidates = async (
       continue;
     }
 
-    for (const entry of entries) {
-      if (signal?.cancelled) break;
-      collectEntry(entry, dir, binary, scanSubfolders, candidates, queue);
-    }
+    collectEntries(
+      entries,
+      dir,
+      binary,
+      scanSubfolders,
+      candidates,
+      queue,
+      signal
+    );
   }
 
   return candidates;

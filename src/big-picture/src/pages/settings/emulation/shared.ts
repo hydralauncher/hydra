@@ -1,4 +1,3 @@
-import { EMULATOR_SYSTEMS } from "@shared";
 import type { EmulatorSystem } from "@types";
 
 import { EMULATOR_ICONS } from "@renderer/pages/settings/emulation/emulator-icons";
@@ -16,7 +15,7 @@ export const SETTINGS_TOAST_OPTIONS = {
   fallbackVisual: "settings" as const,
 };
 
-export const EMULATION_SYSTEMS = EMULATOR_SYSTEMS;
+export { EMULATOR_SYSTEMS as EMULATION_SYSTEMS } from "@shared";
 
 export const EMULATION_SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
