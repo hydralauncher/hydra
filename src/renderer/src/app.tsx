@@ -1,9 +1,9 @@
 import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
-import { VideoIcon } from "@primer/octicons-react";
 import {
   DashIcon,
   ScreenFullIcon,
   ScreenNormalIcon,
+  VideoIcon,
   XIcon,
 } from "@primer/octicons-react";
 import {

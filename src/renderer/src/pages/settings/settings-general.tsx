@@ -158,7 +158,7 @@ export function SettingsGeneral() {
   ) => {
     const language = resolveLanguage(event.target.value);
 
-    handleChange({ language });
+    void handleChange({ language });
     void applyLanguage(language);
   };
 
