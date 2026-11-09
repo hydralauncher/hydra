@@ -82,6 +82,17 @@ describe("Steam source retry policy", () => {
     assert.equal(isSteamSourceLibraryFatal(error), false);
   });
 
+  it("treats a Steam Community 420 like a 429 rate limit", () => {
+    const error = new SteamWebApiHttpError(420);
+
+    assert.equal(shouldRetrySteamSource(error, 1), true);
+    assert.equal(shouldRetrySteamSource(error, 5), false);
+    assert.equal(getSteamSourceRetryDelayMs(error, 2), 2000);
+    assert.equal(isSteamSourceAchievementSkippable(error), true);
+    assert.equal(isSteamSourceLibraryFatal(error), false);
+    assert.equal(isSteamSourceRateLimited(error), true);
+  });
+
   it("treats 429 as skippable for one game, not fatal for the library", () => {
     const error = axiosError(429);
 

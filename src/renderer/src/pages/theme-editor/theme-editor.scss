@@ -10,9 +10,8 @@
   &__header {
     display: flex;
     align-items: center;
-    padding: calc(globals.$spacing-unit + 1px);
+    padding: globals.$spacing-unit;
     background-color: globals.$dark-background-color;
-    font-size: 8px;
     z-index: 50;
     -webkit-app-region: drag;
     gap: 8px;
@@ -23,6 +22,7 @@
 
     h1 {
       margin: 0;
+      font-size: 16px;
       line-height: 1;
     }
 
@@ -32,7 +32,7 @@
       height: 9px;
       background-color: globals.$muted-color;
       border-radius: 50%;
-      margin-top: 3px;
+      margin-top: calc(globals.$spacing-unit / 2);
     }
   }
 
@@ -46,7 +46,7 @@
   &__notification-preview-wrapper {
     position: relative;
     border: 1px solid globals.$muted-color;
-    border-radius: 2px;
+    border-radius: 4px;
     flex: 1;
     min-width: 0;
   }

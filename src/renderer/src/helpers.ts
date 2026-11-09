@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
-import type { SortOption } from "./pages/library/filter-options";
+import type { SortOption } from "./pages/library/library-display-menu";
 import type { SkuRegion } from "./helpers/sku-region";
 import {
   appendProfileLibraryFilterParams,
@@ -232,11 +232,20 @@ export const handleClassicsLaunchError = (
     showErrorToast(t("pkg_unreadable_toast"));
   } else if (code === "EMULATOR_ALREADY_RUNNING") {
     context.onEmulatorAlreadyRunning();
+  } else if (code === "RECOMPILATION_NEEDS_SETUP") {
+    const port = getRecompilationFromLaunchError(error);
+    if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
+  } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
+    showErrorToast(t("recompilation_already_running_toast"));
   } else {
     showErrorToast(t("launch_failed_toast"));
   }
 
-  return code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING";
+  return (
+    code !== "EMULATOR_ALREADY_RUNNING" &&
+    code !== "PKG_INSTALLING" &&
+    code !== "RECOMPILATION_ALREADY_RUNNING"
+  );
 };
 
 export const formatDownloadProgress = (
@@ -256,11 +265,17 @@ export const getGameTitleFromExecutablePath = (executablePath: string) =>
   (executablePath.split(/[\\/]/).pop() ?? "").replace(/\.[^/.]+$/, "");
 
 export const buildGameDetailsPath = (
-  game: { shop: GameShop; objectId: string; title: string },
+  game: {
+    shop: GameShop;
+    objectId: string;
+    title: string;
+    catalogueGame?: { shop: GameShop; objectId: string };
+  },
   params: Record<string, string> = {}
 ) => {
   const searchParams = new URLSearchParams({ title: game.title, ...params });
-  return `/game/${game.shop}/${game.objectId}?${searchParams.toString()}`;
+  const identity = game.catalogueGame ?? game;
+  return `/game/${identity.shop}/${identity.objectId}?${searchParams.toString()}`;
 };
 
 export const buildGameAchievementPath = (
@@ -402,7 +417,18 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "PKG_UNREADABLE",
   "RETROARCH_NOT_CONFIGURED",
   "CORE_NOT_INSTALLED",
+  "RECOMPILATION_NEEDS_SETUP",
+  "RECOMPILATION_ALREADY_RUNNING",
+  "RECOMPILATION_LAUNCH_FAILED",
 ] as const;
+
+const getRecompilationFromLaunchError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = /RECOMPILATION_NEEDS_SETUP: (\d+)\/([a-z0-9._-]+)/i.exec(
+    message
+  );
+  return match ? { objectId: match[1], slug: match[2] } : null;
+};
 
 export const getClassicsLaunchErrorCode = (
   error: unknown

@@ -1,8 +1,12 @@
 import { registerEvent } from "../register-event";
-import { retroarch } from "@main/services";
+import { retroarch, WindowManager } from "@main/services";
+import { removeClassicsEmulatorGames } from "@main/helpers/remove-library-game";
 
-const removeRetroArch = async (_event: Electron.IpcMainInvokeEvent) => {
-  return retroarch.updateRetroArchConfig((current) => ({
+const removeRetroArch = async (
+  _event: Electron.IpcMainInvokeEvent,
+  options?: { removeGames?: boolean }
+) => {
+  const config = await retroarch.updateRetroArchConfig((current) => ({
     ...current,
     executablePath: null,
     detectedVersion: null,
@@ -13,6 +17,14 @@ const removeRetroArch = async (_event: Electron.IpcMainInvokeEvent) => {
     totalFiles: 0,
     totalSizeBytes: 0,
   }));
+
+  if (options?.removeGames) {
+    const removed = await removeClassicsEmulatorGames({ kind: "retroarch" });
+    if (removed > 0)
+      WindowManager.sendToAppWindows("on-library-batch-complete");
+  }
+
+  return config;
 };
 
 registerEvent("removeRetroArch", removeRetroArch);

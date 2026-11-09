@@ -97,6 +97,14 @@ const windowsPortableDirs = (): string[] => {
   return dirs;
 };
 
+const windowsDriveRoots = (): string[] => {
+  const systemDrive = (process.env["SystemDrive"] ?? "C:").toUpperCase();
+  const otherDrives = [..."CDEFGHIJKLMNOPQRSTUVWXYZ"]
+    .map((letter) => `${letter}:`)
+    .filter((drive) => drive !== systemDrive);
+  return [systemDrive, ...otherDrives].map((drive) => `${drive}\\`);
+};
+
 const binarySubdirName = (executableName: string): string => {
   const base = executableName.replace(/\.exe$/i, "");
   return base.split(/[-_]/)[0];
@@ -233,7 +241,8 @@ const platformSearchDirs = (): string[] => {
 const findPlatformInstall = (
   binary: DetectableBinary,
   names: string[],
-  downloadDirectories: string[]
+  downloadDirectories: string[],
+  includeDriveRoots: boolean
 ): string | null => {
   const installed = searchInDirs(names, platformSearchDirs());
   if (installed) return installed;
@@ -245,7 +254,9 @@ const findPlatformInstall = (
   if (downloaded) return downloaded;
 
   if (isWindows) {
-    return searchPortableWindows(names, windowsPortableDirs());
+    const portable = searchPortableWindows(names, windowsPortableDirs());
+    if (portable || !includeDriveRoots) return portable;
+    return searchPortableWindows(names, windowsDriveRoots());
   }
   if (isMac) return null;
 
@@ -265,6 +276,7 @@ export const detectEmulator = (
   options?: {
     resolveVersion?: boolean;
     downloadDirectories?: string[];
+    includeDriveRoots?: boolean;
   }
 ): DetectionResult | null => {
   const names = executableNamesForPlatform(binary);
@@ -288,7 +300,8 @@ export const detectEmulator = (
   const installed = findPlatformInstall(
     binary,
     names,
-    options?.downloadDirectories ?? []
+    options?.downloadDirectories ?? [],
+    options?.includeDriveRoots ?? false
   );
   if (installed) {
     return {

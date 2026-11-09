@@ -1,6 +1,9 @@
 import { Trans, useTranslation } from "react-i18next";
 import {
+  getClassicsDiscLabel,
+  getNextClassicsDiscLabel,
   getRetroArchRomExtensions,
+  stripFileExtension,
   platformToRetroArchPlatform,
 } from "@shared";
 import {
@@ -13,12 +16,19 @@ import {
   useState,
 } from "react";
 import { Tooltip } from "react-tooltip";
-import { Button, CheckboxField, TextField } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  ConfirmationModal,
+  TextField,
+} from "@renderer/components";
+import { useToast } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
-import { DotIcon, FileIcon } from "@primer/octicons-react";
-import { HardDrive, X, FolderOpen, ChevronDown } from "lucide-react";
+import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
+import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
+import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import {
   getSkuRegion,
   getSkuRegionFlag,
@@ -33,21 +43,60 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   const { t } = useTranslation("game_details");
   const { updateGame } = useContext(gameDetailsContext);
   const discs: ClassicsDisc[] = game.discs ?? [];
+  const executableIcons = useFileIcons(
+    discs.filter((disc) => disc.isExecutable).map((disc) => disc.path)
+  );
   const system = useMemo(
     () => platformToSystem(game.platform),
     [game.platform]
   );
 
+  const { showErrorToast } = useToast();
+  const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
+    null
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
 
   const selectedDisc =
     discs.find((d) => d.path === game.selectedDiscPath) ?? discs[0] ?? null;
 
   const renderDiscIcon = (disc: ClassicsDisc | null) => {
+    if (disc?.recompilationSlug) {
+      return disc.iconUrl ? (
+        <img
+          src={disc.iconUrl}
+          alt=""
+          width={18}
+          height={18}
+          className="disc-field__icon disc-field__icon--image"
+        />
+      ) : (
+        <DeviceDesktopIcon size={18} className="disc-field__icon" />
+      );
+    }
+
+    if (disc?.isExecutable) {
+      const fileIcon = executableIcons[disc.path];
+
+      return fileIcon ? (
+        <img
+          src={fileIcon}
+          alt=""
+          width={18}
+          height={18}
+          className="disc-field__icon"
+        />
+      ) : (
+        <FileIcon size={18} className="disc-field__icon" />
+      );
+    }
+
     const region = disc?.sku ? getSkuRegion(disc.sku) : null;
 
-    if (!region) return <DotIcon size={18} className="disc-field__icon" />;
+    if (!region) return <Disc3 size={18} className="disc-field__icon" />;
 
     return (
       <img
@@ -75,6 +124,22 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDropdownOpen]);
 
+  useEffect(() => {
+    if (!isAddMenuOpen) return undefined;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        addMenuRef.current &&
+        !addMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsAddMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isAddMenuOpen]);
+
   const handleSelectDisc = async (path: string) => {
     setIsDropdownOpen(false);
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
@@ -90,21 +155,43 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     await updateGame();
   };
 
-  const addDiscFromPath = async (fullPath: string) => {
+  const addDiscFromPath = async (fullPath: string, isExecutable = false) => {
     const fileName = fullPath.split(/[\\/]/).pop() ?? fullPath;
-    const nextIndex = discs.length + 1;
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       addDisc: {
         path: fullPath,
-        label: `Disc ${nextIndex}`,
+        label: isExecutable
+          ? stripFileExtension(fileName)
+          : getNextClassicsDiscLabel(discs),
         fileName,
+        ...(isExecutable ? { isExecutable } : {}),
       },
       selectedDiscPath: fullPath,
     });
     await updateGame();
   };
 
+  const handleAddExecutable = async () => {
+    setIsAddMenuOpen(false);
+    const isWindows = window.electron.platform === "win32";
+    const res = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: isWindows
+        ? [
+            {
+              name: t("executable_label"),
+              extensions: ["exe", "bat", "cmd", "lnk"],
+            },
+            { name: t("all_files"), extensions: ["*"] },
+          ]
+        : [{ name: t("all_files"), extensions: ["*"] }],
+    });
+    if (res.canceled || !res.filePaths[0]) return;
+    await addDiscFromPath(res.filePaths[0], true);
+  };
+
   const handleAddDiscFile = async () => {
+    setIsAddMenuOpen(false);
     const retroArchPlatform = platformToRetroArchPlatform(game.platform);
     let extensions = ["*"];
     if (retroArchPlatform) {
@@ -124,6 +211,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   };
 
   const handleAddDiscFolder = async () => {
+    setIsAddMenuOpen(false);
     const res = await window.electron.showOpenDialog({
       properties: ["openDirectory"],
     });
@@ -131,7 +219,33 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     await addDiscFromPath(res.filePaths[0]);
   };
 
+  const discSubtitle = (disc: ClassicsDisc) =>
+    disc.recompilationSlug ? t("pc_version") : disc.fileName;
+
+  const uninstallPort = async () => {
+    const slug = portToUninstall?.recompilationSlug;
+    setPortToUninstall(null);
+    if (!slug) return;
+
+    const result = await window.electron.uninstallRecompilation({
+      objectId: game.objectId,
+      slug,
+    });
+    if (!result.ok && result.reason !== "not_installed") {
+      showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+    }
+    await updateGame();
+  };
+
   const handleRemoveDisc = async (path: string) => {
+    const port = discs.find(
+      (disc) => disc.path === path && disc.recompilationSlug
+    );
+    if (port) {
+      setPortToUninstall(port);
+      return;
+    }
+
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       removeDiscPath: path,
     });
@@ -163,10 +277,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 {renderDiscIcon(selectedDisc)}
                 <span className="disc-field__text">
                   <span className="disc-field__label">
-                    {selectedDisc?.label}
+                    {selectedDisc && getClassicsDiscLabel(selectedDisc)}
                   </span>
                   <span className="disc-field__filename">
-                    {selectedDisc?.fileName}
+                    {selectedDisc && discSubtitle(selectedDisc)}
                   </span>
                 </span>
                 <ChevronDown
@@ -195,9 +309,11 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                     >
                       {renderDiscIcon(disc)}
                       <span className="disc-field__text">
-                        <span className="disc-field__label">{disc.label}</span>
+                        <span className="disc-field__label">
+                          {getClassicsDiscLabel(disc)}
+                        </span>
                         <span className="disc-field__filename">
-                          {disc.fileName}
+                          {discSubtitle(disc)}
                         </span>
                       </span>
                     </button>
@@ -206,21 +322,71 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
               </div>
             </div>
           ) : (
-            <p className="game-options-modal__header-description disc-field__empty">
-              {t("no_discs_found")}
-            </p>
+            <div className="disc-field__dropdown">
+              <TextField
+                value=""
+                readOnly
+                theme="dark"
+                disabled
+                placeholder={t("no_discs_found")}
+              />
+            </div>
           )}
 
-          <Button type="button" theme="outline" onClick={handleAddDiscFile}>
-            <FileIcon />
-            {t("add_disc")}
-          </Button>
-          {system === "ps3" && (
-            <Button type="button" theme="outline" onClick={handleAddDiscFolder}>
-              <FolderOpen size={14} />
-              {t("add_disc_folder")}
+          <div className="disc-field__add" ref={addMenuRef}>
+            <Button
+              type="button"
+              theme="outline"
+              onClick={() => setIsAddMenuOpen((prev) => !prev)}
+            >
+              {t("add_menu")}
+              <ChevronDown
+                size={14}
+                className={`disc-field__chevron ${
+                  isAddMenuOpen ? "disc-field__chevron--open" : ""
+                }`}
+              />
             </Button>
-          )}
+
+            <div
+              className={`disc-field__menu disc-field__menu--add ${
+                isAddMenuOpen ? "disc-field__menu--open" : ""
+              }`}
+            >
+              <button
+                type="button"
+                className="disc-field__option"
+                onClick={() => void handleAddDiscFile()}
+              >
+                <Disc3 size={16} className="disc-field__icon" />
+                <span className="disc-field__label">
+                  {t("add_disc_option")}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="disc-field__option"
+                onClick={() => void handleAddExecutable()}
+              >
+                <FileIcon size={16} className="disc-field__icon" />
+                <span className="disc-field__label">
+                  {t("add_executable_option")}
+                </span>
+              </button>
+              {system === "ps3" && (
+                <button
+                  type="button"
+                  className="disc-field__option"
+                  onClick={() => void handleAddDiscFolder()}
+                >
+                  <FolderOpen size={16} className="disc-field__icon" />
+                  <span className="disc-field__label">
+                    {t("add_folder_option")}
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {selectedDisc && (
@@ -244,12 +410,27 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         )}
 
-        <CheckboxField
-          label={t("dont_ask_disc_again")}
-          checked={Boolean(game.dontAskDiscSelection)}
-          onChange={(e) => void handleToggleDontAsk(e.target.checked)}
-        />
+        {discs.length > 1 && (
+          <CheckboxField
+            label={t("dont_ask_disc_again")}
+            checked={Boolean(game.dontAskDiscSelection)}
+            onChange={(e) => void handleToggleDontAsk(e.target.checked)}
+          />
+        )}
       </div>
+
+      <ConfirmationModal
+        visible={portToUninstall !== null}
+        title={t("uninstall_title", {
+          ns: "recompilation",
+          name: portToUninstall?.label,
+        })}
+        descriptionText={t("uninstall_description", { ns: "recompilation" })}
+        confirmButtonLabel={t("uninstall", { ns: "recompilation" })}
+        cancelButtonLabel={t("cancel", { ns: "recompilation" })}
+        onClose={() => setPortToUninstall(null)}
+        onConfirm={() => void uninstallPort()}
+      />
     </div>
   );
 }
@@ -336,12 +517,14 @@ const supportsTrackingExecutables = (executablePath?: string | null) =>
   !!executablePath && /\.(bat|cmd|exe)$/i.test(executablePath);
 
 interface SteamPlaytimeSectionProps {
+  source?: "steam" | "epic";
   enableHydraPlaytimeTracking: LibraryGame["enableHydraPlaytimeTracking"];
   isNonSteamExecutable: boolean;
   onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
 }
 
 function SteamPlaytimeSection({
+  source = "steam",
   enableHydraPlaytimeTracking,
   isNonSteamExecutable,
   onToggleHydraPlaytimeEnabled,
@@ -352,9 +535,9 @@ function SteamPlaytimeSection({
   return (
     <div className="game-options-modal__section">
       <div className="game-options-modal__header">
-        <h2>{t("steam_playtime_tracking_title")}</h2>
+        <h2>{t(`${source}_playtime_tracking_title`)}</h2>
         <h4 className="game-options-modal__header-description">
-          {t("steam_playtime_tracking_description")}
+          {t(`${source}_playtime_tracking_description`)}
         </h4>
       </div>
 
@@ -435,7 +618,9 @@ export function GeneralSettingsSection({
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
-  const isSteamImport = game.shop === "steam" && game.hasActiveSteamImport;
+  const isSteamImport =
+    (game.shop === "steam" && game.hasActiveSteamImport) ||
+    (game.shop === "epic" && game.hasActiveEpicImport);
 
   const gameSize = game.installedSizeInBytes ?? 0;
   const progressPercent = Math.round(transferProgress * 100);
@@ -681,7 +866,10 @@ export function GeneralSettingsSection({
       {showSteamPlaytimeSection && isSteamImport && (
         <SteamPlaytimeSection
           enableHydraPlaytimeTracking={game.enableHydraPlaytimeTracking}
-          isNonSteamExecutable={isNonSteamExecutable}
+          isNonSteamExecutable={
+            game.shop === "epic" ? false : isNonSteamExecutable
+          }
+          source={game.shop === "epic" ? "epic" : "steam"}
           onToggleHydraPlaytimeEnabled={onToggleHydraPlaytimeEnabled}
         />
       )}

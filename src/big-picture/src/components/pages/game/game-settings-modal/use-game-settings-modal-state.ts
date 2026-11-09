@@ -652,11 +652,11 @@ export function useGameSettingsModalState({
   );
 
   const addDiscFromPath = useCallback(
-    async (fullPath: string) => {
+    async (fullPath: string, isExecutable = false) => {
       if (!game) return;
 
       await updateClassicsDisc(
-        buildAddedDiscPayload(fullPath, game.discs?.length ?? 0)
+        buildAddedDiscPayload(fullPath, game.discs ?? [], isExecutable)
       );
     },
     [game, updateClassicsDisc]
@@ -665,6 +665,13 @@ export function useGameSettingsModalState({
   const handleProcessDiscPath = useCallback(
     async (path: string) => {
       await addDiscFromPath(path);
+    },
+    [addDiscFromPath]
+  );
+
+  const handleProcessDiscExecutablePath = useCallback(
+    async (path: string) => {
+      await addDiscFromPath(path, true);
     },
     [addDiscFromPath]
   );
@@ -680,7 +687,10 @@ export function useGameSettingsModalState({
   const handleRemoveAllDiscs = useCallback(async () => {
     if (!game) return;
 
-    const discsToRemove = game.discs ?? [];
+    // Ports leave through their own uninstall, which asks first.
+    const discsToRemove = (game.discs ?? []).filter(
+      (disc) => !disc.recompilationSlug
+    );
     if (discsToRemove.length === 0) return;
 
     for (const disc of discsToRemove) {
@@ -694,6 +704,22 @@ export function useGameSettingsModalState({
 
     await updateGame();
   }, [game, updateClassicsDisc, updateGame]);
+
+  const handleUninstallPort = useCallback(
+    async (slug: string) => {
+      if (!game) return;
+
+      const result = await window.electron.uninstallRecompilation({
+        objectId: game.objectId,
+        slug,
+      });
+      if (!result.ok && result.reason !== "not_installed") {
+        showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+      }
+      await updateGame();
+    },
+    [game, showErrorToast, t, updateGame]
+  );
 
   const isNonSteamExecutable = useIsNonSteamExecutable(game);
 
@@ -767,8 +793,10 @@ export function useGameSettingsModalState({
       onSelectDisc: handleSelectDisc,
       onToggleDontAskDiscSelection: handleToggleDontAskDiscSelection,
       onProcessDiscPath: handleProcessDiscPath,
+      onProcessDiscExecutablePath: handleProcessDiscExecutablePath,
       onRemoveSelectedDisc: handleRemoveSelectedDisc,
       onRemoveAllDiscs: handleRemoveAllDiscs,
+      onUninstallPort: handleUninstallPort,
       onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
     } satisfies GameLaunchSettingsProps;
   }, [
@@ -785,8 +813,10 @@ export function useGameSettingsModalState({
     handleCreateSteamShortcut,
     handleDeleteSteamShortcut,
     handleProcessDiscPath,
+    handleProcessDiscExecutablePath,
     handleRemoveAllDiscs,
     handleRemoveSelectedDisc,
+    handleUninstallPort,
     handleSelectDisc,
     handleToggleDontAskDiscSelection,
     handleToggleHydraPlaytimeEnabled,

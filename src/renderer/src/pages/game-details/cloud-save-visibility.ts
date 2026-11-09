@@ -39,6 +39,17 @@ export const getCloudSaveVisibility = (
     };
   }
 
+  if (shop === "epic") {
+    return {
+      hero: "v2",
+      settings: {
+        showV2: true,
+        showLegacy: false,
+        legacyPurpose: "archive",
+      },
+    };
+  }
+
   if (shop === "launchbox") {
     if (getCloudSaveEmulatorProvider(shop, platform)) {
       return {

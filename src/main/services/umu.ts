@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { app } from "electron";
 import { is } from "@electron-toolkit/utils";
 import { SystemPath } from "./system-path";
@@ -19,6 +20,14 @@ import {
   type UmuStatusListener,
 } from "./umu-launch-monitor";
 import { getFileSize } from "./umu-output-monitor";
+import { spawnSupervisedUmu } from "./umu-supervised-process";
+import { EPIC_LINUX_MANAGED_UMU_MAX_BYTES } from "./epic/linux-runtime-constants.js";
+import supervisedRuntimeManifest from "../../shared/epic-linux-runtime-manifest.json";
+export type { UmuProcessHandle } from "./umu-supervised-process";
+import {
+  findFlatpakCompatibilityTools,
+  getFlatpakInstallationRoots,
+} from "./flatpak-compatibility-tools";
 
 export type { UmuStatus } from "./umu-launch-monitor";
 
@@ -138,6 +147,48 @@ const STEAM_ROOT_SEGMENTS = [
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
 export class Umu {
+  private static readonly supervisedFallbacks = new Set<string>();
+  /** Authenticated integrations use a bounded, private process API. */
+  public static launchSupervised = spawnSupervisedUmu;
+
+  /** Only the bundled version has a validated bootstrap protocol today. */
+  public static getSupervisedBinaryPath() {
+    return getBundledUmuBinaryPath();
+  }
+
+  public static getSupervisedRuntime() {
+    const managed = UmuUpdater.getManagedBinaryPath();
+    const allowed = supervisedRuntimeManifest.umu
+      .compatibleManagedRuntimes as Array<{ version: string; sha256: string }>;
+    if (managed) {
+      const version = path.basename(path.dirname(managed));
+      const contract = allowed.find((entry) => entry.version === version);
+      if (contract) {
+        const info = fs.statSync(managed);
+        if (
+          info.isFile() &&
+          info.size <= EPIC_LINUX_MANAGED_UMU_MAX_BYTES &&
+          createHash("sha256")
+            .update(fs.readFileSync(managed))
+            .digest("hex") === contract.sha256
+        )
+          return { binaryPath: managed, ...contract };
+      }
+      if (!this.supervisedFallbacks.has(version)) {
+        this.supervisedFallbacks.add(version);
+        logger.info("Using bundled UMU for managed integrations", {
+          version: supervisedRuntimeManifest.umu.version,
+          reason: "protocol-not-validated",
+        });
+      }
+    }
+    return {
+      binaryPath: getBundledUmuBinaryPath(),
+      version: supervisedRuntimeManifest.umu.version,
+      sha256: supervisedRuntimeManifest.umu.sha256,
+    };
+  }
+
   public static isValidProtonPath(protonPath: string) {
     return isValidProtonDirectory(protonPath);
   }
@@ -221,6 +272,15 @@ export class Umu {
           source: "compatibility_tools",
         });
       }
+    }
+
+    const flatpakTools = await findFlatpakCompatibilityTools(
+      getFlatpakInstallationRoots(homePath),
+      isValidProtonDirectory
+    ).catch(() => []);
+
+    for (const tool of flatpakTools) {
+      versions.push({ ...tool, source: "compatibility_tools" });
     }
 
     const uniqueVersions = new Map<string, ProtonVersion>();
@@ -375,8 +435,9 @@ export class Umu {
       useGamemode?: boolean;
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
+      onExit?: (exitCode: number | null) => void;
     }
-  ): Promise<void> {
+  ): Promise<number | undefined> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
     const workingDirectory = path.dirname(executablePath);
     const umuLogPath = getUmuLogPath(options?.gameId);
@@ -456,6 +517,8 @@ export class Umu {
         }
       );
 
+      if (options?.onExit) child.once("exit", options.onExit);
+
       await observeUmuLaunch({
         child,
         umuLogPath: shouldPipeToTerminal ? null : umuLogPath,
@@ -470,6 +533,7 @@ export class Umu {
           }),
       });
       child.unref();
+      return child.pid;
     } catch (error) {
       const logLine =
         error instanceof UmuEarlyExitError

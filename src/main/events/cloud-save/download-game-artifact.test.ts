@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { describe, it } from "node:test";
 import { runInNewContext } from "node:vm";
 import type { IpcMainInvokeEvent } from "electron";
@@ -61,18 +62,30 @@ const runDownload = async (
     },
     "node:fs": fs,
     "node:path": path,
+    "node:stream/promises": { pipeline },
+    "@main/services/epic/cloud-saves": {
+      runWithHydraSaveGuard: <T>(task: () => Promise<T>) => task(),
+    },
     yaml: YAML,
     tar: {
       x: async ({ cwd }: { cwd: string }) => {
         const gameBackupPath = path.join(cwd, objectId);
-        const source = path.join(gameBackupPath, destination);
+        const drive =
+          process.platform === "win32"
+            ? path.parse(destination).root.slice(0, -1)
+            : null;
+        const drives = drive ? { "drive-0": drive } : {};
+        const source = path.join(
+          gameBackupPath,
+          drive ? destination.replace(drive, "drive-0") : destination
+        );
         fs.mkdirSync(path.dirname(source), { recursive: true });
         fs.writeFileSync(source, "legacy save contents");
         fs.writeFileSync(
           path.join(gameBackupPath, "mapping.yaml"),
           YAML.stringify({
             backups: [{ files: { [destination]: {} } }],
-            drives: {},
+            drives,
           })
         );
       },

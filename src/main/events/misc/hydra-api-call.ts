@@ -2,7 +2,14 @@ import { registerEvent } from "../register-event";
 import { HydraApi } from "@main/services";
 
 interface HydraApiCallPayload {
-  method: "get" | "post" | "postResponse" | "put" | "patch" | "delete";
+  method:
+    | "get"
+    | "getResponse"
+    | "post"
+    | "postResponse"
+    | "put"
+    | "patch"
+    | "delete";
   url: string;
   data?: unknown;
   params?: unknown;
@@ -11,6 +18,7 @@ interface HydraApiCallPayload {
     needsSubscription?: boolean;
     ifModifiedSince?: Date;
     acceptedStatuses?: number[];
+    timeout?: number;
   };
 }
 
@@ -53,6 +61,11 @@ const hydraApiCall = async (
     switch (method) {
       case "get":
         request = HydraApi.get(url, params, hydraApiOptions);
+        break;
+      case "getResponse":
+        request = HydraApi.getResponse(url, params, hydraApiOptions).then(
+          ({ status, data }) => ({ status, data })
+        );
         break;
       case "post":
         request = HydraApi.post(url, data, hydraApiOptions);

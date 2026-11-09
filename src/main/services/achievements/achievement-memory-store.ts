@@ -97,18 +97,28 @@ export const mergePersistedAchievementTotals = (
     achievementCount?: number | null;
     unlockedAchievementCount?: number | null;
   }
-) => ({
-  achievementCount: resolveAchievementCount(
-    shop,
-    objectId,
-    Math.max(local.achievementCount ?? 0, remote.achievementCount ?? 0)
-  ),
-  unlockedAchievementCount: resolveUnlockedAchievementCount(
-    shop,
-    objectId,
-    Math.max(
-      local.unlockedAchievementCount ?? 0,
-      remote.unlockedAchievementCount ?? 0
-    )
-  ),
-});
+) =>
+  shop === "epic"
+    ? {
+        achievementCount:
+          remote.achievementCount ?? local.achievementCount ?? 0,
+        unlockedAchievementCount:
+          remote.unlockedAchievementCount ??
+          local.unlockedAchievementCount ??
+          0,
+      }
+    : {
+        achievementCount: resolveAchievementCount(
+          shop,
+          objectId,
+          Math.max(local.achievementCount ?? 0, remote.achievementCount ?? 0)
+        ),
+        unlockedAchievementCount: resolveUnlockedAchievementCount(
+          shop,
+          objectId,
+          Math.max(
+            local.unlockedAchievementCount ?? 0,
+            remote.unlockedAchievementCount ?? 0
+          )
+        ),
+      };

@@ -2,6 +2,15 @@ import type { Downloader } from "@shared";
 import type { GameShop } from "./game.types";
 import type { DownloadStatus } from "./download.types";
 import type { ClassicsDisc } from "./emulator.types";
+import type {
+  ScreenshotGamepadButton,
+  ScreenshotHotkeyBinding,
+} from "./screenshot.types";
+import type { ProfileVisibility } from "./index";
+import type {
+  EpicDownloadMetadata,
+  EpicInstallation,
+} from "./epic-managed.types";
 
 export type SubscriptionStatus = "active" | "pending" | "cancelled";
 
@@ -28,7 +37,18 @@ export interface User {
   subscription: Subscription | null;
 }
 
-export interface Game {
+export interface CatalogueGameIdentity {
+  shop: GameShop;
+  objectId: string;
+}
+
+export interface LibraryCatalogueMetadata {
+  canonicalId?: string;
+  catalogueGame?: CatalogueGameIdentity;
+  availableShops?: GameShop[];
+}
+
+export interface Game extends LibraryCatalogueMetadata {
   title: string;
   iconUrl: string | null;
   libraryHeroImageUrl: string | null;
@@ -46,6 +66,14 @@ export interface Game {
   customOriginalCoverPath?: string | null;
   playTimeInMilliseconds: number;
   steamPlayTimeInMilliseconds?: number;
+  epicPlayTimeInMilliseconds?: number;
+  epicInstallation?: EpicInstallation;
+  hasActiveEpicImport?: boolean;
+  epicImportScope?: {
+    environment: string;
+    userId: string;
+    connectionId: string;
+  };
   hasActiveSteamImport?: boolean;
   enableHydraPlaytimeTracking?: boolean;
   unsyncedDeltaPlayTimeInMilliseconds?: number;
@@ -54,7 +82,7 @@ export interface Game {
   objectId: string;
   shop: GameShop;
   remoteId: string | null;
-  source?: "hydra" | "steam";
+  source?: "hydra" | "steam" | "epic";
   collectionIds?: string[];
   isDeleted: boolean;
   winePrefixPath?: string | null;
@@ -87,10 +115,21 @@ export interface Game {
   romSizeBytes?: number | null;
 }
 
+export interface DownloadFile {
+  index: number;
+  path: string;
+  size: number;
+  bytesDownloaded: number;
+  completed: boolean;
+}
+
 export interface Download {
+  epic?: EpicDownloadMetadata;
   shop: GameShop;
   objectId: string;
   uri: string;
+  /** Ordered part URIs of a multi-part hoster download. `uri` is the first part. */
+  parts?: string[];
   folderName: string | null;
   downloadPath: string;
   progress: number;
@@ -104,10 +143,27 @@ export interface Download {
   timestamp: number;
   extracting: boolean;
   extractionProgress?: number;
+  installerLaunched?: boolean;
+  installerRunning?: boolean;
+  installerStartedAt?: number;
+  installerPath?: string;
+  hasInstaller?: boolean;
+  sourceArchiveName?: string;
+  // Archives Hydra started extracting in place, kept until the whole download
+  // is extracted. Only these are resumed, since a progress file next to an
+  // archive may have come with the download.
+  inPlaceArchives?: string[];
   automaticallyExtract: boolean;
   automaticallyDeleteArchiveFiles: boolean;
   fileIndices?: number[];
+  files?: DownloadFile[];
   selectedFilesSize?: number | null;
+  realDebridTorrentId?: string;
+  awaitingDebrid?: boolean;
+  debridAutoResume?: boolean;
+  debridQueueOnly?: boolean;
+  debridQueuePosition?: number;
+  debridPreparationDeadline?: number;
   customTrackers?: string[];
 }
 
@@ -153,6 +209,7 @@ export interface UserPreferences {
   retroAchievementsWebApiKey?: string | null;
   retroAchievementsUsername?: string | null;
   preferQuitInsteadOfHiding?: boolean;
+  openFriendsWindowOnStartup?: boolean;
   runAtStartup?: boolean;
   startMinimized?: boolean;
   launchToLibraryPage?: boolean;
@@ -171,6 +228,9 @@ export interface UserPreferences {
   achievementSoundVolume?: number;
   friendRequestNotificationsEnabled?: boolean;
   friendStartGameNotificationsEnabled?: boolean;
+  chatMessageNotificationsEnabled?: boolean;
+  leaderboardSlamEnabled?: boolean;
+  leaderboardDropNotificationsEnabled?: boolean;
   showDownloadSpeedInMegabytes?: boolean;
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
@@ -179,6 +239,7 @@ export interface UserPreferences {
   achievementScreenshotsPath?: string;
   autoplayGameTrailers?: boolean;
   hideToTrayOnGameStart?: boolean;
+  useNativeWindowDecorations?: boolean;
   enableNewDownloadOptionsBadges?: boolean;
   createStartMenuShortcut?: boolean;
   bigPictureSoundsEnabled?: boolean;
@@ -200,9 +261,20 @@ export interface UserPreferences {
   hideLibraryReadySizeBadges?: boolean;
   hideLibraryClassicsBadges?: boolean;
   hideSteamLibraryBadges?: boolean;
+  hideEpicLibraryBadges?: boolean;
   hideLibraryAchievementProgress?: boolean;
   autoplayAnimatedArtwork?: boolean;
   persistFiltersAndSorting?: boolean;
+  screenshotsEnabled?: boolean;
+  screenshotsFolderPath?: string;
+  screenshotHotkey?: ScreenshotHotkeyBinding;
+  screenshotGamepadEnabled?: boolean;
+  screenshotGamepadCombo?: ScreenshotGamepadButton[];
+  screenshotCaptureSoundEnabled?: boolean;
+  screenshotToastEnabled?: boolean;
+  screenshotDefaultVisibility?: ProfileVisibility;
+  showSensitiveScreenshots?: boolean;
+  hideCommunityScreenshots?: boolean;
 }
 
 export interface NetworkInterface {

@@ -66,6 +66,7 @@ export interface LibraryGameCardPresentationSource {
   logoImageUrl?: string | null;
   playTimeInMilliseconds?: number | null;
   steamPlayTimeInMilliseconds?: number | null;
+  epicPlayTimeInMilliseconds?: number | null;
   achievementCount?: number | null;
   unlockedAchievementCount?: number | null;
 }
@@ -182,6 +183,7 @@ export function useLibraryGameCardPresentation(
   };
 
   return {
+    userPreferences,
     activeImageSource,
     isChosenCoverActive,
     achievementProgress,

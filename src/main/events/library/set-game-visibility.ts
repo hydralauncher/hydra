@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { createGame } from "@main/services/library-sync";
@@ -20,8 +21,15 @@ const setGameVisibility = async (
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
-  if (!game || game.isDeleted || shop === "custom") {
+  if (!game || game.isDeleted) {
     throw new Error("game/not-found-local");
+  }
+
+  if (shop === "custom") {
+    if (field !== "isConcealed") throw new Error("game/not-found-local");
+    const saved = { isHiddenFromOthers: false, isConcealed: value };
+    await gamesSublevel.put(gameKey, { ...game, ...saved });
+    return saved;
   }
 
   const path = `/profile/games/${shop}/${objectId}/${field === "isHiddenFromOthers" ? "hide" : "conceal"}`;
@@ -43,8 +51,7 @@ const setGameVisibility = async (
     saved = await save();
   }
 
-  await gamesSublevel.put(gameKey, {
-    ...(await gamesSublevel.get(gameKey))!,
+  await updateGameRecord(gameKey, {
     isHiddenFromOthers: saved.isHiddenFromOthers,
     isConcealed: saved.isConcealed,
   });

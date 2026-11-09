@@ -26,6 +26,10 @@ import {
   cleanupEmulatorSouvenirSession,
   type EmulatorSouvenirSession,
 } from "./emulator-souvenir-config";
+import {
+  onScreenshotGameClosed,
+  onScreenshotGameStarted,
+} from "../screenshots";
 
 export type EmulatorSessionSystem = EmulatorSystem | RetroArchPlatform;
 
@@ -99,6 +103,7 @@ export const startEmulatorSession = async ({
 
   emulatorSessions.set(gameKey, session);
   setEmulatorGameRunning(gameKey);
+  void onScreenshotGameStarted(gameKey);
 
   if (game.shop !== "custom") {
     void sendPresencePing(gameKey);
@@ -120,11 +125,6 @@ export const startEmulatorSession = async ({
       watcherToken: souvenirWatcherToken,
       logPath: souvenirSession?.logPath ?? undefined,
       logOffset: souvenirSession?.logOffset ?? undefined,
-      screenshotDirectories: souvenirSession
-        ? [souvenirSession.screenshotDirectory].filter(
-            (directory): directory is string => !!directory
-          )
-        : undefined,
     })
       .then(() => {
         if (emulatorSessions.get(gameKey) !== session) {
@@ -154,6 +154,7 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   if (!session) return false;
 
   const { pid } = session.child;
+  stopLinuxGameCaptureSession(gameKey);
 
   try {
     if (pid && process.platform !== "win32") {
@@ -187,6 +188,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   emulatorSessions.delete(gameKey);
   deleteEmulatorGameRunning(gameKey);
   stopLinuxGameCaptureSession(gameKey);
+  onScreenshotGameClosed(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
   stopEmulatorSouvenirWatcher(gameKey);
   await cleanupEmulatorSouvenirSession(session.souvenirSession);
@@ -228,12 +230,13 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
     deltaMs + (game.unsyncedDeltaPlayTimeInMilliseconds ?? 0);
 
   trackGamePlaytime(updated, pendingDelta, updated.lastTimePlayed!)
-    .then(() =>
-      gamesSublevel.put(gameKey, {
+    .then(() => {
+      WindowManager.sendToAppWindows("on-game-session-synced");
+      return gamesSublevel.put(gameKey, {
         ...updated,
         unsyncedDeltaPlayTimeInMilliseconds: 0,
-      })
-    )
+      });
+    })
     .catch((error) => {
       logger.error("Failed to sync emulator playtime", error);
       return gamesSublevel.put(gameKey, {

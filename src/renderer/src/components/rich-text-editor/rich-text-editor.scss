@@ -1,0 +1,102 @@
+@use "../../scss/globals.scss";
+
+$button-transition-duration: 0.2s;
+
+.rich-text-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid globals.$border-color;
+  border-radius: 8px;
+  background-color: globals.$dark-background-color;
+  overflow: hidden;
+
+  &__header {
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: globals.$background-color;
+    border-bottom: 1px solid globals.$border-color;
+  }
+
+  &__toolbar {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__button {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: globals.$muted-color;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: globals.$small-font-size;
+    transition: all $button-transition-duration ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    &.is-active {
+      background-color: globals.$brand-blue;
+      border-color: globals.$brand-blue;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__counter {
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
+
+    .over-limit {
+      color: globals.$error-color;
+    }
+  }
+
+  &__input {
+    min-height: 120px;
+    padding: 12px;
+    cursor: text;
+
+    .ProseMirror {
+      outline: none;
+      color: globals.$muted-color;
+      font-size: globals.$body-font-size;
+      line-height: 1.5;
+      min-height: 96px;
+      width: 100%;
+      cursor: text;
+
+      &:focus {
+        outline: none;
+      }
+
+      p {
+        margin: 0 0 8px 0;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
+
+      strong {
+        font-weight: bold;
+      }
+
+      em {
+        font-style: italic;
+      }
+
+      u {
+        text-decoration: underline;
+      }
+    }
+  }
+}

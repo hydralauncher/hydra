@@ -1,7 +1,7 @@
-export type LibrarySource = "hydra" | "steam";
+export type LibrarySource = "hydra" | "steam" | "epic";
 
 const isLibrarySource = (value: unknown): value is LibrarySource =>
-  value === "hydra" || value === "steam";
+  value === "hydra" || value === "steam" || value === "epic";
 
 export const resolveLibrarySource = (
   localSource?: string | null,
@@ -24,9 +24,15 @@ export const resolveLibrarySource = (
 export const resolveLibraryIsDeleted = (
   localIsDeleted: boolean,
   remoteSource?: string | null,
-  hasActiveSteamImport = false
+  hasActiveSteamImport = false,
+  hasActiveEpicImport = false
 ): boolean =>
-  remoteSource === "steam" || hasActiveSteamImport ? false : localIsDeleted;
+  remoteSource === "steam" ||
+  remoteSource === "epic" ||
+  hasActiveSteamImport ||
+  hasActiveEpicImport
+    ? false
+    : localIsDeleted;
 
 export const resolveMissingSteamImport = (
   game: { shop: string; hasActiveSteamImport?: boolean },

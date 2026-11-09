@@ -20,7 +20,7 @@
   &__title-bar {
     width: 100%;
     padding: 4px 12px;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 500;
     color: globals.$muted-color;
   }
@@ -39,10 +39,10 @@
     justify-content: flex-start;
     gap: 8px;
     border-radius: 4px;
-    padding: 5px 12px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
   }
 
   &__item--disabled {
@@ -51,12 +51,12 @@
   }
 
   &:not(&__item--disabled) &__item:hover {
-    background-color: globals.$background-color;
+    background-color: rgba(255, 255, 255, 0.15);
     color: globals.$muted-color;
   }
 
   &__item:focus {
-    background-color: globals.$background-color;
+    background-color: rgba(255, 255, 255, 0.15);
     outline: none;
   }
 

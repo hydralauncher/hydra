@@ -64,6 +64,7 @@ const GAME_SETTINGS_TAB_FOCUS_IDS: Record<GameSettingsTabId, string> = {
 interface GameSettingsModalProps {
   visible: boolean;
   game: LibraryGame;
+  removeFilesGame?: LibraryGame;
   launchSettings: GameLaunchSettingsProps;
   customizationSettings: GameCustomizationSettingsProps;
   cloudSettings: GameCloudSettingsProps;
@@ -73,6 +74,7 @@ interface GameSettingsModalProps {
 export function GameSettingsModal({
   visible,
   game,
+  removeFilesGame,
   launchSettings,
   customizationSettings,
   cloudSettings,
@@ -125,8 +127,14 @@ export function GameSettingsModal({
     [game]
   );
   const dangerContent = useMemo(
-    () => <GameDangerZoneSettingsTab game={game} onClose={onClose} />,
-    [game, onClose]
+    () => (
+      <GameDangerZoneSettingsTab
+        game={game}
+        removeFilesGame={removeFilesGame}
+        onClose={onClose}
+      />
+    ),
+    [game, removeFilesGame, onClose]
   );
   const compatibilityContent = useMemo(
     () => <GameCompatibilitySettingsTab game={game} />,

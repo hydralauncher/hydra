@@ -1,8 +1,15 @@
+import {
+  initializeEpicIntegration,
+  startEpicSyncOnStartup,
+} from "./services/epic";
 import { downloadsSublevel } from "./level/sublevels/downloads";
+import { recoverInterruptedInstallers } from "./helpers/recover-interrupted-installers";
 import { orderBy } from "lodash-es";
 import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import { refreshGlobalTrackersUrlCache } from "@main/helpers";
+import { syncRetroAchievementsEmulatorCredentials } from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
+import { reconcileRecompilationDiscs } from "@main/events/recompilation/recompilation-disc";
 import { type Download, type UserPreferences } from "../types";
 import path from "node:path";
 import fs from "node:fs";
@@ -25,12 +32,14 @@ import {
   SSEClient,
   Wine,
   WindowManager,
+  ScreenshotInputService,
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
   groupedSouvenirWorker,
 } from "@main/services";
 import { migrateDownloadSources } from "./helpers/migrate-download-sources";
 import { getDirSize } from "./services/download/helpers";
+import { isDebridPendingError } from "./services/download/debrid-files";
 import { GofileApi } from "./services/hosters";
 import { clearLegacyAchievementPersistence } from "./level/clear-legacy-achievements";
 import { startSteamSyncOnStartup } from "./services/steam-integration/steam-startup-sync";
@@ -38,6 +47,8 @@ import { migrateEmulatorCloudSaveDefaults } from "./services/cloud-save/automati
 import { watchSteamLibraries } from "./services/steam-integration/steam-install-watcher";
 import { migrateGameVisibilityFields } from "./services/library-sync/game-visibility-migration";
 import { UmuUpdater } from "./services/umu-updater";
+import { initializeScreenshots } from "./services/screenshots";
+import { setTrackedGamesRunningListenerErrorReporter } from "./services/game-running-state";
 
 const hasMissingSeedFiles = async (download: Download): Promise<boolean> => {
   if (!download.folderName) return false;
@@ -76,6 +87,10 @@ export const loadState = async () => {
   );
 
   Wine.syncUserPreferences(userPreferences);
+  setTrackedGamesRunningListenerErrorReporter((error) =>
+    logger.error("Tracked games running listener failed", error)
+  );
+  ScreenshotInputService.syncUserPreferences(userPreferences);
 
   await import("./events");
 
@@ -115,24 +130,44 @@ export const loadState = async () => {
   }
 
   void watchSteamLibraries();
+  void reconcileRecompilationDiscs();
+  void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {
+    void ScreenshotInputService.refreshFeatureFlag();
+    try {
+      await initializeEpicIntegration();
+    } catch (err) {
+      logger.warn("Epic integration initialization failed on startup", err);
+    }
     uploadGamesBatch();
-    void migrateDownloadSources();
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
 
     // Check for new download options on startup (if enabled)
     (async () => {
+      await migrateDownloadSources().catch((error) =>
+        logger.error("Failed to migrate download sources", error)
+      );
       await DownloadSourcesChecker.checkForChanges();
     })();
+
+    initializeScreenshots();
 
     if (HydraApi.isLoggedIn()) {
       SSEClient.connect();
       void groupedSouvenirWorker.trigger();
       void startSteamSyncOnStartup();
+      void startEpicSyncOnStartup();
     }
+  });
+
+  void recoverInterruptedInstallers().catch((error) => {
+    logger.error(
+      "[GameInstaller] Failed to recover interrupted installs",
+      error
+    );
   });
 
   const downloadToResume =
@@ -194,9 +229,11 @@ export const loadState = async () => {
   if (downloadToResume && !isTorrent) {
     // Initialize torrent seeding, then resume the HTTP download with JS.
     await DownloadManager.initializeTorrentService(undefined, downloadsToSeed);
-    await DownloadManager.startDownload(downloadToResume).catch((err) => {
-      // If resume fails, just log it - user can manually retry
+    await DownloadManager.startDownload(downloadToResume).catch(async (err) => {
       logger.error("Failed to auto-resume download:", err);
+      if (isDebridPendingError(err, downloadToResume.downloader)) {
+        await DownloadOrchestrator.saveAwaitingDebridDownload(downloadToResume);
+      }
     });
   } else {
     await DownloadManager.initializeTorrentService(

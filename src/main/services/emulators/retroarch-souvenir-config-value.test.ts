@@ -2,53 +2,21 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-  buildRetroArchSouvenirAppendConfig,
+  buildRetroArchAchievementLogLaunchArguments,
   getCfgLine,
-  getCfgValue,
   restoreCfgLine,
   restoreRetroArchSouvenirConfigValues,
   setCfgValue,
-  setRetroArchSouvenirConfigValues,
-  usesRetroArchContentScreenshotDirectory,
 } from "./retroarch-souvenir-config-value.js";
 
 const KEY = "cheevos_auto_screenshot";
 const SCREENSHOT_DIRECTORY_KEY = "screenshot_directory";
 
 describe("RetroArch souvenir configuration", () => {
-  it("builds a session-only append configuration", () => {
-    assert.equal(
-      buildRetroArchSouvenirAppendConfig("/tmp/hydra-souvenirs"),
-      'cheevos_auto_screenshot = "true"\n' +
-        'screenshot_directory = "/tmp/hydra-souvenirs"\n' +
-        'config_save_on_exit = "false"\n'
-    );
-  });
-
-  it("uses the content directory for default screenshot configurations", () => {
-    assert.equal(
-      usesRetroArchContentScreenshotDirectory(
-        getCfgValue(
-          `${SCREENSHOT_DIRECTORY_KEY} = "default"\n`,
-          SCREENSHOT_DIRECTORY_KEY
-        )
-      ),
-      true
-    );
-    assert.equal(
-      usesRetroArchContentScreenshotDirectory(
-        getCfgValue('video_fullscreen = "true"\n', SCREENSHOT_DIRECTORY_KEY)
-      ),
-      true
-    );
-    assert.equal(
-      usesRetroArchContentScreenshotDirectory(
-        getCfgValue(
-          `${SCREENSHOT_DIRECTORY_KEY} = "/user/screenshots"\n`,
-          SCREENSHOT_DIRECTORY_KEY
-        )
-      ),
-      false
+  it("builds launch arguments that write a verbose session log", () => {
+    assert.deepEqual(
+      buildRetroArchAchievementLogLaunchArguments("/tmp/hydra/retroarch.log"),
+      ["--log-file", "/tmp/hydra/retroarch.log", "--verbose"]
     );
   });
 
@@ -85,8 +53,9 @@ describe("RetroArch souvenir configuration", () => {
       SCREENSHOT_DIRECTORY_KEY
     );
 
-    const enabled = setRetroArchSouvenirConfigValues(
-      original,
+    const enabled = setCfgValue(
+      setCfgValue(original, KEY, "true"),
+      SCREENSHOT_DIRECTORY_KEY,
       "/hydra/retroarch-screenshots"
     );
 
@@ -107,8 +76,9 @@ describe("RetroArch souvenir configuration", () => {
 
   it("removes both settings when Hydra originally added them", () => {
     const original = `video_fullscreen = "true"\n`;
-    const enabled = setRetroArchSouvenirConfigValues(
-      original,
+    const enabled = setCfgValue(
+      setCfgValue(original, KEY, "true"),
+      SCREENSHOT_DIRECTORY_KEY,
       "/hydra/retroarch-screenshots"
     );
 

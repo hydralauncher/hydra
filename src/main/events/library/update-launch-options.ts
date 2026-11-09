@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { GameShop } from "@types";
@@ -13,8 +14,7 @@ const updateLaunchOptions = async (
   const game = await gamesSublevel.get(gameKey);
 
   if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameRecord(gameKey, {
       launchOptions: launchOptions?.trim() != "" ? launchOptions : null,
     });
   }

@@ -17,7 +17,9 @@ import { ProfileHero } from "../profile-hero/profile-hero";
 import {
   useAppDispatch,
   useAppSelector,
+  useFeature,
   useFormat,
+  useGamificationProgress,
   useUserDetails,
 } from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
@@ -36,22 +38,55 @@ import { FriendsBox, FriendsBoxAddButton } from "./friends-box";
 import { RecentGamesBox } from "./recent-games-box";
 import { UserStatsBox } from "./user-stats-box";
 import { ProfileSection } from "../profile-section/profile-section";
+import { useProfileGamification } from "../use-profile-gamification";
+import { MissionsSidebar, MissionsTab } from "../missions-tab/missions-tab";
+import { OPEN_PROFILE_TAB_EVENT } from "../profile-tab-events";
+import { LevelBox } from "./level-box";
 import { DeleteReviewModal } from "@renderer/pages/game-details/modals/delete-review-modal";
-import { GAME_STATS_ANIMATION_DURATION_IN_MS } from "./profile-animations";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
 import { ProfileTabs, type ProfileTabType } from "./profile-tabs";
 import { LibraryTab } from "./library-tab";
 import { ReviewsTab } from "./reviews-tab";
 import { SouvenirsTab } from "./souvenirs-tab";
+import { ScreenshotsTab } from "./screenshots-tab";
+import {
+  applyProfileScreenshotsTotalUpdate,
+  type ProfileScreenshotsTotalUpdate,
+} from "./screenshots-total";
 import { SouvenirLightbox } from "./souvenir-lightbox";
 import { useSouvenirActions } from "./use-souvenir-actions";
 import type { ProfilePlatform } from "./library-tab";
 import { AnimatePresence } from "framer-motion";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ConfirmationModal } from "@renderer/components";
 import "./profile-content.scss";
 
 type SortOption = "playtime" | "achievementCount" | "playedRecently";
+
+interface RequestedProfileTabOptions {
+  hasRequestedScreenshot: boolean;
+  isScreenshotsEnabled: boolean;
+  canShowMissions: boolean;
+}
+
+const getRequestedProfileTab = (
+  requestedTab: string | null,
+  {
+    hasRequestedScreenshot,
+    isScreenshotsEnabled,
+    canShowMissions,
+  }: RequestedProfileTabOptions
+): ProfileTabType => {
+  if (requestedTab === "souvenirs") return "souvenirs";
+  if (
+    isScreenshotsEnabled &&
+    (requestedTab === "screenshots" || hasRequestedScreenshot)
+  ) {
+    return "screenshots";
+  }
+  if (requestedTab === "missions" && canShowMissions) return "missions";
+  return "library";
+};
 
 interface UserReview {
   id: string;
@@ -114,6 +149,7 @@ export function ProfileContent() {
     loadMoreLibraryGames,
     hasMoreLibraryGames,
     isLoadingLibraryGames,
+    hasLoadedLibraryGames,
     souvenirs,
     souvenirsTotal,
     hasReachedSouvenirLimit,
@@ -131,6 +167,10 @@ export function ProfileContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
   const requestedSouvenir = searchParams.get("souvenir");
+  const requestedScreenshot = searchParams.get("screenshot");
+  const { userId: routeUserId } = useParams();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
   const attemptedDeepLinkPagesRef = useRef(new Set<string>());
   const souvenirsEnabled = useAppSelector((state) =>
     isAchievementSouvenirsEnabled(
@@ -141,7 +181,6 @@ export function ProfileContent() {
   const disableNsfwAlert = useAppSelector(
     (state) => state.userPreferences.value?.disableNsfwAlert === true
   );
-  const [statsIndex, setStatsIndex] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>(readStoredProfileSort);
 
   const prefetchedSortBy = useRef(readStoredProfileSort()).current;
@@ -174,8 +213,32 @@ export function ProfileContent() {
     [platform]
   );
 
-  const [activeTab, setActiveTab] = useState<ProfileTabType>(
-    requestedTab === "souvenirs" ? "souvenirs" : "library"
+  const isGamificationEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled
+  );
+  const canShowMissions = isMe && isGamificationEnabled;
+
+  const [activeTab, setActiveTab] = useState<ProfileTabType>(() =>
+    getRequestedProfileTab(requestedTab, {
+      hasRequestedScreenshot: Boolean(requestedScreenshot),
+      isScreenshotsEnabled,
+      canShowMissions,
+    })
+  );
+  const [screenshotsTotal, setScreenshotsTotal] = useState<number | null>(null);
+  const screenshotsProfileRef = useRef(userProfile);
+  screenshotsProfileRef.current = userProfile;
+  const handleScreenshotsTotalUpdate = useCallback(
+    (update: ProfileScreenshotsTotalUpdate) => {
+      setScreenshotsTotal((current) =>
+        applyProfileScreenshotsTotalUpdate(
+          current,
+          update,
+          screenshotsProfileRef.current
+        )
+      );
+    },
+    []
   );
 
   // User reviews state
@@ -187,6 +250,8 @@ export function ProfileContent() {
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
+  const { level } = useProfileGamification();
+  const { progress: ownProgress } = useGamificationProgress();
 
   const { t } = useTranslation("user_profile");
   const { numberFormatter } = useFormat();
@@ -227,6 +292,17 @@ export function ProfileContent() {
     nextParams.delete("souvenir");
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
+
+  const clearRequestedScreenshot = useCallback(() => {
+    setSearchParams(
+      (current) => {
+        const nextParams = new URLSearchParams(current);
+        nextParams.delete("screenshot");
+        return nextParams;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
 
   useEffect(() => {
     attemptedDeepLinkPagesRef.current.clear();
@@ -340,14 +416,71 @@ export function ProfileContent() {
       window.removeEventListener("hydra:game-visibility-updated", refresh);
   }, [getUserProfile, isMe]);
 
+  // Read through a ref so a late feature flag response does not re-run the reset below and wipe
+  // reviews that already loaded.
+  const canShowMissionsRef = useRef(canShowMissions);
+  canShowMissionsRef.current = canShowMissions;
+
   // Clear reviews state and reset tab when switching users
   useEffect(() => {
     setReviews([]);
     setReviewsTotalCount(0);
     setIsLoadingReviews(false);
-    setActiveTab(requestedTab === "souvenirs" ? "souvenirs" : "library");
+    setActiveTab(
+      getRequestedProfileTab(requestedTab, {
+        hasRequestedScreenshot: false,
+        isScreenshotsEnabled: false,
+        canShowMissions: canShowMissionsRef.current,
+      })
+    );
     setPlatform(readStoredProfilePlatform());
+    setScreenshotsTotal(null);
   }, [requestedTab, userProfile?.id]);
+
+  // The Missions tab follows the flag on its own: open it once a requested ?tab=missions becomes
+  // available, leave it if the flag turns off.
+  useEffect(() => {
+    setActiveTab((current) => {
+      if (canShowMissions) {
+        return requestedTab === "missions" ? "missions" : current;
+      }
+      return current === "missions"
+        ? getRequestedProfileTab(requestedTab, {
+            hasRequestedScreenshot: false,
+            isScreenshotsEnabled: false,
+            canShowMissions: false,
+          })
+        : current;
+    });
+  }, [canShowMissions, requestedTab]);
+
+  useEffect(() => {
+    const openTab = (event: Event) => {
+      const tab = (event as CustomEvent<ProfileTabType>).detail;
+      if (tab !== "missions" || canShowMissions) setActiveTab(tab);
+    };
+    window.addEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
+    return () => window.removeEventListener(OPEN_PROFILE_TAB_EVENT, openTab);
+  }, [canShowMissions]);
+  useEffect(() => {
+    if (
+      isScreenshotsEnabled &&
+      (requestedScreenshot || requestedTab === "screenshots")
+    ) {
+      setActiveTab("screenshots");
+    }
+  }, [
+    isScreenshotsEnabled,
+    requestedScreenshot,
+    requestedTab,
+    userProfile?.id,
+  ]);
+
+  useEffect(() => {
+    if (!isScreenshotsEnabled && activeTab === "screenshots") {
+      setActiveTab("library");
+    }
+  }, [activeTab, isScreenshotsEnabled]);
 
   const fetchUserReviews = useCallback(async () => {
     if (!userProfile?.id) return;
@@ -509,17 +642,6 @@ export function ProfileContent() {
     }
   };
 
-  useEffect(() => {
-    const interval = window.setInterval(
-      () => setStatsIndex((index) => index + 1),
-      GAME_STATS_ANIMATION_DURATION_IN_MS
-    );
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, []);
-
   const usersAreFriends = useMemo(() => {
     return userProfile?.relation?.status === "ACCEPTED";
   }, [userProfile]);
@@ -540,7 +662,7 @@ export function ProfileContent() {
     const hasAnyGames = hasGames || hasPinnedGames;
 
     const shouldShowRightContent =
-      hasAnyGames || userProfile.friends.length > 0 || isMe;
+      hasAnyGames || userProfile.friends.length > 0 || isMe || level !== null;
 
     return (
       <section className="profile-content__section">
@@ -549,6 +671,11 @@ export function ProfileContent() {
             activeTab={activeTab}
             reviewsTotalCount={reviewsTotalCount}
             souvenirsCount={souvenirsTotal}
+            showMissions={canShowMissions}
+            screenshotsCount={
+              screenshotsTotal ?? userProfile.screenshotCount ?? 0
+            }
+            showScreenshots={isScreenshotsEnabled}
             onTabChange={setActiveTab}
           />
 
@@ -563,8 +690,13 @@ export function ProfileContent() {
                   pinnedGames={pinnedGames}
                   libraryGames={libraryGames}
                   hasMoreLibraryGames={hasMoreLibraryGames}
-                  isAwaitingInitialLibrary={isCorrectingPrefetchedSort}
-                  statsIndex={statsIndex}
+                  isAwaitingInitialLibrary={
+                    isCorrectingPrefetchedSort ||
+                    !hasLoadedLibraryGames ||
+                    (isLoadingLibraryGames &&
+                      libraryGames.length === 0 &&
+                      pinnedGames.length === 0)
+                  }
                   userStats={userStats}
                   onLoadMore={handleLoadMore}
                   isMe={isMe}
@@ -615,12 +747,37 @@ export function ProfileContent() {
                   }
                 />
               )}
+
+              {activeTab === "missions" && canShowMissions && <MissionsTab />}
+              {activeTab === "screenshots" && isScreenshotsEnabled && (
+                <ScreenshotsTab
+                  key={userProfile.id}
+                  userId={userProfile.id}
+                  isMe={isMe}
+                  requestedScreenshotId={
+                    userProfile.id === routeUserId ? requestedScreenshot : null
+                  }
+                  onRequestedScreenshotHandled={clearRequestedScreenshot}
+                  onTotalUpdate={handleScreenshotsTotalUpdate}
+                />
+              )}
             </AnimatePresence>
           </div>
         </div>
 
-        {shouldShowRightContent && (
+        {activeTab === "missions" && canShowMissions && ownProgress && (
           <div className="profile-content__right-content">
+            <MissionsSidebar progress={ownProgress} />
+          </div>
+        )}
+
+        {shouldShowRightContent && activeTab !== "missions" && (
+          <div className="profile-content__right-content">
+            {level && (
+              <ProfileSection title={t("level_title")} defaultOpen={true}>
+                <LevelBox level={level} />
+              </ProfileSection>
+            )}
             {userStats && (
               <ProfileSection title={t("stats")} defaultOpen={true}>
                 <UserStatsBox />

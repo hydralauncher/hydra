@@ -11,10 +11,8 @@ import {
 } from "./emulator-config";
 import { dolphinLogPath } from "./emulator-log-paths";
 import {
-  getCfgValue,
-  buildRetroArchSouvenirAppendConfig,
+  buildRetroArchAchievementLogLaunchArguments,
   restoreRetroArchSouvenirConfigValues,
-  usesRetroArchContentScreenshotDirectory,
 } from "./retroarch-souvenir-config-value";
 import {
   getIniLine,
@@ -49,7 +47,6 @@ export interface EmulatorSouvenirSession {
   launchArguments: string[];
   logPath: string | null;
   logOffset: number | null;
-  screenshotDirectory: string | null;
   sessionDirectory: string | null;
   cleanupFilePaths: string[];
 }
@@ -62,82 +59,6 @@ const getRetroArchSouvenirConfigBackups = async () =>
 
 export const findRetroArchConfig = (executablePath: string) =>
   findExistingConfig(retroArchConfigCandidates(executablePath));
-
-const uniqueDirectories = (directories: Array<string | null>) =>
-  Array.from(new Set(directories.filter((value): value is string => !!value)));
-
-export const getRetroArchAchievementScreenshotDirectory = (
-  configPath: string
-) => path.join(path.dirname(configPath), "hydra-souvenirs");
-
-const resolveRetroArchScreenshotDirectory = (
-  configPath: string,
-  configuredPath: string
-) => {
-  if (configuredPath.startsWith("~")) {
-    return path.join(os.homedir(), configuredPath.slice(1));
-  }
-
-  if (path.isAbsolute(configuredPath)) return configuredPath;
-
-  return path.join(path.dirname(configPath), configuredPath);
-};
-
-export const readRetroArchScreenshotDirectories = (
-  configPath: string,
-  contentPath: string | null
-) => {
-  let configuredDirectory: string | null = null;
-  let useContentDirectoryFallback = true;
-
-  try {
-    const content = fs.readFileSync(configPath, "utf8");
-    const raw = getCfgValue(content, "screenshot_directory");
-
-    if (raw && !usesRetroArchContentScreenshotDirectory(raw)) {
-      configuredDirectory = resolveRetroArchScreenshotDirectory(
-        configPath,
-        raw
-      );
-
-      if (!fs.existsSync(configuredDirectory)) {
-        logger.warn(
-          "Configured RetroArch screenshot directory does not exist",
-          {
-            configPath,
-            screenshotDirectory: configuredDirectory,
-          }
-        );
-        configuredDirectory = null;
-      } else {
-        useContentDirectoryFallback = false;
-      }
-    }
-  } catch (error) {
-    logger.error("Failed to read RetroArch screenshot directory", error);
-  }
-
-  const contentDirectory =
-    useContentDirectoryFallback && contentPath
-      ? path.dirname(contentPath)
-      : null;
-  const defaultScreenshotDirectoryCandidate = path.join(
-    path.dirname(configPath),
-    "screenshots"
-  );
-  const defaultScreenshotDirectory =
-    useContentDirectoryFallback &&
-    fs.existsSync(defaultScreenshotDirectoryCandidate)
-      ? defaultScreenshotDirectoryCandidate
-      : null;
-
-  return uniqueDirectories([
-    configuredDirectory,
-    contentDirectory,
-    defaultScreenshotDirectory,
-    getRetroArchAchievementScreenshotDirectory(configPath),
-  ]);
-};
 
 export const restoreRetroArchAchievementScreenshots = async () => {
   let backups: RetroArchSouvenirConfigBackup[];
@@ -189,46 +110,46 @@ export const restoreRetroArchAchievementScreenshots = async () => {
   }
 };
 
-export const createRetroArchSouvenirSession = async () => {
+export const createRetroArchSouvenirSession = async (
+  executablePath: string
+): Promise<EmulatorSouvenirSession | null> => {
   await restoreRetroArchAchievementScreenshots();
 
   let sessionDirectory: string | null = null;
 
   try {
+    const sessionRoot = executablePath.includes("org.libretro.RetroArch")
+      ? path.join(
+          os.homedir(),
+          ".var",
+          "app",
+          "org.libretro.RetroArch",
+          "cache"
+        )
+      : os.tmpdir();
+    await fs.promises.mkdir(sessionRoot, { recursive: true });
     sessionDirectory = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), "hydra-retroarch-souvenirs-")
+      path.join(sessionRoot, "hydra-retroarch-achievements-")
     );
-    const screenshotDirectory = path.join(sessionDirectory, "screenshots");
-    const appendConfigPath = path.join(sessionDirectory, "souvenirs.cfg");
+    const logPath = path.join(sessionDirectory, "retroarch.log");
 
-    await fs.promises.mkdir(screenshotDirectory);
-    await fs.promises.writeFile(
-      appendConfigPath,
-      buildRetroArchSouvenirAppendConfig(screenshotDirectory),
-      "utf8"
-    );
-
-    logger.info("Prepared RetroArch souvenir session", {
-      appendConfigPath,
-      screenshotDirectory,
-    });
+    logger.info("Prepared RetroArch achievement session", { logPath });
 
     return {
       kind: "retroarch",
-      launchArguments: ["--appendconfig", appendConfigPath],
-      logPath: null,
-      logOffset: null,
-      screenshotDirectory,
+      launchArguments: buildRetroArchAchievementLogLaunchArguments(logPath),
+      logPath,
+      logOffset: 0,
       sessionDirectory,
       cleanupFilePaths: [],
-    } satisfies EmulatorSouvenirSession;
+    };
   } catch (error) {
     if (sessionDirectory) {
       await fs.promises
         .rm(sessionDirectory, { recursive: true, force: true })
         .catch(() => {});
     }
-    logger.error("Failed to prepare RetroArch souvenir session", error);
+    logger.error("Failed to prepare RetroArch achievement session", error);
     return null;
   }
 };
@@ -381,7 +302,6 @@ export const createPPSSPPSouvenirSession = async (
       ),
       logPath,
       logOffset: 0,
-      screenshotDirectory: null,
       sessionDirectory,
       cleanupFilePaths: [sessionConfigPath],
     };
@@ -414,7 +334,6 @@ export const createDolphinSouvenirSession = (
     ],
     logPath,
     logOffset: fs.existsSync(logPath) ? fs.statSync(logPath).size : 0,
-    screenshotDirectory: null,
     sessionDirectory: null,
     cleanupFilePaths: [],
   };

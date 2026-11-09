@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import type { Game, GameShop, ShopAssets, SteamShortcut } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -177,8 +178,7 @@ const configureLinuxWinePrefix = async (game: Game, appId: number) => {
   await fs.promises.mkdir(winePrefixPath, { recursive: true });
 
   const gameKey = levelKeys.game(game.shop, game.objectId);
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameRecord(gameKey, {
     steamShortcutAppId: appId,
     winePrefixPath,
   });
@@ -248,8 +248,7 @@ const createSteamShortcut = async (
     ]);
   }
 
-  await gamesSublevel.put(gameKey, {
-    ...game,
+  await updateGameRecord(gameKey, {
     steamShortcutAppId: newShortcut.appid,
   });
 

@@ -1,3 +1,4 @@
+import { getLibraryOperationalGame } from "@shared";
 import type { LibraryGame } from "@types";
 import { useCallback } from "react";
 import { getClassicsLaunchErrorCode } from "@renderer/helpers";
@@ -25,6 +26,10 @@ const CLASSICS_LAUNCH_ERROR_TOASTS: Record<
     title: "BIOS not configured",
     message: "Add the BIOS files for this platform in Settings.",
   },
+  RECOMPILATION_NEEDS_SETUP: {
+    title: "PC version not ready",
+    message: "Open this game in Hydra to choose the ROM for its PC version.",
+  },
   NO_DISC: {
     title: "No disc found",
     message: "Add or rescan discs for this Classics game before launching.",
@@ -37,7 +42,8 @@ export function useLibraryLaunchGame(
   const { showErrorToast } = useBigPictureToast();
 
   return useCallback(
-    async (game: LibraryGame) => {
+    async (entry: LibraryGame) => {
+      const game = getLibraryOperationalGame(entry);
       if (!IS_DESKTOP) return;
 
       if (game.shop === "launchbox") {
@@ -56,6 +62,8 @@ export function useLibraryLaunchGame(
           globalThis.window.dispatchEvent(new Event("library-update"));
         } catch (error) {
           const code = getClassicsLaunchErrorCode(error);
+          // The port is already open: nothing failed.
+          if (code === "RECOMPILATION_ALREADY_RUNNING") return;
           const toast = (code && CLASSICS_LAUNCH_ERROR_TOASTS[code]) || {
             title: "Launch failed",
             message: "Hydra could not launch this Classics game.",

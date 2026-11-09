@@ -10,18 +10,13 @@ import {
   setGameCollectionIds,
 } from "@renderer/features";
 import { ensureArray } from "@renderer/helpers";
-
-const getNormalizedCollectionIds = (
-  game: Partial<LibraryGame> | undefined
-): string[] => {
-  if (!game) return [];
-  if (Array.isArray(game.collectionIds)) return game.collectionIds;
-
-  const legacyCollectionId = (game as { collectionId?: string | null })
-    .collectionId;
-
-  return legacyCollectionId ? [legacyCollectionId] : [];
-};
+import {
+  findLibraryGamePresentation,
+  applyLibraryGroupAction,
+  getLibraryCollectionIds as getNormalizedCollectionIds,
+} from "@shared";
+import { getLibraryGroupCollectionAssignments } from "../../../shared/library-group-actions";
+import { useLibrary } from "./use-library";
 
 export function useGameCollections() {
   const dispatch = useAppDispatch();
@@ -32,7 +27,8 @@ export function useGameCollections() {
   const isLoading = useAppSelector((state) => state.collections.isLoading);
   const hasLoaded = useAppSelector((state) => state.collections.hasLoaded);
   const hasFailed = useAppSelector((state) => state.collections.hasFailed);
-  const library = useAppSelector((state) => state.library.value);
+  const library = useAppSelector((state) => state.library.downloadLibrary);
+  const { updateLibrary } = useLibrary();
 
   const loadCollections = useCallback(async () => {
     if (loadCollectionsRequestRef.current) {
@@ -75,38 +71,58 @@ export function useGameCollections() {
       game: Pick<LibraryGame, "shop" | "objectId">,
       collectionIds: string[]
     ) => {
-      const currentGame = library.find(
-        (libraryGame) =>
-          libraryGame.shop === game.shop &&
-          libraryGame.objectId === game.objectId
-      );
-
-      const previousCollectionIds = getNormalizedCollectionIds(currentGame);
-
-      await window.electron.assignGameToCollection(
-        game.shop,
-        game.objectId,
+      const group = findLibraryGamePresentation(library, game);
+      const members: (Pick<LibraryGame, "shop" | "objectId"> &
+        Partial<LibraryGame>)[] = group?.members ?? [
+        {
+          ...game,
+          collectionIds: getNormalizedCollectionIds(
+            library.find(
+              (item) =>
+                item.shop === game.shop && item.objectId === game.objectId
+            )
+          ),
+        },
+      ];
+      const assignments = getLibraryGroupCollectionAssignments(
+        members,
         collectionIds
       );
-
-      dispatch(
-        setGameCollectionIds({
-          shop: game.shop,
-          objectId: game.objectId,
-          collectionIds,
-        })
-      );
-
-      if (game.shop === "custom") return;
-
-      dispatch(
-        applyCollectionAssignment({
-          previousCollectionIds,
-          nextCollectionIds: collectionIds,
-        })
-      );
+      try {
+        await applyLibraryGroupAction(
+          assignments.map(({ game: member }) => member),
+          async (member) => {
+            const nextCollectionIds = assignments.find(
+              ({ game: item }) =>
+                item.shop === member.shop && item.objectId === member.objectId
+            )!.collectionIds;
+            await window.electron.assignGameToCollection(
+              member.shop,
+              member.objectId,
+              nextCollectionIds
+            );
+            dispatch(
+              setGameCollectionIds({
+                shop: member.shop,
+                objectId: member.objectId,
+                collectionIds: nextCollectionIds,
+              })
+            );
+            if (member.shop !== "custom") {
+              dispatch(
+                applyCollectionAssignment({
+                  previousCollectionIds: getNormalizedCollectionIds(member),
+                  nextCollectionIds,
+                })
+              );
+            }
+          }
+        );
+      } finally {
+        await Promise.all([updateLibrary(), loadCollections()]);
+      }
     },
-    [dispatch, library]
+    [dispatch, library, updateLibrary, loadCollections]
   );
 
   const createCollection = useCallback(

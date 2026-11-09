@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import fs from "node:fs";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -9,6 +10,23 @@ export interface ArchiveEntry {
   name: string;
   size: number;
   encrypted?: boolean;
+}
+
+export async function listArchiveFiles(
+  directoryPath: string,
+  archiveExtensions: readonly string[]
+): Promise<string[]> {
+  const entries = await fs.promises.readdir(directoryPath, {
+    withFileTypes: true,
+  });
+  // Subfolders can contain ZIP assets required by an already unpacked game.
+  return entries
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        archiveExtensions.some((ext) => entry.name.toLowerCase().endsWith(ext))
+    )
+    .map((entry) => entry.name);
 }
 
 export const listArchiveEntries = async (

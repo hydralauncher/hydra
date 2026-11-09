@@ -13,7 +13,13 @@ import {
   setCloudSaveLaunchGuard,
 } from "@main/services/cloud-save";
 import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
+import {
+  findSelectedExecutableDisc,
+  findSelectedRecompilationDisc,
+} from "./classics-executable-disc";
+import { launchRecompilationDisc } from "./launch-recompilation-disc";
 import { launchClassicsGame } from "./launch-classics-game";
+import { launchGame } from "./launch-game";
 import { launchRetroArchGame } from "./launch-retroarch-game";
 import { platformToRetroArchPlatform } from "./platform-to-retroarch-platform";
 import { platformToSystem } from "./platform-to-system";
@@ -195,6 +201,34 @@ export const openClassicsGame = async (
   const game = await gamesSublevel.get(gameKey);
   if (!game) throw new Error(`Game not found: ${gameKey}`);
   clearCloudSaveLaunchGuard(objectId, shop);
+
+  const recompilationDisc = findSelectedRecompilationDisc(
+    game.discs,
+    discPath,
+    game.selectedDiscPath
+  );
+  if (recompilationDisc?.recompilationSlug) {
+    await launchRecompilationDisc(
+      objectId,
+      recompilationDisc.recompilationSlug
+    );
+    return;
+  }
+
+  const executableDisc = findSelectedExecutableDisc(
+    game.discs,
+    discPath,
+    game.selectedDiscPath
+  );
+  if (executableDisc) {
+    await launchGame({
+      shop,
+      objectId,
+      executablePath: executableDisc.path,
+      launchOptions: game.launchOptions ?? null,
+    });
+    return;
+  }
 
   const prepareCloudSaveBeforeLaunch = async () => {
     if (!(await canRunAutomaticCloudSaveSync(objectId, shop))) return true;

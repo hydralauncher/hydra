@@ -9,6 +9,7 @@ import "./reset-achievements-modal.scss";
 type ResetPlaytimeModalProps = Readonly<{
   visible: boolean;
   game: Game;
+  playtimePreview?: Game | null;
   onClose: () => void;
   resetPlaytime: () => Promise<void>;
 }>;
@@ -16,11 +17,17 @@ type ResetPlaytimeModalProps = Readonly<{
 export function ResetPlaytimeModal({
   onClose,
   game,
+  playtimePreview,
   visible,
   resetPlaytime,
 }: ResetPlaytimeModalProps) {
   const { t } = useTranslation("game_details");
-  const steamPlayTimeInMilliseconds = game.steamPlayTimeInMilliseconds ?? 0;
+  const preview = playtimePreview ?? game;
+  const steamPlayTimeInMilliseconds = preview.steamPlayTimeInMilliseconds ?? 0;
+  const remainingHydraPlayTimeInMilliseconds = Math.max(
+    0,
+    preview.playTimeInMilliseconds - game.playTimeInMilliseconds
+  );
   const tooltipId = useId();
   const hasNoPlaytime =
     (game.playTimeInMilliseconds ?? 0) <= 0 && !game.hasManuallyUpdatedPlaytime;
@@ -39,15 +46,20 @@ export function ResetPlaytimeModal({
       onClose={onClose}
       title={t("reset_playtime_title")}
       description={t("reset_playtime_description", {
-        game: game.title,
+        game: preview.title,
       })}
     >
-      {steamPlayTimeInMilliseconds > 0 ? (
+      {steamPlayTimeInMilliseconds > 0 ||
+      (preview.epicPlayTimeInMilliseconds ?? 0) > 0 ||
+      remainingHydraPlayTimeInMilliseconds > 0 ? (
         <div className="reset-achievements-modal__playtime-breakdown">
           <PlaytimeBreakdownTable
-            hydraPlayTimeInMilliseconds={game.playTimeInMilliseconds ?? 0}
-            nextHydraPlayTimeInMilliseconds={0}
+            hydraPlayTimeInMilliseconds={preview.playTimeInMilliseconds ?? 0}
+            nextHydraPlayTimeInMilliseconds={
+              remainingHydraPlayTimeInMilliseconds
+            }
             steamPlayTimeInMilliseconds={steamPlayTimeInMilliseconds}
+            epicPlayTimeInMilliseconds={preview.epicPlayTimeInMilliseconds ?? 0}
           />
         </div>
       ) : null}

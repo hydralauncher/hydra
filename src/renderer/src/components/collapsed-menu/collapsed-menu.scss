@@ -32,9 +32,21 @@
     }
   }
 
+  // Grid-row collapse: full height on the first paint, no measuring.
   &__content {
+    display: grid;
+    grid-template-rows: 1fr;
     overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+    transition: grid-template-rows 0.3s ease;
     position: relative;
+
+    &--closed {
+      grid-template-rows: 0fr;
+    }
+  }
+
+  &__body {
+    min-height: 0;
+    overflow: hidden;
   }
 }

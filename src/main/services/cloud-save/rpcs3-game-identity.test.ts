@@ -14,6 +14,29 @@ const game = (discs: Array<{ path: string; sku: string | null }>) =>
 const ids = new Set(["BLUS30443", "BLES00510"]);
 
 describe("RPCS3 game identity", () => {
+  it("reads catalogue SKUs that carry a region suffix", () => {
+    assert.deepEqual(
+      [
+        ...rpcs3TitleIdsFromCatalogue(
+          [
+            {
+              objectId: "14544",
+              shop: "launchbox",
+              skus: [
+                "BCES01284EXP",
+                "BCES01284GER",
+                "BCUS98247",
+                "BCES01285X2",
+              ],
+            },
+          ],
+          "14544"
+        ),
+      ].sort(),
+      ["BCES01284", "BCUS98247"]
+    );
+  });
+
   it("allows the MK savedata alias without authorizing its disc or savestate", async () => {
     const mkIds = new Set(["BLUS30902"]);
     const savedata = {

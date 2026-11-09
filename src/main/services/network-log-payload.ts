@@ -3,13 +3,21 @@ const CIRCULAR_VALUE = "[Circular]";
 
 const sensitiveKeys = new Set([
   "accesstoken",
+  "access_token",
   "authorization",
+  "authorizationcode",
+  "authorization_code",
   "authtoken",
+  "clientsecret",
+  "client_secret",
   "cookie",
   "downloadurl",
+  "exchangecode",
+  "exchange_code",
   "password",
   "proxy-authorization",
   "refreshtoken",
+  "refresh_token",
   "set-cookie",
   "signedurl",
   "token",
@@ -21,7 +29,16 @@ const sensitiveKeys = new Set([
 
 const sensitiveQueryKeys = new Set([
   "access_token",
+  "accesstoken",
+  "authorizationcode",
+  "authorization_code",
+  "client_secret",
+  "clientsecret",
   "credential",
+  "exchangecode",
+  "exchange_code",
+  "refresh_token",
+  "refreshtoken",
   "signature",
   "sig",
   "token",
@@ -52,6 +69,20 @@ const redactSensitiveUrlParameters = (value: string) => {
 
 const parseSerializedPayload = (value: string): unknown => {
   const trimmed = value.trim();
+  if (
+    !/^https?:\/\//i.test(trimmed) &&
+    /^[^=&\s]+=[^&]*(?:&[^=&\s]+=[^&]*)*$/.test(trimmed)
+  ) {
+    const form = new URLSearchParams(trimmed);
+    let redacted = false;
+    for (const key of new Set(form.keys())) {
+      if (sensitiveKeys.has(normalizedKey(key))) {
+        form.set(key, REDACTED_VALUE);
+        redacted = true;
+      }
+    }
+    if (redacted) return form.toString();
+  }
   if (
     !(
       (trimmed.startsWith("{") && trimmed.endsWith("}")) ||

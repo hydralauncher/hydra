@@ -7,7 +7,10 @@
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all ease 0.2s;
+  transition:
+    transform ease 0.2s,
+    box-shadow ease 0.2s,
+    border-color ease 0.2s;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -27,7 +30,9 @@
       rgba(255, 255, 255, 0.15) 64%,
       rgba(255, 255, 255, 0.1) 100%
     );
-    transition: all ease 0.3s;
+    transition:
+      opacity ease 0.3s,
+      transform ease 0.3s;
     transform: translateY(-36%);
     opacity: 0.5;
     z-index: 1;
@@ -141,7 +146,7 @@
     -webkit-backdrop-filter: blur(8px);
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    padding: 6px 12px;
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     min-height: 28px;
     box-sizing: border-box;
@@ -150,13 +155,13 @@
   &__size-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     color: rgba(255, 255, 255, 0.95);
   }
 
   &__size-bar-line {
     height: 4px;
-    border-radius: 2px;
+    border-radius: 4px;
     transition: width 0.3s ease;
     background: linear-gradient(
       90deg,
@@ -166,7 +171,7 @@
   }
 
   &__size-bar-text {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
   }
 
@@ -223,13 +228,13 @@
     border-radius: 4px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     padding: 0 12px;
     height: 28px;
     box-sizing: border-box;
     line-height: 1;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
   }
 
@@ -246,7 +251,7 @@
       globals.$classics-rainbow border-box;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    color: #fafafa;
+    color: globals.$muted-color;
     padding: 0 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
   }
@@ -256,7 +261,7 @@
     width: 16px;
     height: 16px;
     object-fit: contain;
-    border-radius: 3px;
+    border-radius: 4px;
     display: block;
     transform: translateZ(0);
     backface-visibility: hidden;
@@ -271,13 +276,13 @@
     border-radius: 4px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     padding: 0 12px;
     height: 28px;
     box-sizing: border-box;
     line-height: 1;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    font-size: 12px;
+    font-size: globals.$small-font-size;
   }
 
   &__playtime-text {
@@ -316,9 +321,9 @@
     align-items: center;
     justify-content: center;
     line-height: 1;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
-    color: #fafafa;
+    color: globals.$muted-color;
     max-width: 96px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -329,7 +334,7 @@
   &__achievements {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     flex: 1 1 auto;
     min-width: 0;
   }
@@ -342,7 +347,7 @@
   &__achievements-gap {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__achievement-trophy {
@@ -353,7 +358,7 @@
   &__achievement-progress {
     width: 100%;
     height: 4px;
-    transition: all ease 0.2s;
+    transition: background-color ease 0.2s;
     background-color: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
     overflow: hidden;
@@ -371,14 +376,14 @@
   }
 
   &__achievement-count {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
   }
 
   &__achievement-percentage {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
     display: inline-flex;
@@ -387,5 +392,15 @@
     &--completed {
       color: globals.$brand-teal;
     }
+  }
+
+  &__import-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 }

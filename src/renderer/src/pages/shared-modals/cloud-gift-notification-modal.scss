@@ -81,7 +81,7 @@
     width: min(544px, calc(100vw - 48px));
     overflow: hidden;
     pointer-events: auto;
-    color: #c0c1c7;
+    color: globals.$body-color;
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 0 0 16px 16px;
@@ -132,11 +132,11 @@
   &__title {
     width: 100%;
     margin: 0;
-    color: #c0c1c7;
-    font-size: 21px;
+    color: globals.$muted-color;
+    font-size: 20px;
     font-weight: 700;
     line-height: 1.3;
-    letter-spacing: 0.21px;
+    letter-spacing: 0.2px;
     text-align: center;
   }
 
@@ -146,10 +146,10 @@
     padding: 16px 28px;
     margin: 0;
     overflow: auto;
-    color: #8e919b;
+    color: globals.$subtle-color;
     background-color: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-style: normal;
     line-height: 1.35;
     letter-spacing: 0.14px;
@@ -159,7 +159,7 @@
 
     &::before,
     &::after {
-      color: #8e919b;
+      color: globals.$subtle-color;
     }
 
     &::before {
@@ -201,8 +201,8 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: #c0c1c7;
-    font-size: 14px;
+    color: globals.$body-color;
+    font-size: globals.$body-font-size;
     font-weight: 700;
     letter-spacing: 0.14px;
 
@@ -216,30 +216,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-  }
-
-  &__accept {
-    min-height: 40px;
-    padding: 10px 16px;
-    color: #fff;
-    background:
-      linear-gradient(90deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
-      linear-gradient(91deg, #0cf1ca 0.13%, #1dcceb 99.87%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: filter 0.2s ease;
-
-    &:hover,
-    &:focus-visible {
-      filter: brightness(1.12);
-    }
-
-    &:active {
-      filter: brightness(0.9);
     }
   }
 
@@ -304,10 +280,10 @@
     left: 50%;
     width: min(544px, calc(100vw - 48px));
     padding: 0;
-    color: #8e919b;
+    color: globals.$subtle-color;
     background: transparent;
     border: 0;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     line-height: 20px;
     letter-spacing: 0.14px;
     text-align: center;
@@ -323,7 +299,7 @@
 
     &:hover,
     &:focus-visible {
-      color: #c0c1c7;
+      color: globals.$body-color;
       text-decoration: underline;
     }
   }
@@ -351,10 +327,6 @@
     &__logo,
     &__panel {
       will-change: auto;
-    }
-
-    &__accept {
-      transition: none;
     }
   }
 }

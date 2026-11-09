@@ -11,6 +11,7 @@ import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { parseBytes } from "@shared";
 import {
   getGlobalTrackers,
+  getMultipartDownloadParts,
   handleDownloadError,
   isKnownDownloadError,
   prepareGameEntry,
@@ -27,6 +28,7 @@ const startGameDownload = async (
     downloadPath,
     downloader,
     uri,
+    parts,
     automaticallyExtract,
     automaticallyDeleteArchiveFiles,
     fileSize,
@@ -36,7 +38,6 @@ const startGameDownload = async (
 
   const parsedFileSize = parseBytes(fileSize ?? null);
   const gameKey = levelKeys.game(shop, objectId);
-
   logger.log(
     `[Downloads] Start requested for ${gameKey} (downloader=${downloader})`
   );
@@ -55,10 +56,11 @@ const startGameDownload = async (
       downloadPath,
       downloader,
       uri,
+      parts: await getMultipartDownloadParts(uri, parts, downloader),
       folderName: null,
       shouldSeed: false,
       timestamp: Date.now(),
-      queued: true,
+      queued: false,
       pinnedToHero: false,
       extracting: false,
       automaticallyExtract,
@@ -68,12 +70,22 @@ const startGameDownload = async (
       fileSize: selectedFilesSize ?? parsedFileSize,
       customTrackers: globalTrackers,
     };
-    await DownloadManager.validateDownloadUrl(download);
+    const prepareRealDebridInBackground =
+      DownloadOrchestrator.preparesRealDebridInBackground(download);
+    if (!prepareRealDebridInBackground) {
+      await DownloadOrchestrator.validateDownloadOrMarkPending(download);
+    }
     await prepareGameEntry({ gameKey, title, objectId, shop });
     await DownloadManager.cancelDownload(gameKey).catch(() => null);
     await downloadsSublevel.put(gameKey, download);
     didWriteDownload = true;
-    await DownloadOrchestrator.startPreparedDownload(download);
+    if (download.awaitingDebrid) {
+      await DownloadOrchestrator.saveAwaitingDebridDownload(download);
+    } else if (prepareRealDebridInBackground) {
+      await DownloadOrchestrator.prepareAndStartDownload(download);
+    } else {
+      await DownloadOrchestrator.startPreparedDownload(download);
+    }
 
     const updatedGame = await gamesSublevel.get(gameKey);
 

@@ -219,6 +219,7 @@ pub async fn build_local_game_snapshot_pipeline(
         remote_id: input.remote_id,
         user_data_path: input.user_data_path,
         source_url: input.source_url,
+        recompilation_rules: input.recompilation_rules,
     })
     .await?;
     let manifest_key = save_rules.manifest_key;
@@ -271,12 +272,199 @@ pub async fn build_local_game_snapshot_pipeline(
 #[cfg(test)]
 mod tests {
     use std::fs;
+    #[cfg(not(windows))]
+    use std::time::{SystemTime, UNIX_EPOCH};
 
+    #[cfg(not(windows))]
+    use indexmap::IndexMap;
     use tempfile::tempdir;
 
     use super::*;
+    #[cfg(not(windows))]
+    use crate::cloud_save::manifest::types::{
+        ManifestFileRule, ManifestGameEntry, ManifestIndex, ManifestRuleCondition,
+    };
     use crate::cloud_save::path_resolution::ResolvedCloudSavePath;
     use crate::cloud_save::save_scanner::{ScannedCloudSaveFile, ScannedCloudSavePath};
+    #[cfg(not(windows))]
+    use crate::constants::MANIFEST_INDEX_VERSION;
+
+    // Windows uses the live KnownFolder path even when the input home is synthetic.
+    // Keep this fixture away from a real player's save directory on Windows.
+    #[cfg(not(windows))]
+    #[tokio::test]
+    async fn epic_catalogue_snapshot_detects_two_accounts_and_a_changed_save() {
+        let temp = tempdir().unwrap();
+        let home = temp.path().join("Users/Hydra");
+        let roaming = home.join("AppData/Roaming");
+        let local = home.join("AppData/Local");
+        let first_save = local.join("FactoryGame/Saved/SaveGames/EpicUserA/slot.sav");
+        let second_save = local.join("FactoryGame/Saved/SaveGames/EpicUserB/slot.sav");
+        fs::create_dir_all(first_save.parent().unwrap()).unwrap();
+        fs::create_dir_all(second_save.parent().unwrap()).unwrap();
+        fs::write(&first_save, b"first account").unwrap();
+        fs::write(&second_save, b"second account").unwrap();
+
+        let source_url = "https://example.invalid/epic-fixture.yaml";
+        let raw_path = "<winLocalAppData>/FactoryGame/Saved/SaveGames/<storeUserId>";
+        let mut games = IndexMap::new();
+        games.insert(
+            "Satisfactory".to_string(),
+            ManifestGameEntry {
+                manifest_key: "Satisfactory".into(),
+                files: vec![
+                    ManifestFileRule {
+                        raw_path: raw_path.into(),
+                        tags: vec!["save".into()],
+                        when: vec![],
+                    },
+                    ManifestFileRule {
+                        raw_path: "<root>/userdata/steam-only.sav".into(),
+                        tags: vec!["save".into()],
+                        when: vec![ManifestRuleCondition {
+                            os: None,
+                            store: Some("steam".into()),
+                        }],
+                    },
+                ],
+            },
+        );
+        let fetched_at = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64;
+        let index = ManifestIndex {
+            version: MANIFEST_INDEX_VERSION,
+            fetched_at,
+            source_url: source_url.into(),
+            games,
+        };
+        fs::write(
+            temp.path().join("cloud-save-manifest-index.json"),
+            serde_json::to_vec(&index).unwrap(),
+        )
+        .unwrap();
+
+        let input = |hash_cache| BuildLocalGameSnapshotPipelineInput {
+            shop: "epic".into(),
+            object_id: "namespace:playable-item-id".into(),
+            title: Some("Satisfactory".into()),
+            remote_id: None,
+            user_data_path: temp.path().to_string_lossy().into_owned(),
+            source_url: Some(source_url.into()),
+            platform: "windows".into(),
+            home_dir: home.to_string_lossy().into_owned(),
+            documents_dir: None,
+            app_data_dir: Some(roaming.to_string_lossy().into_owned()),
+            executable_path: Some(
+                temp.path()
+                    .join("Games/Satisfactory/FactoryGame.exe")
+                    .to_string_lossy()
+                    .into_owned(),
+            ),
+            wine_prefix_path: None,
+            steam_path: Some(temp.path().join("Steam").to_string_lossy().into_owned()),
+            environment_id: "epic-fixture-environment".into(),
+            hash_cache,
+            extra_rules: None,
+            recompilation_rules: None,
+        };
+
+        let initial = build_local_game_snapshot_pipeline(input(vec![]))
+            .await
+            .unwrap();
+        assert_eq!(initial.game_id.shop, "epic");
+        assert_eq!(initial.game_id.object_id, "namespace:playable-item-id");
+        assert_eq!(initial.manifest_key.as_deref(), Some("Satisfactory"));
+        assert_eq!(initial.file_count, 2);
+        assert_eq!(initial.variants.len(), 2);
+        assert!(initial
+            .variants
+            .iter()
+            .all(|variant| variant.kind == "opaque-folder"));
+        assert!(initial.files.iter().all(|file| file.raw_path == raw_path));
+        assert_ne!(initial.files[0].variant_id, initial.files[1].variant_id);
+        let previous_hashes = initial
+            .source_files
+            .iter()
+            .map(|file| (file.absolute_path.clone(), file.hash.clone()))
+            .collect::<std::collections::HashMap<_, _>>();
+        let previous_aggregate = initial.aggregate_hash;
+
+        fs::write(&second_save, b"second account changed after game exit").unwrap();
+        let changed = build_local_game_snapshot_pipeline(input(initial.hash_cache))
+            .await
+            .unwrap();
+        assert_eq!(changed.file_count, 2);
+        assert_ne!(changed.aggregate_hash, previous_aggregate);
+        let second_save = fs::canonicalize(second_save).unwrap();
+        let changed_file = changed
+            .source_files
+            .iter()
+            .find(|file| fs::canonicalize(&file.absolute_path).unwrap() == second_save)
+            .unwrap();
+        assert_ne!(
+            changed_file.hash,
+            previous_hashes[&changed_file.absolute_path]
+        );
+    }
+
+    #[tokio::test]
+    async fn recompilation_snapshot_uses_its_own_rules_and_skips_the_rest_of_the_port() {
+        use crate::cloud_save::manifest::types::{CloudSaveRuleCondition, RecompilationSaveRule};
+
+        let temp = tempdir().unwrap();
+        let install = temp.path().join("recompilations/ghostship");
+        let save = install.join("saves/file1.sav");
+        fs::create_dir_all(save.parent().unwrap()).unwrap();
+        fs::write(&save, b"star count 70").unwrap();
+        fs::write(install.join("Ghostship.exe"), b"exe").unwrap();
+        fs::write(install.join("sm64.o2r"), b"extracted rom").unwrap();
+        fs::write(install.join("ghostship.cfg.json"), b"{}").unwrap();
+
+        let input = BuildLocalGameSnapshotPipelineInput {
+            shop: "launchbox".into(),
+            object_id: "204:ghostship".into(),
+            title: Some("Super Mario 64".into()),
+            remote_id: None,
+            user_data_path: temp.path().join("user-data").to_string_lossy().into_owned(),
+            source_url: Some("https://example.invalid/never-fetched.yaml".into()),
+            platform: "windows".into(),
+            home_dir: temp.path().join("home").to_string_lossy().into_owned(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: Some(install.join("Ghostship.exe").to_string_lossy().into_owned()),
+            wine_prefix_path: None,
+            steam_path: None,
+            environment_id: "recompilation-fixture-environment".into(),
+            hash_cache: vec![],
+            extra_rules: None,
+            recompilation_rules: Some(vec![RecompilationSaveRule {
+                raw_path: "<base>/saves/".into(),
+                kind: "dir".into(),
+                tags: vec!["save".into()],
+                when: vec![CloudSaveRuleCondition {
+                    os: Some("windows".into()),
+                    store: None,
+                }],
+                preferred_path: None,
+            }]),
+        };
+
+        let snapshot = build_local_game_snapshot_pipeline(input).await.unwrap();
+
+        assert_eq!(snapshot.manifest_key, None);
+        assert_eq!(snapshot.file_count, 1);
+        assert!(snapshot
+            .files
+            .iter()
+            .all(|file| file.raw_path == "<base>/saves/"));
+        let saved = fs::canonicalize(&save).unwrap();
+        assert!(snapshot
+            .source_files
+            .iter()
+            .all(|file| fs::canonicalize(&file.absolute_path).unwrap() == saved));
+    }
 
     fn scanned_rule(
         raw_path: &str,

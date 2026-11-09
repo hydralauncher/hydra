@@ -44,7 +44,7 @@
   &__title {
     margin: 0;
     color: globals.$muted-color;
-    font-size: 1rem;
+    font-size: 16px;
     font-weight: 600;
   }
 
@@ -66,8 +66,8 @@
   }
 
   &__status-dot {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
     border: 1px solid currentColor;
     border-radius: 50%;
     flex-shrink: 0;
@@ -199,7 +199,7 @@
     gap: calc(globals.$spacing-unit / 2);
   }
 
-  @media (max-width: 720px) {
+  @include globals.page-max-width(760px) {
     &__header {
       align-items: flex-start;
       flex-direction: column;

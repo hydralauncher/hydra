@@ -1,7 +1,16 @@
 out
 dist
+/legendary/
+/hydra-native/
+/.cache/
 seeds
 pnpm-lock.yaml
 LICENSE.md
 tsconfig.json
 tsconfig.*.json
+.cache/
+legendary/
+hydra-native/
+native/**/target/
+binaries/epic-prerequisite-runner/
+native/epic-prerequisite-runner/tests/*.wxs

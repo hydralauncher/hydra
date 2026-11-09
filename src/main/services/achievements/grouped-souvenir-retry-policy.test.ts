@@ -4,7 +4,9 @@ import { describe, it } from "node:test";
 import {
   getGroupedSouvenirErrorCode,
   getGroupedSouvenirFailure,
+  isGroupedSouvenirNetworkFailure,
   isMissingGroupedSouvenirScreenshot,
+  isRejectedGroupedSouvenirRequest,
   isTerminalGroupedSouvenirError,
   SOUVENIR_LIMIT_ERROR_CODE,
 } from "./grouped-souvenir-retry-policy.js";
@@ -22,6 +24,54 @@ const souvenirConflict = (reason: string) =>
   });
 
 describe("grouped souvenir retry policy", () => {
+  it("stops missing-game errors without requiring clientId", () => {
+    for (const message of [
+      "achievements/souvenir-not-found",
+      "game/not-found",
+    ]) {
+      for (const stage of ["authorization", "synchronization"] as const) {
+        const error = axiosError(404, { message });
+        assert.deepEqual(getGroupedSouvenirFailure(error, "client-1", stage), {
+          code: message,
+          action: "terminal",
+        });
+        assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), true);
+      }
+    }
+  });
+
+  it("pauses subscription failures without discarding the screenshot", () => {
+    const message = "subscription/active-subscription-required";
+    for (const stage of ["authorization", "synchronization"] as const) {
+      const error = axiosError(400, { message });
+      assert.deepEqual(getGroupedSouvenirFailure(error, "client-1", stage), {
+        code: message,
+        action: "pause",
+      });
+      assert.equal(isTerminalGroupedSouvenirError(error, "client-1"), false);
+    }
+  });
+
+  it("does not stop or pause a different client's souvenir", () => {
+    for (const message of [
+      "achievements/souvenir-not-found",
+      "game/not-found",
+      "subscription/active-subscription-required",
+    ]) {
+      assert.equal(
+        getGroupedSouvenirFailure(
+          axiosError(404, {
+            message,
+            clientId: "client-2",
+          }),
+          "client-1",
+          "authorization"
+        ).action,
+        "retry"
+      );
+    }
+  });
+
   it("maps synchronization conflicts to their recovery actions", () => {
     const expectations = {
       reservation_not_found: "reauthorize_same_id",
@@ -166,5 +216,28 @@ describe("grouped souvenir retry policy", () => {
         "retry"
       );
     }
+  });
+
+  it("counts only definitive client rejections toward the retry cap", () => {
+    for (const status of [400, 403, 404, 409, 422]) {
+      assert.equal(isRejectedGroupedSouvenirRequest(axiosError(status)), true);
+    }
+    for (const status of [401, 408, 429, 500, 503]) {
+      assert.equal(isRejectedGroupedSouvenirRequest(axiosError(status)), false);
+    }
+    assert.equal(
+      isRejectedGroupedSouvenirRequest({ isAxiosError: true }),
+      false
+    );
+    assert.equal(isRejectedGroupedSouvenirRequest(new Error("busy")), false);
+  });
+
+  it("treats only requests without a response as network failures", () => {
+    assert.equal(isGroupedSouvenirNetworkFailure({ isAxiosError: true }), true);
+    assert.equal(isGroupedSouvenirNetworkFailure(axiosError(503)), false);
+    assert.equal(
+      isGroupedSouvenirNetworkFailure(new Error("missing acknowledgement")),
+      false
+    );
   });
 });

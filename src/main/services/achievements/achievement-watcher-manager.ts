@@ -1,3 +1,4 @@
+import { achievementSyncWorker } from "./achievement-sync-worker";
 import { parseAchievementFile } from "./parse-achievement-file";
 import { mergeAchievements } from "./merge-achievements";
 import fs, { readdirSync } from "node:fs";
@@ -25,6 +26,8 @@ import { db, gamesSublevel, levelKeys } from "@main/level";
 import { setTimeout } from "node:timers/promises";
 import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
+import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
+import { CombinedAchievementsRequests } from "./combined-achievements-requests";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 
 const fileStats: Map<string, number> = new Map();
@@ -184,7 +187,7 @@ const processChangedAchievementFiles = async (
       parseAchievementFile(file.filePath, file.type)
     );
 
-    return mergeDetectedAchievements(game, unlockedAchievements);
+    return await mergeDetectedAchievements(game, unlockedAchievements);
   } finally {
     processingGameKeys.delete(gameKey);
   }
@@ -234,8 +237,12 @@ export class AchievementWatcherManager {
   public static readonly alreadySyncedGames: Map<string, boolean> = new Map();
 
   public static resetSessionState() {
+    achievementSyncWorker.stop();
+    void achievementSyncWorker.trigger();
     this.alreadySyncedGames.clear();
     AchievementMemoryStore.clear();
+    UnlockedAchievementsCache.clear();
+    CombinedAchievementsRequests.clear();
   }
 
   public static forgetAchievementFiles(gameKey: string, filePaths: string[]) {
@@ -260,7 +267,7 @@ export class AchievementWatcherManager {
     shop: GameShop,
     objectId: string
   ) {
-    if (shop === "custom") return;
+    if (shop === "custom" || shop === "epic") return;
 
     const gameKey = levelKeys.game(shop, objectId);
     if (this.alreadySyncedGames.get(gameKey)) return;
@@ -444,6 +451,7 @@ export class AchievementWatcherManager {
   }
 
   public static watchAchievements() {
+    void achievementSyncWorker.trigger();
     if (!this.hasFinishedPreSearch || this.batchDepth > 0) return;
 
     if (process.platform === "win32") {
@@ -590,7 +598,12 @@ export class AchievementWatcherManager {
       achievementNotificationPresenter.enqueueCombined(
         userPreferences.achievementCustomNotificationPosition ?? "top-left",
         totalNewGamesWithAchievements,
-        totalNewAchievements
+        totalNewAchievements,
+        () =>
+          publishCombinedNewAchievementNotification(
+            totalNewAchievements,
+            totalNewGamesWithAchievements
+          )
       );
     } else {
       publishCombinedNewAchievementNotification(

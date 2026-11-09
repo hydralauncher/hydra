@@ -15,7 +15,7 @@ import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import {
   RETROARCH_LABEL,
   RETROARCH_CORE_LIST,
-  RETROARCH_CORES_LINE,
+  RETROARCH_CORES_TOOLTIP,
 } from "./retroarch-meta";
 import { RetroArchDetail } from "./retroarch-detail";
 import { RetroArchSetupModal } from "./setup/retroarch/retroarch-setup-modal";
@@ -32,10 +32,15 @@ import {
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
 
 import {
+  LIBRARY_PLATFORMS_STORAGE_KEY,
   SETTINGS_EMULATION_VIEW_STORAGE_KEY,
   SETTINGS_EMULATOR_TAB_STORAGE_KEY,
   SETTINGS_RETROARCH_TAB_STORAGE_KEY,
 } from "@renderer/session-state";
+import {
+  isClassicsGameForEmulator,
+  type ClassicsEmulatorTarget,
+} from "@shared";
 
 import "./settings-context-emulation.scss";
 
@@ -227,11 +232,36 @@ export function SettingsContextEmulation() {
     setSetupSystem(system);
   }, []);
 
-  const handleSetupComplete = useCallback(() => {
-    setSetupSystem(null);
-    localStorage.setItem("library-category", "classics");
-    navigate("/library");
-  }, [navigate]);
+  const openClassicsLibrary = useCallback(
+    async (target: ClassicsEmulatorTarget) => {
+      const library = await window.electron.getLibrary().catch(() => []);
+      const platforms = Array.from(
+        new Set(
+          library.flatMap((game) =>
+            isClassicsGameForEmulator(game, target) && game.platform
+              ? [game.platform]
+              : []
+          )
+        )
+      );
+
+      localStorage.setItem("library-category", "classics");
+      localStorage.setItem(
+        LIBRARY_PLATFORMS_STORAGE_KEY,
+        JSON.stringify(platforms)
+      );
+      navigate("/library");
+    },
+    [navigate]
+  );
+
+  const handleSetupComplete = useCallback(
+    (system: EmulatorSystem) => {
+      setSetupSystem(null);
+      void openClassicsLibrary({ kind: "emulator", system });
+    },
+    [openClassicsLibrary]
+  );
 
   const handleSetupClose = useCallback(async () => {
     setSetupSystem(null);
@@ -240,9 +270,8 @@ export function SettingsContextEmulation() {
 
   const handleRetroArchSetupComplete = useCallback(() => {
     setRetroArchSetupOpen(false);
-    localStorage.setItem("library-category", "classics");
-    navigate("/library");
-  }, [navigate]);
+    void openClassicsLibrary({ kind: "retroarch" });
+  }, [openClassicsLibrary]);
 
   const handleRetroArchSetupClose = useCallback(async () => {
     setRetroArchSetupOpen(false);
@@ -346,7 +375,7 @@ export function SettingsContextEmulation() {
           emulatorName={t("retroarch_supported_cores", {
             count: RETROARCH_CORE_LIST.length,
           })}
-          emulatorNameTooltip={RETROARCH_CORES_LINE}
+          emulatorNameTooltip={RETROARCH_CORES_TOOLTIP}
           detectedVersion={retroArchConfig.detectedVersion}
           executablePath={retroArchConfig.executablePath}
           romFoldersCount={retroArchConfig.romFolders.length}

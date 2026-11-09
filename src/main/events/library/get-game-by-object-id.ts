@@ -1,3 +1,6 @@
+import { getContextualEpicGame } from "@main/services/epic/import-visibility";
+import { HydraApi } from "@main/services/hydra-api";
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, downloadsSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
@@ -13,18 +16,20 @@ const getGameByObjectId = async (
   objectId: string
 ) => {
   const gameKey = levelKeys.game(shop, objectId);
-  const [game, download] = await Promise.all([
+  const [storedGame, download] = await Promise.all([
     gamesSublevel.get(gameKey),
     downloadsSublevel.get(gameKey),
   ]);
 
-  if (!game || game.isDeleted) return null;
+  if (!storedGame) return null;
+  const game = getContextualEpicGame(storedGame, HydraApi.getAuthContext());
+  if (game.isDeleted) return null;
 
   if (game.shop === "launchbox" && !game.platform) {
     const cachedPlatform = await lookupCachedPlatform(gameKey);
     if (cachedPlatform) {
       game.platform = cachedPlatform;
-      gamesSublevel.put(gameKey, game).catch(() => {});
+      updateGameRecord(gameKey, { platform: game.platform }).catch(() => {});
     }
   }
 

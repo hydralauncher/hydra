@@ -1,3 +1,5 @@
+@use "../../scss/globals.scss";
+
 .steam-library-badge {
   display: inline-flex;
   align-items: center;
@@ -39,5 +41,21 @@
     -webkit-backdrop-filter: blur(4px);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     transition: none;
+  }
+
+  &--multiple {
+    width: 34px;
+    gap: 2px;
+  }
+
+  &--sidebar.steam-library-badge--multiple {
+    width: 20px;
+    border-radius: 6px;
+  }
+
+  &__additional {
+    font-size: globals.$tiny-font-size;
+    font-weight: 700;
+    line-height: 1;
   }
 }
