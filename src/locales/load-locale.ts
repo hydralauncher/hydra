@@ -1,31 +1,34 @@
 import type { ResourceLanguage } from "i18next";
 
+import en from "./en/translation.json";
 import { resolveLanguage } from "./languages";
+
+const englishLocale = { key: "en", resources: en };
 
 const localeLoaders = import.meta.glob<{
   default: ResourceLanguage;
-}>("./*/translation.json");
+}>(["./*/translation.json", "!./en/translation.json"]);
 
 export async function loadLocale(language?: string | null) {
   const key = resolveLanguage(language);
-  const loader = localeLoaders[`./${key}/translation.json`];
 
-  if (!loader) {
-    return {
-      key: "en",
-      resources: (await localeLoaders["./en/translation.json"]()).default,
-    };
+  if (key === "en") {
+    return englishLocale;
   }
 
   try {
+    const loader = localeLoaders[`./${key}/translation.json`];
+
+    if (!loader) {
+      throw new Error(`Missing locale loader for ${key}`);
+    }
+
     return {
       key,
       resources: (await loader()).default,
     };
-  } catch {
-    return {
-      key: "en",
-      resources: (await localeLoaders["./en/translation.json"]()).default,
-    };
+  } catch (error) {
+    console.error("Failed to load locale", key, error);
+    return englishLocale;
   }
 }

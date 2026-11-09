@@ -5,6 +5,7 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { useLocation } from "react-router-dom";
 
 import { applyLanguage } from "@locales/apply-language";
+import { resolveLanguage } from "@locales/languages";
 import { loadLocale } from "@locales/load-locale";
 
 import {
@@ -158,12 +159,14 @@ export async function initializeBigPictureI18n() {
   };
 
   const userPreferences = await electron?.getUserPreferences?.();
-  const language = await applyLanguage(
-    userPreferences?.language ?? i18next.language
-  );
+  const requestedLanguage = userPreferences?.language ?? i18next.language;
+
+  await applyLanguage(requestedLanguage);
 
   if (!userPreferences?.language && electron?.updateUserPreferences) {
-    await electron.updateUserPreferences({ language });
+    await electron.updateUserPreferences({
+      language: resolveLanguage(requestedLanguage),
+    });
   }
 
   syncDocumentLanguage(i18next.language);

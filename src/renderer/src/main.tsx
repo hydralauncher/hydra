@@ -15,6 +15,7 @@ import "react-tooltip/dist/react-tooltip.css";
 import "./app.scss";
 
 import { applyLanguage } from "@locales/apply-language";
+import { resolveLanguage } from "@locales/languages";
 import { loadLocale } from "@locales/load-locale";
 
 import { logger } from "./logger";
@@ -23,6 +24,7 @@ import { clearStateFromPreviousSession } from "./session-state";
 import { ErrorBoundary } from "./components/error-boundary/error-boundary";
 import { levelDBService } from "./services/leveldb.service";
 import * as Sentry from "@sentry/react";
+import { installPreloadErrorRecovery } from "./preload-error-recovery";
 
 const MainAppShell = lazy(() => import("./shells/main-app-shell"));
 const FriendsShell = lazy(() => import("./shells/friends-shell"));
@@ -53,6 +55,8 @@ Sentry.init({
   tracesSampleRate: 0.5,
   release: "hydra-launcher@" + (await globalThis.electron.getVersion()),
 });
+
+installPreloadErrorRecovery();
 
 globalThis.addEventListener("unhandledrejection", (event) => {
   logger.error("Unhandled promise rejection", event.reason);
@@ -92,12 +96,14 @@ await i18n
     },
   });
 
-const initialLanguage = await applyLanguage(
-  userPreferences?.language ?? i18n.language
-);
+const requestedLanguage = userPreferences?.language ?? i18n.language;
+
+await applyLanguage(requestedLanguage);
 
 if (!userPreferences?.language) {
-  globalThis.electron.updateUserPreferences({ language: initialLanguage });
+  globalThis.electron.updateUserPreferences({
+    language: resolveLanguage(requestedLanguage),
+  });
 }
 
 syncDocumentLanguage(i18n.language);
