@@ -313,4 +313,30 @@ describe("shadPS4 saves", () => {
       null
     );
   });
+
+  it("does not follow a linked savedata folder outside the home folder", async () => {
+    const home = path.join(root, "home");
+    const outside = path.join(root, "outside");
+    await writeFile(
+      path.join(outside, "CUSA00207", "SPRJ0005", "userdata0000")
+    );
+    await fs.mkdir(path.join(home, "1000"), { recursive: true });
+    await fs.symlink(outside, path.join(home, "1000", "savedata"), "junction");
+
+    const result = await scanShadps4SaveRoot(
+      {
+        game: game([]),
+        environmentId: "env",
+        variantId: "variant",
+        savedataTitleIds: ["CUSA00207"],
+      },
+      home
+    );
+
+    assert.deepEqual(result.files, []);
+    assert.deepEqual(
+      result.coverage.map((entry) => [entry.rawPath, entry.outcome]),
+      [[shadps4SaveRawPath("CUSA00207", "1000"), "partial"]]
+    );
+  });
 });

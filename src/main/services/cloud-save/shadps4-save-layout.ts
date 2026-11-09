@@ -75,7 +75,7 @@ export const getShadps4SavedataTitleIds = async (
   const ids = await Promise.all(gameDiscPaths(game).map(readShadps4DiscIds));
   return [
     ...new Set(ids.flatMap((entry) => (entry ? [entry.saveTitleId] : []))),
-  ].sort();
+  ].sort((a, b) => a.localeCompare(b));
 };
 
 /** For custom tracked paths: is this file inside one of the game's saves? */

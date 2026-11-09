@@ -183,28 +183,58 @@ export const scanShadps4SaveRoot = async (
   for (const user of users.filter((entry) =>
     SHADPS4_USER_ID.test(entry.name)
   )) {
-    if (!user.isDirectory() || user.isSymbolicLink()) {
-      for (const saveTitleId of saveTitleIds) {
-        result.coverage.push(
-          coverage(
-            shadps4SaveRawPath(saveTitleId, user.name),
-            context.variantId,
-            false
-          )
-        );
-      }
-      continue;
-    }
-    for (const saveTitleId of saveTitleIds) {
-      const scanned = await scanSaveTitle(
-        path.join(homeRoot, user.name, "savedata", saveTitleId),
-        shadps4SaveRawPath(saveTitleId, user.name),
-        user.name,
-        context
-      );
-      result.files.push(...scanned.files);
-      result.coverage.push(scanned.coverage);
-    }
+    const scanned = await scanUser(context, homeRoot, user, saveTitleIds);
+    result.files.push(...scanned.files);
+    result.coverage.push(...scanned.coverage);
   }
   return result;
+};
+
+/**
+ * Scans one user's saves. Any symlink on the way (the user folder, its
+ * `savedata` folder or a title folder) leaves coverage partial, so files
+ * outside the home folder are never read and local deletions are never
+ * inferred.
+ */
+const scanUser = async (
+  context: EmulatorProviderContext,
+  homeRoot: string,
+  user: Dirent,
+  saveTitleIds: readonly string[]
+) => {
+  const partial = () => ({
+    files: [] as EmulatorDiscoveredFile[],
+    coverage: saveTitleIds.map((saveTitleId) =>
+      coverage(
+        shadps4SaveRawPath(saveTitleId, user.name),
+        context.variantId,
+        false
+      )
+    ),
+  });
+  if (!user.isDirectory() || user.isSymbolicLink()) return partial();
+
+  const savedataRoot = path.join(homeRoot, user.name, "savedata");
+  const savedataStat = await lstatIfExists(savedataRoot);
+  if (
+    savedataStat === undefined ||
+    savedataStat?.isSymbolicLink() ||
+    (savedataStat && !savedataStat.isDirectory())
+  ) {
+    return partial();
+  }
+
+  const files: EmulatorDiscoveredFile[] = [];
+  const coverageEntries: UserLocationCoverage[] = [];
+  for (const saveTitleId of saveTitleIds) {
+    const scanned = await scanSaveTitle(
+      path.join(savedataRoot, saveTitleId),
+      shadps4SaveRawPath(saveTitleId, user.name),
+      user.name,
+      context
+    );
+    files.push(...scanned.files);
+    coverageEntries.push(scanned.coverage);
+  }
+  return { files, coverage: coverageEntries };
 };
