@@ -3,6 +3,7 @@ import { it } from "node:test";
 
 import {
   canSelectCloudSaveCustomFile,
+  getCloudSaveEmulatorProvider,
   hasCloudSaveExecutableSelection,
   hasCloudSaveDisc,
   isCloudSaveV2Eligible,
@@ -115,4 +116,12 @@ it("requires a registered RPCS3 disc regardless of active disc selection", () =>
     }),
     true
   );
+});
+
+it("keeps PS4 games out of Cloud Save until the shadPS4 provider is enabled", () => {
+  assert.equal(
+    getCloudSaveEmulatorProvider("launchbox", "Sony Playstation 4"),
+    null
+  );
+  assert.equal(isCloudSaveV2Eligible("launchbox", "Sony Playstation 4"), false);
 });

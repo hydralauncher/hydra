@@ -1,5 +1,6 @@
 import "./get-emulator-configs";
 import "./rpcs3-config-root";
+import "./shadps4-data-dir";
 import "./detect-emulator";
 import "./detect-emulators";
 import "./preview-emulator-executable";
