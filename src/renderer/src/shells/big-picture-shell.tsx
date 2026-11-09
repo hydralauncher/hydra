@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import type { UserPreferences } from "@types";
 import { setUserPreferences } from "@renderer/features";
+import { logger } from "@renderer/logger";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import { AchievementNotificationOverlay } from "@renderer/components/achievements/notification/achievement-notification-overlay";
 
@@ -21,14 +22,31 @@ import { store } from "../store";
 
 function StoreHydrator() {
   useEffect(() => {
+    let receivedUpdate = false;
+
+    const unsubscribe = window.electron.onUserPreferencesUpdated(
+      (preferences) => {
+        receivedUpdate = true;
+        store.dispatch(setUserPreferences(preferences));
+      }
+    );
+
     levelDBService
       .get("userPreferences", null, "json")
       .then((preferences) => {
+        if (receivedUpdate) return;
+
         store.dispatch(
           setUserPreferences(preferences as UserPreferences | null)
         );
       })
-      .catch(() => {});
+      .catch((error) => {
+        logger.error("Failed to load Big Picture user preferences", error);
+      });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return null;
