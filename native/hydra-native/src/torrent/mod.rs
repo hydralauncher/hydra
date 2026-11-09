@@ -349,8 +349,9 @@ impl Engine {
         let Some(index) = self.unowned_entry_elsewhere(&handle, path)? else {
             return Ok((handle, None));
         };
+        self.session
+            .remove(&self.pool[index].handle, self.pool[index].delete_partfile)?;
         let stale = self.pool.remove(index);
-        self.session.remove(&stale.handle, stale.delete_partfile)?;
         Ok((self.session.add(params)?, Some(stale.handle)))
     }
     fn move_jobs(&mut self, stale: Option<Rc<Handle>>, handle: &Rc<Handle>) {
