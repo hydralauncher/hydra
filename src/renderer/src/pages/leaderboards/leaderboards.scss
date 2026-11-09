@@ -3,7 +3,6 @@
 $leaderboards-surface: #1a1a1a;
 $leaderboards-up: #4ade80;
 $leaderboards-down: #ff6b81;
-$leaderboards-ended: #838383;
 $leaderboards-streak-from: #22c7ee;
 $leaderboards-streak-to: #b05cff;
 $leaderboards-friend-row-height: 72px;
@@ -68,8 +67,8 @@ $leaderboards-heat-gap: 6px;
     min-height: 40px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: globals.$spacing-unit 10px;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     border: 0;
     border-radius: 4px;
     background: transparent;
@@ -228,8 +227,8 @@ $leaderboards-heat-gap: 6px;
     height: 36px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 0 10px;
+    gap: globals.$spacing-unit;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 0;
     border-radius: 4px;
     background: transparent;
@@ -246,7 +245,7 @@ $leaderboards-heat-gap: 6px;
 
   &__side-empty {
     margin: 0;
-    padding: 0 10px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     font-size: globals.$small-font-size;
     line-height: 16px;
     color: globals.$body-color;
@@ -303,7 +302,7 @@ $leaderboards-heat-gap: 6px;
   }
 
   &__selector-label {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     line-height: 14px;
     color: globals.$body-color;
   }
@@ -320,7 +319,7 @@ $leaderboards-heat-gap: 6px;
   &__selector-option {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     height: 28px;
     padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 0;
@@ -382,7 +381,7 @@ $leaderboards-heat-gap: 6px;
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 2);
-    padding: calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 2);
     border: solid 1px globals.$border-color;
     border-radius: 4px;
     background-color: globals.$background-color;
@@ -397,10 +396,6 @@ $leaderboards-heat-gap: 6px;
       flex: 1;
       justify-content: center;
     }
-  }
-
-  &__panel {
-    padding: calc(globals.$spacing-unit * 2);
   }
 
   &__board-header {
@@ -489,7 +484,7 @@ $leaderboards-heat-gap: 6px;
   &__insight {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 1.5);
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.04);
@@ -538,7 +533,7 @@ $leaderboards-heat-gap: 6px;
     align-items: center;
     gap: calc(globals.$spacing-unit * 1.5);
     padding-right: calc(globals.$spacing-unit * 2);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -643,7 +638,7 @@ $leaderboards-heat-gap: 6px;
   &__link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     width: fit-content;
     padding: 0;
     border: 0;
@@ -691,7 +686,7 @@ $leaderboards-heat-gap: 6px;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
     padding: calc(globals.$spacing-unit * 2);
-    border: solid 1px rgba(255, 255, 255, 0.05);
+    border: solid 1px globals.$border-color;
     border-radius: 4px;
     background-color: globals.$background-color;
   }
@@ -700,7 +695,7 @@ $leaderboards-heat-gap: 6px;
     width: 20px;
     height: 20px;
     flex-shrink: 0;
-    border-radius: 2px;
+    border-radius: 4px;
     object-fit: cover;
   }
 
@@ -725,9 +720,9 @@ $leaderboards-heat-gap: 6px;
     right: globals.$spacing-unit;
     max-width: 50%;
     overflow: hidden;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     height: 30px;
-    padding: 2px 10px 2px 6px;
+    padding: 2px globals.$spacing-unit 2px calc(globals.$spacing-unit / 2);
     font-size: globals.$body-font-size;
     color: inherit;
     white-space: nowrap;
@@ -809,7 +804,7 @@ $leaderboards-heat-gap: 6px;
     color: globals.$body-color;
 
     svg {
-      color: #ffffff;
+      color: globals.$muted-color;
     }
   }
 
@@ -988,7 +983,7 @@ $leaderboards-heat-gap: 6px;
     th {
       height: 36px;
       border-bottom: solid 1px globals.$border-color;
-      font-size: 11px;
+      font-size: globals.$tiny-font-size;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -1011,7 +1006,7 @@ $leaderboards-heat-gap: 6px;
 
       &:hover td,
       &:focus-within td {
-        color: #ffffff;
+        color: globals.$muted-color;
       }
     }
   }
@@ -1019,7 +1014,7 @@ $leaderboards-heat-gap: 6px;
   &__mine-metric {
     display: inline-flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 1.25);
+    gap: globals.$spacing-unit;
     padding: 0;
     border: 0;
     background: transparent;
@@ -1068,7 +1063,7 @@ $leaderboards-heat-gap: 6px;
   &__activity-streak {
     display: inline-flex;
     align-items: baseline;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
 
     strong {
       font-size: globals.$body-font-size;
@@ -1111,7 +1106,7 @@ $leaderboards-heat-gap: 6px;
 
   &__activity-month {
     grid-row: 1;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     line-height: 14px;
     white-space: nowrap;
     color: globals.$body-color;
@@ -1137,7 +1132,7 @@ $leaderboards-heat-gap: 6px;
   &__heatmap-legend {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
 
     .leaderboards__heat {
       width: $leaderboards-heat-size;
@@ -1157,7 +1152,7 @@ $leaderboards-heat-gap: 6px;
   &__heatmap-day {
     display: flex;
     align-items: center;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     line-height: 1;
     color: globals.$body-color;
   }
@@ -1205,12 +1200,12 @@ $leaderboards-heat-gap: 6px;
     transform: translate(var(--heat-tip-x), var(--heat-tip-y));
     width: max-content;
     max-width: 280px;
-    padding: 6px globals.$spacing-unit;
+    padding: globals.$spacing-unit;
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 6px;
     background-color: globals.$dark-background-color;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     line-height: 18px;
     color: globals.$muted-color;
     pointer-events: none;
@@ -1338,7 +1333,7 @@ $leaderboards-heat-gap: 6px;
   }
 
   &__friend-presence {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     color: globals.$body-color;
     opacity: 0.7;
   }
@@ -1347,7 +1342,7 @@ $leaderboards-heat-gap: 6px;
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     font-size: globals.$body-font-size;
     font-weight: 700;
     color: globals.$muted-color;
@@ -1375,8 +1370,8 @@ $leaderboards-heat-gap: 6px;
     position: relative;
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 1.75);
-    padding: calc(globals.$spacing-unit * 1.75);
+    gap: calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5);
     border: solid 1px rgba(255, 255, 255, 0.34);
     border-radius: 4px;
     background-color: globals.$background-color;
@@ -1480,11 +1475,11 @@ $leaderboards-heat-gap: 6px;
     height: 18px;
     display: inline-flex;
     align-items: center;
-    padding: 0 6px;
+    padding: 0 globals.$spacing-unit;
     border-radius: 6px;
     background: var(--chip-bg);
     color: globals.$dark-background-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     white-space: nowrap;
     transform: translateX(-50%);
@@ -1543,7 +1538,7 @@ $leaderboards-heat-gap: 6px;
   }
 
   &__badge-meta {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     color: globals.$body-color;
     white-space: nowrap;
 
@@ -1561,7 +1556,7 @@ $leaderboards-heat-gap: 6px;
 
 .rank-delta {
   min-height: 13px;
-  font-size: 11px;
+  font-size: globals.$tiny-font-size;
   line-height: 13px;
   font-weight: 700;
   color: globals.$body-color;
@@ -1684,7 +1679,7 @@ $leaderboards-heat-gap: 6px;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    padding: calc(globals.$spacing-unit * 1.75) 0;
+    padding: calc(globals.$spacing-unit * 2) 0;
   }
 
   &__rank,
@@ -1694,7 +1689,7 @@ $leaderboards-heat-gap: 6px;
   }
 
   &__rank {
-    font-size: 34px;
+    font-size: 32px;
     line-height: 1;
     font-weight: 700;
   }
@@ -1702,7 +1697,7 @@ $leaderboards-heat-gap: 6px;
   &__metal {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     letter-spacing: 0.24em;
     text-transform: uppercase;
@@ -1715,7 +1710,7 @@ $leaderboards-heat-gap: 6px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5);
     background-image: linear-gradient(180deg, #1f1f1f 0%, #161616 100%);
 
@@ -1750,9 +1745,9 @@ $leaderboards-heat-gap: 6px;
     align-items: center;
     padding: 0 8px;
     border-radius: 999px;
-    background-color: #ffffff;
-    color: #000000;
-    font-size: 11px;
+    background-color: globals.$muted-color;
+    color: globals.$dark-background-color;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     white-space: nowrap;
     transform: translate(-50%, 50%);
@@ -1781,7 +1776,7 @@ $leaderboards-heat-gap: 6px;
 // Three cards do not fit next to the sidebar in a narrow window.
 // On large screens the layout grows with the space. The podium keeps its shape:
 // the heights follow the same proportions as the column widths.
-@media (min-width: 2000px) {
+@include globals.page-min-width(1750px) {
   .leaderboards__sidebar {
     width: 380px;
   }
@@ -1810,7 +1805,7 @@ $leaderboards-heat-gap: 6px;
 @container board-header (max-width: 900px) {
   .leaderboards__selector--collapsible {
     .leaderboards__selector-option {
-      padding: 0 calc(globals.$spacing-unit * 1.25);
+      padding: 0 globals.$spacing-unit;
     }
 
     .leaderboards__selector-option-label {

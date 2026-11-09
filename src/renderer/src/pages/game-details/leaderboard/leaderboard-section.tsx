@@ -170,6 +170,18 @@ export function LeaderboardSection() {
               />
             ))}
           </div>
+          {/* Holds the footer's space so the section doesn't grow on load. */}
+          {isLoggedIn && (
+            <div
+              className="leaderboard-section__footer leaderboard-section__footer--placeholder"
+              aria-hidden
+            >
+              <span className="leaderboard-section__see-all">
+                <TrophyIcon size={12} />
+                {t("see_full_ranking")}
+              </span>
+            </div>
+          )}
         </SkeletonTheme>
       );
     }
@@ -328,7 +340,7 @@ export function LeaderboardSection() {
 
         {renderBody()}
 
-        {!isLoggedIn && state !== "loading" && (
+        {!isLoggedIn && (
           <div className="leaderboard-section__sign-in">
             <p className="leaderboard-section__sign-in-text">
               {t(isExtended ? "sign_in_hint" : "sign_in_hint_position")}

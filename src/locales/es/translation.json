@@ -41,6 +41,12 @@
     "friends": "Amigos",
     "notifications": "Notificaciones",
     "need_help": "¿Necesitás ayuda?",
+    "download_status_downloading": "Descargando, {{percentage}}",
+    "download_status_paused": "Cola en pausa en {{percentage}}",
+    "download_status_extracting": "Extrayendo, {{percentage}}",
+    "download_status_preparing": "Preparando descarga",
+    "download_status_queued_one": "{{count}} más en cola",
+    "download_status_queued_other": "{{count}} más en cola",
     "favorites": "Favoritos",
     "playable_button_title": "Solo mostrar juegos que podés jugar en este momento",
     "add_custom_game_tooltip": "Añadir juego personalizado",
@@ -195,7 +201,11 @@
     "scan_games_folders_title": "Carpetas que se escanearán",
     "scan_games_add_folder": "Añadir carpeta",
     "scan_games_remove_folder": "Quitar carpeta",
-    "scan_games_folders_hint_manual": "Añade al menos una carpeta para buscar juegos."
+    "scan_games_folders_hint_manual": "Añade al menos una carpeta para buscar juegos.",
+    "back": "Atrás",
+    "forward": "Adelante",
+    "add_game": "Añadir juego",
+    "clear_search": "Borrar búsqueda"
   },
   "bottom_panel": {
     "reconnecting": "Reconectando {{title}}…",
@@ -2306,7 +2316,15 @@
     "imported_from_steam_and_epic": "Importado de las bibliotecas de Steam y Epic Games vinculadas a este perfil.",
     "available_on_steam_and_epic": "Disponible en Steam y Epic Games",
     "available_on_steam": "Disponible en Steam",
-    "available_on_epic": "Disponible en Epic Games"
+    "available_on_epic": "Disponible en Epic Games",
+    "filters": "Filtros",
+    "filters_active": "Filtros activos",
+    "clear_filters": "Borrar filtros",
+    "all_games": "Todos los juegos",
+    "view_mode": "Vista",
+    "view_compact": "Compacta",
+    "view_grid": "Cuadrícula",
+    "view_large": "Grande"
   },
   "notifications_page": {
     "cloud_gift_received_title": "Has recibido Hydra Cloud",

@@ -8,7 +8,7 @@
   border: none;
   cursor: pointer;
   color: globals.$body-color;
-  font-size: 12px;
+  font-size: globals.$small-font-size;
   padding: 0;
 
   &__label {
@@ -27,12 +27,12 @@
 
   &--section {
     width: 100%;
-    gap: 10px;
-    font-size: 13px;
-    padding: 12px 14px;
+    gap: globals.$spacing-unit;
+    font-size: globals.$hint-font-size;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     border: 1px solid globals.$border-color;
     border-radius: 8px;
-    background: #0d0d0d;
+    background: globals.$dark-background-color;
     justify-content: flex-start;
 
     .classics-scan-indicator__percent {

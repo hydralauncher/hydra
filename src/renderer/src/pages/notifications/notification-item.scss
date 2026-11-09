@@ -26,10 +26,6 @@
     &:hover {
       opacity: 1;
     }
-
-    .notification-item__title {
-      color: #fff;
-    }
   }
 
   &__picture {
@@ -42,7 +38,7 @@
     align-items: center;
     justify-content: center;
     background-color: globals.$background-color;
-    color: #fff;
+    color: globals.$muted-color;
 
     img {
       width: 100%;
@@ -75,7 +71,7 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      padding: 6px;
+      padding: globals.$spacing-unit;
     }
   }
 
@@ -94,8 +90,8 @@
 
     .leaderboard-rank-chip {
       height: 18px;
-      padding: 0 6px;
-      font-size: 11px;
+      padding: 0 calc(globals.$spacing-unit / 2);
+      font-size: globals.$tiny-font-size;
     }
   }
 
@@ -118,7 +114,7 @@
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
     font-size: globals.$small-font-size;
-    color: rgba(255, 255, 255, 0.5);
+    color: globals.$subtle-color;
   }
 
   &__actions {

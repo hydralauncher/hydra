@@ -6,14 +6,14 @@
   gap: 16px;
 
   &__description {
-    font-size: 12px;
-    color: var(--text-muted);
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
     margin: 0;
     line-height: 1.5;
   }
 
   &__error {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: globals.$error-color;
     margin: 0;
     line-height: 1.5;
@@ -22,13 +22,13 @@
   &__section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__section-content {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
 
     &--disabled {
       opacity: 0.5;
@@ -44,7 +44,7 @@
     background: globals.$dark-background-color;
     color: #dadbe1;
     font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     line-height: 1.5;
     resize: none;
 
@@ -66,7 +66,7 @@
     background: globals.$dark-background-color;
     color: #dadbe1;
     font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
 
     &:focus {
       outline: none;

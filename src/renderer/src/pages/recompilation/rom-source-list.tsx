@@ -7,6 +7,7 @@ import type { DownloadSource, GameRepack } from "@types";
 import { getDownloadersForUri, getRepackUriParts } from "@shared";
 
 import { Button } from "@renderer/components/button/button";
+import { beginDownloadFlight } from "@renderer/components/sidebar/download-flight";
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
 import { TextField } from "@renderer/components/text-field/text-field";
 import { gameDetailsContext } from "@renderer/context";
@@ -62,7 +63,8 @@ function RomSourceRow({
   );
   const [isStarting, setIsStarting] = useState(false);
 
-  const start = async () => {
+  const start = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    const source = event.currentTarget;
     const downloadOptions = getDownloadOptions(repack, {
       userPreferences,
       hasActiveSubscription,
@@ -87,6 +89,7 @@ function RomSourceRow({
       return;
     }
 
+    const flight = beginDownloadFlight(source);
     setIsStarting(true);
     const response = await startDownload({
       objectId,
@@ -104,8 +107,10 @@ function RomSourceRow({
     setIsStarting(false);
 
     if (response.ok) {
+      flight.launch(null);
       onStarted();
     } else {
+      flight.cancel();
       showErrorToast(t("rom_download_failed"));
     }
   };

@@ -8,33 +8,19 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-height: 80vh;
-
-    @media (min-width: 1024px) {
-      max-height: 70vh;
-    }
-
-    @media (min-width: 1280px) {
-      max-height: 60vh;
-    }
   }
 
+  // Fixed 16:9 box (Steam trailers and screenshots are 16:9), so the
+  // carousel never resizes when the skeleton, poster, video metadata or
+  // images arrive.
   &__viewport {
     width: 100%;
-    height: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 60vh;
     position: relative;
     overflow: hidden;
     border-radius: 8px;
-
-    @media (min-width: 1280px) {
-      width: 60%;
-      max-height: 500px;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-      max-height: 600px;
-    }
+    max-width: globals.$page-column-max-width;
   }
 
   &__container-inner {
@@ -45,6 +31,7 @@
   &__slide {
     flex: 0 0 100%;
     min-width: 0;
+    height: 100%;
     position: relative;
     display: flex;
     align-items: center;
@@ -98,14 +85,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     gap: calc(globals.$spacing-unit / 2);
-
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
+    max-width: globals.$page-column-max-width;
 
     &::-webkit-scrollbar-thumb {
       width: 20%;
@@ -127,7 +107,7 @@
 
   &__preview-button {
     cursor: pointer;
-    width: 20%;
+    width: 12%;
     display: block;
     flex-shrink: 0;
     flex-grow: 0;
@@ -140,18 +120,6 @@
     overflow: hidden;
     position: relative;
     aspect-ratio: 1 / 1;
-
-    @media (min-width: 1024px) {
-      width: 15%;
-    }
-
-    @media (min-width: 1280px) {
-      width: 12%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 10%;
-    }
 
     &:hover {
       opacity: 0.8;

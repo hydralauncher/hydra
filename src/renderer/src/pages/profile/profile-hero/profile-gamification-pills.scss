@@ -3,8 +3,8 @@
 .profile-gamification-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
+  gap: globals.$spacing-unit;
+  margin-top: globals.$spacing-unit;
 
   &__pill {
     position: relative;
@@ -13,7 +13,7 @@
     align-items: center;
     gap: globals.$spacing-unit;
     height: 34px;
-    padding: 0 10px 0 6px;
+    padding: 0 calc(globals.$spacing-unit * 1.5) 0 globals.$spacing-unit;
     border-radius: 6px;
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
@@ -27,7 +27,7 @@
     }
 
     &--level {
-      padding-left: 10px;
+      padding-left: calc(globals.$spacing-unit * 1.5);
     }
 
     &--clickable {

@@ -4,8 +4,6 @@
 
 $popover-background: #1c1c1c;
 $popover-border: rgba(255, 255, 255, 0.1);
-$faded-text: rgba(globals.$body-color, 0.7);
-$meta-text: rgba(globals.$body-color, 0.6);
 // Message links; each keeps 6:1 contrast on its bubble.
 $link-color: #7aa2ff;
 $mine-link-color: #2350c8;
@@ -302,11 +300,11 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     flex-shrink: 0;
     min-width: 18px;
     height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
+    padding: 0 calc(globals.$spacing-unit / 2);
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.08);
     color: globals.$body-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1;
   }
@@ -314,7 +312,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__sidebar-title {
     min-width: 0;
     margin: 0;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     color: globals.$muted-color;
     white-space: nowrap;
@@ -325,7 +323,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   // Its icon sits 16px in, on the title's and the avatars' left edge (the
   // margin, the padding and the border).
   &__sidebar-search.chat-window__emoji-search {
-    margin: 10px globals.$spacing-unit 6px;
+    margin: globals.$spacing-unit;
     padding-left: 7px;
     background-color: globals.$background-color;
     -webkit-app-region: no-drag;
@@ -380,7 +378,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__sidebar-row-button {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
     flex: 1;
     min-width: 0;
     height: 100%;
@@ -423,7 +421,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     gap: 4px;
     flex: 1;
     min-width: 0;
-    font-size: 13px;
+    font-size: globals.$body-font-size;
     font-weight: 700;
     color: globals.$muted-color;
   }
@@ -450,8 +448,8 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__sidebar-row-time {
     flex-shrink: 0;
-    font-size: 11px;
-    color: $meta-text;
+    font-size: globals.$tiny-font-size;
+    color: globals.$subtle-color;
   }
 
   &__sidebar-row-bottom {
@@ -460,7 +458,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     gap: globals.$spacing-unit;
     min-width: 0;
     font-size: globals.$small-font-size;
-    color: $faded-text;
+    color: globals.$subtle-color;
 
     > :first-child {
       flex: 1;
@@ -488,7 +486,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     margin: 0;
     padding: 24px 16px;
     font-size: globals.$hint-font-size;
-    color: $faded-text;
+    color: globals.$subtle-color;
     text-align: center;
   }
 
@@ -526,7 +524,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     z-index: globals.$title-bar-z-index;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
     flex-shrink: 0;
     height: $header-height;
     padding: 0 0 0 calc(globals.$spacing-unit * 2);
@@ -595,7 +593,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__conversation-name {
     max-width: 100%;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 700;
     color: globals.$muted-color;
     white-space: nowrap;
@@ -608,7 +606,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__conversation-title {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     max-width: 100%;
     min-width: 0;
   }
@@ -631,7 +629,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   &__picker-details {
@@ -642,7 +640,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__picker-name {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
     color: globals.$muted-color;
     white-space: nowrap;
@@ -660,7 +658,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     background-color: rgba(255, 255, 255, 0.1);
     border: none;
     border-radius: 6px;
-    color: $faded-text;
+    color: globals.$subtle-color;
     cursor: pointer;
     transition:
       background-color 0.15s ease,
@@ -707,9 +705,9 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     margin: 0;
     padding: globals.$spacing-unit calc(globals.$spacing-unit * 2) 12px;
     border-top: 1px solid globals.$border-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     line-height: 16px;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   // Rows drop in one after another as the picker opens.
@@ -717,13 +715,13 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
     flex-shrink: 0;
     height: 44px;
     padding: 0 globals.$spacing-unit;
     background: none;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     color: inherit;
     font-family: inherit;
     text-align: left;
@@ -791,16 +789,16 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__picker-open {
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   &__picker-empty {
     margin: 0;
-    padding: 20px 16px 24px;
-    font-size: 13px;
-    color: $faded-text;
+    padding: calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 2);
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
     text-align: center;
   }
 
@@ -827,7 +825,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 8px;
     background-color: globals.$error-color;
     color: #ffffff;
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1;
   }
@@ -930,10 +928,10 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__friend-status {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 0;
     font-size: globals.$small-font-size;
-    color: $faded-text;
+    color: globals.$subtle-color;
 
     &--highlight {
       color: globals.$body-color;
@@ -948,7 +946,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__game-icon {
     flex-shrink: 0;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   &__conversation {
@@ -1038,7 +1036,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     height: 56px;
     background-color: $popover-background;
     border: 1px solid globals.$border-color;
-    border-radius: 14px;
+    border-radius: 12px;
     color: globals.$body-color;
   }
 
@@ -1068,7 +1066,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     margin: 0;
     font-size: globals.$hint-font-size;
     line-height: 20px;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   // Holds the list with its overlay scrollbar and jump button.
@@ -1120,7 +1118,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     top: 0;
     right: 0;
     width: 4px;
-    border-radius: 3px;
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.22);
     pointer-events: auto;
     transition:
@@ -1181,12 +1179,12 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     justify-content: center;
     min-width: 18px;
     height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
+    padding: 0 calc(globals.$spacing-unit / 2);
+    border-radius: 999px;
     background-color: globals.$muted-color;
     border: 2px solid globals.$background-color;
     color: globals.$background-color;
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1;
     // Lands just after the button.
@@ -1217,7 +1215,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: $meta-text;
+    color: globals.$subtle-color;
 
     &::before,
     &::after {
@@ -1252,17 +1250,17 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     top: globals.$spacing-unit;
     left: 50%;
     z-index: 1;
-    padding: 3px 10px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     transform: translateX(-50%);
     background-color: rgba($popover-background, 0.92);
     border: 1px solid globals.$border-color;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: rgba(globals.$body-color, 0.8);
+    color: globals.$subtle-color;
     pointer-events: none;
     animation: chat-window-fade-in 0.15s ease;
   }
@@ -1282,7 +1280,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     width: 100%;
 
     // The row grows from zero height so earlier messages glide up while the
@@ -1437,8 +1435,9 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     flex-direction: column;
     align-items: flex-start;
     min-width: 0;
-    margin: -2px -6px 6px;
-    padding: 5px globals.$spacing-unit 6px;
+    margin: calc(globals.$spacing-unit / -2) calc(globals.$spacing-unit * -1)
+      globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     background-color: rgba(255, 255, 255, 0.06);
     border: none;
     border-radius: 6px;
@@ -1458,7 +1457,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
       font-size: globals.$small-font-size;
       font-style: italic;
       line-height: 16px;
-      color: rgba(globals.$body-color, 0.75);
+      color: globals.$subtle-color;
       white-space: normal;
       cursor: default;
 
@@ -1484,7 +1483,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     text-overflow: ellipsis;
     font-size: globals.$small-font-size;
     line-height: 16px;
-    color: rgba(globals.$body-color, 0.75);
+    color: globals.$subtle-color;
   }
 
   &__message-group--mine &__message-quote {
@@ -1532,7 +1531,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__message-link {
-    border-radius: 2px;
+    border-radius: 4px;
     color: $link-color;
     text-decoration: none;
     cursor: pointer;
@@ -1613,11 +1612,11 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__message-group--mine &__message--removed {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     background-color: transparent;
     border: 1px dashed rgba(255, 255, 255, 0.2);
-    color: $faded-text;
-    font-size: 13px;
+    color: globals.$subtle-color;
+    font-size: globals.$hint-font-size;
     font-style: italic;
     user-select: none;
   }
@@ -1639,11 +1638,12 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     z-index: 2;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
     width: 360px;
     max-width: calc(100% - 120px);
     box-sizing: border-box;
-    padding: 10px globals.$spacing-unit 10px calc(globals.$spacing-unit * 1.5);
+    padding: globals.$spacing-unit globals.$spacing-unit globals.$spacing-unit
+      calc(globals.$spacing-unit * 1.5);
     background-color: $popover-background;
     border: 1px solid globals.$border-color;
     border-radius: 8px;
@@ -1671,7 +1671,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__toast-title {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 700;
     color: globals.$muted-color;
   }
@@ -1679,7 +1679,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__toast-description {
     font-size: globals.$small-font-size;
     line-height: 16px;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   &__toast-dismiss {
@@ -1704,7 +1704,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__empty-retry {
-    padding: 6px calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5);
     background-color: $popover-background;
     border: 1px solid globals.$border-color;
     border-radius: 6px;
@@ -1720,7 +1720,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__message-time {
     margin-top: 2px;
     font-size: globals.$small-font-size;
-    color: $meta-text;
+    color: globals.$subtle-color;
 
     &--enter {
       animation: chat-window-fade-in 0.2s ease 0.12s both;
@@ -1791,7 +1791,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     position: relative;
     flex-shrink: 0;
     padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
-      10px;
+      globals.$spacing-unit;
   }
 
   &__composer-box {
@@ -1831,7 +1831,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     min-height: 44px;
     box-sizing: border-box;
     padding: 6px 6px 6px calc(globals.$spacing-unit * 1.5);
@@ -1842,14 +1842,14 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__read-only-icon {
     flex-shrink: 0;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   &__read-only-text {
     flex: 1 1 160px;
     min-width: 0;
     font-size: globals.$hint-font-size;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   &__read-only-button {
@@ -1898,7 +1898,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__composer-reply-target {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     flex: 1;
     min-width: 0;
     padding: 0;
@@ -1912,7 +1912,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__composer-reply-icon {
     flex-shrink: 0;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   &__composer-reply-details {
@@ -1925,7 +1925,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__composer-reply-label {
     font-size: globals.$small-font-size;
     line-height: 16px;
-    color: $meta-text;
+    color: globals.$subtle-color;
 
     strong {
       font-weight: 700;
@@ -1970,7 +1970,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__composer-overflow {
-    border-radius: 2px;
+    border-radius: 4px;
     background-color: rgba(globals.$error-color, 0.35);
     color: transparent;
   }
@@ -2061,7 +2061,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__send-cooldown-seconds {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: globals.$error-color;
@@ -2074,7 +2074,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     align-items: flex-start;
     gap: calc(globals.$spacing-unit * 1.5);
     min-height: 16px;
-    margin-top: 6px;
+    margin-top: globals.$spacing-unit;
   }
 
   &__composer-counter {
@@ -2083,7 +2083,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     font-size: globals.$small-font-size;
     font-variant-numeric: tabular-nums;
     line-height: 16px;
-    color: $meta-text;
+    color: globals.$subtle-color;
 
     &--over {
       font-weight: 700;
@@ -2094,12 +2094,12 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__composer-hint {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 0;
     margin: 0;
     font-size: globals.$small-font-size;
     line-height: 16px;
-    color: $meta-text;
+    color: globals.$subtle-color;
     animation: chat-window-fade-in 0.2s ease;
 
     &--error {
@@ -2163,7 +2163,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     flex-wrap: wrap;
     gap: 4px;
     margin-top: -8px;
-    padding: 0 10px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
 
     &--end {
       justify-content: flex-end;
@@ -2198,7 +2198,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
       opacity 0.15s ease;
 
     .chat-window__emoji-glyph {
-      font-size: 14px;
+      font-size: globals.$body-font-size;
     }
 
     &--enter {
@@ -2231,7 +2231,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__reaction-count {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -2245,7 +2245,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 6px 10px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     background-color: $popover-background;
     border: 1px solid $popover-border;
     border-radius: 6px;
@@ -2280,9 +2280,9 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__reaction-tooltip-hint {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     line-height: 14px;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   &__message-action--active {
@@ -2428,7 +2428,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     flex-shrink: 0;
     height: 32px;
     margin: globals.$spacing-unit globals.$spacing-unit 0;
-    padding: 0 6px 0 10px;
+    padding: 0 globals.$spacing-unit;
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 6px;
@@ -2441,7 +2441,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__emoji-search-icon {
     flex-shrink: 0;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   &__emoji-search-input {
@@ -2487,7 +2487,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     display: flex;
     gap: 2px;
     flex-shrink: 0;
-    padding: 6px globals.$spacing-unit;
+    padding: globals.$spacing-unit;
     border-bottom: 1px solid globals.$border-color;
   }
 
@@ -2501,7 +2501,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     background: none;
     border: none;
     border-radius: 6px;
-    color: $meta-text;
+    color: globals.$subtle-color;
     cursor: pointer;
     transition:
       background-color 0.15s ease,
@@ -2529,12 +2529,12 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__emoji-section-title {
-    padding: 6px 4px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit / 2);
     font-size: globals.$small-font-size;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   // A <fieldset>, without its default frame.
@@ -2595,13 +2595,13 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     margin: 0;
     font-size: globals.$small-font-size;
     line-height: 18px;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   &__emoji-footer {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     flex-shrink: 0;
     height: 44px;
     padding: 0 calc(globals.$spacing-unit * 1.5);
@@ -2663,7 +2663,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   &__composer-images {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
     margin: 0;
     padding: 12px 12px 4px;
     list-style: none;
@@ -2708,7 +2708,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -2774,7 +2774,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
     border: 1px dashed rgba(globals.$muted-color, 0.45);
     border-radius: 8px;
     color: globals.$muted-color;
@@ -2786,7 +2786,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__drop-description {
     font-size: globals.$small-font-size;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   // Corners follow the bubbles': tight on the sender's side between the
@@ -2928,7 +2928,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     position: absolute;
     top: 50%;
     left: 50%;
-    padding: 4px 10px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     transform: translate(-50%, -50%);
     background-color: rgba(globals.$background-color, 0.8);
     border-radius: 4px;
@@ -2967,7 +2967,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     background-color: rgba(globals.$background-color, 0.55);
     color: globals.$muted-color;
     animation: chat-window-fade-in 0.16s ease;
@@ -2978,14 +2978,14 @@ $cooldown-ring-length: 2 * math.$pi * 11;
   }
 
   &__message-images-overlay-title {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
   }
 
   &__message-images-retry {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     height: 32px;
     padding: 0 12px;
     background-color: rgba(globals.$background-color, 0.85);
@@ -2993,7 +2993,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     border-radius: 6px;
     color: globals.$muted-color;
     font-family: inherit;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     cursor: pointer;
 
@@ -3010,18 +3010,18 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     padding: 0 globals.$spacing-unit;
     background-color: transparent;
     border: 1px dashed rgba(255, 255, 255, 0.2);
     font-size: globals.$small-font-size;
     text-align: center;
-    color: $faded-text;
+    color: globals.$subtle-color;
     user-select: none;
   }
 
   &__message-images-removed-title {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     color: globals.$muted-color;
   }
@@ -3059,7 +3059,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     font-size: globals.$small-font-size;
     font-variant-numeric: tabular-nums;
     text-align: right;
-    color: $meta-text;
+    color: globals.$subtle-color;
 
     &--checking {
       animation: chat-window-image-checking 1s ease-in-out infinite;
@@ -3119,7 +3119,7 @@ $cooldown-ring-length: 2 * math.$pi * 11;
 
   &__lightbox-caption {
     font-size: globals.$small-font-size;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   &__lightbox-close {

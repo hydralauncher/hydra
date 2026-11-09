@@ -20,9 +20,9 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: -5px;
+    left: calc(globals.$spacing-unit / -2);
     width: 2px;
-    padding: 0 5px;
+    padding: 0 calc(globals.$spacing-unit / 2);
     border: none;
     background-color: rgba(255, 255, 255, 0.12);
     background-clip: content-box;
@@ -54,7 +54,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    margin-bottom: calc(globals.$spacing-unit * 0.75);
+    margin-bottom: globals.$spacing-unit;
     position: relative;
 
     button {
@@ -68,8 +68,7 @@
       aspect-ratio: 388 / 56;
       min-height: 64px;
       max-height: 110px;
-      padding: calc(globals.$spacing-unit * 1.5)
-        calc(globals.$spacing-unit * 1.25);
+      padding: calc(globals.$spacing-unit * 1.5);
       border-radius: 8px;
 
       &::after {
@@ -121,8 +120,8 @@
   &__reply-date {
     align-self: flex-start;
     flex-shrink: 0;
-    padding-right: calc(globals.$spacing-unit * 1.75);
-    color: rgba(255, 255, 255, 0.5);
+    padding-right: calc(globals.$spacing-unit * 2);
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
     white-space: nowrap;
   }
@@ -147,19 +146,19 @@
   &__reply-action-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: calc(globals.$spacing-unit / 2);
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.78);
+    color: globals.$body-color;
     font-size: globals.$small-font-size;
     font-weight: 500;
     cursor: pointer;
-    padding: 4px 6px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 6px;
     transition: all 0.2s ease;
 
     &:hover:not(:disabled):not([aria-disabled="true"]) {
-      color: #ffffff;
+      color: globals.$muted-color;
       background: rgba(255, 255, 255, 0.12);
     }
 
@@ -171,7 +170,7 @@
   }
 
   &__delete-reply-button {
-    padding: 5px;
+    padding: calc(globals.$spacing-unit / 2);
     margin-left: auto;
   }
 
@@ -185,10 +184,10 @@
   &__reply-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.78);
+    color: globals.$body-color;
     font-size: globals.$small-font-size;
     font-weight: 600;
     cursor: pointer;
@@ -196,7 +195,7 @@
     transition: color 0.2s ease;
 
     &:hover {
-      color: #ffffff;
+      color: globals.$muted-color;
       text-decoration: underline;
     }
 
@@ -208,7 +207,7 @@
 
     &--primary {
       &:hover {
-        color: #ffffff;
+        color: globals.$muted-color;
       }
     }
   }
