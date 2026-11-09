@@ -271,6 +271,29 @@ const ppssppEntries = (
   ];
 };
 
+const shadps4Entries = (
+  os: InstallOs,
+  arch: InstallArch
+): EmulatorSourceEntry[] => {
+  if (arch !== "x64" || os === "darwin") return [];
+
+  return [
+    {
+      type: "github",
+      id: "shadps4-install",
+      binary: "shadps4",
+      repo: "shadps4-emu/shadps4",
+      channel: "latest",
+      channelLabel: null,
+      assetPattern:
+        os === "win32"
+          ? /^shadps4-win64-sdl-.*\.zip$/i
+          : /^shadps4-linux-sdl-.*\.zip$/i,
+      kind: "portable-archive",
+    },
+  ];
+};
+
 interface GithubTag {
   name: string;
 }
@@ -343,6 +366,7 @@ const githubEntries = (
   if (binary === "duckstation") return duckstationEntries(os, arch);
   if (binary === "pcsx2") return pcsx2Entries(os, arch);
   if (binary === "rpcs3") return rpcs3Entries(os, arch);
+  if (binary === "shadps4") return shadps4Entries(os, arch);
   if (binary === "ppsspp") return ppssppEntries(os, arch);
   return [];
 };

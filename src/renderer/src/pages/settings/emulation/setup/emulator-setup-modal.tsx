@@ -513,6 +513,7 @@ export function EmulatorSetupModal({
           )}
           {currentStep === "rom_folder" && (
             <SetupStepRomFolder
+              system={system}
               systemLabel={systemShort}
               folders={folders}
               ymlEntryCount={ymlEntryCount}

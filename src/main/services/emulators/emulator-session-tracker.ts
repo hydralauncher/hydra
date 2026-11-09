@@ -20,7 +20,13 @@ import {
   hasCloudSaveLaunchGuard,
   runAutomaticCloudSavePostExit,
 } from "../cloud-save";
+import { updateEmulatorConfig } from "./emulators-repository";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
+import {
+  findNewShadps4Pid,
+  readShadps4VersionAfterSession,
+} from "./shadps4-files";
+import { NativeAddon } from "../native-addon";
 import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
 import {
   cleanupEmulatorSouvenirSession,
@@ -49,11 +55,29 @@ export interface EmulatorSession {
   heartbeat: ReturnType<typeof setInterval> | null;
   child: ChildProcess;
   souvenirSession: EmulatorSouvenirSession | null;
+  knownShadps4Pids: Set<number>;
+  relaunchedPid: number | null;
+  relaunchWatch: ReturnType<typeof setInterval> | null;
 }
 
 export const emulatorSessions = new Map<string, EmulatorSession>();
 
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
+const SHADPS4_RELAUNCH_POLL_INTERVAL_MS = 2_000;
+
+const listShadps4Processes = async () => {
+  const processes = await NativeAddon.listProcesses().catch(() => []);
+  return processes.filter(({ name }) => name.toLowerCase().includes("shadps4"));
+};
+
+const isProcessAlive = (pid: number): boolean => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const sendPresencePing = async (gameKey: string): Promise<void> => {
   const game = await gamesSublevel.get(gameKey);
@@ -99,6 +123,16 @@ export const startEmulatorSession = async ({
     heartbeat: null,
     child,
     souvenirSession,
+    knownShadps4Pids: new Set(
+      system === "ps4"
+        ? [
+            ...(await listShadps4Processes()).map(({ pid }) => pid),
+            ...(child.pid ? [child.pid] : []),
+          ]
+        : []
+    ),
+    relaunchedPid: null,
+    relaunchWatch: null,
   };
 
   emulatorSessions.set(gameKey, session);
@@ -137,8 +171,7 @@ export const startEmulatorSession = async ({
   }
 
   const finalize = () => {
-    if (emulatorSessions.get(gameKey) !== session) return;
-    void finalizeEmulatorSession(gameKey);
+    void finalizeOrFollowRelaunch(gameKey, session);
   };
 
   child.once("exit", finalize);
@@ -159,6 +192,8 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   try {
     if (pid && process.platform !== "win32") {
       process.kill(-pid, "SIGKILL");
+    } else if (session.relaunchedPid) {
+      process.kill(session.relaunchedPid);
     } else {
       session.child.kill();
     }
@@ -182,6 +217,57 @@ export const stopAllEmulatorSouvenirCaptureSessions = async () => {
   }
 };
 
+const finalizeOrFollowRelaunch = async (
+  gameKey: string,
+  session: EmulatorSession
+): Promise<void> => {
+  if (emulatorSessions.get(gameKey) !== session || session.relaunchWatch) {
+    return;
+  }
+
+  const relaunchedPid =
+    session.system === "ps4"
+      ? findNewShadps4Pid(
+          await listShadps4Processes(),
+          session.knownShadps4Pids,
+          session.executablePath
+        )
+      : null;
+
+  if (emulatorSessions.get(gameKey) !== session || session.relaunchWatch) {
+    return;
+  }
+
+  if (relaunchedPid === null) {
+    await finalizeEmulatorSession(gameKey);
+    return;
+  }
+
+  session.relaunchedPid = relaunchedPid;
+  session.knownShadps4Pids.add(relaunchedPid);
+  session.relaunchWatch = setInterval(() => {
+    if (isProcessAlive(relaunchedPid)) return;
+    if (session.relaunchWatch) clearInterval(session.relaunchWatch);
+    session.relaunchWatch = null;
+    void finalizeOrFollowRelaunch(gameKey, session);
+  }, SHADPS4_RELAUNCH_POLL_INTERVAL_MS);
+  session.relaunchWatch.unref?.();
+};
+
+const refreshShadps4DetectedVersion = async (
+  executablePath: string
+): Promise<void> => {
+  const detectedVersion = readShadps4VersionAfterSession(executablePath);
+  if (!detectedVersion) return;
+
+  await updateEmulatorConfig("ps4", (current) => ({
+    ...current,
+    detectedVersion,
+  })).catch((error) => {
+    logger.warn("Failed to store shadPS4 version", error);
+  });
+};
+
 const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   const session = emulatorSessions.get(gameKey);
   if (!session) return;
@@ -190,6 +276,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   stopLinuxGameCaptureSession(gameKey);
   onScreenshotGameClosed(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
+  if (session.relaunchWatch) clearInterval(session.relaunchWatch);
   stopEmulatorSouvenirWatcher(gameKey);
   await cleanupEmulatorSouvenirSession(session.souvenirSession);
 
@@ -223,6 +310,10 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   };
 
   await gamesSublevel.put(gameKey, updated);
+
+  if (session.system === "ps4") {
+    await refreshShadps4DetectedVersion(session.executablePath);
+  }
 
   if (game.shop === "custom") return;
 

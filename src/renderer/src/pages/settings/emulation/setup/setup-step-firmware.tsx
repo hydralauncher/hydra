@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   CheckCircleFillIcon,
+  FileDirectoryIcon,
   GlobeIcon,
   LinkExternalIcon,
   SyncIcon,
@@ -11,7 +12,7 @@ import {
 import { Button } from "@renderer/components";
 import type { EmulatorConfig } from "@types";
 
-import { firmwarePageUrl } from "./ps-firmware-url";
+import { firmwareGuideUrl } from "./ps-firmware-url";
 
 interface Props {
   config: EmulatorConfig;
@@ -26,15 +27,21 @@ export function SetupStepFirmware({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation("settings");
   const [installed, setInstalled] = useState<boolean | null>(null);
+  const [firmwarePath, setFirmwarePath] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const isPs4 = config.system === "ps4";
+  const copyKey = (name: string) =>
+    isPs4 ? `setup_firmware_ps4_${name}` : `setup_firmware_${name}`;
 
   const probe = async () => {
     setChecking(true);
     try {
-      const result = await window.electron.checkPs3Firmware(
+      const result = await window.electron.checkEmulatorFirmware(
+        config.system,
         config.executablePath
       );
       setInstalled(result.installed);
+      setFirmwarePath(result.path);
       onFirmwareStatusChange(result.installed);
     } finally {
       setChecking(false);
@@ -53,10 +60,10 @@ export function SetupStepFirmware({
       </h3>
       <div>
         <p className="setup-modal__body-intro" style={{ margin: 0 }}>
-          {t("setup_firmware_intro_1")}
+          {t(copyKey("intro_1"))}
         </p>
         <p className="setup-modal__body-intro" style={{ margin: 0 }}>
-          {t("setup_firmware_intro_2")}
+          {t(copyKey("intro_2"))}
         </p>
       </div>
 
@@ -64,27 +71,42 @@ export function SetupStepFirmware({
         <div className="setup-modal__numbered-item">
           <span className="setup-modal__numbered-marker">1</span>
           <span className="setup-modal__numbered-text">
-            {t("setup_firmware_step_1")}
+            {t(copyKey("step_1"))}
           </span>
         </div>
         <div className="setup-modal__numbered-item">
           <span className="setup-modal__numbered-marker">2</span>
           <span className="setup-modal__numbered-text">
-            {t("setup_firmware_step_2")}
+            {t(copyKey("step_2"))}
           </span>
         </div>
       </div>
+
+      {isPs4 && firmwarePath && (
+        <div className="setup-modal__hint">
+          <button
+            type="button"
+            className="setup-modal__website-link"
+            onClick={() => window.electron.openFolder(firmwarePath)}
+          >
+            <FileDirectoryIcon size={14} />
+            <span>{firmwarePath}</span>
+          </button>
+        </div>
+      )}
 
       <div className="setup-modal__hint">
         <button
           type="button"
           className="setup-modal__website-link"
           onClick={() =>
-            window.electron.openExternal(firmwarePageUrl(i18n.language))
+            window.electron.openExternal(
+              firmwareGuideUrl(config.system, i18n.language)
+            )
           }
         >
           <GlobeIcon size={14} />
-          <span>{t("setup_firmware_guide")}</span>
+          <span>{t(copyKey("guide"))}</span>
           <LinkExternalIcon size={12} />
         </button>
       </div>
@@ -116,8 +138,8 @@ export function SetupStepFirmware({
             </span>
             <span className="setup-modal__alert-note">
               {installed
-                ? t("setup_firmware_found_note")
-                : t("setup_firmware_recheck_note")}
+                ? t(copyKey("found_note"))
+                : t(copyKey("recheck_note"))}
             </span>
           </div>
           {!installed && (

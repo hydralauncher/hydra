@@ -85,7 +85,7 @@ export function EmulatorDetail({
   const hasMemoryCards = supportsMemoryCards(config.system);
   const hasEmulatorSaves = supportsEmulatorSaves(config.system);
   const supportsBios = hasMemoryCards;
-  const supportsFirmware = config.system === "ps3";
+  const supportsFirmware = config.system === "ps3" || config.system === "ps4";
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
     readStoredTab(config.system)

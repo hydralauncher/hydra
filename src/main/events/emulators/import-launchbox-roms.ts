@@ -167,6 +167,7 @@ const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string | null> = {
   ps1: "PlayStation",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+  ps4: "PlayStation 4",
   psp: "PlayStation Portable",
   dolphin: null,
 };
@@ -366,6 +367,7 @@ const SYSTEM_CATALOGUE_PLATFORMS: Record<EmulatorSystem, string[]> = {
   ps1: ["Sony Playstation"],
   ps2: ["Sony Playstation 2"],
   ps3: ["Sony Playstation 3"],
+  ps4: ["Sony Playstation 4"],
   psp: ["Sony PSP"],
   dolphin: ["Nintendo GameCube", "Nintendo Wii"],
 };
@@ -570,7 +572,7 @@ const buildEnriched = (
 } => {
   const enriched: EnrichedGame[] = gameSkus.map(({ game, sku }) => {
     const groupKey =
-      system === "ps3"
+      system === "ps3" || system === "ps4"
         ? game.primaryPath
         : `${game.folderPath}::${stripDiscMarker(game.name)}`;
 

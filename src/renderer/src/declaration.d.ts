@@ -771,7 +771,8 @@ declare global {
       system: EmulatorSystem,
       language?: string
     ) => Promise<EmulatorConfig>;
-    checkPs3Firmware: (
+    checkEmulatorFirmware: (
+      system: EmulatorSystem,
       executablePath: string | null
     ) => Promise<{ installed: boolean; path: string | null }>;
     checkEmulatorBios: (

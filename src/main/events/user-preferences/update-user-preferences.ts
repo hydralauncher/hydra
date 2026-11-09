@@ -77,7 +77,7 @@ const prepareRunningLinuxCaptureSessions = async () => {
   const runningGameKeys = new Set(gamesPlaytime.keys());
 
   for (const [gameKey, session] of emulatorSessions) {
-    if (session.system !== "ps3") {
+    if (session.system !== "ps3" && session.system !== "ps4") {
       runningGameKeys.add(gameKey);
     }
   }

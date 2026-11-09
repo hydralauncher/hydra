@@ -2,6 +2,10 @@ import { existsSync, promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import type { EmulatorSystem } from "@types";
+
+import { resolveShadps4UserDir } from "./shadps4-files.js";
+
 const firmwareSearchDirs = (executablePath: string | null): string[] => {
   const home = homedir();
   const dirs: string[] = [];
@@ -47,6 +51,62 @@ export const findPs3FirmwareDirectory = async (
     }
   }
   return null;
+};
+
+const readConfiguredSysModulesDirectory = async (
+  userDir: string
+): Promise<string | null> => {
+  try {
+    const config = JSON.parse(
+      await fs.readFile(path.join(userDir, "config.json"), "utf8")
+    ) as { General?: { sys_modules_dir?: unknown } };
+    const configured = config.General?.sys_modules_dir;
+    return typeof configured === "string" && configured.trim()
+      ? configured
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+export const findPs4SysModulesDirectory = async (
+  executablePath: string | null
+): Promise<string> => {
+  const userDir = resolveShadps4UserDir(executablePath);
+  const configured = await readConfiguredSysModulesDirectory(userDir);
+  if (!configured) return path.join(userDir, "sys_modules");
+  return executablePath
+    ? path.resolve(path.dirname(executablePath), configured)
+    : configured;
+};
+
+const hasPs4SysModules = async (directory: string): Promise<boolean> => {
+  try {
+    const entries = await fs.readdir(directory);
+    return entries.some((entry) => entry.toLowerCase().endsWith(".sprx"));
+  } catch {
+    return false;
+  }
+};
+
+export const getEmulatorFirmwareStatus = async (
+  system: EmulatorSystem,
+  executablePath: string | null
+): Promise<{ installed: boolean; path: string | null }> => {
+  if (system === "ps3") {
+    const firmwarePath = await findPs3FirmwareDirectory(executablePath);
+    return { installed: firmwarePath !== null, path: firmwarePath };
+  }
+
+  if (system === "ps4") {
+    const modulesPath = await findPs4SysModulesDirectory(executablePath);
+    return {
+      installed: await hasPs4SysModules(modulesPath),
+      path: modulesPath,
+    };
+  }
+
+  return { installed: false, path: null };
 };
 
 export const isPs3FirmwareInstalled = async (

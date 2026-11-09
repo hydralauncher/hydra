@@ -7,7 +7,7 @@ import { useToast } from "@renderer/hooks";
 import type { EmulatorConfig } from "@types";
 
 import { EmulatorResourceRow } from "./emulator-resource-row";
-import { firmwarePageUrl } from "./setup/ps-firmware-url";
+import { firmwareGuideUrl } from "./setup/ps-firmware-url";
 
 interface FirmwareSectionProps {
   config: EmulatorConfig;
@@ -23,11 +23,13 @@ export function FirmwareSection({
   const [installed, setInstalled] = useState<boolean | null>(null);
   const [firmwarePath, setFirmwarePath] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const isPs4 = config.system === "ps4";
 
   const probe = useCallback(async () => {
     setChecking(true);
     try {
-      const result = await globalThis.window.electron.checkPs3Firmware(
+      const result = await globalThis.window.electron.checkEmulatorFirmware(
+        config.system,
         config.executablePath
       );
       setInstalled(result.installed);
@@ -36,7 +38,7 @@ export function FirmwareSection({
     } finally {
       setChecking(false);
     }
-  }, [config.executablePath]);
+  }, [config.system, config.executablePath]);
 
   useEffect(() => {
     probe().catch(() => {});
@@ -51,7 +53,11 @@ export function FirmwareSection({
   return (
     <EmulatorResourceRow
       title={t("firmware_section_title")}
-      description={t("firmware_section_description")}
+      description={t(
+        isPs4
+          ? "firmware_section_description_ps4"
+          : "firmware_section_description"
+      )}
       detected={!!installed}
       statusLabel={installed ? t("setup_firmware_found") : t("not_detected")}
       path={{
@@ -70,12 +76,14 @@ export function FirmwareSection({
           className="emulator-detail__res-link"
           onClick={() =>
             void globalThis.window.electron.openExternal(
-              firmwarePageUrl(i18n.language)
+              firmwareGuideUrl(config.system, i18n.language)
             )
           }
         >
           <LinkExternalIcon size={12} />
-          <span>{t("firmware_official_link")}</span>
+          <span>
+            {t(isPs4 ? "firmware_guide_link" : "firmware_official_link")}
+          </span>
         </button>
       }
       actions={
