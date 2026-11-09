@@ -44,6 +44,12 @@
     "unread_messages_one": "{{count}} unread message",
     "unread_messages_other": "{{count}} unread messages",
     "need_help": "Need help?",
+    "download_status_downloading": "Downloading, {{percentage}}",
+    "download_status_paused": "Queue paused at {{percentage}}",
+    "download_status_extracting": "Extracting, {{percentage}}",
+    "download_status_preparing": "Preparing download",
+    "download_status_queued_one": "{{count}} more in queue",
+    "download_status_queued_other": "{{count}} more in queue",
     "favorites": "Favorites",
     "add_custom_game_tooltip": "Add Custom Game",
     "filter_sort_tooltip": "Sort and filter",
@@ -193,7 +199,11 @@
     "scan_games_add_folder": "Add folder",
     "scan_games_remove_folder": "Remove folder",
     "scan_games_folders_hint_manual": "Add at least one folder to scan for games.",
-    "shop": "Shop"
+    "shop": "Shop",
+    "back": "Back",
+    "forward": "Forward",
+    "add_game": "Add game",
+    "clear_search": "Clear search"
   },
   "bottom_panel": {
     "reconnecting": "Reconnecting {{title}}…",
@@ -2550,7 +2560,15 @@
     "imported_from_steam_and_epic": "Imported from the Steam and Epic Games libraries linked to this profile.",
     "available_on_steam_and_epic": "Available on Steam and Epic Games",
     "available_on_steam": "Available on Steam",
-    "available_on_epic": "Available on Epic Games"
+    "available_on_epic": "Available on Epic Games",
+    "filters": "Filters",
+    "filters_active": "Filters on",
+    "clear_filters": "Clear filters",
+    "all_games": "All games",
+    "view_mode": "View",
+    "view_compact": "Compact",
+    "view_grid": "Grid",
+    "view_large": "Large"
   },
   "achievement": {
     "achievement_unlocked": "Achievement unlocked",

@@ -32,8 +32,8 @@
       globals.$background-color 50%,
       globals.$dark-background-color 100%
     );
-    padding: calc(globals.$spacing-unit * 1.5);
-    gap: calc(globals.$spacing-unit * 1.5);
+    padding: globals.$page-gutter;
+    gap: globals.$page-gutter;
   }
 
   &__description-content {
@@ -51,35 +51,21 @@
   &__description-title {
     font-size: 20px;
     font-weight: 600;
-    width: 100%;
-    margin: 0 auto;
-
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
+    @include globals.page-column;
   }
 
   &__description {
     user-select: text;
     line-height: 22px;
     font-size: globals.$body-font-size;
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
+    @include globals.page-column;
     overflow-x: auto;
     min-height: auto;
     transition: max-height 0.3s ease-in-out;
 
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
+    &--clamped {
+      max-height: 300px;
+      overflow: hidden;
     }
 
     &--collapsed {
@@ -105,7 +91,7 @@
 
     img,
     video {
-      border-radius: 5px;
+      border-radius: 4px;
       margin-top: globals.$spacing-unit;
       margin-bottom: calc(globals.$spacing-unit * 3);
       display: block !important;
@@ -136,8 +122,7 @@
     background: none;
     border: 1px solid globals.$border-color;
     color: globals.$body-color;
-    padding: calc(globals.$spacing-unit * 0.75)
-      calc(globals.$spacing-unit * 1.5);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     border-radius: 4px;
     cursor: pointer;
     font-size: globals.$body-font-size;
@@ -162,11 +147,6 @@
     // Ensure skeleton elements maintain proper spacing
     .description-header {
       margin-bottom: calc(globals.$spacing-unit * 1.5);
-    }
-
-    .content-sidebar {
-      min-width: 300px;
-      max-width: 300px;
     }
 
     // Hero panel skeleton spacing

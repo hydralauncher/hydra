@@ -1,5 +1,5 @@
 import { ChevronDownIcon } from "@primer/octicons-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-field";
 import { RadioField } from "@renderer/components/radio-field/radio-field";
 import SteamDeckLogo from "@renderer/assets/steam-deck-logo.svg?url";
@@ -32,14 +32,6 @@ export function ProtonCompatibilitySection({
   onDeckChange,
 }: ProtonCompatibilitySectionProps) {
   const [isOpen, setIsOpen] = useState(true);
-  const [height, setHeight] = useState(0);
-  const content = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (content.current) {
-      setHeight(isOpen ? content.current.scrollHeight : 0);
-    }
-  }, [isOpen, protonValue, deckChecked]);
 
   return (
     <div className="filter-section proton-compatibility-section">
@@ -65,9 +57,7 @@ export function ProtonCompatibilitySection({
       </button>
 
       <div
-        ref={content}
-        className="filter-section__content"
-        style={{ maxHeight: `${height}px` }}
+        className={`filter-section__content${isOpen ? "" : " filter-section__content--closed"}`}
       >
         <div className="filter-section__content-inner proton-compatibility-section__content-inner">
           <div className="proton-compatibility-section__control">

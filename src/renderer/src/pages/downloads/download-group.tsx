@@ -1161,7 +1161,22 @@ export function DownloadGroup({
     const step = getCompletedDownloadStep(game);
     const disabled = isGameDeleting(game.id);
 
-    if (step === "checking") return null;
+    // Hold the action's slot while the step resolves, so the row doesn't
+    // reflow when the button appears.
+    if (step === "checking") {
+      return (
+        <Button
+          theme="primary"
+          disabled
+          aria-hidden
+          tabIndex={-1}
+          className="download-group__simple-action-btn download-group__simple-action-btn--pending"
+        >
+          <PlayIcon size={16} />
+          {tGameDetails("play")}
+        </Button>
+      );
+    }
 
     if (step === "open-folder") {
       return (

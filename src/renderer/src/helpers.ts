@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
-import type { SortOption } from "./pages/library/filter-options";
+import type { SortOption } from "./pages/library/library-display-menu";
 import type { SkuRegion } from "./helpers/sku-region";
 import {
   appendProfileLibraryFilterParams,

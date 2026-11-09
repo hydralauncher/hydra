@@ -197,7 +197,7 @@
     padding: 0;
     background: none;
     border: none;
-    border-radius: 50%;
+    border-radius: 4px;
     cursor: pointer;
     transition: opacity 0.2s ease;
 
@@ -236,6 +236,7 @@
     color: globals.$body-color;
 
     small {
+      font-size: globals.$small-font-size;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -243,6 +244,7 @@
   }
 
   &__profile-status {
+    font-size: globals.$small-font-size;
     color: globals.$body-color;
     opacity: 0.7;
   }
@@ -351,7 +353,7 @@
     height: 40px;
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: 8px;
     transition:
       opacity 0.2s ease,
       background-color 0.2s ease;
@@ -395,7 +397,7 @@
     height: 40px;
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: border-color ease 0.2s;
 
     &:hover {
@@ -514,12 +516,12 @@
     flex-shrink: 0;
     min-width: 18px;
     height: 18px;
-    padding: 0 5px;
+    padding: 0 calc(globals.$spacing-unit / 2);
     margin-left: calc(globals.$spacing-unit / 2);
-    border-radius: 9px;
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.12);
     color: globals.$muted-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
     line-height: 1;
 
@@ -613,7 +615,7 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: background-color 0.2s ease;
     // Skip layout + paint for rows outside the viewport — near-free
     // virtualization for the ~100-row list.
@@ -727,7 +729,7 @@
     border-radius: 8px;
     background-color: globals.$error-color;
     color: #ffffff;
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1;
     pointer-events: none;
@@ -811,8 +813,8 @@
   }
 
   &__friend-status {
-    color: globals.$body-color;
-    opacity: 0.7;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
   }
 
   &__game-info {
@@ -822,6 +824,7 @@
     color: globals.$body-color;
 
     small {
+      font-size: globals.$small-font-size;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -829,7 +832,7 @@
   }
 
   &__game-icon {
-    border-radius: 2px;
+    border-radius: 4px;
     flex-shrink: 0;
   }
 
@@ -875,8 +878,7 @@
     margin: 0;
     padding: globals.$spacing-unit;
     font-size: globals.$small-font-size;
-    color: globals.$body-color;
-    opacity: 0.7;
+    color: globals.$subtle-color;
   }
 }
 

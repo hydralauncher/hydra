@@ -1,3 +1,5 @@
+@use "../../scss/globals.scss";
+
 .steam-library-badge {
   display: inline-flex;
   align-items: center;
@@ -52,7 +54,7 @@
   }
 
   &__additional {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1;
   }

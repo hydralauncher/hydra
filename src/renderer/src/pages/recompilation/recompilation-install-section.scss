@@ -8,13 +8,13 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fafafa;
-  color: #0a0a0a;
+  background: globals.$muted-color;
+  color: globals.$dark-background-color;
 
   &--off {
     border: 1px solid rgba(255, 255, 255, 0.05);
     background: rgba(255, 255, 255, 0.08);
-    color: #a1a1aa;
+    color: globals.$subtle-color;
   }
 }
 
@@ -27,7 +27,7 @@
   &__item {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
 
     & + & {
       padding-top: calc(globals.$spacing-unit * 2);
@@ -38,16 +38,17 @@
   &__item-head {
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: #fafafa;
-    font-size: 14px;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: globals.$body-font-size;
   }
 
   &__item-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-left: 28px;
+    gap: globals.$spacing-unit;
+    // Lines up with the item title, past the 18px status dot.
+    padding-left: calc(18px + globals.$spacing-unit);
     min-width: 0;
   }
 
@@ -74,7 +75,7 @@
   &__location-label {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     flex-shrink: 0;
     margin-right: auto;
     color: globals.$muted-color;
@@ -111,7 +112,7 @@
   &__rom {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     min-width: 0;
   }
 

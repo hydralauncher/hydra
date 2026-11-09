@@ -32,7 +32,7 @@
     border-radius: 4px;
     color: #ffffff;
     padding: 6px 12px;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     cursor: pointer;
     transition:
       border-color 0.2s ease,
