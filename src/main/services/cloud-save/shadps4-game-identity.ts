@@ -12,9 +12,11 @@ import {
   safeRelativeSegments,
 } from "./emulator-provider-identity.js";
 import {
+  findShadps4SaveTitleIndex,
   isShadps4SyncedSaveFile,
   normalizeShadps4Serial,
   readShadps4DiscIds,
+  shadps4GameFolders,
   type Shadps4DiscIds,
 } from "./shadps4-save-layout.js";
 
@@ -26,7 +28,7 @@ export const inspectShadps4DiscIdentity = async (
     discPath: string
   ) => Promise<Shadps4DiscIds | null> = readShadps4DiscIds
 ): Promise<{ status: EmulatorDiscIdentityStatus; saveTitleIds: string[] }> => {
-  const discs = (game.discs ?? []).filter((disc) => disc.path.trim());
+  const discs = shadps4GameFolders(game);
   if (!discs.length) {
     return {
       status: { status: "missing", path: null, titleId: null },
@@ -70,14 +72,9 @@ export const assertShadps4DiscIdentity = async (game: Game) => {
 };
 
 const saveTitleIdForSegments = (segments: string[]) => {
-  const savedataIndex = segments.findLastIndex(
-    (segment) => segment.toLowerCase() === "savedata"
-  );
-  if (savedataIndex < 0) return null;
-  const saveTitleId = normalizeShadps4Serial(segments[savedataIndex + 1]);
-  return saveTitleId === segments[savedataIndex + 1] &&
-    isShadps4SyncedSaveFile(segments.slice(savedataIndex + 2))
-    ? saveTitleId
+  const index = findShadps4SaveTitleIndex(segments);
+  return index >= 0 && isShadps4SyncedSaveFile(segments.slice(index + 2))
+    ? segments[index + 1]
     : null;
 };
 

@@ -115,10 +115,11 @@ const scanSaveTitle = async (
   let complete = true;
   for (const save of saves) {
     if (isShadps4BackupDir(save.name)) continue;
-    if (!save.isDirectory() || save.isSymbolicLink()) {
+    if (save.isSymbolicLink()) {
       complete = false;
       continue;
     }
+    if (!save.isDirectory()) continue;
     const scanned = await listSafeFiles(path.join(titleRoot, save.name));
     complete &&= scanned.complete;
     for (const absolutePath of scanned.files) {

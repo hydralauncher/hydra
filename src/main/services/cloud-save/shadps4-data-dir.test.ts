@@ -28,7 +28,6 @@ describe("shadPS4 data folder", () => {
     root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-shadps4-data-"));
     previousAppData = process.env["APPDATA"];
     previousXdgDataHome = process.env["XDG_DATA_HOME"];
-    // The platform default folder is <APPDATA|XDG_DATA_HOME>/shadPS4.
     process.env["APPDATA"] = path.join(root, "appdata");
     process.env["XDG_DATA_HOME"] = path.join(root, "appdata");
     await fs.mkdir(path.join(root, "emulator"), { recursive: true });
