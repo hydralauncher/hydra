@@ -5,6 +5,7 @@ import {
   promises as fs,
   readSync,
   readFileSync,
+  realpathSync,
   readdirSync,
   statSync,
 } from "node:fs";
@@ -134,19 +135,30 @@ interface Shadps4ProcessIdentity {
   environ?: Record<string, string> | null;
 }
 
+const resolveExecutableIdentity = (executablePath: string): string => {
+  let resolvedPath = executablePath;
+  try {
+    resolvedPath = realpathSync(executablePath);
+  } catch {
+    resolvedPath = executablePath;
+  }
+
+  return process.platform === "win32"
+    ? path.win32.normalize(resolvedPath).toLowerCase()
+    : resolvedPath;
+};
+
 const isSameExecutable = (
   { exe, environ }: Shadps4ProcessIdentity,
   executablePath: string
 ): boolean => {
-  if (process.platform === "win32") {
-    return (
-      Boolean(exe) &&
-      path.win32.normalize(exe as string).toLowerCase() ===
-        path.win32.normalize(executablePath).toLowerCase()
-    );
-  }
+  const target = resolveExecutableIdentity(executablePath);
 
-  return exe === executablePath || environ?.APPIMAGE === executablePath;
+  return [exe, environ?.APPIMAGE].some(
+    (candidate) =>
+      Boolean(candidate) &&
+      resolveExecutableIdentity(candidate as string) === target
+  );
 };
 
 export const findNewShadps4Pid = (
