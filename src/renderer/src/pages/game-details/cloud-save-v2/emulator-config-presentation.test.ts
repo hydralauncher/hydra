@@ -4,33 +4,33 @@ import { hasCloudSaveExecutableSelection } from "../../../../../shared/cloud-sav
 
 import {
   getCloudSavePanelMode,
-  getRpcs3ConfigWarningKey,
-  RPCS3_CONFIG_SETTINGS_URL,
-  shouldShowRpcs3IdentityCard,
-} from "./rpcs3-config-presentation.js";
+  getEmulatorConfigWarningKey,
+  emulatorConfigSettingsUrl,
+  shouldShowDiscIdentityCard,
+} from "./emulator-config-presentation.js";
 
 it("shows the specific RPCS3 configuration warning and links to PlayStation 3 settings", () => {
   assert.equal(
-    getRpcs3ConfigWarningKey("missing"),
+    getEmulatorConfigWarningKey("rpcs3", "missing"),
     "cloud_save_v2_rpcs3_config_missing"
   );
   assert.equal(
-    getRpcs3ConfigWarningKey("ambiguous"),
+    getEmulatorConfigWarningKey("rpcs3", "ambiguous"),
     "cloud_save_v2_rpcs3_config_ambiguous"
   );
   assert.equal(
-    getRpcs3ConfigWarningKey("invalid-selection"),
+    getEmulatorConfigWarningKey("rpcs3", "invalid-selection"),
     "cloud_save_v2_rpcs3_config_invalid-selection"
   );
-  assert.equal(getRpcs3ConfigWarningKey("ready"), null);
-  assert.equal(getRpcs3ConfigWarningKey("checking"), null);
+  assert.equal(getEmulatorConfigWarningKey("rpcs3", "ready"), null);
+  assert.equal(getEmulatorConfigWarningKey("rpcs3", "checking"), null);
   assert.equal(
-    getRpcs3ConfigWarningKey("error"),
+    getEmulatorConfigWarningKey("rpcs3", "error"),
     "cloud_save_v2_rpcs3_config_error"
   );
-  assert.equal(getRpcs3ConfigWarningKey(null), null);
+  assert.equal(getEmulatorConfigWarningKey("rpcs3", null), null);
   assert.equal(
-    RPCS3_CONFIG_SETTINGS_URL,
+    emulatorConfigSettingsUrl("rpcs3"),
     "/settings?tab=emulation&system=ps3&section=emulator"
   );
 });
@@ -41,14 +41,14 @@ it("replaces sync with a disc identity warning in both PS3 modals", () => {
     path: "/games/minecraft",
     titleId: "NPUB31419",
   };
-  assert.equal(shouldShowRpcs3IdentityCard(true, mismatch, false, false), true);
-  assert.equal(shouldShowRpcs3IdentityCard(true, mismatch, false, true), false);
+  assert.equal(shouldShowDiscIdentityCard(true, mismatch, false, false), true);
+  assert.equal(shouldShowDiscIdentityCard(true, mismatch, false, true), false);
   assert.equal(
-    shouldShowRpcs3IdentityCard(false, mismatch, false, false),
+    shouldShowDiscIdentityCard(false, mismatch, false, false),
     false
   );
   assert.equal(
-    shouldShowRpcs3IdentityCard(
+    shouldShowDiscIdentityCard(
       true,
       { status: "missing", path: null, titleId: null },
       false,
@@ -56,25 +56,25 @@ it("replaces sync with a disc identity warning in both PS3 modals", () => {
     ),
     false
   );
-  assert.equal(shouldShowRpcs3IdentityCard(true, null, true, false), true);
+  assert.equal(shouldShowDiscIdentityCard(true, null, true, false), true);
 });
 
 it("uses the RPCS3 setup card instead of a disabled sync action", () => {
   assert.equal(
     getCloudSavePanelMode(true, "not-configured", "content", false),
-    "rpcs3-config"
+    "emulator-config"
   );
   assert.equal(
     getCloudSavePanelMode(true, "ambiguous", "skeleton", false),
-    "rpcs3-config"
+    "emulator-config"
   );
   assert.equal(
     getCloudSavePanelMode(false, "not-configured", "content", false),
-    "rpcs3-config"
+    "emulator-config"
   );
   assert.equal(
     getCloudSavePanelMode(false, "ambiguous", "content", false),
-    "rpcs3-config"
+    "emulator-config"
   );
   assert.equal(
     getCloudSavePanelMode(true, "ready", "content", false),
@@ -112,7 +112,7 @@ it("checks emulator before ROM or disc and does not show a snapshot while blocke
   );
   assert.equal(
     getCloudSavePanelMode(false, "error", "content", false),
-    "rpcs3-config"
+    "emulator-config"
   );
   assert.equal(
     getCloudSavePanelMode(false, null, "content", false, "ready"),
@@ -139,7 +139,7 @@ it("asks for RPCS3 setup before a PS3 disc, then asks for the disc", () => {
       "content",
       false
     ),
-    "rpcs3-config"
+    "emulator-config"
   );
   assert.equal(
     getCloudSavePanelMode(

@@ -4,7 +4,7 @@ import { emulators } from "@main/services";
 import { platformToSystem } from "@main/helpers";
 import type { ClassicsDisc, GameShop } from "@types";
 import {
-  getCloudSaveEmulatorProvider,
+  getDiscCloudSaveEmulatorProvider,
   getCloudSaveRetroArchPlatform,
 } from "@shared";
 import { isCloudSaveSyncActive } from "@main/services/cloud-save/sync-game-cloud-save";
@@ -47,12 +47,13 @@ const updateClassicsDisc = async (
     throw new Error(`Game not found: ${gameKey}`);
   }
 
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, game.platform);
   if (
-    getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
+    discProvider &&
     (patch.addDisc || patch.removeDiscPath) &&
     isCloudSaveSyncActive(objectId, shop)
   ) {
-    throw new Error("cloud_save_rpcs3_disc_change_during_sync");
+    throw new Error(`cloud_save_${discProvider}_disc_change_during_sync`);
   }
 
   if (

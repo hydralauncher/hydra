@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { CloudSaveOverview, GameShop } from "@types";
+import { DISC_CLOUD_SAVE_ERROR_CODE } from "@shared";
 
 interface UseCloudSaveOverviewOptions {
   objectId: string;
@@ -58,7 +59,7 @@ export const useCloudSaveOverview = ({
           if (activeGameKey.current === requestedGameKey) {
             setHasRefreshError(true);
             setRefreshErrorCode(
-              /cloud_save_rpcs3_[a-z0-9_]+/.exec(
+              DISC_CLOUD_SAVE_ERROR_CODE.exec(
                 error instanceof Error ? error.message : String(error)
               )?.[0] ?? null
             );

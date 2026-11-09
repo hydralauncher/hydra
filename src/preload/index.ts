@@ -556,8 +556,8 @@ contextBridge.exposeInMainWorld("electron", {
   getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
   getRpcs3ConfigRootStatus: () =>
     ipcRenderer.invoke("getRpcs3ConfigRootStatus"),
-  getRpcs3DiscIdentityStatus: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getRpcs3DiscIdentityStatus", objectId, shop),
+  getEmulatorDiscIdentityStatus: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getEmulatorDiscIdentityStatus", objectId, shop),
   setRpcs3ConfigRoot: (root: string) =>
     ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
