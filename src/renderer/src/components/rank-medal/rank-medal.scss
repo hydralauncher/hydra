@@ -59,7 +59,7 @@ $frame-spinner-overscan: 64px;
 
   &__rank {
     font-family: inherit;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     fill: globals.$dark-background-color;
@@ -95,7 +95,7 @@ $frame-spinner-overscan: 64px;
   }
 
   &__number {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: var(

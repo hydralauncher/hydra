@@ -11,7 +11,7 @@
   background-color: rgba(globals.$border-color, 0.01);
   cursor: pointer;
   border: 1px dashed globals.$border-color;
-  border-radius: 12px;
+  border-radius: 8px;
   gap: 12px;
   transition: background-color 0.2s ease;
 
@@ -31,7 +31,7 @@
   &__text {
     text-align: center;
     max-width: 400px;
-    font-size: 14.5px;
+    font-size: globals.$body-font-size;
     line-height: 1.6;
     font-weight: 400;
     color: rgba(globals.$body-color, 0.85);

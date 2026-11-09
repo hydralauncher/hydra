@@ -16,14 +16,14 @@
   &__header-title {
     font-size: 16px;
     font-weight: 700;
-    color: #fafafa;
+    color: globals.$muted-color;
     letter-spacing: 0.16px;
     margin: 0;
   }
 
   &__header-subtitle {
-    font-size: 13px;
-    color: #8e919b;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
     margin: 0;
   }
 
@@ -35,16 +35,16 @@
   }
 
   &__body-title {
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     letter-spacing: -0.21px;
     margin: 0;
   }
 
   &__body-intro {
-    font-size: 14px;
-    color: #a1a1aa;
+    font-size: globals.$body-font-size;
+    color: globals.$subtle-color;
     line-height: 22px;
     margin: 0;
   }
@@ -54,7 +54,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 18px 0 4px;
+    padding: calc(globals.$spacing-unit * 2) 0 calc(globals.$spacing-unit / 2);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     margin-top: 24px;
   }
@@ -88,21 +88,21 @@
   &__ghost-button {
     background: transparent;
     border: 0;
-    color: #a1a1aa;
-    font-size: 13px;
+    color: globals.$subtle-color;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
-    padding: 10px 16px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
     border-radius: 8px;
     cursor: pointer;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
   &__dots {
     display: flex;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     flex-shrink: 0;
   }
 
@@ -118,17 +118,17 @@
   }
 
   &__row-card {
-    background: #121212;
+    background: globals.$background-color;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 18px;
+    border-radius: 12px;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2.5);
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 2);
   }
 
   &__download-card {
-    background: #121212;
+    background: globals.$background-color;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     padding: 16px 20px;
@@ -155,7 +155,7 @@
 
       &:hover {
         border-color: rgba(255, 255, 255, 0.06);
-        background: #121212;
+        background: globals.$background-color;
       }
     }
 
@@ -191,7 +191,7 @@
     align-items: center;
     gap: 8px;
     align-self: stretch;
-    padding: 16px 18px;
+    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 2.5);
     background: transparent;
     border: 0;
     cursor: pointer;
@@ -204,7 +204,7 @@
 
     &:hover .setup-modal__download-card-url,
     &:hover .setup-modal__download-card-ext {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
@@ -213,7 +213,7 @@
     height: 44px;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.06);
-    color: #fafafa;
+    color: globals.$muted-color;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -223,19 +223,19 @@
   &__download-card-main {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     flex: 1;
   }
 
   &__download-card-title {
     font-size: 16px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__download-card-desc {
-    font-size: 13px;
-    color: #a1a1aa;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
     line-height: 19px;
   }
 
@@ -250,8 +250,8 @@
   &__download-card-url {
     flex: 1;
     min-width: 0;
-    font-size: 11px;
-    color: #71717a;
+    font-size: globals.$tiny-font-size;
+    color: globals.$subtle-color;
     font-family: "JetBrains Mono", monospace;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -259,7 +259,7 @@
   }
 
   &__download-card-ext {
-    color: #71717a;
+    color: globals.$subtle-color;
     flex-shrink: 0;
   }
 
@@ -273,8 +273,8 @@
     flex-shrink: 0;
 
     &--warn {
-      background: rgba(245, 158, 11, 0.18);
-      color: #f59e0b;
+      background: rgba(globals.$warning-color, 0.18);
+      color: globals.$warning-color;
     }
 
     &--folder {
@@ -284,7 +284,7 @@
 
     &--neutral {
       background: rgba(255, 255, 255, 0.06);
-      color: #8e919b;
+      color: globals.$subtle-color;
     }
 
     &--found {
@@ -308,27 +308,27 @@
   }
 
   &__row-title {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__row-version {
-    font-size: 11px;
-    color: #71717a;
+    font-size: globals.$tiny-font-size;
+    color: globals.$subtle-color;
     font-family: "JetBrains Mono", monospace;
   }
 
   &__row-path {
-    font-size: 11px;
-    color: #a1a1aa;
+    font-size: globals.$tiny-font-size;
+    color: globals.$subtle-color;
     font-family: "JetBrains Mono", monospace;
     overflow-wrap: anywhere;
   }
 
   &__row-description {
-    font-size: 12px;
-    color: #a1a1aa;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
   }
 
   &__progress-bar {
@@ -341,7 +341,7 @@
 
   &__progress-fill {
     height: 100%;
-    background: #fafafa;
+    background: globals.$muted-color;
     border-radius: 999px;
     transition: width 0.15s ease;
 
@@ -365,7 +365,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     color: #c0c1c7;
   }
 
@@ -373,12 +373,12 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: #fafafa;
+    color: globals.$muted-color;
     font-weight: 600;
   }
 
   &__progress-check {
-    color: #8e919b;
+    color: globals.$subtle-color;
     flex-shrink: 0;
   }
 
@@ -406,7 +406,7 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    color: #fafafa;
+    color: globals.$muted-color;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -427,15 +427,15 @@
   }
 
   &__done-title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
-    color: #fafafa;
+    color: globals.$muted-color;
     margin: 0;
   }
 
   &__done-body {
-    font-size: 14px;
-    color: #a1a1aa;
+    font-size: globals.$body-font-size;
+    color: globals.$subtle-color;
     margin: 0;
     max-width: 440px;
     line-height: 22px;

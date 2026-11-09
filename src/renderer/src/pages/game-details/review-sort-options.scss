@@ -10,8 +10,8 @@
   }
 
   &__label {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
+    color: globals.$subtle-color;
+    font-size: globals.$body-font-size;
     font-weight: 400;
   }
 
@@ -19,10 +19,10 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit);
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     flex-wrap: wrap;
 
-    @media (max-width: 768px) {
+    @include globals.page-max-width(900px) {
       gap: calc(globals.$spacing-unit * 0.75);
     }
   }
@@ -33,7 +33,7 @@
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     padding: 4px 0;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 300;
     transition: all ease 0.2s;
     display: flex;
@@ -41,32 +41,32 @@
     gap: 4px;
 
     &:hover:not(:disabled) {
-      color: rgba(255, 255, 255, 0.6);
+      color: globals.$subtle-color;
     }
 
     &.active {
-      color: rgba(255, 255, 255, 0.9);
+      color: globals.$muted-color;
       font-weight: 500;
     }
 
     span {
       display: inline-block;
 
-      @media (max-width: 480px) {
+      @include globals.page-max-width(700px) {
         display: none;
       }
     }
 
-    @media (max-width: 480px) {
+    @include globals.page-max-width(700px) {
       gap: 0;
     }
   }
 
   &__separator {
     color: rgba(255, 255, 255, 0.3);
-    font-size: 14px;
+    font-size: globals.$body-font-size;
 
-    @media (max-width: 480px) {
+    @include globals.page-max-width(700px) {
       display: none;
     }
   }

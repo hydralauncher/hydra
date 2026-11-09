@@ -16,7 +16,7 @@ export interface RecompilationInstall {
   prepareFailed: boolean;
   install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
-  play: () => Promise<boolean>;
+  play: () => Promise<boolean | "already_running">;
   close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
 }
@@ -43,6 +43,8 @@ export function useRecompilationInstall(
     RecompilationPrepareProgress["phase"] | null
   >(null);
   const prepareErrorShown = useRef(false);
+  const currentSlug = useRef(slug);
+  currentSlug.current = slug;
 
   useEffect(() => {
     setPreparePhase(null);
@@ -107,10 +109,15 @@ export function useRecompilationInstall(
         { objectId, slug },
         parentDirectory
       );
+      // The page may show another port by now; its state must not change.
+      if (currentSlug.current !== slug) return { ...result, preparing: false };
       if (!result.ok) {
         setProgress(null);
         await refresh();
       }
+      // The reply can arrive before the "running" event, and the install
+      // modal reads this when it opens.
+      if (result.preparing) setPreparePhase("running");
       return result;
     },
     [objectId, slug, refresh]
@@ -131,6 +138,7 @@ export function useRecompilationInstall(
     const result = await window.electron
       .playRecompilation({ objectId, slug })
       .finally(() => setIsLaunching(false));
+    if (result.reason === "already_running") return "already_running";
     return (
       result.ok ||
       result.reason === "cloud_save_conflict" ||

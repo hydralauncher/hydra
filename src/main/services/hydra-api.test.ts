@@ -160,6 +160,8 @@ async function fixture(t: TestContext, apiUrl = "http://localhost:3000") {
     "./friends-snapshot": "export const FriendsSnapshotCache = { clear() {} };",
     "./chat/chat-unread-store":
       "export const ChatUnreadStore = { clear() {} };",
+    "./chat/chat-official-messages":
+      "export const ChatOfficialMessages = { stop() {} };",
     "./chat/chat-sender-profiles":
       "export const clearChatSenderProfiles = () => {};",
     "./notifications": "export const closeChatNotifications = () => {};",

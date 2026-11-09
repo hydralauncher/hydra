@@ -140,7 +140,7 @@ export function GameDetailsContent() {
       userDetailsId: userDetails?.id,
     });
 
-  const { showPrompt, dismissPrompt } = useReviewPrompt({
+  const { showPrompt, isPromptPending, dismissPrompt } = useReviewPrompt({
     shop,
     objectId,
     playTimeInMilliseconds: getDisplayedPlayTimeInMilliseconds({
@@ -174,9 +174,21 @@ export function GameDetailsContent() {
       return;
     }
 
+    const images = Array.from(el.querySelectorAll("img"));
+    const videos = Array.from(el.querySelectorAll("video"));
+    const isMediaPending = () =>
+      images.some((img) => !img.complete) ||
+      videos.some((video) => video.readyState === 0);
+
     const measure = () => {
       const collapsedMaxHeight = 300;
-      setIsDescriptionOverflowing(el.scrollHeight > collapsedMaxHeight);
+      // While media is still loading the text alone may fit, but the
+      // finished description almost never does. Assume it overflows until
+      // the media has loaded, so "Show more" doesn't pop in and push the
+      // page down later.
+      setIsDescriptionOverflowing(
+        el.scrollHeight > collapsedMaxHeight || isMediaPending()
+      );
     };
 
     measure();
@@ -184,15 +196,30 @@ export function GameDetailsContent() {
     const observer = new ResizeObserver(measure);
     observer.observe(el);
 
-    const images = Array.from(el.querySelectorAll("img"));
     const onMediaLoad = () => measure();
     images.forEach((img) => {
-      if (!img.complete) img.addEventListener("load", onMediaLoad);
+      if (!img.complete) {
+        img.addEventListener("load", onMediaLoad);
+        img.addEventListener("error", onMediaLoad);
+      }
+    });
+    videos.forEach((video) => {
+      if (video.readyState === 0) {
+        video.addEventListener("loadedmetadata", onMediaLoad);
+        video.addEventListener("error", onMediaLoad);
+      }
     });
 
     return () => {
       observer.disconnect();
-      images.forEach((img) => img.removeEventListener("load", onMediaLoad));
+      images.forEach((img) => {
+        img.removeEventListener("load", onMediaLoad);
+        img.removeEventListener("error", onMediaLoad);
+      });
+      videos.forEach((video) => {
+        video.removeEventListener("loadedmetadata", onMediaLoad);
+        video.removeEventListener("error", onMediaLoad);
+      });
     };
   }, [aboutTheGame]);
 
@@ -474,8 +501,9 @@ export function GameDetailsContent() {
           <div className="game-details__description-content">
             <DescriptionHeader />
 
-            {showPrompt && (
+            {(showPrompt || isPromptPending) && (
               <ReviewPromptBanner
+                pending={!showPrompt}
                 onYesClick={handleReviewPromptYes}
                 onLaterClick={handleReviewPromptLater}
               />
@@ -494,12 +522,15 @@ export function GameDetailsContent() {
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
+              // Clamped from the first paint: images inside the description
+              // load late, and measuring first let it render at full height
+              // before collapsing.
               className={`game-details__description ${
                 isDescriptionExpanded
                   ? "game-details__description--expanded"
                   : isDescriptionOverflowing
-                    ? "game-details__description--collapsed"
-                    : ""
+                    ? "game-details__description--clamped game-details__description--collapsed"
+                    : "game-details__description--clamped"
               }`}
             />
 

@@ -15,7 +15,7 @@ $disc-menu-transition-duration: 0.15s;
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.75);
+    padding: calc(globals.$spacing-unit * 2);
     border-right: 1px solid globals.$border-color;
     background: globals.$dark-background-color;
   }
@@ -29,8 +29,7 @@ $disc-menu-transition-duration: 0.15s;
     background: transparent;
     color: globals.$muted-color;
     text-align: left;
-    padding: calc(globals.$spacing-unit * 1.25)
-      calc(globals.$spacing-unit * 1.5);
+    padding: calc(globals.$spacing-unit * 1.5);
     border-radius: 4px;
     cursor: pointer;
     font-size: globals.$body-font-size;
@@ -136,7 +135,7 @@ $disc-menu-transition-duration: 0.15s;
 
   &__warning {
     margin: 0;
-    color: #f5a623;
+    color: globals.$warning-color;
     font-size: globals.$small-font-size;
   }
 
@@ -209,13 +208,13 @@ $disc-menu-transition-duration: 0.15s;
   &__mangohud-link {
     display: inline-flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit / 3);
+    gap: calc(globals.$spacing-unit / 2);
   }
 
   &__gamemode-link {
     display: inline-flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit / 3);
+    gap: calc(globals.$spacing-unit / 2);
   }
 
   &__auto-run-select {
@@ -302,14 +301,14 @@ $disc-menu-transition-duration: 0.15s;
   &__trigger {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     width: 100%;
     height: 100%;
     padding: 8px 12px;
     background: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
     border-radius: 8px;
-    color: #c0c1c7;
+    color: globals.$body-color;
     cursor: pointer;
     text-align: left;
     transition:
@@ -323,7 +322,7 @@ $disc-menu-transition-duration: 0.15s;
 
   &__icon {
     flex-shrink: 0;
-    color: #8e919b;
+    color: globals.$subtle-color;
 
     &--image {
       border-radius: 4px;
@@ -340,17 +339,17 @@ $disc-menu-transition-duration: 0.15s;
   }
 
   &__label {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 500;
-    color: #dadbe1;
+    color: globals.$muted-color;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   &__filename {
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -358,7 +357,7 @@ $disc-menu-transition-duration: 0.15s;
 
   &__chevron {
     flex-shrink: 0;
-    color: #8e919b;
+    color: globals.$subtle-color;
     transition: transform 0.15s ease;
 
     &--open {
@@ -376,8 +375,8 @@ $disc-menu-transition-duration: 0.15s;
     flex-direction: column;
     gap: 0;
     padding: 0;
-    background: #0d0d0d;
-    border: 1px solid #1c1c1c;
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     max-height: $disc-menu-max-height;
@@ -418,7 +417,7 @@ $disc-menu-transition-duration: 0.15s;
   &__option {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     width: 100%;
     padding: 8px 12px;
     background: transparent;
@@ -429,15 +428,15 @@ $disc-menu-transition-duration: 0.15s;
     transition: background-color $disc-menu-transition-duration ease;
 
     &:first-child {
-      border-radius: 7px 7px 0 0;
+      border-radius: 8px 8px 0 0;
     }
 
     &:last-child {
-      border-radius: 0 0 7px 7px;
+      border-radius: 0 0 8px 8px;
     }
 
     &:only-child {
-      border-radius: 7px;
+      border-radius: 8px;
     }
 
     &:hover {
@@ -455,7 +454,7 @@ $disc-menu-transition-duration: 0.15s;
     width: 24px;
     height: auto;
     image-rendering: pixelated;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   &__empty {
@@ -480,7 +479,7 @@ $disc-menu-transition-duration: 0.15s;
   &__list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     max-height: 240px;
     overflow-y: auto;
     padding-right: 4px;
@@ -496,16 +495,16 @@ $disc-menu-transition-duration: 0.15s;
 
     &::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.15);
-      border-radius: 3px;
+      border-radius: 999px;
     }
   }
 
   &__list-title {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     opacity: 0.5;
-    margin-bottom: 6px;
+    margin-bottom: globals.$spacing-unit;
     font-weight: 600;
   }
 
@@ -532,7 +531,7 @@ $disc-menu-transition-duration: 0.15s;
   &__actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     margin-top: calc(globals.$spacing-unit / 2);
   }
 }
@@ -540,8 +539,8 @@ $disc-menu-transition-duration: 0.15s;
 .drive-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
   background: globals.$dark-background-color;
   border: 1px solid globals.$border-color;
   border-radius: 8px;
@@ -570,7 +569,7 @@ $disc-menu-transition-duration: 0.15s;
   &__icon {
     flex-shrink: 0;
     opacity: 0.7;
-    color: #fff;
+    color: globals.$muted-color;
   }
 
   &__body {
@@ -589,9 +588,9 @@ $disc-menu-transition-duration: 0.15s;
   }
 
   &__label {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 600;
-    color: #fff;
+    color: globals.$muted-color;
     opacity: 0.9;
     white-space: nowrap;
     overflow: hidden;
@@ -599,15 +598,15 @@ $disc-menu-transition-duration: 0.15s;
   }
 
   &__space {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     white-space: nowrap;
     flex-shrink: 0;
-    color: #fff;
+    color: globals.$muted-color;
     opacity: 0.8;
   }
 
   &--nospace &__space {
-    color: #f87171;
+    color: globals.$error-color;
     opacity: 1;
   }
 
@@ -616,7 +615,7 @@ $disc-menu-transition-duration: 0.15s;
     width: 100%;
     height: 3px;
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 2px;
+    border-radius: 999px;
     overflow: hidden;
   }
 
@@ -626,7 +625,7 @@ $disc-menu-transition-duration: 0.15s;
     top: 0;
     bottom: 0;
     background: rgba(168, 162, 158, 0.6);
-    border-radius: 2px;
+    border-radius: 999px;
   }
 
   &__bar-game {
@@ -635,24 +634,24 @@ $disc-menu-transition-duration: 0.15s;
     bottom: 0;
     background: linear-gradient(90deg, #22c55e, #4ade80);
     opacity: 0.9;
-    border-radius: 0 2px 2px 0;
+    border-radius: 0 999px 999px 0;
     box-shadow: 0 0 6px rgba(74, 222, 128, 0.4);
   }
 
   &__tag {
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
-    padding: 3px 8px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 4px;
-    color: #f87171;
-    background: rgba(248, 113, 113, 0.15);
-    border: 1px solid rgba(248, 113, 113, 0.25);
+    color: globals.$error-color;
+    background: rgba(globals.$error-color, 0.15);
+    border: 1px solid rgba(globals.$error-color, 0.25);
   }
 }
 
 .transfer-progress {
-  margin-top: 6px;
+  margin-top: globals.$spacing-unit;
   padding: 0;
   background: transparent;
   border: 0;
@@ -662,15 +661,15 @@ $disc-menu-transition-duration: 0.15s;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
+    margin-bottom: globals.$spacing-unit;
   }
 
   &__title {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     font-weight: 600;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
   }
 
   &__pct {
@@ -683,15 +682,15 @@ $disc-menu-transition-duration: 0.15s;
     width: 100%;
     height: 4px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: 999px;
     overflow: hidden;
-    margin-bottom: 6px;
+    margin-bottom: globals.$spacing-unit;
   }
 
   &__fill {
     height: 100%;
     background: rgba(255, 255, 255, 0.9);
-    border-radius: 3px;
+    border-radius: 999px;
     transition: width 0.3s ease;
   }
 
@@ -699,14 +698,14 @@ $disc-menu-transition-duration: 0.15s;
     display: flex;
     justify-content: space-between;
     margin-bottom: 8px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     opacity: 0.7;
   }
 
   &__actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 }
 
@@ -724,11 +723,11 @@ $disc-menu-transition-duration: 0.15s;
 }
 
 .cancel-confirm-modal {
-  background: #1e1e1e;
-  border-radius: 16px;
+  background: globals.$background-color;
+  border-radius: 8px;
   padding: 24px 32px;
   min-width: 420px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid globals.$border-color;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 
   h4 {
@@ -739,7 +738,7 @@ $disc-menu-transition-duration: 0.15s;
 
   p {
     margin: 0 0 20px;
-    font-size: 15px;
+    font-size: globals.$body-font-size;
     opacity: 0.75;
     line-height: 1.6;
   }
@@ -751,8 +750,8 @@ $disc-menu-transition-duration: 0.15s;
   gap: 16px;
 
   button {
-    padding: 10px 24px;
-    font-size: 14px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 3);
+    font-size: globals.$body-font-size;
     font-weight: 500;
   }
 }

@@ -5,7 +5,7 @@ $button-transition-duration: 0.2s;
 .rich-text-editor {
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid globals.$border-color;
   border-radius: 8px;
   background-color: globals.$dark-background-color;
   overflow: hidden;
@@ -17,7 +17,7 @@ $button-transition-duration: 0.2s;
     align-items: center;
     padding: 8px 12px;
     background-color: globals.$background-color;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid globals.$border-color;
   }
 
   &__toolbar {
@@ -29,10 +29,10 @@ $button-transition-duration: 0.2s;
     background: none;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
-    color: #ffffff;
+    color: globals.$muted-color;
     padding: 4px 8px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     transition: all $button-transition-duration ease;
 
     &:hover {
@@ -52,11 +52,11 @@ $button-transition-duration: 0.2s;
   }
 
   &__counter {
-    font-size: 12px;
-    color: #888888;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
 
     .over-limit {
-      color: #ff6b6b;
+      color: globals.$error-color;
     }
   }
 
@@ -67,8 +67,8 @@ $button-transition-duration: 0.2s;
 
     .ProseMirror {
       outline: none;
-      color: #ffffff;
-      font-size: 14px;
+      color: globals.$muted-color;
+      font-size: globals.$body-font-size;
       line-height: 1.5;
       min-height: 96px;
       width: 100%;

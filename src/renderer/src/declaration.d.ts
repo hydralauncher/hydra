@@ -1366,7 +1366,6 @@ declare global {
     openAuthWindow: (page: AuthPage) => Promise<void>;
     minimizeAuthWindow: () => Promise<void>;
     closeAuthWindow: () => Promise<void>;
-    getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
@@ -1518,10 +1517,7 @@ declare global {
       cb: (notification: LocalNotification) => void
     ) => () => Electron.IpcRenderer;
     onAchievementUnlocked: (
-      cb: (
-        position?: AchievementCustomNotificationPosition,
-        achievements?: AchievementNotificationInfo[]
-      ) => void
+      cb: (suppressSound?: boolean) => void
     ) => () => Electron.IpcRenderer;
     onInAppAchievementUnlocked?: (
       cb: (
@@ -1533,10 +1529,15 @@ declare global {
       cb: (request: AchievementNotificationRequest) => void
     ) => () => Electron.IpcRenderer;
     onStartAchievementNotification: (
-      cb: (requestId: string) => void
+      cb: (requestId: string, visible: boolean) => void
     ) => () => Electron.IpcRenderer;
     achievementNotificationHostReady: () => Promise<void>;
     achievementNotificationContentReady: (requestId: string) => Promise<void>;
+    achievementNotificationStarted: (requestId: string) => Promise<void>;
+    achievementNotificationSoundPlayed: (
+      requestId: string,
+      batchId: string
+    ) => Promise<void>;
     achievementNotificationFinished: (requestId: string) => Promise<void>;
     achievementNotificationFailed: (
       requestId?: string,
@@ -1608,12 +1609,14 @@ declare global {
     minimizeChatWindow: () => Promise<void>;
     closeChatWindow: () => Promise<void>;
     openGameInMainWindow: (gamePath: string) => Promise<void>;
+    openChatNotificationSettings: () => Promise<void>;
     consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
     onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;
     getChatUnreadState: () => Promise<ChatUnreadState>;
     /** Resolves to false when the read could not be saved. */
     markChatRead: (friendId: string, seq: number) => Promise<boolean>;
+    refreshOfficialChat: () => Promise<void>;
     onChatMessage: (
       cb: (sync: ChatMessageSync) => void
     ) => () => Electron.IpcRenderer;

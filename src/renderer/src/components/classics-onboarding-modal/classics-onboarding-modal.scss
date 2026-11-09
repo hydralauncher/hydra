@@ -1,3 +1,5 @@
+@use "../../scss/globals.scss";
+
 .classics-onboarding {
   display: flex;
   flex-direction: column;
@@ -28,7 +30,7 @@
 
   &__heading {
     font-weight: 700;
-    font-size: 21px;
+    font-size: 20px;
     line-height: 1.2;
     letter-spacing: 0.21px;
     color: #c0c1c7;
@@ -37,10 +39,10 @@
 
   &__paragraph {
     font-weight: 400;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     line-height: 1.5;
     letter-spacing: 0.14px;
-    color: #8e919b;
+    color: globals.$subtle-color;
     margin: 0;
     white-space: pre-line;
   }
@@ -54,7 +56,7 @@
 
   &__progress {
     display: flex;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__progress-pill {

@@ -139,6 +139,7 @@ export interface RecompilationSaveRule {
   kind: "dir" | "file";
   tags: string[];
   when: CloudSaveRuleCondition[];
+  preferredPath?: string;
 }
 
 export interface GetSaveRulesForGameInput extends CloudSaveGameId {

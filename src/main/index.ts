@@ -53,6 +53,7 @@ import {
   parseSteamOpenIdReturn,
 } from "./services/steam-integration/steam-openid-return";
 import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
+import { achievementNotificationPresenter } from "./services/achievement-notification-presenter-electron";
 import {
   initializeEpicIntegration,
   shutdownEpicIntegration,
@@ -316,7 +317,13 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
         await gamesSublevel.put(gameKey, game).catch(() => {});
       }
     }
-    await openClassicsGame(shop, objectId);
+    await openClassicsGame(shop, objectId).catch((error) => {
+      if (
+        (error as { code?: string }).code !== "RECOMPILATION_ALREADY_RUNNING"
+      ) {
+        throw error;
+      }
+    });
     return;
   }
 
@@ -491,6 +498,7 @@ app.on("before-quit", async (e) => {
         logger.error("Application shutdown cleanup failed", result.reason);
       }
     }
+    achievementNotificationPresenter.shutdown();
     canAppBeClosed = true;
     app.quit();
   }
