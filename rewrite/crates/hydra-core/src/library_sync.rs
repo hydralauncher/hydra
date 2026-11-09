@@ -803,6 +803,9 @@ pub struct MergeContext<'a> {
     pub current: &'a (dyn Fn() -> bool + Sync),
     /// `onProgress(processed, total)`
     pub progress: Option<&'a (dyn Fn(usize, usize) + Sync)>,
+    /// The Epic link the caller already confirmed (the Epic sync); `None`
+    /// reads GET /profile/integrations/epic when a row has an Epic import.
+    pub epic_connection_id: Option<&'a str>,
 }
 
 /// `HydraApi.getAuthContext()`: the API URL and the token's `userId`.
@@ -1088,8 +1091,8 @@ pub fn merge_fetched_games(
     hydra_revision: u64,
 ) -> Result<MergeReport, MergeStop> {
     let remote: Vec<&Obj> = remote_games.iter().filter_map(Value::as_object).collect();
-    let mut epic_connection_id: Option<String> = None;
-    if remote.iter().any(|g| truthy(g.get("hasActiveEpicImport"))) {
+    let mut epic_connection_id: Option<String> = ctx.epic_connection_id.map(str::to_string);
+    if epic_connection_id.is_none() && remote.iter().any(|g| truthy(g.get("hasActiveEpicImport"))) {
         let connection = api
             .get("/profile/integrations/epic", &[], Options::default())
             .map_err(MergeStop::Api)?;
@@ -1838,6 +1841,7 @@ mod tests {
             auth: None,
             current: &current,
             progress: None,
+            epic_connection_id: None,
         };
         let report = merge_fetched_games(&db, &api, &remote, &ctx, 0).unwrap();
         assert_eq!(report.created, 1);
@@ -1869,6 +1873,7 @@ mod tests {
             auth: None,
             current: &current,
             progress: None,
+            epic_connection_id: None,
         };
         assert!(matches!(
             merge_fetched_games(&db, &api, &remote, &ctx, 0),

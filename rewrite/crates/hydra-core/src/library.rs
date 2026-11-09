@@ -163,11 +163,7 @@ fn truthy(value: Option<&Value>) -> bool {
 }
 
 /// `HydraApi.getAuthContext()`: who the Epic imports in this database belong to.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct AuthContext {
-    pub environment: String,
-    pub user_id: String,
-}
+pub use crate::api::AuthContext;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Collection {

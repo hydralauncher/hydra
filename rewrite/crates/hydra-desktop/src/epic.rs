@@ -655,24 +655,42 @@ fn connection_changed(
     };
     let cleaned = imports::clear_stale_imports(db, Some(context), link, current);
     if transitioned || cleaned > 0 {
-        hydra_core::remote_library::merge_with_remote_games(
-            api,
-            db,
-            &hydra_core::remote_library::MergeOptions {
-                can_reconcile_custom_artwork: subscribed,
-                context: Some(hydra_core::remote_library::EpicScope {
-                    environment: context.environment.clone(),
-                    user_id: context.user_id.clone(),
-                }),
-                epic_connection_id: None,
-                current,
-                progress: None,
-                api_options: hydra_options(),
-            },
-        );
+        let _ = merge_library(api, db, &context.environment, &context.user_id, subscribed, None, current, None);
         return true;
     }
     false
+}
+
+/// mergeWithRemoteGames for the Epic flows (`hydra-core::library_sync`, the
+/// same merge the sign-in and startup syncs run). False when it stopped early.
+#[allow(clippy::too_many_arguments)]
+fn merge_library(
+    api: &HydraApi,
+    db: &Db,
+    environment: &str,
+    user_id: &str,
+    subscribed: bool,
+    epic_connection_id: Option<&str>,
+    current: &(dyn Fn() -> bool + Sync),
+    progress: Option<&(dyn Fn(usize, usize) + Sync)>,
+) -> bool {
+    let ctx = hydra_core::library_sync::MergeContext {
+        can_reconcile_custom_artwork: subscribed,
+        auth: Some(hydra_core::library::AuthContext {
+            environment: environment.to_string(),
+            user_id: user_id.to_string(),
+        }),
+        current,
+        progress,
+        epic_connection_id,
+    };
+    match hydra_core::library_sync::merge_with_remote_games(db, api, &ctx) {
+        Ok(_) => true,
+        Err(error) => {
+            eprintln!("epic: library merge stopped: {error}");
+            false
+        }
+    }
 }
 
 fn finish_query(context: &AuthContext, revision: u64, result: QueryResult) -> PublicState {
@@ -1510,20 +1528,15 @@ impl orchestrator::Dependencies for Deps {
     ) -> hydra_epic::error::Result<bool> {
         let current = || self.current() && !cancel.is_cancelled();
         let report = |processed: usize, total: usize| progress(processed, total);
-        let merged = hydra_core::remote_library::merge_with_remote_games(
+        let merged = merge_library(
             &self.api,
             &self.db,
-            &hydra_core::remote_library::MergeOptions {
-                can_reconcile_custom_artwork: self.subscribed,
-                context: Some(hydra_core::remote_library::EpicScope {
-                    environment: self.context.auth.environment.clone(),
-                    user_id: self.context.auth.user_id.clone(),
-                }),
-                epic_connection_id: Some(self.context.connection.connection_id.clone()),
-                current: &current,
-                progress: Some(&report),
-                api_options: self.options(),
-            },
+            &self.context.auth.environment,
+            &self.context.auth.user_id,
+            self.subscribed,
+            Some(&self.context.connection.connection_id),
+            &current,
+            Some(&report),
         );
         if merged && !cancel.is_cancelled() {
             // getConnection(): lastSyncedAt and the latest run

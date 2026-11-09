@@ -259,6 +259,7 @@ pub fn merge_blocking(
         auth: sync::auth_context(db),
         current: &current,
         progress,
+        epic_connection_id: None,
     };
     match sync::merge_with_remote_games(db, api, &ctx) {
         Ok(report) => {

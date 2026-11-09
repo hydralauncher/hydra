@@ -153,7 +153,7 @@ the remote `external-resources/bundle.js` script.
 - [ ] **Shop** (`pages/shop`: profile frames; mock catalog in Electron too until the shop API exists)
 - [ ] **Recompilation** (`pages/recompilation`, `recompilation/*`)
 - [x] **RetroAchievements** connection window (`retroachievements.rs`, 600x640) and the card's status/sync/disconnect modals. Remaining: the emulator account link and local cache reset.
-- [ ] **Epic / Legendary** (`epic/*`, `services/legendary.ts`)
+- [x] **Epic / Legendary, connection and sync** (`hydra-epic`, `epic.rs`, `epic_auth_window.rs`): bundled Legendary found and checked against `legendary-manifest.json`; processes in a Windows Job Object (replaces `hydra-epic-process.exe`); `epic-sessions-db`, `epic-temporary`, `epic-managed`, `epic-managed-previews` laid out like Electron; the Epic login window (private webview, https only, code read from the redirect page); `auth --code` and POST/DELETE `/profile/integrations/epic`; session refresh through `managed.py`; the sync orchestrator (journal, chunks, commit, achievements, playtime) over `hydra-core::library_sync`'s merge; clearing imports on link and account changes; removing Epic installs. `HYDRA_EPIC_DRY_RUN=1` for tests. Not tested live (no Epic login). Remaining: installs (modal, Downloads queue, prerequisites, updates, DLCs), launch, Epic cloud saves, Epic Games Store auto-import, Linux runtime. Decision open: the first-run import doesn't copy Electron's Epic sessions (shared refresh tokens could break one app's session).
 - [ ] **Big Picture** (`big-picture/*`): out of scope for now (decided 2026-11-08); its title-bar button is hidden
 - [ ] **Decky plugin** install (`misc/install-hydra-decky-plugin`)
 - [ ] **Auto-update** (`autoupdater/*`)

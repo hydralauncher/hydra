@@ -125,6 +125,7 @@ fn main() {
         auth: library_sync::auth_context(&db),
         current: &current,
         progress: None,
+        epic_connection_id: None,
     };
     let started = std::time::Instant::now();
     let report = library_sync::merge_fetched_games(&db, &api, &remote, &ctx, 0);
