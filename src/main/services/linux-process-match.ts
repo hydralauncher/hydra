@@ -10,10 +10,16 @@ export interface LinuxProcessInfo {
 }
 
 export interface LinuxProcessMatchIndex {
-  byExe: Map<string, LinuxProcessInfo[]>;
-  byAppImage: Map<string, LinuxProcessInfo[]>;
+  byExe: Set<string>;
+  byAppImage: Set<string>;
   byCwd: Map<string, LinuxProcessInfo[]>;
 }
+
+const addPath = (index: Set<string>, key: string | null | undefined) => {
+  if (!key) return;
+
+  index.add(key.toLowerCase());
+};
 
 const appendProcess = (
   index: Map<string, LinuxProcessInfo[]>,
@@ -37,14 +43,14 @@ export const buildLinuxProcessMatchIndex = (
   linuxProcesses: LinuxProcessInfo[]
 ): LinuxProcessMatchIndex => {
   const index: LinuxProcessMatchIndex = {
-    byExe: new Map(),
-    byAppImage: new Map(),
+    byExe: new Set(),
+    byAppImage: new Set(),
     byCwd: new Map(),
   };
 
   for (const process of linuxProcesses) {
-    appendProcess(index.byExe, process.exe, process);
-    appendProcess(index.byAppImage, process.appImagePath, process);
+    addPath(index.byExe, process.exe);
+    addPath(index.byAppImage, process.appImagePath);
     appendProcess(index.byCwd, process.cwd, process);
   }
 
@@ -57,9 +63,7 @@ export const hasLinuxNativeOrAppImageMatch = (
 ) => {
   const target = executablePath.toLowerCase();
 
-  return Boolean(
-    index.byExe.get(target)?.length || index.byAppImage.get(target)?.length
-  );
+  return index.byExe.has(target) || index.byAppImage.has(target);
 };
 
 export interface LinuxCompatibilityProcessMatchOptions {
