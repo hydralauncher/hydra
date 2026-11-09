@@ -101,13 +101,14 @@ const readEnabledInstallDir = (entry: unknown): string | null => {
   return directory.trim() ? directory : null;
 };
 
-const isNestedDirectory = (parent: string, candidate: string): boolean => {
-  const relative = path.relative(parent, candidate);
-  return (
-    relative !== "" &&
-    relative.split(path.sep)[0] !== ".." &&
-    !path.isAbsolute(relative)
-  );
+const isCoveredBy = (
+  directory: string,
+  other: string,
+  otherComesFirst: boolean
+): boolean => {
+  const relative = path.relative(other, directory);
+  if (relative === "") return otherComesFirst;
+  return relative.split(path.sep)[0] !== ".." && !path.isAbsolute(relative);
 };
 
 export const readShadps4InstallDirs = async (
@@ -118,19 +119,17 @@ export const readShadps4InstallDirs = async (
   if (!Array.isArray(entries)) return [];
 
   const baseDirectory = executablePath ? path.dirname(executablePath) : "";
-  const directories = Array.from(
-    new Set(
-      entries
-        .map(readEnabledInstallDir)
-        .filter((directory): directory is string => directory !== null)
-        .map((directory) => path.resolve(baseDirectory, directory))
-        .filter((directory) => existsSync(directory))
-    )
-  );
+  const directories = entries
+    .map(readEnabledInstallDir)
+    .filter((directory): directory is string => directory !== null)
+    .map((directory) => path.resolve(baseDirectory, directory))
+    .filter((directory) => existsSync(directory));
 
   return directories.filter(
-    (directory) =>
-      !directories.some((parent) => isNestedDirectory(parent, directory))
+    (directory, index) =>
+      !directories.some((other, otherIndex) =>
+        isCoveredBy(directory, other, otherIndex < index)
+      )
   );
 };
 
