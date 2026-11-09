@@ -181,7 +181,7 @@ const warnIfPs4FirmwareMissing = async (
   );
   if (installed) return;
 
-  WindowManager.mainWindow?.webContents.send("on-show-toast", {
+  WindowManager.sendToAppWindows("on-show-toast", {
     type: "warning",
     title: t("firmware_missing_launch_toast", { ns: "game_details" }),
   });
@@ -296,6 +296,9 @@ export const launchClassicsGame = async (
   let sessionStarted = false;
 
   try {
+    const existingEmulatorPids =
+      system === "ps4" ? await emulators.listShadps4ProcessIds() : [];
+
     const processRef = await spawnDetachedEmulator(
       resolvedLaunchCommand,
       workingDirectory,
@@ -310,6 +313,7 @@ export const launchClassicsGame = async (
         sku: selectedDisc?.sku ?? null,
         child: processRef,
         souvenirSession,
+        existingEmulatorPids,
       });
       sessionStarted = true;
     }

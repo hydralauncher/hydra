@@ -70,6 +70,9 @@ const listShadps4Processes = async () => {
   return processes.filter(({ name }) => name.toLowerCase().includes("shadps4"));
 };
 
+export const listShadps4ProcessIds = async (): Promise<number[]> =>
+  (await listShadps4Processes()).map(({ pid }) => pid);
+
 const isProcessAlive = (pid: number): boolean => {
   try {
     process.kill(pid, 0);
@@ -95,6 +98,7 @@ interface StartEmulatorSessionOptions {
   sku: string | null;
   child: ChildProcess;
   souvenirSession?: EmulatorSouvenirSession | null;
+  existingEmulatorPids?: number[];
 }
 
 export const startEmulatorSession = async ({
@@ -104,6 +108,7 @@ export const startEmulatorSession = async ({
   sku,
   child,
   souvenirSession = null,
+  existingEmulatorPids = [],
 }: StartEmulatorSessionOptions): Promise<void> => {
   const gameKey = levelKeys.game(game.shop, game.objectId);
 
@@ -123,14 +128,10 @@ export const startEmulatorSession = async ({
     heartbeat: null,
     child,
     souvenirSession,
-    knownShadps4Pids: new Set(
-      system === "ps4"
-        ? [
-            ...(await listShadps4Processes()).map(({ pid }) => pid),
-            ...(child.pid ? [child.pid] : []),
-          ]
-        : []
-    ),
+    knownShadps4Pids: new Set([
+      ...existingEmulatorPids,
+      ...(child.pid ? [child.pid] : []),
+    ]),
     relaunchedPid: null,
     relaunchWatch: null,
   };

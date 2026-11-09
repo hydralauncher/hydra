@@ -128,21 +128,34 @@ export const readShadps4VersionAfterSession = (
 ): string | null =>
   readVersionRecord(executablePath) ?? readVersionFromLog(executablePath);
 
-const isSameWindowsExecutable = (
-  processExecutable: string | null | undefined,
+interface Shadps4ProcessIdentity {
+  pid: number;
+  exe?: string | null;
+  environ?: Record<string, string> | null;
+}
+
+const isSameExecutable = (
+  { exe, environ }: Shadps4ProcessIdentity,
   executablePath: string
-): boolean =>
-  process.platform !== "win32" ||
-  !processExecutable ||
-  path.win32.normalize(processExecutable).toLowerCase() ===
-    path.win32.normalize(executablePath).toLowerCase();
+): boolean => {
+  if (process.platform === "win32") {
+    return (
+      Boolean(exe) &&
+      path.win32.normalize(exe as string).toLowerCase() ===
+        path.win32.normalize(executablePath).toLowerCase()
+    );
+  }
+
+  return exe === executablePath || environ?.APPIMAGE === executablePath;
+};
 
 export const findNewShadps4Pid = (
-  processes: ReadonlyArray<{ pid: number; exe?: string | null }>,
+  processes: ReadonlyArray<Shadps4ProcessIdentity>,
   knownPids: ReadonlySet<number>,
   executablePath: string
 ): number | null =>
   processes.find(
-    ({ pid, exe }) =>
-      !knownPids.has(pid) && isSameWindowsExecutable(exe, executablePath)
+    (candidate) =>
+      !knownPids.has(candidate.pid) &&
+      isSameExecutable(candidate, executablePath)
   )?.pid ?? null;
