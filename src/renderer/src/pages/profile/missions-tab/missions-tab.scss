@@ -1,14 +1,14 @@
 @use "../../../scss/globals.scss";
 
-$ink: #f0f1f7;
-$chrome: #0d0d0d;
-$muted: #a6a7ad;
+$ink: globals.$muted-color;
+$chrome: globals.$dark-background-color;
+$muted: globals.$subtle-color;
 $dim: #6b6c72;
-$link: #c0c1c7;
-$line: rgba(255, 255, 255, 0.08);
+$link: globals.$body-color;
+$line: globals.$border-color;
 $line-strong: rgba(255, 255, 255, 0.24);
 $locked: #2a2a2e;
-$surface: #121212;
+$surface: globals.$background-color;
 $easing: cubic-bezier(0.33, 1, 0.68, 1);
 
 .missions-tab {
@@ -45,7 +45,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   &__chip {
-    padding: 0 7px;
+    padding: 0 globals.$spacing-unit;
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.08);
     font-size: globals.$small-font-size;
@@ -62,7 +62,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
 
   &__claim {
     height: 28px;
-    padding: 0 10px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 1px solid $ink;
     border-radius: 6px;
     background-color: $ink;
@@ -132,7 +132,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 
-    @media (max-width: 900px) {
+    @include globals.page-max-width(900px) {
       grid-template-columns: minmax(0, 1fr);
     }
   }
@@ -145,7 +145,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   gap: 12px;
   min-height: 236px;
   margin-top: 18px;
-  padding: 30px 20px 16px;
+  padding: calc(globals.$spacing-unit * 4) 20px 16px;
   border: 1px solid $line;
   border-radius: 8px;
   background: linear-gradient(180deg, #161616, #111);
@@ -186,7 +186,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     }
 
     small {
-      font-size: 13px;
+      font-size: globals.$hint-font-size;
       color: $muted;
     }
   }
@@ -263,13 +263,13 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     min-width: 0;
 
     strong {
-      font-size: 14px;
+      font-size: globals.$body-font-size;
       font-weight: 500;
       color: $ink;
     }
 
     small {
-      font-size: 13px;
+      font-size: globals.$hint-font-size;
       color: $muted;
     }
   }
@@ -342,9 +342,9 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     width: 112px;
-    padding: 14px 6px 12px;
+    padding: calc(globals.$spacing-unit * 1.5) globals.$spacing-unit;
     border: 1px solid transparent;
     border-radius: 8px;
     background: none;
@@ -355,14 +355,14 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
       border-color 0.15s ease;
 
     strong {
-      font-size: 12px;
+      font-size: globals.$small-font-size;
       line-height: 16px;
       font-weight: 600;
       text-align: center;
     }
 
     small {
-      font-size: 11px;
+      font-size: globals.$tiny-font-size;
       color: $muted;
     }
 
@@ -436,7 +436,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
 
     strong {
       display: block;
-      font-size: 15px;
+      font-size: 16px;
       color: $ink;
     }
 
@@ -575,7 +575,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 6px 12px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     border: 1px solid $line-strong;
     border-radius: 6px;
     background-color: #1f2023;
@@ -586,7 +586,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     animation: trails-board-banner 2.4s ease both;
 
     small {
-      font-size: 10px;
+      font-size: globals.$tiny-font-size;
       font-weight: 700;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -594,7 +594,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     }
 
     strong {
-      font-size: 14px;
+      font-size: globals.$body-font-size;
     }
   }
 
@@ -617,7 +617,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     margin-top: 28px;
     padding: 16px;
     border: 1px solid $line;
-    border-radius: 6px;
+    border-radius: 8px;
     background-color: #161618;
   }
 
@@ -642,7 +642,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   &__detail-label {
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -674,7 +674,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   &__summary {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 2);
 
     strong {
       display: block;
@@ -692,21 +692,21 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   &__week {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
   }
 
   &__day {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: calc(globals.$spacing-unit / 2);
+    font-size: globals.$tiny-font-size;
     color: $muted;
 
     i {
       width: 100%;
       height: 8px;
-      border-radius: 2px;
+      border-radius: 4px;
       background-color: $locked;
     }
 
@@ -733,7 +733,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     gap: 12px;
     padding: 12px 0;
     border-bottom: 1px solid $line;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     color: $ink;
 
     div {
@@ -754,11 +754,11 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
   &__xp {
     flex: none;
     height: 20px;
-    padding: 0 6px;
+    padding: 0 globals.$spacing-unit;
     border-radius: 4px;
     background-color: rgba(164, 99, 255, 0.2);
     color: #cda9ff;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 20px;
     letter-spacing: 0.02em;
@@ -861,7 +861,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
 
   &__item--center &__value {
     color: $ink;
-    font-size: 30px;
+    font-size: 32px;
     line-height: 36px;
     font-weight: 700;
   }
@@ -883,15 +883,15 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     }
 
     &--claim {
-      gap: 10px;
-      margin-top: 6px;
+      gap: globals.$spacing-unit;
+      margin-top: globals.$spacing-unit;
     }
   }
 
   &__cta {
     height: 30px;
     padding: 0 12px;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
   }
 
   &__bar {
@@ -1070,7 +1070,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     flex: 1;
     grid-template-columns: minmax(0, 1fr);
     grid-auto-rows: 1fr;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   // Each daily becomes a row: icon, text, reward, footer.
@@ -1142,7 +1142,7 @@ $easing: cubic-bezier(0.33, 1, 0.68, 1);
     align-items: center;
     column-gap: 12px;
     width: auto;
-    padding: 8px 10px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     text-align: left;
 
     strong {

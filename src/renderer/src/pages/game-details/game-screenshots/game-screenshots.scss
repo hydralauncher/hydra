@@ -148,7 +148,7 @@
   &__kbd {
     display: inline-block;
     margin: 0 4px;
-    padding: 1px 6px;
+    padding: 1px globals.$spacing-unit;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-bottom-width: 2px;
     border-radius: 4px;
@@ -259,7 +259,7 @@
     background-color: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(8px);
     color: #ffffff;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
     line-height: 16px;
     pointer-events: none;
@@ -285,7 +285,7 @@
     justify-content: center;
     gap: globals.$spacing-unit;
     color: #ffffff;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
     pointer-events: none;
   }
@@ -496,7 +496,7 @@
     border: 1px solid globals.$border-color;
     border-radius: 999px;
     color: globals.$muted-color;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
   }
 
   &__fields {

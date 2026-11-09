@@ -36,7 +36,7 @@
     color: globals.$body-color;
     background-color: rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    padding: calc(globals.$spacing-unit / 1.5);
+    padding: calc(globals.$spacing-unit / 2);
     border-radius: 6px;
     transition: background-color ease 0.2s;
     overflow: hidden;
@@ -51,7 +51,7 @@
   }
 
   &__friend-code {
-    font-size: 0.875rem;
+    font-size: globals.$body-font-size;
     font-family: monospace;
     white-space: nowrap;
   }

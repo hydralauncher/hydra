@@ -17,13 +17,13 @@
   }
 
   &__my-code-label {
-    font-size: 0.875rem;
+    font-size: globals.$body-font-size;
     color: globals.$muted-color;
     font-weight: 500;
   }
 
   &__my-code-value {
-    font-size: 0.875rem;
+    font-size: globals.$body-font-size;
     color: globals.$body-color;
     font-family: monospace;
     font-weight: 600;

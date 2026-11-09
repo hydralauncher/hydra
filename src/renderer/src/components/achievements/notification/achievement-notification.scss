@@ -4,7 +4,7 @@ $margin-horizontal: 40px;
 $margin-top: 52px;
 $margin-bottom: 28px;
 $screenshot-error-icon-background-opacity: 0.16;
-$screenshot-error-icon-color: #fb7185;
+$screenshot-error-icon-color: globals.$error-color;
 $screenshot-error-description-max-lines: 3;
 
 @keyframes content-in {
@@ -393,7 +393,7 @@ $screenshot-error-description-max-lines: 3;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 700;
     overflow: hidden;
     -webkit-line-clamp: 3;
@@ -411,7 +411,7 @@ $screenshot-error-description-max-lines: 3;
   }
 
   &__description {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 400;
     overflow: hidden;
     -webkit-line-clamp: 2; /* number of lines to show */
@@ -433,7 +433,7 @@ $screenshot-error-description-max-lines: 3;
     display: flex;
     gap: 4px;
     padding: 0 8px;
-    border-radius: 300px;
+    border-radius: 999px;
     align-items: center;
     background: globals.$muted-color;
     height: 24px;
