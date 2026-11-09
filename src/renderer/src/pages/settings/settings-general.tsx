@@ -16,7 +16,7 @@ import type { DownloadDirectoryPreference } from "@types";
 import { useTranslation } from "react-i18next";
 import { useAppSelector } from "@renderer/hooks";
 import { applyLanguage } from "@locales/apply-language";
-import { languageNames } from "@locales/languages";
+import { languageNames, resolveLanguage } from "@locales/languages";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";
@@ -113,17 +113,6 @@ export function SettingsGeneral() {
 
   useEffect(() => {
     if (userPreferences) {
-      const languageKeys = Object.keys(languageNames);
-      const language =
-        languageKeys.find(
-          (language) => language === userPreferences.language
-        ) ??
-        languageKeys.find((language) => {
-          return language.startsWith(
-            userPreferences.language?.split("-")[0] ?? "en"
-          );
-        });
-
       setForm((prev) => ({
         ...prev,
         downloadsPath: userPreferences.downloadsPath ?? defaultDownloadsPath,
@@ -144,7 +133,7 @@ export function SettingsGeneral() {
           userPreferences.friendRequestNotificationsEnabled ?? false,
         friendStartGameNotificationsEnabled:
           userPreferences.friendStartGameNotificationsEnabled ?? true,
-        language: language ?? "en",
+        language: resolveLanguage(userPreferences.language),
       }));
     }
   }, [userPreferences, defaultDownloadsPath]);
@@ -167,10 +156,10 @@ export function SettingsGeneral() {
   const handleLanguageChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    const value = event.target.value;
+    const language = resolveLanguage(event.target.value);
 
-    handleChange({ language: value });
-    void applyLanguage(value);
+    handleChange({ language });
+    void applyLanguage(language);
   };
 
   const handleChange = async (values: Partial<typeof form>) => {
