@@ -18,17 +18,21 @@ import { SevenZip } from "../7zip";
 import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
-import { resolveInstallOptions } from "./emulator-install-sources";
+import {
+  resolveInstallOptions,
+  resolveShadps4CoreOption,
+} from "./emulator-install-sources";
 import {
   findManagedEmulatorExecutable,
   requireManagedEmulatorExecutable,
+  type ManagedExecutableBinary,
 } from "./find-managed-emulator-executable";
+import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
 import {
-  KNOWN_BINARIES,
-  isKnownEmulatorBinary,
-  type KnownBinary,
-} from "./known-binaries";
-import { writeShadps4VersionRecord } from "./shadps4-files";
+  SHADPS4_CORE_BINARY,
+  SHADPS4_CORE_DIRECTORY,
+  writeShadps4VersionRecord,
+} from "./shadps4-files";
 import { assertValidEmulatorExecutable } from "./validate-emulator-executable";
 
 const execFileAsync = promisify(execFile);
@@ -152,7 +156,7 @@ const addOwnerExecuteBit = async (filePath: string): Promise<void> => {
 
 const ensureExtractedExecutableBit = async (
   extractDir: string,
-  binary: KnownBinary
+  binary: ManagedExecutableBinary
 ): Promise<void> => {
   if (process.platform === "win32") return;
 
@@ -165,8 +169,7 @@ const ensureExtractedExecutableBit = async (
 const extractManagedEmulator = async (
   archivePath: string,
   extractDir: string,
-  binary: EmulatorBinary,
-  releaseVersion: string | null
+  binary: EmulatorBinary
 ): Promise<string> => {
   await fs.promises.mkdir(extractDir, { recursive: true });
   await SevenZip.extractFile({ filePath: archivePath, outputPath: extractDir });
@@ -176,16 +179,50 @@ const extractManagedEmulator = async (
     await ensureExtractedExecutableBit(extractDir, knownBinary);
   }
 
-  const executable = requireManagedEmulatorExecutable(extractDir, knownBinary);
-  if (binary === "shadps4") {
-    await writeShadps4VersionRecord(executable, releaseVersion).catch(
+  return requireManagedEmulatorExecutable(extractDir, knownBinary);
+};
+
+const installShadps4Core = async (
+  launcherExecutable: string,
+  installDirectory: string,
+  optionId: string
+): Promise<void> => {
+  const option = await resolveShadps4CoreOption(process.platform, process.arch);
+  if (!option?.downloadUrl) {
+    throw new Error("No shadPS4 core release available to install");
+  }
+
+  const archivePath = path.join(
+    SystemPath.getPath("temp"),
+    path.basename(option.fileName ?? option.downloadUrl)
+  );
+  const extractDir = path.join(installDirectory, SHADPS4_CORE_DIRECTORY);
+
+  try {
+    await downloadToFile(option.downloadUrl, archivePath, (loaded, total) => {
+      sendProgress({
+        binary: "shadps4",
+        optionId,
+        phase: "downloading",
+        loaded,
+        total: total ?? undefined,
+      });
+    });
+    sendProgress({ binary: "shadps4", optionId, phase: "extracting" });
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: extractDir,
+    });
+    await ensureExtractedExecutableBit(extractDir, SHADPS4_CORE_BINARY);
+    requireManagedEmulatorExecutable(extractDir, SHADPS4_CORE_BINARY);
+    await writeShadps4VersionRecord(launcherExecutable, option.version).catch(
       (error) => {
         logger.warn("Failed to record shadPS4 version", error);
       }
     );
+  } finally {
+    await removeFileQuietly(archivePath);
   }
-
-  return executable;
 };
 
 /**
@@ -268,13 +305,11 @@ export const downloadAndInstallEmulator = async (
 
     sendProgress({ binary, optionId, phase: "extracting" });
     const extractDir = installDirectory;
-    const executable = await extractManagedEmulator(
-      dest,
-      extractDir,
-      binary,
-      option.version
-    );
+    const executable = await extractManagedEmulator(dest, extractDir, binary);
     await removeTempDownload();
+    if (binary === "shadps4") {
+      await installShadps4Core(executable, installDirectory, optionId);
+    }
     shell.showItemInFolder(executable);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });
     return { ok: true, path: extractDir };

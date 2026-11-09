@@ -19,7 +19,7 @@ export const isExecutableNameExpectedForBinary = (
   const normalizedName = basename.toLowerCase();
 
   if (binary.binary === "shadps4") {
-    return !normalizedName.includes("qtlauncher");
+    return normalizedName.includes("qtlauncher");
   }
 
   if (!normalizedName.includes(binary.binary)) return false;

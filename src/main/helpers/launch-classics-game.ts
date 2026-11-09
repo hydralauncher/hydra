@@ -24,6 +24,7 @@ import {
 } from "./flatpak-emulator-launch";
 import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
 import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
+import { buildShadps4LaunchArguments } from "@main/services/emulators/shadps4-files";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -129,7 +130,8 @@ export interface LaunchClassicsGameOptions {
 
 const buildEmulatorArgs = (
   binary: EmulatorBinary,
-  discPath: string
+  discPath: string,
+  executablePath: string
 ): string[] => {
   switch (binary) {
     case "duckstation":
@@ -139,7 +141,7 @@ const buildEmulatorArgs = (
     case "rpcs3":
       return ["--no-gui", discPath];
     case "shadps4":
-      return ["-g", discPath, "--fullscreen", "true"];
+      return buildShadps4LaunchArguments(executablePath, discPath);
     case "ppsspp":
       return ["--pause-menu-exit", "--fullscreen", discPath];
     case "dolphin":
@@ -273,7 +275,7 @@ export const launchClassicsGame = async (
     : null;
   const baseArgs = [
     ...(souvenirSession?.launchArguments ?? []),
-    ...buildEmulatorArgs(config.binary, bootTarget),
+    ...buildEmulatorArgs(config.binary, bootTarget, executableTarget),
   ];
 
   const flatpakLaunch = resolveFlatpakEmulatorLaunch({

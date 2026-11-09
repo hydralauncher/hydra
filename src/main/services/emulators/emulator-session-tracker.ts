@@ -1,4 +1,5 @@
-import type { ChildProcess } from "node:child_process";
+import { execFile, type ChildProcess } from "node:child_process";
+import path from "node:path";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { EMULATOR_SYSTEMS } from "@shared";
@@ -23,7 +24,8 @@ import {
 import { updateEmulatorConfig } from "./emulators-repository";
 import { readEmulatorPlaytimeSeconds } from "./playtime-files";
 import {
-  findNewShadps4Pid,
+  findShadps4CorePath,
+  findShadps4CorePid,
   readShadps4VersionAfterSession,
 } from "./shadps4-files";
 import {
@@ -61,7 +63,9 @@ export interface EmulatorSession {
   child: ChildProcess;
   souvenirSession: EmulatorSouvenirSession | null;
   knownShadps4Pids: Set<number>;
-  relaunchedPid: number | null;
+  corePath: string | null;
+  corePid: number | null;
+  coreWatch: ReturnType<typeof setInterval> | null;
   relaunchWatch: ReturnType<typeof setInterval> | null;
   trophyWatcher: Shadps4TrophyWatcher | null;
 }
@@ -69,7 +73,7 @@ export interface EmulatorSession {
 export const emulatorSessions = new Map<string, EmulatorSession>();
 
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
-const SHADPS4_RELAUNCH_POLL_INTERVAL_MS = 2_000;
+const SHADPS4_CORE_POLL_INTERVAL_MS = 2_000;
 
 const isShadps4ProcessName = (name: string): boolean =>
   name.toLowerCase().includes("shadps4");
@@ -81,6 +85,23 @@ const listShadps4Processes = async () => {
 
 export const listShadps4ProcessIds = async (): Promise<number[]> =>
   (await listShadps4Processes()).map(({ pid }) => pid);
+
+const killWindowsProcessTree = (pid: number): void => {
+  const taskkillPath = path.win32.join(
+    process.env.SystemRoot || String.raw`C:\Windows`,
+    "System32",
+    "taskkill.exe"
+  );
+
+  execFile(
+    taskkillPath,
+    ["/PID", String(pid), "/T", "/F"],
+    { shell: false, windowsHide: true },
+    (error) => {
+      if (error) logger.warn("Failed to close shadPS4 process tree", error);
+    }
+  );
+};
 
 const isProcessAlive = (pid: number): boolean => {
   try {
@@ -113,8 +134,40 @@ const killRelaunchedProcess = (pid: number): void => {
 const listOtherSessionPids = (session: EmulatorSession): number[] =>
   [...emulatorSessions.values()]
     .filter((otherSession) => otherSession !== session)
-    .flatMap(({ child, relaunchedPid }) => [child.pid, relaunchedPid])
+    .flatMap(({ child, corePid }) => [child.pid, corePid])
     .filter((pid): pid is number => pid != null);
+
+const findUnseenShadps4CorePid = async (
+  session: EmulatorSession,
+  parentPid: number
+): Promise<number | null> =>
+  findShadps4CorePid(
+    await listShadps4Processes(),
+    parentPid,
+    new Set([...session.knownShadps4Pids, ...listOtherSessionPids(session)]),
+    session.corePath
+  );
+
+const adoptShadps4CorePid = (
+  gameKey: string,
+  session: EmulatorSession,
+  corePid: number
+): void => {
+  session.corePid = corePid;
+  session.knownShadps4Pids.add(corePid);
+  launchedGamePids.set(gameKey, corePid);
+};
+
+const refreshShadps4CorePid = async (
+  gameKey: string,
+  session: EmulatorSession,
+  launcherPid: number
+): Promise<void> => {
+  const corePid = await findUnseenShadps4CorePid(session, launcherPid);
+
+  if (emulatorSessions.get(gameKey) !== session || corePid === null) return;
+  adoptShadps4CorePid(gameKey, session, corePid);
+};
 
 const sendPresencePing = async (gameKey: string): Promise<void> => {
   const game = await gamesSublevel.get(gameKey);
@@ -168,7 +221,9 @@ export const startEmulatorSession = async ({
       ...existingEmulatorPids,
       ...(child.pid ? [child.pid] : []),
     ]),
-    relaunchedPid: null,
+    corePath: system === "ps4" ? findShadps4CorePath(executablePath) : null,
+    corePid: null,
+    coreWatch: null,
     relaunchWatch: null,
     trophyWatcher:
       system === "ps4" && discPath
@@ -176,8 +231,15 @@ export const startEmulatorSession = async ({
         : null,
   };
 
-  if (system === "ps4" && child.pid) launchedGamePids.set(gameKey, child.pid);
   emulatorSessions.set(gameKey, session);
+  const launcherPid = child.pid;
+  if (system === "ps4" && launcherPid) {
+    launchedGamePids.set(gameKey, launcherPid);
+    session.coreWatch = setInterval(() => {
+      void refreshShadps4CorePid(gameKey, session, launcherPid);
+    }, SHADPS4_CORE_POLL_INTERVAL_MS);
+    session.coreWatch.unref?.();
+  }
   setEmulatorGameRunning(gameKey);
   void onScreenshotGameStarted(gameKey);
 
@@ -231,7 +293,12 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   const { pid } = session.child;
   stopLinuxGameCaptureSession(gameKey);
 
-  if (session.relaunchedPid) killRelaunchedProcess(session.relaunchedPid);
+  if (session.relaunchWatch && session.corePid) {
+    killRelaunchedProcess(session.corePid);
+  } else if (session.system === "ps4" && pid && process.platform === "win32") {
+    killWindowsProcessTree(pid);
+    return true;
+  }
 
   try {
     if (pid && process.platform !== "win32") {
@@ -268,17 +335,9 @@ const finalizeOrFollowRelaunch = async (
   }
 
   const relaunchedPid =
-    session.system === "ps4"
-      ? findNewShadps4Pid(
-          await listShadps4Processes(),
-          new Set([
-            ...session.knownShadps4Pids,
-            ...listOtherSessionPids(session),
-          ]),
-          session.executablePath,
-          session.relaunchedPid ?? session.child.pid
-        )
-      : null;
+    session.corePid === null
+      ? null
+      : await findUnseenShadps4CorePid(session, session.corePid);
 
   if (emulatorSessions.get(gameKey) !== session || session.relaunchWatch) {
     return;
@@ -289,12 +348,12 @@ const finalizeOrFollowRelaunch = async (
     return;
   }
 
-  session.relaunchedPid = relaunchedPid;
-  session.knownShadps4Pids.add(relaunchedPid);
-  launchedGamePids.set(gameKey, relaunchedPid);
+  if (session.coreWatch) clearInterval(session.coreWatch);
+  session.coreWatch = null;
+  adoptShadps4CorePid(gameKey, session, relaunchedPid);
   session.relaunchWatch = setInterval(() => {
     void followRelaunchedProcess(gameKey, session, relaunchedPid);
-  }, SHADPS4_RELAUNCH_POLL_INTERVAL_MS);
+  }, SHADPS4_CORE_POLL_INTERVAL_MS);
   session.relaunchWatch.unref?.();
 };
 
@@ -357,6 +416,7 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   stopLinuxGameCaptureSession(gameKey);
   onScreenshotGameClosed(gameKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
+  if (session.coreWatch) clearInterval(session.coreWatch);
   if (session.relaunchWatch) clearInterval(session.relaunchWatch);
   stopEmulatorSouvenirWatcher(gameKey);
   if (session.system === "ps4") launchedGamePids.delete(gameKey);

@@ -282,13 +282,13 @@ const shadps4Entries = (
       type: "github",
       id: "shadps4-install",
       binary: "shadps4",
-      repo: "shadps4-emu/shadps4",
-      channel: "latest",
+      repo: "shadps4-emu/shadps4-qtlauncher",
+      channel: "prerelease",
       channelLabel: null,
       assetPattern:
         os === "win32"
-          ? /^shadps4-win64-sdl-.*\.zip$/i
-          : /^shadps4-linux-sdl-.*\.zip$/i,
+          ? /^shadPS4QtLauncher-win64-qt-.*\.zip$/i
+          : /^shadPS4QtLauncher-linux-qt-.*\.zip$/i,
       kind: "portable-archive",
     },
   ];
@@ -483,6 +483,31 @@ const resolveGithubOption = async (
 
 const normalizeArch = (arch: string): InstallArch =>
   arch === "arm64" ? "arm64" : "x64";
+
+const shadps4CoreSource = (os: InstallOs): GithubAssetSource => ({
+  type: "github",
+  id: "shadps4-core",
+  binary: "shadps4",
+  repo: "shadps4-emu/shadps4",
+  channel: "latest",
+  channelLabel: null,
+  assetPattern:
+    os === "win32"
+      ? /^shadps4-win64-sdl-.*\.zip$/i
+      : /^shadps4-linux-sdl-.*\.zip$/i,
+  kind: "portable-archive",
+});
+
+export const resolveShadps4CoreOption = async (
+  os: NodeJS.Platform,
+  arch: string
+): Promise<ResolvedInstallOption | null> => {
+  if (normalizeArch(arch) !== "x64") return null;
+  if (os !== "win32" && os !== "linux") return null;
+
+  const option = await resolveGithubOption(shadps4CoreSource(os));
+  return option.downloadUrl ? option : null;
+};
 
 /**
  * Resolves the install options Hydra can offer for an emulator on the given

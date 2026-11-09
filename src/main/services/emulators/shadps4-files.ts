@@ -12,6 +12,20 @@ import {
 import { homedir } from "node:os";
 import path from "node:path";
 
+import {
+  findManagedEmulatorExecutable,
+  type ManagedExecutableBinary,
+} from "./find-managed-emulator-executable";
+
+export const SHADPS4_CORE_DIRECTORY = "core";
+
+export const SHADPS4_CORE_BINARY: ManagedExecutableBinary = {
+  displayName: "shadPS4 core",
+  windowsNames: ["shadPS4.exe"],
+  linuxNames: ["Shadps4-sdl.AppImage", "shadps4"],
+  macosBundleNames: [],
+};
+
 const PORTABLE_USER_DIR = "user";
 const LOG_DIR = "log";
 const LOG_READ_LIMIT_BYTES = 64 * 1024;
@@ -171,8 +185,32 @@ export const readShadps4VersionAfterSession = (
 ): string | null =>
   readVersionRecord(executablePath) ?? readVersionFromLog(executablePath);
 
+export const findShadps4CorePath = (launcherPath: string): string | null =>
+  findManagedEmulatorExecutable(
+    path.join(path.dirname(launcherPath), SHADPS4_CORE_DIRECTORY),
+    SHADPS4_CORE_BINARY
+  );
+
+export const buildShadps4LaunchArguments = (
+  launcherPath: string,
+  discPath: string
+): string[] => {
+  const corePath = findShadps4CorePath(launcherPath);
+
+  return [
+    ...(corePath ? ["-e", corePath] : ["-d"]),
+    "-i",
+    "-g",
+    discPath,
+    "--",
+    "--fullscreen",
+    "true",
+  ];
+};
+
 interface Shadps4ProcessIdentity {
   pid: number;
+  name: string;
   parentPid?: number | null;
   exe?: string | null;
   environ?: Record<string, string> | null;
@@ -191,12 +229,13 @@ const resolveExecutableIdentity = (executablePath: string): string => {
     : resolvedPath;
 };
 
-const isSameExecutable = (
+const isCoreExecutable = (
   { exe, environ }: Shadps4ProcessIdentity,
-  executablePath: string
+  corePath: string | null
 ): boolean => {
-  const target = resolveExecutableIdentity(executablePath);
+  if (corePath === null) return true;
 
+  const target = resolveExecutableIdentity(corePath);
   return [exe, environ?.APPIMAGE].some(
     (candidate) =>
       Boolean(candidate) &&
@@ -204,21 +243,16 @@ const isSameExecutable = (
   );
 };
 
-const isChildOfExitedProcess = (
-  { parentPid }: Shadps4ProcessIdentity,
-  exitedPid: number | undefined
-): boolean =>
-  process.platform !== "win32" || parentPid == null || parentPid === exitedPid;
-
-export const findNewShadps4Pid = (
+export const findShadps4CorePid = (
   processes: ReadonlyArray<Shadps4ProcessIdentity>,
+  parentPid: number,
   knownPids: ReadonlySet<number>,
-  executablePath: string,
-  exitedPid: number | undefined
+  corePath: string | null
 ): number | null =>
   processes.find(
     (candidate) =>
       !knownPids.has(candidate.pid) &&
-      isSameExecutable(candidate, executablePath) &&
-      isChildOfExitedProcess(candidate, exitedPid)
+      !candidate.name.toLowerCase().includes("qtlauncher") &&
+      isCoreExecutable(candidate, corePath) &&
+      (process.platform !== "win32" || candidate.parentPid === parentPid)
   )?.pid ?? null;
