@@ -450,6 +450,7 @@ export function App() {
             matched: payload.matched,
             unmatched: payload.unmatched,
             unmatchedFiles: payload.unmatchedFiles,
+            unsupportedPackages: payload.unsupportedPackages,
           },
         })
       );

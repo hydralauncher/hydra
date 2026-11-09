@@ -9,6 +9,7 @@ export interface ClassicsScanResult {
   matched: number;
   unmatched: number;
   unmatchedFiles: { name: string; reason: "wrong_platform" | "unmatched" }[];
+  unsupportedPackages: number;
 }
 
 export interface ClassicsScanState {
