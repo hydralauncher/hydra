@@ -64,6 +64,7 @@ const SYSTEM_TO_EMULATOR: Partial<
   ps1: null,
   ps2: "pcsx2",
   ps3: null,
+  ps4: null,
   psp: "ppsspp",
   dolphin: "dolphin",
 };

@@ -113,7 +113,7 @@ const getEmulatorCandidates = () =>
             shop: session.shop,
             objectId: session.objectId,
             title: game.title,
-            processId: session.child.pid,
+            processId: session.corePid ?? session.child.pid,
             executablePaths: [session.executablePath],
             winePrefixPath: null,
             isEmulator: true,

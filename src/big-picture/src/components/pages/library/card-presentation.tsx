@@ -75,6 +75,7 @@ const PLATFORM_LABELS: Partial<Record<EmulatorSystem, string>> = {
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
+  ps4: "PS4",
   psp: "PSP",
   dolphin: "GC/Wii",
 };

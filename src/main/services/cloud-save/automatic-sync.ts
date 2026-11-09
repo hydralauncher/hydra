@@ -7,9 +7,11 @@ import type {
 } from "@types";
 import {
   getCloudSaveEmulatorProvider,
-  hasRpcs3CloudSaveDisc,
+  getDiscCloudSaveEmulatorProvider,
+  hasCloudSaveDisc,
   isCloudSaveV2Eligible,
 } from "@shared";
+import { getEmulatorDiscIdentityStatus } from "./emulator-disc-identity.js";
 
 import { HydraApi } from "../hydra-api";
 import { isGameRunning } from "../game-running-state";
@@ -80,11 +82,8 @@ export const canRunAutomaticCloudSaveSync = async (
     return false;
   }
   if (shop === "steam" || shop === "epic") return Boolean(game.executablePath);
-  if (
-    getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
-    !hasRpcs3CloudSaveDisc(game)
-  )
-    return false;
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, game.platform);
+  if (discProvider && !hasCloudSaveDisc(game)) return false;
   if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
     const { getSelectedRetroArchRom } = await import(
       "./retroarch-save-provider"
@@ -95,11 +94,8 @@ export const canRunAutomaticCloudSaveSync = async (
     () => null
   );
   if (!context?.pathContext.executablePath) return false;
-  if (getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3") {
-    const { getRpcs3DiscIdentityStatus } = await import(
-      "./rpcs3-game-identity.js"
-    );
-    return (await getRpcs3DiscIdentityStatus(game)).status === "ready";
+  if (discProvider) {
+    return (await getEmulatorDiscIdentityStatus(game))?.status === "ready";
   }
   return true;
 };
@@ -170,8 +166,8 @@ export const runAutomaticCloudSaveSyncDetailed = async (
     return { status: "skipped", result: null };
   }
   if (
-    getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
-    !hasRpcs3CloudSaveDisc(game)
+    getDiscCloudSaveEmulatorProvider(shop, game.platform) &&
+    !hasCloudSaveDisc(game)
   ) {
     return { status: "skipped", result: null };
   }
