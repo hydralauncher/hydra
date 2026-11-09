@@ -14,6 +14,7 @@ import {
   parseRetroArchStateRelativePath,
   parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
+  parseShadps4SaveRawPath,
 } from "./emulator-provider-identity.js";
 import { isRetroArchBatteryRelativePath } from "./retroarch-snapshot-migration.js";
 import { areSnapshotVariantsEqual } from "./snapshot-variant.js";
@@ -53,13 +54,15 @@ const sameBytes = (
   return left.hash === right.hash && left.sizeBytes === right.sizeBytes;
 };
 
-const rpcs3SlotKey = (
+// An RPCS3 slot or a shadPS4 save folder is restored or kept as a whole.
+const emulatorSlotKey = (
   file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
 ) => {
   if (
     !file ||
     (!parseRpcs3SaveRawPath(file.rawPath) &&
-      !parseRpcs3GamedataRawPath(file.rawPath))
+      !parseRpcs3GamedataRawPath(file.rawPath) &&
+      !parseShadps4SaveRawPath(file.rawPath))
   ) {
     return null;
   }
@@ -90,7 +93,7 @@ const retroArchGroupKey = (
 
 const atomicGroupKey = (
   file: Pick<SnapshotFile, "variantId" | "rawPath" | "relativePath"> | undefined
-) => rpcs3SlotKey(file) ?? retroArchGroupKey(file);
+) => emulatorSlotKey(file) ?? retroArchGroupKey(file);
 
 const mergeVariantMetadata = (
   local: SnapshotVariant[],

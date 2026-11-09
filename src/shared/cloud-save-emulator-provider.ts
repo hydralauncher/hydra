@@ -3,7 +3,7 @@ import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
 import { platformToRetroArchPlatform } from "./retroarch-platform.js";
 import { parseRecompilationCloudSaveObjectId } from "./recompilations.js";
 
-export type CloudSaveEmulatorProvider = "rpcs3" | "retroarch";
+export type CloudSaveEmulatorProvider = "rpcs3" | "shadps4" | "retroarch";
 
 export const getCloudSaveEmulatorProvider = (
   shop: GameShop,
@@ -54,13 +54,14 @@ export const hasSelectedRetroArchRom = (game: {
   discs?: RomDisc[];
 }) => getSelectedRetroArchRomPath(game) !== null;
 
-export type DiscCloudSaveEmulatorProvider = "rpcs3";
+export type DiscCloudSaveEmulatorProvider = "rpcs3" | "shadps4";
 
 const DISC_PROVIDER_SYSTEMS: Record<
   DiscCloudSaveEmulatorProvider,
   EmulatorSystem
 > = {
   rpcs3: "ps3",
+  shadps4: "ps4",
 };
 
 export const DISC_CLOUD_SAVE_EMULATOR_PROVIDERS = Object.keys(

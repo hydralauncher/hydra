@@ -43,6 +43,10 @@ export const rpcs3SavestateRawPath = (titleId: string) =>
 export const rpcs3GamedataRawPath = (titleId: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}rpcs3-gamedata/${titleId}`;
 
+// shadPS4 keeps saves per user: <home>/<user_id>/savedata/<save title id>/.
+export const shadps4SaveRawPath = (saveTitleId: string, userId: string) =>
+  `${EMULATOR_SAVE_RAW_PATH_PREFIX}shadps4/${saveTitleId}/${userId}`;
+
 export const retroArchSaveRawPath = (platform: string, romHash: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}retroarch/${platform}/${romHash}`;
 
@@ -80,6 +84,13 @@ export const parseRpcs3SavestateRawPath = (rawPath: string) => {
 export const parseRpcs3GamedataRawPath = (rawPath: string) => {
   const match = /^<emulator>\/rpcs3-gamedata\/([A-Z]{4}\d{5})$/.exec(rawPath);
   return match ? { titleId: match[1] } : null;
+};
+
+export const parseShadps4SaveRawPath = (rawPath: string) => {
+  const match = /^<emulator>\/shadps4\/([A-Z]{4}\d{5})\/(\d{1,10})$/.exec(
+    rawPath
+  );
+  return match ? { saveTitleId: match[1], userId: match[2] } : null;
 };
 
 export const parseRetroArchSaveRawPath = (rawPath: string) => {
