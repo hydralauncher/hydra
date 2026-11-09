@@ -46,13 +46,13 @@
   &__toggle-link {
     display: inline-flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit / 3);
+    gap: calc(globals.$spacing-unit / 4);
   }
 
   &__stack {
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.75);
+    gap: calc(globals.$spacing-unit * 2);
     padding-top: calc(globals.$spacing-unit / 2);
   }
 
@@ -64,7 +64,7 @@
 
   &__global-toggles {
     padding-top: calc(globals.$spacing-unit / 2);
-    gap: calc(globals.$spacing-unit * 1.25);
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__env-vars {

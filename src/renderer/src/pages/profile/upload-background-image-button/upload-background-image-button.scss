@@ -23,7 +23,7 @@
   &__menu {
     background-color: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid globals.$border-color;
     border-radius: 6px;
     min-width: 180px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -46,10 +46,10 @@
     justify-content: flex-start;
     gap: 8px;
     border-radius: 4px;
-    padding: 5px 12px;
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5);
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     background: none;
     border: none;
     color: globals.$body-color;

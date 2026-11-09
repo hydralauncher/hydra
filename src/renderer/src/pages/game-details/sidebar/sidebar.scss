@@ -3,32 +3,10 @@
 .content-sidebar {
   height: 100%;
   flex-shrink: 0;
-  width: 280px;
+  width: globals.$page-rail-width;
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 1.5);
-
-  @media (min-width: 1024px) {
-    width: 320px;
-  }
-
-  @media (min-width: 1280px) {
-    width: 380px;
-  }
-
-  @media (min-width: 1440px) {
-    width: 420px;
-  }
-
-  @media (max-width: 768px) {
-    width: 35%;
-    min-width: 220px;
-  }
-
-  @media (max-width: 480px) {
-    width: 40%;
-    min-width: 200px;
-  }
 }
 
 .requirement {
@@ -96,10 +74,11 @@
     font-weight: bold;
   }
 
+  // Same height as a loaded category with its accuracy line.
   &__category-skeleton {
     border: solid 1px globals.$border-color;
     border-radius: 4px;
-    height: 76px;
+    height: 80px;
   }
 }
 
@@ -113,10 +92,7 @@
     display: flex;
     gap: calc(globals.$spacing-unit * 1);
     justify-content: space-between;
-
-    @media (min-width: 1024px) {
-      flex-direction: column;
-    }
+    flex-direction: column;
   }
 
   &__category {
@@ -187,7 +163,7 @@
 
   &__value {
     font-size: globals.$body-font-size;
-    color: #fff;
+    color: globals.$muted-color;
     font-weight: 400;
     text-transform: capitalize;
   }
@@ -196,9 +172,9 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 6px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
     color: #0a0a0a;
     background: rgb(180, 199, 220);
@@ -247,10 +223,7 @@
     justify-content: space-between;
     transition: max-height ease 0.5s;
     overflow: hidden;
-
-    @media (min-width: 1024px) {
-      flex-direction: column;
-    }
+    flex-direction: column;
   }
 
   &__category-title {
@@ -295,6 +268,11 @@
       background-color: rgba(255, 255, 255, 0.15);
       text-decoration: none;
     }
+  }
+
+  &__item--skeleton {
+    cursor: default;
+    pointer-events: none;
   }
 
   &__item-image {
@@ -387,13 +365,13 @@
     line-height: 1.2;
 
     &--full {
-      background: rgba(154, 205, 50, 0.15);
-      color: #9acd32;
+      background: rgba(globals.$success-color, 0.15);
+      color: globals.$success-color;
     }
 
     &--partial {
-      background: rgba(255, 165, 0, 0.15);
-      color: #ffa500;
+      background: rgba(globals.$warning-color, 0.15);
+      color: globals.$warning-color;
     }
 
     &--none {

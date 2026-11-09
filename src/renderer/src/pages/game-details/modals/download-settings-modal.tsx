@@ -54,6 +54,10 @@ import {
 } from "./use-download-options";
 import { gameDetailsContext } from "@renderer/context";
 import {
+  beginDownloadFlight,
+  type PendingDownloadFlight,
+} from "@renderer/components/sidebar/download-flight";
+import {
   platformToRetroArchPlatform,
   platformToSystem,
 } from "@renderer/helpers";
@@ -921,60 +925,68 @@ export function DownloadSettingsModal({
   };
 
   const handleStartClick = async (
+    flight: PendingDownloadFlight,
     selectedFileIndices?: number[],
     totalSelectedSize?: number
   ) => {
-    if (repack) {
-      const requestId = ++activeStartRequestIdRef.current;
-      startAbortControllerRef.current?.abort();
-      const abortController = new AbortController();
-      startAbortControllerRef.current = abortController;
+    if (!repack) {
+      flight.cancel();
+      return;
+    }
 
-      setDownloadStarting(true);
+    const requestId = ++activeStartRequestIdRef.current;
+    startAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    startAbortControllerRef.current = abortController;
 
-      try {
-        const response = await startDownload(
-          repack,
-          selectedDownloader!,
-          selectedPath,
-          automaticExtractionEnabled,
-          hasActiveDownload,
-          selectedFileIndices,
-          totalSelectedSize,
-          deleteArchiveFilesAfterExtraction,
-          abortController.signal
-        );
+    setDownloadStarting(true);
 
-        if (
-          requestId !== activeStartRequestIdRef.current ||
-          abortController.signal.aborted
-        ) {
-          return;
-        }
+    try {
+      const response = await startDownload(
+        repack,
+        selectedDownloader!,
+        selectedPath,
+        automaticExtractionEnabled,
+        hasActiveDownload,
+        selectedFileIndices,
+        totalSelectedSize,
+        deleteArchiveFilesAfterExtraction,
+        abortController.signal
+      );
 
-        if (response.ok) {
-          resetTorrentStepState();
-          onClose();
-          return;
-        } else if (response.error) {
-          showErrorToast(t("download_error"), t(response.error), 4_000);
-        }
-      } catch (error) {
-        if (
-          abortController.signal.aborted ||
-          (error instanceof Error && error.name === "AbortError")
-        ) {
-          return;
-        }
+      if (
+        requestId !== activeStartRequestIdRef.current ||
+        abortController.signal.aborted
+      ) {
+        return;
+      }
 
-        if (error instanceof Error) {
-          showErrorToast(t("download_error"), error.message, 4_000);
-        }
-      } finally {
-        if (requestId === activeStartRequestIdRef.current) {
-          startAbortControllerRef.current = null;
-          setDownloadStarting(false);
-        }
+      if (response.ok) {
+        flight.launch(shopDetails?.assets?.iconUrl || game?.iconUrl);
+        resetTorrentStepState();
+        onClose();
+        return;
+      } else if (response.error) {
+        showErrorToast(t("download_error"), t(response.error), 4_000);
+      }
+    } catch (error) {
+      if (
+        abortController.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
+        return;
+      }
+
+      if (error instanceof Error) {
+        showErrorToast(t("download_error"), error.message, 4_000);
+      }
+    } finally {
+      // Does nothing once the flight launched.
+      flight.cancel();
+
+      if (requestId === activeStartRequestIdRef.current) {
+        startAbortControllerRef.current = null;
+        setDownloadStarting(false);
       }
     }
   };
@@ -988,16 +1000,21 @@ export function DownloadSettingsModal({
     onClose();
   }, [onClose, resetTorrentStepState]);
 
-  const handlePrimaryButtonClick = async () => {
-    await handleStartClick();
+  const handlePrimaryButtonClick = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    await handleStartClick(beginDownloadFlight(event.currentTarget));
   };
 
-  const handleTorrentStepDownload = async () => {
+  const handleTorrentStepDownload = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const flight = beginDownloadFlight(event.currentTarget);
     const selectedFileIndices = Array.from(selectedTorrentIndices).sort(
       (a, b) => a - b
     );
 
-    await handleStartClick(selectedFileIndices, selectedTorrentSize);
+    await handleStartClick(flight, selectedFileIndices, selectedTorrentSize);
   };
 
   const handleOpenTorrentStep = async () => {

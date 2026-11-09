@@ -7,17 +7,8 @@ $card-hover-transition-duration: 0.2s;
   display: flex;
   flex-direction: column;
   gap: calc(globals.$spacing-unit * 1.5);
-  width: 100%;
   align-self: center;
-  margin-inline: auto;
-
-  @media (min-width: 1280px) {
-    width: 60%;
-  }
-
-  @media (min-width: 1536px) {
-    width: 50%;
-  }
+  @include globals.page-column;
 
   &__title {
     font-size: 20px;
@@ -51,7 +42,7 @@ $card-hover-transition-duration: 0.2s;
   &__slide {
     flex: 0 0 calc(100% / 3);
     min-width: 0;
-    padding: 3px globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
   }
 
   &__card:hover {

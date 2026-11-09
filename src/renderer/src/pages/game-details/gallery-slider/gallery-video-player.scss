@@ -185,7 +185,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   &__seek-amount {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     animation: gallery-video-seek-amount 0.2s ease-out;
@@ -196,7 +196,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   &--inline &__seek-amount {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
   }
 
   &__volume-indicator {
@@ -205,8 +205,8 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     left: 50%;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 14px;
+    gap: globals.$spacing-unit;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
     border-radius: 999px;
     background-color: rgba(0, 0, 0, 0.55);
     color: #fff;
@@ -221,7 +221,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   &--fullscreen &__volume-indicator {
     gap: 12px;
-    padding: 10px 18px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
   }
 
   &__volume-indicator-icon {
@@ -233,7 +233,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
     width: 96px;
     height: 4px;
-    border-radius: 2px;
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.25);
     overflow: hidden;
   }
@@ -252,7 +252,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   &__volume-indicator-value {
     min-width: 40px;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     text-align: right;
@@ -307,7 +307,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
     width: 100%;
     height: 4px;
-    border-radius: 2px;
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.2);
     overflow: hidden;
     transition: height 0.15s ease;
@@ -374,7 +374,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     transform: translateX(-50%);
     opacity: 0;
     visibility: hidden;
@@ -417,7 +417,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   &__preview-time {
-    padding: 3px 8px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 4px;
     background-color: rgba(0, 0, 0, 0.85);
     border: 1px solid globals.$border-color;
@@ -467,7 +467,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
   &--fullscreen &__button {
     height: 48px;
     min-width: 48px;
-    padding: 0 10px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
   }
 
   &--fullscreen &__time {
@@ -477,7 +477,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
   &--inline &__button {
     height: 32px;
     min-width: 32px;
-    padding: 0 6px;
+    padding: 0 calc(globals.$spacing-unit / 2);
   }
 
   &__button--fullscreen {
@@ -525,7 +525,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
     width: 100%;
     height: 4px;
-    border-radius: 2px;
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.2);
     overflow: hidden;
   }
@@ -560,8 +560,8 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   &__time-separator {
-    margin: 0 6px;
-    color: rgba(255, 255, 255, 0.5);
+    margin: 0 calc(globals.$spacing-unit / 2);
+    color: globals.$subtle-color;
   }
 
   &__spacer {
@@ -595,9 +595,10 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   &__quality-title {
-    padding: 6px 10px 4px;
+    padding: globals.$spacing-unit globals.$spacing-unit
+      calc(globals.$spacing-unit / 2);
     font-size: globals.$small-font-size;
-    color: rgba(255, 255, 255, 0.5);
+    color: globals.$subtle-color;
   }
 
   &__quality-option {
@@ -606,7 +607,7 @@ $video-ease: cubic-bezier(0.22, 1, 0.36, 1);
     justify-content: space-between;
     gap: globals.$spacing-unit;
     width: 100%;
-    padding: 8px 10px;
+    padding: globals.$spacing-unit;
     border: none;
     border-radius: 4px;
     background: transparent;

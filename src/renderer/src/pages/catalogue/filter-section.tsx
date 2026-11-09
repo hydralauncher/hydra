@@ -2,7 +2,7 @@ import { CheckboxField } from "@renderer/components/checkbox-field/checkbox-fiel
 import { TextField } from "@renderer/components/text-field/text-field";
 import { useFormat } from "@renderer/hooks";
 import { ChevronDownIcon } from "@primer/octicons-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import "./filter.scss";
 import List from "rc-virtual-list";
 import { useTranslation } from "react-i18next";
@@ -22,7 +22,12 @@ export interface FilterSectionProps {
   onSelect: (value: string | number) => void;
   color: string;
   onClear: () => void;
+  /** The list hasn't loaded yet: keep the section's full height meanwhile. */
+  isLoading?: boolean;
 }
+
+const FILTER_ITEM_HEIGHT = 28;
+const FILTER_VISIBLE_ITEMS = 10;
 
 export function FilterSection({
   title,
@@ -31,12 +36,11 @@ export function FilterSection({
   color,
   onSelect,
   onClear,
+  isLoading = false,
 }: FilterSectionProps) {
-  const content = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
-  const [height, setHeight] = useState(0);
   const { t } = useTranslation("catalogue");
 
   const availableGroups = useMemo(() => {
@@ -87,15 +91,9 @@ export function FilterSection({
 
   const { formatNumber } = useFormat();
 
-  useEffect(() => {
-    if (content.current && content.current.scrollHeight !== height) {
-      setHeight(isOpen ? content.current.scrollHeight : 0);
-    } else if (!isOpen) {
-      setHeight(0);
-    }
-  }, [isOpen, filteredItems, height, search]);
+  const isWaitingForItems = isLoading && !items.length;
 
-  if (!items.length) {
+  if (!items.length && !isLoading) {
     return null;
   }
 
@@ -118,16 +116,17 @@ export function FilterSection({
             style={{ backgroundColor: color }}
           />
           <h3 className="filter-section__title">{title}</h3>
-          <span className="filter-section__header-count">
+          <span
+            className="filter-section__header-count"
+            style={isWaitingForItems ? { visibility: "hidden" } : undefined}
+          >
             {formatNumber(selectedItemsCount || items.length)}
           </span>
         </div>
       </button>
 
       <div
-        ref={content}
-        className="filter-section__content"
-        style={{ maxHeight: `${height}px` }}
+        className={`filter-section__content${isOpen ? "" : " filter-section__content--closed"}`}
       >
         <div className="filter-section__content-inner">
           {selectedItemsCount > 0 ? (
@@ -195,12 +194,21 @@ export function FilterSection({
             theme="dark"
           />
 
+          {isWaitingForItems && (
+            <div
+              className="filter-section__list-placeholder"
+              style={{ height: FILTER_ITEM_HEIGHT * FILTER_VISIBLE_ITEMS }}
+              aria-busy="true"
+            />
+          )}
+
           <List
             data={filteredItems}
             height={
-              28 * (filteredItems.length > 10 ? 10 : filteredItems.length)
+              FILTER_ITEM_HEIGHT *
+              Math.min(filteredItems.length, FILTER_VISIBLE_ITEMS)
             }
-            itemHeight={28}
+            itemHeight={FILTER_ITEM_HEIGHT}
             itemKey="value"
             styles={{
               verticalScrollBar: {

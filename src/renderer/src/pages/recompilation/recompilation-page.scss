@@ -17,7 +17,7 @@
     position: relative;
     flex-shrink: 0;
     overflow: hidden;
-    padding: 32px;
+    padding: globals.$page-gutter;
     border-bottom: 1px solid globals.$border-color;
   }
 
@@ -69,7 +69,7 @@
     margin: 0;
     font-size: 28px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__playtime {
@@ -89,7 +89,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__hero-buttons {
@@ -107,7 +107,7 @@
   &__progress {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 260px;
   }
 
@@ -130,7 +130,7 @@
     background: none;
     border: none;
     color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 500;
     cursor: pointer;
     transition: color ease 0.2s;
@@ -141,7 +141,7 @@
 
     &--active,
     &--active:hover {
-      color: white;
+      color: globals.$muted-color;
     }
   }
 
@@ -151,11 +151,11 @@
     justify-content: center;
     min-width: 18px;
     height: 18px;
-    padding: 0 6px;
-    border-radius: 9px;
+    padding: 0 calc(globals.$spacing-unit / 2);
+    border-radius: 999px;
     background-color: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.9);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
     line-height: 1;
   }
@@ -166,12 +166,12 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: white;
+    background: globals.$muted-color;
   }
 
   &__body {
     flex-shrink: 0;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.5) 0;
+    padding: calc(globals.$spacing-unit * 2) 0 0;
   }
 
   .game-details__description-container {
@@ -201,16 +201,7 @@
   }
 
   &__column {
-    width: 100%;
-    margin: 0 auto;
-
-    @media (min-width: 1280px) {
-      width: 60%;
-    }
-
-    @media (min-width: 1536px) {
-      width: 50%;
-    }
+    @include globals.page-column;
   }
 
   &__column-header {
@@ -243,7 +234,8 @@
     position: relative;
     padding-left: 80px;
 
-    @media (min-width: 1280px) {
+    // Wide enough that the centered column leaves room for the rail beside it.
+    @include globals.page-min-width(1400px) {
       padding-left: 0;
     }
   }
@@ -254,15 +246,13 @@
     bottom: 0;
     left: 80px;
     right: 0;
+    width: auto;
     z-index: 2;
     pointer-events: none;
 
-    @media (max-width: 1279px) {
-      width: auto;
-    }
-
-    @media (min-width: 1280px) {
+    @include globals.page-min-width(1400px) {
       left: 0;
+      width: 100%;
     }
 
     .release-rail-sticky {
@@ -302,8 +292,8 @@
     }
 
     strong {
-      color: #fafafa;
-      font-size: 14px;
+      color: globals.$muted-color;
+      font-size: globals.$body-font-size;
     }
 
     span {
@@ -324,7 +314,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 13px;
+      font-size: globals.$hint-font-size;
       line-height: 18px;
       color: globals.$muted-color;
     }
@@ -333,7 +323,7 @@
   &__about {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: calc(globals.$spacing-unit * 1.5);
     margin: 0;
 
     div {
@@ -363,7 +353,7 @@
   &__link {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     width: 100%;
     padding: calc(globals.$spacing-unit * 2) 0 0;
     border: 0;
@@ -371,7 +361,7 @@
     background: none;
     color: globals.$muted-color;
     font: inherit;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     cursor: pointer;
     transition: color ease 0.2s;
 
@@ -381,11 +371,11 @@
     }
 
     svg:last-child {
-      color: #8e919b;
+      color: globals.$subtle-color;
     }
 
     &:hover {
-      color: #fff;
+      color: globals.$muted-color;
     }
   }
 }
@@ -399,7 +389,7 @@
   &-sticky {
     position: sticky;
     top: calc(globals.$spacing-unit * 2);
-    padding-top: 31px;
+    padding-top: 32px;
   }
 
   &__item {
@@ -416,7 +406,7 @@
 
     &--selected,
     &--highlighted {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
 
     outline: none;
@@ -427,7 +417,7 @@
     display: block;
     width: 12px;
     height: 2px;
-    border-radius: 1px;
+    border-radius: 999px;
     background: currentColor;
   }
 
@@ -443,7 +433,7 @@
     transform: translateY(-50%);
     width: max-content;
     max-width: 280px;
-    padding: 10px 14px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     background:
@@ -457,13 +447,13 @@
     gap: 2px;
 
     strong {
-      color: #fafafa;
-      font-size: 14px;
+      color: globals.$muted-color;
+      font-size: globals.$body-font-size;
       font-weight: 600;
     }
 
     span {
-      color: #a1a1aa;
+      color: globals.$subtle-color;
       font-size: globals.$small-font-size;
     }
   }

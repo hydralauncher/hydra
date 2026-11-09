@@ -2,7 +2,7 @@
 
 $markdown-border: rgba(255, 255, 255, 0.12);
 $markdown-surface: rgba(255, 255, 255, 0.06);
-$markdown-muted: #8e919b;
+$markdown-muted: globals.$subtle-color;
 $markdown-mono:
   ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
   monospace;
@@ -11,7 +11,7 @@ $markdown-mono:
   font-size: 16px;
   line-height: 1.5;
   overflow-wrap: break-word;
-  color: #b4b6be;
+  color: globals.$body-color;
   overflow: visible;
 
   &.game-details__description--collapsed {
@@ -37,7 +37,7 @@ $markdown-mono:
     margin-bottom: 16px;
     font-weight: 600;
     line-height: 1.25;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   h1 {
@@ -141,7 +141,7 @@ $markdown-mono:
     margin-bottom: 8px;
     font-weight: 600;
     line-height: 1;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   hr {
@@ -205,7 +205,7 @@ $markdown-mono:
     th,
     td {
       overflow-wrap: anywhere;
-      padding: 6px 13px;
+      padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
       border: 1px solid $markdown-border;
     }
 
