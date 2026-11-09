@@ -163,16 +163,6 @@ export default function App() {
   }, [showErrorToast, showSuccessToast, showWarningToast, t]);
 
   useEffect(() => {
-    const unsubscribe = globalThis.window.electron.onShowToast((toast) => {
-      if (toast.type === "warning") showWarningToast(toast.title);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [showWarningToast]);
-
-  useEffect(() => {
     setPendingRouteFocusPathname(pathname);
   }, [pathname]);
 

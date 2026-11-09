@@ -32,6 +32,9 @@ export function SetupStepFirmware({
   const isPs4 = config.system === "ps4";
   const copyKey = (name: string) =>
     isPs4 ? `setup_firmware_ps4_${name}` : `setup_firmware_${name}`;
+  const missingTitleKey = isPs4
+    ? "setup_firmware_ps4_not_found"
+    : "setup_firmware_not_yet";
 
   const probe = async () => {
     setChecking(true);
@@ -42,7 +45,7 @@ export function SetupStepFirmware({
       );
       setInstalled(result.installed);
       setFirmwarePath(result.path);
-      onFirmwareStatusChange(result.installed);
+      onFirmwareStatusChange(isPs4 || result.installed);
     } finally {
       setChecking(false);
     }
@@ -56,7 +59,9 @@ export function SetupStepFirmware({
   return (
     <>
       <h3 className="setup-modal__body-title">
-        {t("setup_step_firmware", { system: systemLabel })}
+        {isPs4
+          ? t("setup_firmware_ps4_title")
+          : t("setup_step_firmware", { system: systemLabel })}
       </h3>
       <div>
         <p className="setup-modal__body-intro" style={{ margin: 0 }}>
@@ -132,9 +137,7 @@ export function SetupStepFirmware({
           </div>
           <div className="setup-modal__alert-text">
             <span className="setup-modal__alert-title">
-              {installed
-                ? t("setup_firmware_found")
-                : t("setup_firmware_not_yet")}
+              {installed ? t("setup_firmware_found") : t(missingTitleKey)}
             </span>
             <span className="setup-modal__alert-note">
               {installed

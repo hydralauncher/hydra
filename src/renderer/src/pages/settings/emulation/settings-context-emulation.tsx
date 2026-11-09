@@ -94,7 +94,6 @@ const SYSTEM_REQUIREMENTS: Partial<
   ps1: "bios",
   ps2: "bios",
   ps3: "firmware",
-  ps4: "firmware_modules",
 };
 
 export function SettingsContextEmulation() {
@@ -356,7 +355,7 @@ export function SettingsContextEmulation() {
             checkRequirement={async () => {
               const config = configs[system];
 
-              if (system === "ps3" || system === "ps4") {
+              if (system === "ps3") {
                 const { installed } =
                   await window.electron.checkEmulatorFirmware(
                     system,

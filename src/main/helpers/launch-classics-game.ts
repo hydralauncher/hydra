@@ -2,10 +2,8 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { t } from "i18next";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { emulators, logger } from "@main/services";
-import { WindowManager } from "@main/services/window-manager";
 import type {
   EmulatorBinary,
   EmulatorConfig,
@@ -171,24 +169,6 @@ const assertBiosInstalled = async (
   }
 };
 
-const warnIfPs4FirmwareMissing = async (
-  system: EmulatorSystem,
-  executablePath: string
-): Promise<void> => {
-  if (system !== "ps4") return;
-
-  const { installed } = await emulators.getEmulatorFirmwareStatus(
-    system,
-    executablePath
-  );
-  if (installed) return;
-
-  WindowManager.sendToAppWindows("on-show-toast", {
-    type: "warning",
-    title: t("firmware_missing_launch_toast", { ns: "game_details" }),
-  });
-};
-
 export const resolveEmulatorWrappers = (
   preferences: UserPreferences | null,
   game: Game | undefined
@@ -222,7 +202,6 @@ export const launchClassicsGame = async (
   // emulator is spawned detached with stdio "ignore" so its own error never
   // reaches us. Detect the missing BIOS up front and block the launch instead.
   await assertBiosInstalled(system, config);
-  await warnIfPs4FirmwareMissing(system, configuredExecutablePath);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);

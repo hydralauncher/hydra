@@ -47,8 +47,12 @@ export function FirmwareSection({
   const handleRedetect = useCallback(async () => {
     const found = await probe();
     if (found) showSuccessToast(t("setup_firmware_found"));
-    else showErrorToast(t("setup_firmware_not_yet"));
-  }, [probe, showSuccessToast, showErrorToast, t]);
+    else if (!isPs4) showErrorToast(t("setup_firmware_not_yet"));
+  }, [isPs4, probe, showSuccessToast, showErrorToast, t]);
+
+  const missingStatusLabel = t(
+    isPs4 ? "firmware_status_optional" : "not_detected"
+  );
 
   return (
     <EmulatorResourceRow
@@ -58,8 +62,8 @@ export function FirmwareSection({
           ? "firmware_section_description_ps4"
           : "firmware_section_description"
       )}
-      detected={!!installed}
-      statusLabel={installed ? t("setup_firmware_found") : t("not_detected")}
+      detected={isPs4 || !!installed}
+      statusLabel={installed ? t("setup_firmware_found") : missingStatusLabel}
       path={{
         text: firmwarePath,
         placeholder: t("setup_firmware_not_yet"),

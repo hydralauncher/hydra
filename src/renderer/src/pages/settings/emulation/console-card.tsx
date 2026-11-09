@@ -7,11 +7,7 @@ import { formatRelativeShort } from "./relative-time";
 
 import "./console-card.scss";
 
-export type ConsoleCardRequirement =
-  | "bios"
-  | "firmware"
-  | "firmware_modules"
-  | "cores";
+export type ConsoleCardRequirement = "bios" | "firmware" | "cores";
 
 interface ConsoleCardProps {
   art: string | readonly string[];
