@@ -1,15 +1,12 @@
-import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
-import { VideoIcon } from "@primer/octicons-react";
-import {
-  DashIcon,
-  ScreenFullIcon,
-  ScreenNormalIcon,
-  XIcon,
-} from "@primer/octicons-react";
+import { AppTitleBar, Sidebar, Toast } from "@renderer/components";
+import { AutoUpdateSubHeader } from "@renderer/components/header/auto-update-sub-header";
+import { ScanGamesProvider } from "@renderer/context";
 import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useGamificationFeatureSync,
+  useGamificationProgressSync,
   useDragTextSelection,
   useLibrary,
   useToast,
@@ -51,6 +48,9 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { LevelUpModal } from "./components/gamification";
+import { useMissingScreenshotsToast } from "./hooks/use-missing-screenshots-toast";
+import { useScreenshotUploadFailureToast } from "./hooks/use-screenshot-upload-failure-toast";
 import { LeaderboardNotificationLayer } from "./components/leaderboard-notification/leaderboard-notification-layer";
 import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
@@ -92,6 +92,9 @@ export function App() {
     clearUserDetails,
   } = useUserDetails();
 
+  useGamificationFeatureSync();
+  useGamificationProgressSync();
+
   const { hideHydraCloudModal, isHydraCloudModalVisible, hydraCloudFeature } =
     useSubscription();
 
@@ -106,7 +109,15 @@ export function App() {
 
   const toast = useAppSelector((state) => state.toast);
 
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    window.electron.getVersion().then(setVersion);
+  }, []);
+
   const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
+  useMissingScreenshotsToast();
+  useScreenshotUploadFailureToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
@@ -583,6 +594,14 @@ export function App() {
           );
         }
       ),
+      window.electron.onCommonRedistProgress(({ complete }) => {
+        if (!complete) return;
+
+        showSuccessToast(
+          t("installation_complete", { ns: "bottom_panel" }),
+          t("installation_complete_message", { ns: "bottom_panel" })
+        );
+      }),
     ];
 
     return () => {
@@ -653,9 +672,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
-      playAudio();
-    });
+    const unsubscribe = window.electron.onAchievementUnlocked(
+      (suppressSound) => {
+        if (!suppressSound) playAudio();
+      }
+    );
 
     return () => {
       unsubscribe();
@@ -676,7 +697,12 @@ export function App() {
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
 
   useEffect(() => {
-    if (window.electron.platform !== "linux") return;
+    if (
+      window.electron.platform !== "linux" ||
+      window.electron.hasNativeWindowDecorations
+    ) {
+      return;
+    }
 
     if (window.electron.isWayland) {
       document.body.classList.add("window-rounded");
@@ -704,70 +730,11 @@ export function App() {
 
   return (
     <>
-      {(window.electron.platform === "win32" ||
-        window.electron.platform === "linux") && (
-        <div
-          className={`title-bar${
-            window.electron.platform === "win32" ? " title-bar--windows" : ""
-          }`}
-        >
-          <h4>
-            Hydra
-            {hasActiveSubscription && (
-              <span className="title-bar__cloud-text"> Cloud</span>
-            )}
-          </h4>
-
-          <button
-            type="button"
-            className="title-bar__big-picture"
-            onClick={() => globalThis.window.electron.openBigPictureWindow()}
-          >
-            <VideoIcon size={14} />
-            {t("big_picture", { ns: "sidebar" })}
-          </button>
-
-          {window.electron.platform === "linux" && (
-            <div className="title-bar__window-controls">
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.minimizeMainWindow()}
-                title={t("header:minimize")}
-                aria-label={t("header:minimize")}
-              >
-                <DashIcon size={16} />
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.toggleMaximizeMainWindow()}
-                title={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-                aria-label={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-              >
-                {isWindowMaximized ? (
-                  <ScreenNormalIcon size={16} />
-                ) : (
-                  <ScreenFullIcon size={16} />
-                )}
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control title-bar__window-control--close"
-                onClick={() => window.electron.closeMainWindow()}
-                title={t("header:close")}
-                aria-label={t("header:close")}
-              >
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      <AppTitleBar
+        hasActiveSubscription={hasActiveSubscription}
+        version={version}
+        isWindowMaximized={isWindowMaximized}
+      />
 
       <Toast
         visible={toast.visible}
@@ -777,6 +744,8 @@ export function App() {
         onClose={handleToastClose}
         duration={toast.duration}
       />
+
+      <LevelUpModal />
 
       <CloudSubscriptionModal
         visible={isHydraCloudModalVisible}
@@ -802,23 +771,23 @@ export function App() {
       <ClassicsScanModal />
       <RetroArchScanModal />
 
-      <main>
-        <Sidebar />
+      <ScanGamesProvider>
+        <main>
+          <Sidebar />
 
-        <article className="container">
-          <Header />
+          <article className="container">
+            <AutoUpdateSubHeader />
 
-          <section
-            ref={contentRef}
-            id="scrollableDiv"
-            className="container__content"
-          >
-            <Outlet />
-          </section>
-        </article>
-      </main>
-
-      <BottomPanel />
+            <section
+              ref={contentRef}
+              id="scrollableDiv"
+              className="container__content"
+            >
+              <Outlet />
+            </section>
+          </article>
+        </main>
+      </ScanGamesProvider>
     </>
   );
 }

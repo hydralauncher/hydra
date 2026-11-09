@@ -34,7 +34,9 @@ export function initializeBigPictureRunningGamesStore() {
 
   runningGamesStoreInitialized = true;
 
-  const setRunningGames = (games: BigPictureRunningGame[]) => {
+  const setRunningGames = (
+    games: (BigPictureRunningGame & Pick<GameRunning, "recompilationSlug">)[]
+  ) => {
     useBigPictureRunningGamesStore.getState().setRunningGames(games);
   };
 

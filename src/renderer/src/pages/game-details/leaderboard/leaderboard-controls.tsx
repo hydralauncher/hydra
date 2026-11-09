@@ -1,12 +1,13 @@
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import cn from "classnames";
 import {
   CalendarIcon,
-  ChevronDownIcon,
   GlobeIcon,
+  InfinityIcon,
   PeopleIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
+
+import { MetricIcon } from "@renderer/pages/leaderboards/metric-icon";
 
 import {
   LEADERBOARD_PERIODS,
@@ -15,36 +16,61 @@ import {
   type LeaderboardPeriod,
   type LeaderboardScope,
 } from "./game-leaderboard";
+import { useSelectorTooltip } from "./use-selector-tooltip";
 
-interface SegmentedOption<T extends string> {
+interface CardSelectorOption<T extends string> {
   id: T;
   label: string;
   icon?: React.ReactNode;
+  // Replaces the name only when the card is too narrow for it.
+  collapsedIcon?: React.ReactNode;
 }
 
-interface SegmentedControlProps<T extends string> {
+interface CardSelectorProps<T extends string> {
   label: string;
-  options: SegmentedOption<T>[];
+  options: CardSelectorOption<T>[];
   value: T;
   onChange: (value: T) => void;
 }
 
-export function SegmentedControl<T extends string>({
+// The compact selector of the game page card. An option with an icon shows only
+// the icon, and its name moves to a tooltip.
+function CardSelector<T extends string>({
   label,
   options,
   value,
   onChange,
-}: Readonly<SegmentedControlProps<T>>) {
+}: Readonly<CardSelectorProps<T>>) {
   const selectedIndex = Math.max(
     0,
     options.findIndex((option) => option.id === value)
   );
+  const hasIcons = options.some((option) => option.icon);
+  const hasCollapsedIcons = options.some((option) => option.collapsedIcon);
+  const { showTooltip, hideTooltip, tooltipElement } = useSelectorTooltip();
+
+  // The name only needs a tooltip when it is not on screen.
+  const showOptionTooltip = (
+    element: HTMLElement,
+    option: CardSelectorOption<T>
+  ) => {
+    const collapsibleLabel = element.querySelector(
+      ".leaderboard-controls__selector-option-label"
+    );
+
+    if (option.icon || collapsibleLabel?.getClientRects().length === 0) {
+      showTooltip(element, option.label);
+    }
+  };
 
   return (
     <div
       role="tablist"
       aria-label={label}
-      className="leaderboard-controls__segmented"
+      className={cn("leaderboard-controls__selector", {
+        "leaderboard-controls__selector--icons": hasIcons,
+        "leaderboard-controls__selector--collapsible": hasCollapsedIcons,
+      })}
       style={
         {
           "--segment-count": options.length,
@@ -52,93 +78,52 @@ export function SegmentedControl<T extends string>({
         } as React.CSSProperties
       }
     >
-      <span className="leaderboard-controls__indicator" aria-hidden="true" />
+      <span
+        className="leaderboard-controls__selector-indicator"
+        aria-hidden="true"
+      />
       {options.map((option) => (
         <button
           key={option.id}
           type="button"
           role="tab"
           aria-selected={option.id === value}
-          className={cn("leaderboard-controls__segment", {
-            "leaderboard-controls__segment--selected": option.id === value,
+          aria-label={
+            option.icon || option.collapsedIcon ? option.label : undefined
+          }
+          onMouseEnter={(event) =>
+            showOptionTooltip(event.currentTarget, option)
+          }
+          onMouseLeave={hideTooltip}
+          onFocus={(event) => {
+            if (event.currentTarget.matches(":focus-visible")) {
+              showOptionTooltip(event.currentTarget, option);
+            }
+          }}
+          onBlur={hideTooltip}
+          className={cn("leaderboard-controls__selector-option", {
+            "leaderboard-controls__selector-option--selected":
+              option.id === value,
           })}
           onClick={() => onChange(option.id)}
         >
-          {option.icon}
-          <span className="leaderboard-controls__segment-label">
-            {option.label}
-          </span>
+          {option.icon ??
+            (option.collapsedIcon ? (
+              <>
+                <span className="leaderboard-controls__selector-option-icon">
+                  {option.collapsedIcon}
+                </span>
+                <span className="leaderboard-controls__selector-option-label">
+                  {option.label}
+                </span>
+              </>
+            ) : (
+              option.label
+            ))}
         </button>
       ))}
+      {tooltipElement}
     </div>
-  );
-}
-
-interface FilterOption<T extends string> {
-  id: T;
-  label: string;
-}
-
-interface FilterProps<T extends string> {
-  label: string;
-  icon: React.ReactNode;
-  options: FilterOption<T>[];
-  value: T;
-  onChange: (value: T) => void;
-}
-
-function Filter<T extends string>({
-  label,
-  icon,
-  options,
-  value,
-  onChange,
-}: Readonly<FilterProps<T>>) {
-  const selected = options.find((option) => option.id === value);
-
-  return (
-    <DropdownMenuPrimitive.Root modal={false}>
-      <DropdownMenuPrimitive.Trigger asChild>
-        <button
-          type="button"
-          className="leaderboard-controls__filter"
-          aria-label={label}
-        >
-          {icon}
-          <span className="leaderboard-controls__filter-label">
-            {selected?.label}
-          </span>
-          <ChevronDownIcon
-            size={12}
-            className="leaderboard-controls__filter-chevron"
-          />
-        </button>
-      </DropdownMenuPrimitive.Trigger>
-
-      <DropdownMenuPrimitive.Portal>
-        <DropdownMenuPrimitive.Content
-          align="start"
-          sideOffset={6}
-          collisionPadding={16}
-          className="leaderboard-controls__filter-content"
-        >
-          <DropdownMenuPrimitive.RadioGroup
-            value={value}
-            onValueChange={(next) => onChange(next as T)}
-          >
-            {options.map((option) => (
-              <DropdownMenuPrimitive.RadioItem
-                key={option.id}
-                value={option.id}
-                className="leaderboard-controls__filter-item"
-              >
-                {option.label}
-              </DropdownMenuPrimitive.RadioItem>
-            ))}
-          </DropdownMenuPrimitive.RadioGroup>
-        </DropdownMenuPrimitive.Content>
-      </DropdownMenuPrimitive.Portal>
-    </DropdownMenuPrimitive.Root>
   );
 }
 
@@ -153,6 +138,16 @@ export interface LeaderboardControlsProps {
   onScopeChange: (scope: LeaderboardScope) => void;
   onMetricChange: (metric: LeaderboardMetric) => void;
 }
+
+const SCOPE_ICONS: Record<LeaderboardScope, React.ReactNode> = {
+  global: <GlobeIcon size={14} />,
+  friends: <PeopleIcon size={14} />,
+};
+
+const PERIOD_ICONS: Record<LeaderboardPeriod, React.ReactNode> = {
+  week: <CalendarIcon size={14} />,
+  all: <InfinityIcon size={14} />,
+};
 
 export function LeaderboardControls({
   period,
@@ -169,46 +164,39 @@ export function LeaderboardControls({
 
   return (
     <div className="leaderboard-controls">
-      <div className="leaderboard-controls__filters">
-        {showScope && (
-          <Filter
-            label={t("scope_label")}
-            icon={
-              scope === "friends" ? (
-                <PeopleIcon size={12} />
-              ) : (
-                <GlobeIcon size={12} />
-              )
-            }
-            value={scope}
-            onChange={onScopeChange}
-            options={LEADERBOARD_SCOPES.map((id) => ({
-              id,
-              label: t(`scope_${id}`),
-            }))}
-          />
-        )}
-
-        <Filter
-          label={t("period_label")}
-          icon={<CalendarIcon size={12} />}
-          value={period}
-          onChange={onPeriodChange}
-          options={LEADERBOARD_PERIODS.map((id) => ({
+      {showScope && (
+        <CardSelector
+          label={t("scope_label")}
+          value={scope}
+          onChange={onScopeChange}
+          options={LEADERBOARD_SCOPES.map((id) => ({
             id,
-            label: t(`period_${id}`),
+            label: t(`scope_${id}`),
+            icon: SCOPE_ICONS[id],
           }))}
         />
-      </div>
+      )}
+
+      <CardSelector
+        label={t("period_label")}
+        value={period}
+        onChange={onPeriodChange}
+        options={LEADERBOARD_PERIODS.map((id) => ({
+          id,
+          label: t(`period_${id}`),
+          collapsedIcon: PERIOD_ICONS[id],
+        }))}
+      />
 
       {showMetrics && (
-        <SegmentedControl
+        <CardSelector
           label={t("metric_label")}
           value={metric}
           onChange={onMetricChange}
           options={metrics.map((id) => ({
             id,
             label: t(`metric_${id}`),
+            icon: <MetricIcon metric={id} size={14} />,
           }))}
         />
       )}

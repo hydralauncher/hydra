@@ -29,6 +29,7 @@ import { format } from "date-fns";
 import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
+export * from "./official-chat";
 export * from "./constants";
 export {
   shouldAutoStartSteamSync,
@@ -45,6 +46,7 @@ export {
 } from "./playtime";
 export * from "./cloud-save-access";
 export * from "./cloud-save-emulator-provider";
+export * from "./screenshot-input";
 export * from "./profile-friends";
 export * from "./classics-disc-label";
 export {
@@ -52,6 +54,7 @@ export {
   MULTIPART_HOSTER_DOWNLOADS_FEATURE,
 } from "./repack-uri-groups";
 export * from "./controller-support";
+export * from "./recompilations";
 export * from "./artwork-resolver";
 export * from "./library-catalogue";
 export * from "./finished-download-step";
@@ -59,6 +62,7 @@ export * from "./format-bit-rate";
 export * from "./library-group-actions";
 export * from "./official-store-options";
 export * from "./download-directories";
+export * from "./comment-html-sanitizer";
 export * from "./html-sanitizer";
 export * from "./language-flags";
 export * from "./use-hls-video";
@@ -69,6 +73,22 @@ export * from "./classics-emulator-games";
 export * from "./tracker-list";
 export * from "./souvenirs";
 export * from "./souvenir-sync";
+export * from "./screenshot-preferences";
+export * from "./screenshot-moderation";
+export * from "./screenshot-upload-outcome";
+export * from "./screenshots";
+export * from "./screenshot-feed-writes";
+export * from "./screenshot-feed-ledger";
+export * from "./screenshot-image-refresh";
+export * from "./screenshot-spoiler-paging";
+export * from "./screenshot-write-bus";
+export * from "./screenshot-settings";
+export * from "./screenshot-date-groups";
+export * from "./screenshot-thumb-hash";
+export * from "./my-game-screenshots";
+export * from "./use-screenshot-image-fallback";
+export * from "./rich-text";
+export * from "./local-screenshots";
 export * from "./achievement-list";
 
 export class UserNotLoggedInError extends Error {

@@ -92,6 +92,12 @@ const normalizeWindowsHandle = (value: string) => {
   }
 };
 
+export const buildWindowsWindowSourceId = (windowHandle: string) => {
+  const handle = normalizeWindowsHandle(windowHandle);
+  if (!handle || BigInt(handle) <= 0n) return null;
+  return `window:${handle}:0`;
+};
+
 export const isWindowsWindowSource = (
   sourceId: string,
   windowHandle: string

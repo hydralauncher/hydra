@@ -3,6 +3,7 @@ import {
   getCloudSaveEmulatorProvider,
   hasRpcs3CloudSaveDisc,
   isCloudSaveV2Eligible,
+  parseRecompilationCloudSaveObjectId,
 } from "@shared";
 
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -12,6 +13,7 @@ import { WindowManager } from "../window-manager";
 import { createCloudSaveExecutableGuard } from "./executable-path-guard";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { CLOUD_SAVE_EXECUTABLE_MISSING_ERROR } from "./executable-path-guard";
+import { getCloudSaveGameRecord } from "./recompilation-cloud-save";
 
 export const assertCloudSaveExecutableExists = createCloudSaveExecutableGuard({
   getGame: (objectId, shop) =>
@@ -40,8 +42,8 @@ export const assertCloudSaveV2Eligible = async (
   objectId: string,
   shop: Parameters<typeof assertCloudSaveExecutableExists>[1]
 ) => {
-  const game = await gamesSublevel.get(levelKeys.game(shop, objectId));
-  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) {
+  const game = await getCloudSaveGameRecord(shop, objectId);
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform, objectId)) {
     throw new Error("cloud_save_v2_not_available");
   }
   return game;
@@ -65,6 +67,12 @@ export const assertCloudSaveRuntimeAvailable = async (
     if (!(await getSelectedRetroArchRom(game))) {
       throw new Error("cloud_save_retroarch_rom_missing");
     }
+  }
+  if (parseRecompilationCloudSaveObjectId(shop, objectId)) {
+    await access(game.executablePath ?? "").catch(() => {
+      throw new Error(CLOUD_SAVE_EXECUTABLE_MISSING_ERROR);
+    });
+    return game;
   }
   if (!getCloudSaveEmulatorProvider(shop, game?.platform)) {
     return assertCloudSaveExecutableExists(objectId, shop);

@@ -47,6 +47,7 @@ import type {
   EpicCloudSaveSettings,
   ResolveEpicCloudSaveConflictPayload,
   StartEpicGameDownloadPayload,
+  StartEpicGameUpdatePayload,
 } from "../../../types/epic-managed.types";
 
 configureEpicTiming((entry) => logger.info("[epic-timing]", entry));
@@ -568,6 +569,10 @@ export const getEpicGameInstallOptions = async (
       return { options: [], error: "operation-cancelled" as const };
     return managedDownloads!.getOptions(objectId, signal);
   });
+export const invalidateEpicGameInstallOptions = async (objectId: string) => {
+  await awaitManagedEpicReady();
+  managedDownloads!.invalidateOptions(objectId);
+};
 export const openManagedEpicWinetricks = async (
   objectId: string
 ): Promise<boolean> => {
@@ -621,6 +626,13 @@ export const startEpicGameDownload = async (
   withEpicTiming("request.start-download", async () => {
     await withEpicTiming("integration.ready", () => awaitManagedEpicReady());
     return managedDownloads!.start(payload);
+  });
+export const startEpicGameUpdate = async (
+  payload: StartEpicGameUpdatePayload
+) =>
+  withEpicTiming("request.start-update", async () => {
+    await withEpicTiming("integration.ready", () => awaitManagedEpicReady());
+    return managedDownloads!.startUpdate(payload);
   });
 export const getEpicCloudSaveState = async (objectId: string) => {
   await awaitManagedEpicReady();

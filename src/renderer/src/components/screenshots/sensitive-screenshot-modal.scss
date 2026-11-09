@@ -1,0 +1,17 @@
+@use "../../scss/globals.scss";
+
+.sensitive-screenshot-modal {
+  &__preference {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__hint {
+    margin: 0;
+    padding-left: calc(20px + globals.$spacing-unit);
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
+    opacity: 0.7;
+  }
+}

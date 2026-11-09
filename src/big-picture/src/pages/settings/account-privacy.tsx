@@ -2,6 +2,7 @@ import "./account-privacy.scss";
 
 import type {
   ProfileVisibility,
+  ScreenshotCommentsPolicy,
   Subscription,
   UserBlocks,
   UserFriend,
@@ -16,8 +17,10 @@ import {
   type DropdownSelectOption,
 } from "../../components";
 import {
+  Feature,
   useBigPictureToast,
   useDate,
+  useFeature,
   useNavigation,
   useUserDetails,
 } from "../../hooks";
@@ -26,6 +29,8 @@ import {
   ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
   ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
   ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+  ACCOUNT_PRIVACY_SCREENSHOT_COMMENTS_SELECT_ID,
+  ACCOUNT_PRIVACY_SCREENSHOTS_SELECT_ID,
   ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
   getAccountPrivacyBlockedUserButtonFocusId,
   SETTINGS_HEADER_RETURN_TARGET,
@@ -112,6 +117,18 @@ export function AccountPrivacySettingsSection({
     useState<ProfileVisibility>("PUBLIC");
   const [souvenirsVisibility, setSouvenirsVisibility] =
     useState<ProfileVisibility>("PRIVATE");
+  const [screenshotsVisibility, setScreenshotsVisibility] =
+    useState<ProfileVisibility | null>(null);
+  const [screenshotCommentsPolicy, setScreenshotCommentsPolicy] =
+    useState<ScreenshotCommentsPolicy | null>(null);
+  const { isFeatureEnabled } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
+  const showScreenshotsVisibility =
+    isScreenshotsEnabled && screenshotsVisibility !== null;
+  const showScreenshotCommentsPolicy =
+    isScreenshotsEnabled &&
+    isFeatureEnabled(Feature.ScreenshotComments) &&
+    screenshotCommentsPolicy !== null;
   const [blockedUsers, setBlockedUsers] = useState<UserFriend[]>([]);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [isSavingCloudGifts, setIsSavingCloudGifts] = useState(false);
@@ -128,6 +145,18 @@ export function AccountPrivacySettingsSection({
 
     setSouvenirsVisibility(userDetails.souvenirsVisibility);
   }, [userDetails?.souvenirsVisibility]);
+
+  useEffect(() => {
+    if (!userDetails?.screenshotsVisibility) return;
+
+    setScreenshotsVisibility(userDetails.screenshotsVisibility);
+  }, [userDetails?.screenshotsVisibility]);
+
+  useEffect(() => {
+    if (!userDetails?.screenshotCommentsPolicy) return;
+
+    setScreenshotCommentsPolicy(userDetails.screenshotCommentsPolicy);
+  }, [userDetails?.screenshotCommentsPolicy]);
 
   const fetchBlockedUsers = useCallback(async () => {
     if (!userDetails) {
@@ -157,6 +186,28 @@ export function AccountPrivacySettingsSection({
       { value: "PUBLIC", label: t("public") },
       { value: "FRIENDS", label: t("friends_only") },
       { value: "PRIVATE", label: t("private") },
+    ],
+    [t]
+  );
+
+  const screenshotCommentsPolicyOptions = useMemo<
+    DropdownSelectOption<ScreenshotCommentsPolicy>[]
+  >(
+    () => [
+      {
+        value: "EVERYONE",
+        label: t("screenshots_comments_policy_everyone", {
+          ns: "big_picture",
+        }),
+      },
+      {
+        value: "FRIENDS",
+        label: t("screenshots_comments_policy_friends", { ns: "big_picture" }),
+      },
+      {
+        value: "NOBODY",
+        label: t("screenshots_comments_policy_nobody", { ns: "big_picture" }),
+      },
     ],
     [t]
   );
@@ -250,6 +301,116 @@ export function AccountPrivacySettingsSection({
     ]
   );
 
+  const handleScreenshotsVisibilityChange = useCallback(
+    async (value: ProfileVisibility) => {
+      if (!userDetails || isSavingVisibility) return;
+
+      const previousValue = screenshotsVisibility;
+
+      setScreenshotsVisibility(value);
+      setIsSavingVisibility(true);
+
+      try {
+        await patchUser({ screenshotsVisibility: value });
+        showSuccessToast(
+          t("screenshots_visibility_updated", { ns: "big_picture" }),
+          {
+            ...SETTINGS_TOAST_OPTIONS,
+            message: t("screenshots_visibility_updated_description", {
+              ns: "big_picture",
+              visibility: getProfileVisibilityLabel(value, t),
+            }),
+          }
+        );
+      } catch {
+        setScreenshotsVisibility(previousValue);
+        showErrorToast(
+          t("screenshots_privacy_update_failed", { ns: "big_picture" }),
+          SETTINGS_TOAST_OPTIONS
+        );
+      } finally {
+        setIsSavingVisibility(false);
+      }
+    },
+    [
+      isSavingVisibility,
+      patchUser,
+      screenshotsVisibility,
+      showErrorToast,
+      showSuccessToast,
+      t,
+      userDetails,
+    ]
+  );
+
+  const handleScreenshotCommentsPolicyChange = useCallback(
+    async (value: ScreenshotCommentsPolicy) => {
+      if (!userDetails || isSavingVisibility) return;
+
+      const previousValue = screenshotCommentsPolicy;
+
+      setScreenshotCommentsPolicy(value);
+      setIsSavingVisibility(true);
+
+      try {
+        await patchUser({ screenshotCommentsPolicy: value });
+        showSuccessToast(t("changes_saved"), SETTINGS_TOAST_OPTIONS);
+      } catch {
+        setScreenshotCommentsPolicy(previousValue);
+        showErrorToast(
+          t("screenshots_privacy_update_failed", { ns: "big_picture" }),
+          SETTINGS_TOAST_OPTIONS
+        );
+      } finally {
+        setIsSavingVisibility(false);
+      }
+    },
+    [
+      isSavingVisibility,
+      patchUser,
+      screenshotCommentsPolicy,
+      showErrorToast,
+      showSuccessToast,
+      t,
+      userDetails,
+    ]
+  );
+
+  const privacyFocusChain = useMemo(
+    () =>
+      [
+        ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
+        ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
+        showScreenshotsVisibility
+          ? ACCOUNT_PRIVACY_SCREENSHOTS_SELECT_ID
+          : null,
+        showScreenshotCommentsPolicy
+          ? ACCOUNT_PRIVACY_SCREENSHOT_COMMENTS_SELECT_ID
+          : null,
+        ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
+        ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
+      ].filter((focusId): focusId is string => Boolean(focusId)),
+    [showScreenshotCommentsPolicy, showScreenshotsVisibility]
+  );
+
+  const getPrivacyNavigationOverrides = useCallback(
+    (focusId: string): FocusOverrides => {
+      const index = privacyFocusChain.indexOf(focusId);
+      const previousFocusId = privacyFocusChain[index - 1];
+      const nextFocusId = privacyFocusChain[index + 1];
+
+      return {
+        up: previousFocusId
+          ? { type: "item", itemId: previousFocusId }
+          : SETTINGS_HEADER_RETURN_TARGET,
+        down: nextFocusId
+          ? { type: "item", itemId: nextFocusId }
+          : { type: "block" },
+      };
+    },
+    [privacyFocusChain]
+  );
+
   const handleUnblock = useCallback(
     async (userId: string) => {
       const currentIndex = blockedUsers.findIndex((user) => user.id === userId);
@@ -303,10 +464,7 @@ export function AccountPrivacySettingsSection({
 
   const hydraCloudButtonOverrides = useMemo<FocusOverrides>(
     () => ({
-      up: {
-        type: "item",
-        itemId: ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
-      },
+      ...getPrivacyNavigationOverrides(ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID),
       down: blockedUserFocusIds[0]
         ? {
             type: "item",
@@ -314,7 +472,7 @@ export function AccountPrivacySettingsSection({
           }
         : { type: "block" },
     }),
-    [blockedUserFocusIds]
+    [blockedUserFocusIds, getPrivacyNavigationOverrides]
   );
 
   const blockedUserNavigationOverrides = useMemo<
@@ -365,13 +523,9 @@ export function AccountPrivacySettingsSection({
             options={visibilityOptions}
             disabled={isSavingVisibility}
             focusId={ACCOUNT_PRIVACY_PRIVACY_SELECT_ID}
-            focusNavigationOverrides={{
-              up: SETTINGS_HEADER_RETURN_TARGET,
-              down: {
-                type: "item",
-                itemId: ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
-              },
-            }}
+            focusNavigationOverrides={getPrivacyNavigationOverrides(
+              ACCOUNT_PRIVACY_PRIVACY_SELECT_ID
+            )}
             onValueChange={(value) => {
               void handleProfileVisibilityChange(value);
             }}
@@ -384,36 +538,58 @@ export function AccountPrivacySettingsSection({
             options={visibilityOptions}
             disabled={isSavingVisibility}
             focusId={ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID}
-            focusNavigationOverrides={{
-              up: {
-                type: "item",
-                itemId: ACCOUNT_PRIVACY_PRIVACY_SELECT_ID,
-              },
-              down: {
-                type: "item",
-                itemId: ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID,
-              },
-            }}
+            focusNavigationOverrides={getPrivacyNavigationOverrides(
+              ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID
+            )}
             onValueChange={(value) => {
               void handleSouvenirsVisibilityChange(value);
             }}
           />
+
+          {showScreenshotsVisibility && screenshotsVisibility ? (
+            <DropdownSelect
+              className="account-privacy-settings-section__select"
+              label={t("screenshots_visibility_setting", { ns: "big_picture" })}
+              value={screenshotsVisibility}
+              options={visibilityOptions}
+              disabled={isSavingVisibility}
+              focusId={ACCOUNT_PRIVACY_SCREENSHOTS_SELECT_ID}
+              focusNavigationOverrides={getPrivacyNavigationOverrides(
+                ACCOUNT_PRIVACY_SCREENSHOTS_SELECT_ID
+              )}
+              onValueChange={(value) => {
+                void handleScreenshotsVisibilityChange(value);
+              }}
+            />
+          ) : null}
+
+          {showScreenshotCommentsPolicy && screenshotCommentsPolicy ? (
+            <DropdownSelect
+              className="account-privacy-settings-section__select"
+              label={t("screenshots_comments_policy_setting", {
+                ns: "big_picture",
+              })}
+              value={screenshotCommentsPolicy}
+              options={screenshotCommentsPolicyOptions}
+              disabled={isSavingVisibility}
+              focusId={ACCOUNT_PRIVACY_SCREENSHOT_COMMENTS_SELECT_ID}
+              focusNavigationOverrides={getPrivacyNavigationOverrides(
+                ACCOUNT_PRIVACY_SCREENSHOT_COMMENTS_SELECT_ID
+              )}
+              onValueChange={(value) => {
+                void handleScreenshotCommentsPolicyChange(value);
+              }}
+            />
+          ) : null}
 
           <Checkbox
             block
             checked={userDetails.allowCloudGifts}
             disabled={isSavingCloudGifts}
             focusId={ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID}
-            navigationOverrides={{
-              up: {
-                type: "item",
-                itemId: ACCOUNT_PRIVACY_SOUVENIRS_SELECT_ID,
-              },
-              down: {
-                type: "item",
-                itemId: ACCOUNT_PRIVACY_HYDRA_CLOUD_BUTTON_ID,
-              },
-            }}
+            navigationOverrides={getPrivacyNavigationOverrides(
+              ACCOUNT_PRIVACY_CLOUD_GIFTS_CHECKBOX_ID
+            )}
             label={t("allow_cloud_gifts")}
             secondaryText={t("allow_cloud_gifts_description")}
             onChange={(checked) => {

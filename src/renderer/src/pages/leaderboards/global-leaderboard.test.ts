@@ -23,6 +23,9 @@ import {
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
+  getBoardInsight,
+  getHeatmapLayout,
+  getHeatmapTotalDisplay,
   sumHeatmap,
   type GlobalLeaderboardQuery,
 } from "./global-leaderboard.js";
@@ -295,6 +298,108 @@ describe("rank deltas and viewer ranking", () => {
   });
 });
 
+describe("getBoardInsight", () => {
+  const viewerUser = (id: string) => ({
+    id,
+    displayName: id,
+    profileImageUrl: null,
+    backgroundImageUrl: null,
+  });
+  const entry = (rank: number, id: string, value: number) => ({
+    rank,
+    value,
+    user: viewerUser(id),
+  });
+  const board = (
+    entries: ReturnType<typeof entry>[],
+    viewer: { rank: number; value: number } | null = null
+  ) => ({
+    entries,
+    viewer,
+    periodStart: null,
+    periodEnd: null,
+    total: null,
+    viewerPreviousRank: null,
+    extras: {},
+  });
+  const top = [
+    entry(1, "a", 100),
+    entry(2, "b", 80),
+    entry(3, "c", 60),
+    entry(4, "d", 40),
+    entry(5, "me", 30),
+  ];
+
+  it("names the next player and the podium from below it", () => {
+    assert.deepEqual(getBoardInsight(board(top), "me"), {
+      type: "behind",
+      gap: 10,
+      target: viewerUser("d"),
+      targetRank: 4,
+      next: { goal: "podium", gap: 30 },
+    });
+  });
+
+  it("points to the lead from just below the top", () => {
+    const insight = getBoardInsight(board(top), "c");
+
+    assert.equal(insight?.type, "behind");
+    assert.deepEqual(insight?.type === "behind" && insight.next, {
+      goal: "lead",
+      gap: 40,
+    });
+  });
+
+  it("has no extra goal in second place", () => {
+    const insight = getBoardInsight(board(top), "b");
+
+    assert.equal(insight?.type === "behind" && insight.next, null);
+  });
+
+  it("shows the lead over the second place", () => {
+    assert.deepEqual(getBoardInsight(board(top), "a"), {
+      type: "leading",
+      gap: 20,
+      target: viewerUser("b"),
+    });
+  });
+
+  it("handles a leader alone on the board", () => {
+    assert.deepEqual(getBoardInsight(board([entry(1, "me", 5)]), "me"), {
+      type: "leading",
+      gap: 0,
+      target: null,
+    });
+  });
+
+  it("aims at the end of the list from outside it", () => {
+    assert.deepEqual(
+      getBoardInsight(board(top, { rank: 250, value: 3 }), "me2"),
+      { type: "outside", gap: 27, lastRank: 5 }
+    );
+  });
+
+  it("invites a viewer without a position", () => {
+    assert.deepEqual(getBoardInsight(board(top), "ghost"), {
+      type: "unranked",
+    });
+  });
+
+  it("stays quiet when signed out", () => {
+    assert.equal(getBoardInsight(board(top), null), null);
+  });
+
+  it("only states the rank when the difference is not positive", () => {
+    assert.deepEqual(
+      getBoardInsight(
+        board([entry(1, "a", 100), entry(2, "b", 50), entry(3, "me", 60)]),
+        "me"
+      ),
+      { type: "ranked", rank: 3 }
+    );
+  });
+});
+
 describe("week helpers", () => {
   it("starts the week on Monday 00:00 UTC", () => {
     const sunday = Date.UTC(2026, 9, 25, 23, 59);
@@ -422,6 +527,42 @@ describe("play activity", () => {
     assert.deepEqual(sumHeatmap([]), { seconds: 0, days: 0 });
   });
 
+  it("fits the heatmap to the card without overflowing", () => {
+    assert.deepEqual(getHeatmapLayout(1000, 53), {
+      weeks: 53,
+      cellSize: 12,
+      width: 984,
+    });
+    assert.deepEqual(getHeatmapLayout(360, 53), {
+      weeks: 18,
+      cellSize: 12,
+      width: 354,
+    });
+    assert.equal(getHeatmapLayout(4000, 53).cellSize, 32);
+  });
+
+  it("shows the heatmap total as nothing, minutes or hours", () => {
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 0, days: 0 }), {
+      unit: "none",
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 20, days: 1 }), {
+      unit: "minutes",
+      amount: 1,
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 300, days: 1 }), {
+      unit: "minutes",
+      amount: 5,
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 3580, days: 1 }), {
+      unit: "hours",
+      amount: 1,
+    });
+    assert.deepEqual(getHeatmapTotalDisplay({ seconds: 460800, days: 74 }), {
+      unit: "hours",
+      amount: 128,
+    });
+  });
+
   it("flags today and yesterday by UTC day", () => {
     const flagged = (now: number) => {
       const cells = buildHeatmap([], now);
@@ -490,14 +631,20 @@ describe("profile normalizers", () => {
           total: 12480,
           leader: rawUser("a"),
         },
+        { shop: "steam", objectId: "2", rank: 36, total: null },
+        { shop: "steam", objectId: "3", rank: 36, total: 10 },
         { shop: "steam", objectId: "1", rank: 0 },
         "bad",
       ],
     });
 
-    assert.equal(games.length, 1);
+    assert.equal(games.length, 3);
     assert.equal(games[0].leader?.id, "a");
     assert.equal(games[0].coverImageUrl, null);
+    assert.equal(games[0].total, 12480);
+    // An unknown or impossible total stays unknown, never the rank.
+    assert.equal(games[1].total, null);
+    assert.equal(games[2].total, null);
     assert.throws(() => normalizeMyGames({}), TypeError);
   });
 
@@ -526,7 +673,8 @@ describe("profile normalizers", () => {
           id: "a",
           kind: "top_percent",
           tier: "gold",
-          value: 1,
+          threshold: 1,
+          value: 765120,
           earnedAt: "2026-09-03T00:00:00.000Z",
         },
         {
@@ -546,25 +694,58 @@ describe("profile normalizers", () => {
     assert.equal(badges.total, 2);
     assert.equal(badges.badges[1].tier, "gold");
     assert.equal(badges.badges[1].scope, "friends");
+    // Top N% reads the threshold, never the viewer's value on the board.
+    assert.equal(badges.badges[0].value, 1);
+    assert.equal(badges.badges[1].value, 1);
     assert.equal(getBadgeProgress(badges.badges[1]), 55);
     assert.equal(getBadgeProgress(badges.badges[0]), 0);
     assert.throws(() => normalizeBadges({}), TypeError);
   });
 
+  it("keeps only valid catalogue images on badges", () => {
+    const { badges } = normalizeBadges({
+      badges: [
+        {
+          id: "a",
+          kind: "streak_record",
+          images: {
+            valid: { base: "https://cdn/a", widths: [64, 128] },
+            noBase: { widths: [64] },
+            badWidths: { base: "https://cdn/b", widths: ["64"] },
+          },
+        },
+        { id: "b", kind: "streak_record", images: "nope" },
+      ],
+    });
+
+    assert.deepEqual(badges[0].images, {
+      valid: { base: "https://cdn/a", widths: [64, 128], thumbHash: null },
+    });
+    assert.deepEqual(badges[1].images, {});
+  });
+
   it("reads the target of locked game badges", () => {
     const { badges } = normalizeBadges({
       badges: [
-        { id: "a", kind: "top_rank", tier: "bronze", value: 10 },
+        {
+          id: "a",
+          kind: "top_rank",
+          tier: "bronze",
+          threshold: 10,
+          value: 765120,
+        },
         {
           id: "b",
           kind: "top_rank",
-          value: 10,
+          threshold: 10,
+          value: 765120,
           target: { kind: "top_percent", value: 5 },
         },
         {
           id: "c",
           kind: "top_rank",
-          value: 1,
+          threshold: 1,
+          value: 765120,
           earnedAt: "2026-09-03T00:00:00.000Z",
         },
         { id: "d", kind: "weekly_leader", value: 1 },

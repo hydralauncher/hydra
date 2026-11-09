@@ -15,6 +15,7 @@ import { levelKeys } from "@main/level/sublevels";
 import type { Auth, User } from "@types";
 import { SSEClient } from "./sse";
 import { FriendsSnapshotCache } from "./friends-snapshot";
+import { ChatOfficialMessages } from "./chat/chat-official-messages";
 import { ChatUnreadStore } from "./chat/chat-unread-store";
 import { clearChatSenderProfiles } from "./chat/chat-sender-profiles";
 import { closeChatNotifications } from "./notifications";
@@ -169,7 +170,7 @@ export class HydraApi {
       void import("./linux-game-capture-session").then(
         ({ stopAllLinuxGameCaptureSessions }) => {
           if (!this.hasActiveSubscription()) {
-            stopAllLinuxGameCaptureSessions();
+            stopAllLinuxGameCaptureSessions("souvenir");
           }
         }
       );
@@ -337,7 +338,7 @@ export class HydraApi {
         "./linux-game-capture-session"
       );
       if (generation !== this.authContexts.generation) return;
-      stopAllLinuxGameCaptureSessions();
+      stopAllLinuxGameCaptureSessions("souvenir");
       const { groupedSouvenirWorker } = await import(
         "./achievements/grouped-souvenir-worker"
       );
@@ -482,6 +483,7 @@ export class HydraApi {
   private static sendSignOutEvent() {
     FriendsSnapshotCache.clear();
     ChatUnreadStore.clear();
+    ChatOfficialMessages.stop();
     clearChatSenderProfiles();
     closeChatNotifications();
     // Covers the 401 path too, which never goes through the sign-out event.
@@ -614,7 +616,7 @@ export class HydraApi {
           "./linux-game-capture-session"
         );
         if (signedOutGeneration !== this.authContexts.generation) throw err;
-        stopAllLinuxGameCaptureSessions();
+        stopAllLinuxGameCaptureSessions("souvenir");
         const { groupedSouvenirWorker } = await import(
           "./achievements/grouped-souvenir-worker"
         );

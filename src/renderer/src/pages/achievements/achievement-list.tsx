@@ -16,13 +16,7 @@ import {
   UnlockIcon,
 } from "@primer/octicons-react";
 import HydraIcon from "@renderer/assets/icons/hydra.svg?react";
-import {
-  Fragment,
-  type RefObject,
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import cn from "classnames";
 import { FullscreenMediaModal, TextField } from "@renderer/components";
 import { RetroAchievementsConnectBanner } from "@renderer/components/retro-achievements-connect-banner/retro-achievements-connect-banner";
@@ -54,7 +48,7 @@ import {
 
 interface AchievementListProps {
   achievements: UserAchievement[];
-  scrollRef: RefObject<HTMLElement | null>;
+  scrollElement: HTMLElement | null;
   viewerUnlockedNames?: ReadonlySet<string>;
   pointsSummary?: { earned: number; total: number };
 }
@@ -66,7 +60,7 @@ const getEntryKey = (entry: AchievementListEntry<UserAchievement>) =>
 
 export function AchievementList({
   achievements,
-  scrollRef,
+  scrollElement,
   viewerUnlockedNames,
   pointsSummary,
 }: Readonly<AchievementListProps>) {
@@ -216,7 +210,7 @@ export function AchievementList({
 
   const { listRef, virtualizer, getRowProps } = useVirtualAchievementList({
     count: entries.length,
-    scrollRef,
+    scrollElement,
     getItemKey: (index) => getEntryKey(entries[index]),
     isSetHeader: (index) => entries[index]?.type === "set",
   });

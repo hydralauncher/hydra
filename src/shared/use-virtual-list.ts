@@ -1,11 +1,11 @@
-import { type RefObject, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 const DEFAULT_OVERSCAN = 8;
 
 export interface VirtualListOptions {
   count: number;
-  scrollRef: RefObject<HTMLElement | null>;
+  scrollElement: HTMLElement | null;
   getItemKey: (index: number) => string;
   estimateSize: (index: number) => number;
   padding?: number;
@@ -16,7 +16,7 @@ export interface VirtualListOptions {
 
 export function useVirtualList({
   count,
-  scrollRef,
+  scrollElement,
   getItemKey,
   estimateSize,
   padding = 0,
@@ -29,7 +29,7 @@ export function useVirtualList({
 
   useLayoutEffect(() => {
     const list = listRef.current;
-    const scroller = scrollRef.current;
+    const scroller = scrollElement;
     if (!list || !scroller) return;
 
     const update = () => {
@@ -52,11 +52,11 @@ export function useVirtualList({
     }
 
     return () => observer.disconnect();
-  }, [scrollRef, count]);
+  }, [scrollElement, count]);
 
   const virtualizer = useVirtualizer({
     count,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => scrollElement,
     estimateSize,
     getItemKey,
     overscan,

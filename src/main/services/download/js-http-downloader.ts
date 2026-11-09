@@ -1,5 +1,6 @@
 import { DownloadThrottle } from "./download-throttle";
 import { getContentDispositionFilename } from "./download-filename";
+import { ensureDirectorySync } from "./ensure-directory";
 import fs from "node:fs";
 import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
@@ -520,14 +521,8 @@ export class JsHttpDownloader {
     const filePath = path.join(savePath, resolvedFilename);
     this.outputFilePath = filePath;
 
-    if (!fs.existsSync(savePath)) {
-      fs.mkdirSync(savePath, { recursive: true });
-    }
-
-    const targetDir = path.dirname(filePath);
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
+    ensureDirectorySync(savePath);
+    ensureDirectorySync(path.dirname(filePath));
 
     let startByte = 0;
     if (this.currentOptions?.allowResume !== false && fs.existsSync(filePath)) {
@@ -1188,7 +1183,7 @@ export class JsHttpDownloader {
       }
       this.folderName = output.filename;
       this.resolvedFilename = output.filename;
-      fs.mkdirSync(path.dirname(output.filePath), { recursive: true });
+      ensureDirectorySync(path.dirname(output.filePath));
       logger.log(
         `[JsHttpDownloader] Using filename from Content-Disposition: ${headerFilename}`
       );

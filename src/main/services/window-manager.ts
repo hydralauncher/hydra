@@ -10,6 +10,8 @@ import {
   AuthPage,
   CUSTOM_WINDOW_BORDER_WIDTH,
   CUSTOM_WINDOW_TITLE_BAR_HEIGHT,
+  MAIN_WINDOW_TITLE_BAR_HEIGHT,
+  NATIVE_WINDOW_DECORATIONS_ARGUMENT,
 } from "@shared";
 import type {
   AchievementCustomNotificationPosition,
@@ -115,6 +117,12 @@ export class WindowManager {
     return this.mainWindowInstance;
   }
 
+  public static get bigPictureWindow(): Electron.BrowserWindow | null {
+    return this.bigPicture && !this.bigPicture.isDestroyed()
+      ? this.bigPicture
+      : null;
+  }
+
   public static get gameLauncherWindow(): Electron.BrowserWindow | null {
     return this.gameLauncherWindowInstance;
   }
@@ -135,29 +143,61 @@ export class WindowManager {
       minWidth: WindowManager.MIN_WINDOW_WIDTH,
       minHeight: WindowManager.MIN_WINDOW_HEIGHT,
       icon,
-      trafficLightPosition: { x: 16, y: 16 },
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
+      // Centers the traffic lights in the title bar.
+      trafficLightPosition: { x: 16, y: 13 },
       show: false,
-      ...(process.platform === "linux"
-        ? {
-            frame: false,
-            ...(isLinuxWayland
-              ? { transparent: true, backgroundColor: "#00000000" }
-              : { backgroundColor: "#1c1c1c" }),
-          }
-        : {
-            backgroundColor: "#1c1c1c",
-            titleBarStyle: "hidden",
-            titleBarOverlay: {
-              symbolColor: "#DADBE1",
-              color: "#00000000",
-              height: 34,
-            },
-          }),
     };
+
+  private static hasNativeWindowDecorations = false;
+
+  public static async loadWindowDecorationsPreference() {
+    if (process.platform !== "linux") return;
+
+    const userPreferences = await db
+      .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+        valueEncoding: "json",
+      })
+      .catch(() => null);
+
+    this.hasNativeWindowDecorations = Boolean(
+      userPreferences?.useNativeWindowDecorations
+    );
+  }
+
+  private static getMainWindowFrameOptions(): Electron.BrowserWindowConstructorOptions {
+    if (process.platform !== "linux") {
+      return {
+        backgroundColor: "#1c1c1c",
+        titleBarStyle: "hidden",
+        titleBarOverlay: {
+          symbolColor: "#DADBE1",
+          color: "#00000000",
+          height: MAIN_WINDOW_TITLE_BAR_HEIGHT,
+        },
+      };
+    }
+
+    if (this.hasNativeWindowDecorations) {
+      return { frame: true, backgroundColor: "#1c1c1c" };
+    }
+
+    return {
+      frame: false,
+      ...(isLinuxWayland
+        ? { transparent: true, backgroundColor: "#00000000" }
+        : { backgroundColor: "#1c1c1c" }),
+    };
+  }
+
+  private static getDecoratedWindowWebPreferences(): Electron.WebPreferences {
+    return {
+      preload: path.join(__dirname, "../preload/index.mjs"),
+      sandbox: false,
+      additionalArguments: this.hasNativeWindowDecorations
+        ? [NATIVE_WINDOW_DECORATIONS_ARGUMENT]
+        : [],
+    };
+  }
 
   private static formatVersionNumber(version: string) {
     return version.replaceAll(".", "-");
@@ -326,9 +366,11 @@ export class WindowManager {
 
     this.updateInitialConfig(this.fitToWorkArea(configWithoutMaximized));
 
-    const mainWindow = new BrowserWindow(
-      this.initialConfigInitializationMainWindow
-    );
+    const mainWindow = new BrowserWindow({
+      ...this.initialConfigInitializationMainWindow,
+      ...this.getMainWindowFrameOptions(),
+      webPreferences: this.getDecoratedWindowWebPreferences(),
+    });
     this.mainWindowInstance = mainWindow;
 
     this.deferredMainMaximize = false;
@@ -592,14 +634,9 @@ export class WindowManager {
       minHeight: FRIENDS_WINDOW_MIN_SIZE.height,
       maximizable: false,
       backgroundColor: "#1c1c1c",
-      // No native frame/controls — the renderer draws its own minimize and
-      // close buttons in the title bar (see friends-window.tsx).
-      frame: false,
+      frame: this.hasNativeWindowDecorations,
       icon,
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
+      webPreferences: this.getDecoratedWindowWebPreferences(),
       show: false,
     });
 
@@ -738,14 +775,9 @@ export class WindowManager {
       maximizable: false,
       fullscreenable: false,
       backgroundColor: "#1c1c1c",
-      // No native frame/controls — the renderer draws its own tab strip and
-      // window controls (see chat-window.tsx).
-      frame: false,
+      frame: this.hasNativeWindowDecorations,
       icon,
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
+      webPreferences: this.getDecoratedWindowWebPreferences(),
       show: false,
     });
     this.chatWindow = chatWindow;
@@ -857,9 +889,14 @@ export class WindowManager {
 
     return {
       friendsWindowOpen: isFriendsWindowOpen,
+      // The sidebar reloads the rest from the API; with nothing selected, any
+      // remaining conversation still brings the window back.
       chatFriends: isChatWindowOpen
         ? orderChatFriends(
-            this.chatWindowState.openFriendIds,
+            [
+              this.chatWindowState.activeFriendId ??
+                this.chatWindowState.openFriendIds[0],
+            ].filter((friendId): friendId is string => Boolean(friendId)),
             this.chatWindowState.openFriends ?? []
           )
         : [],
@@ -1273,7 +1310,10 @@ export class WindowManager {
     const parentWindow = this.mainWindow;
     if (!parentWindow || parentWindow.isDestroyed()) return;
 
-    const layout = getRetroAchievementsConnectionWindowLayout(process.platform);
+    const layout = getRetroAchievementsConnectionWindowLayout(
+      process.platform,
+      this.hasNativeWindowDecorations
+    );
     const connectionWindow = new BrowserWindow({
       width: layout.width,
       height: layout.height,
@@ -1287,10 +1327,7 @@ export class WindowManager {
       minimizable: layout.minimizable,
       frame: layout.frame,
       icon,
-      webPreferences: {
-        preload: path.join(__dirname, "../preload/index.mjs"),
-        sandbox: false,
-      },
+      webPreferences: this.getDecoratedWindowWebPreferences(),
     });
 
     this.retroAchievementsConnectionWindow = connectionWindow;

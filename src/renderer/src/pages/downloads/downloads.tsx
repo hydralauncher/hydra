@@ -56,7 +56,9 @@ export default function Downloads() {
   useEffect(() => {
     let cancelled = false;
 
-    const updateRunningGameIds = (gamesRunning: { id: string }[]) => {
+    const updateRunningGameIds = (
+      gamesRunning: { id: string; recompilationSlug?: string }[]
+    ) => {
       if (cancelled) return;
 
       setRunningGameIds((previous) => {
@@ -170,8 +172,15 @@ export default function Downloads() {
       return (leftDownload.timestamp ?? 0) - (rightDownload.timestamp ?? 0);
     });
 
-    const complete = orderBy(result.complete, (game) =>
-      game.download?.progress === 1 ? 0 : 1
+    // Finished downloads first, then the most recently downloaded on top.
+    // `timestamp` is when the download started; Hydra keeps no finish time.
+    const complete = orderBy(
+      result.complete,
+      [
+        (game) => (game.download?.progress === 1 ? 0 : 1),
+        (game) => game.download?.timestamp ?? 0,
+      ],
+      ["asc", "desc"]
     );
 
     return {

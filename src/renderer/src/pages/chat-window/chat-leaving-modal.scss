@@ -1,8 +1,5 @@
 @use "../../scss/globals.scss";
 
-$faded-text: rgba(globals.$body-color, 0.7);
-$meta-text: rgba(globals.$body-color, 0.6);
-
 // Extends `.modal`; the chat window can be narrower than its min-width. It is
 // a native <dialog>, so its default placement and padding are reset.
 .chat-leaving-modal {
@@ -90,9 +87,9 @@ $meta-text: rgba(globals.$body-color, 0.6);
 
   &__description {
     margin: 0;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     line-height: 18px;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   &__content {
@@ -106,7 +103,7 @@ $meta-text: rgba(globals.$body-color, 0.6);
   &__destination {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     padding: calc(globals.$spacing-unit * 1.5);
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
@@ -126,7 +123,7 @@ $meta-text: rgba(globals.$body-color, 0.6);
 
   &__host-icon {
     flex-shrink: 0;
-    color: $faded-text;
+    color: globals.$subtle-color;
   }
 
   &__destination--insecure &__host-icon {
@@ -150,7 +147,7 @@ $meta-text: rgba(globals.$body-color, 0.6);
     border-radius: 999px;
     background-color: rgba(globals.$warning-color, 0.12);
     color: globals.$warning-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
   }
 
@@ -162,14 +159,14 @@ $meta-text: rgba(globals.$body-color, 0.6);
     overflow: hidden;
     font-size: globals.$small-font-size;
     line-height: 18px;
-    color: $meta-text;
+    color: globals.$subtle-color;
     overflow-wrap: anywhere;
     user-select: text;
   }
 
   &__warning {
     margin: 0;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     line-height: 20px;
   }
 

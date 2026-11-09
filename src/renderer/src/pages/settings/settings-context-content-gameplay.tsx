@@ -6,21 +6,23 @@ import {
   CheckboxField,
   ConfirmationModal,
   GuideLink,
+  HydraCloudBadge,
   TextField,
 } from "@renderer/components";
 import { settingsContext } from "@renderer/context";
-import { useAppSelector, useUserDetails } from "@renderer/hooks";
+import { useAppSelector, useFeature, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
 import { FileDirectoryIcon, HistoryIcon } from "@primer/octicons-react";
 import { useLocation } from "react-router-dom";
 import { isAchievementSouvenirsEnabled } from "@shared";
 import type { UserPreferences } from "@types";
 
-import "./settings-behavior.scss";
+import "./settings-context-content-gameplay.scss";
 
 const buildForm = (preferences: UserPreferences | null) => ({
   autoplayGameTrailers: preferences?.autoplayGameTrailers ?? true,
   disableNsfwAlert: preferences?.disableNsfwAlert ?? false,
+  showSensitiveScreenshots: preferences?.showSensitiveScreenshots ?? false,
   showHiddenAchievementsDescription:
     preferences?.showHiddenAchievementsDescription ?? false,
   enableSteamAchievements: preferences?.enableSteamAchievements ?? false,
@@ -49,6 +51,8 @@ export function SettingsContextContentGameplay() {
   const { hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const { hash } = useLocation();
+  const { isFeatureEnabled, Feature } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
 
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
@@ -166,6 +170,18 @@ export function SettingsContextContentGameplay() {
           }
         />
 
+        {isScreenshotsEnabled && (
+          <CheckboxField
+            label={t("screenshots_show_sensitive")}
+            checked={form.showSensitiveScreenshots}
+            onChange={() =>
+              handleChange({
+                showSensitiveScreenshots: !form.showSensitiveScreenshots,
+              })
+            }
+          />
+        )}
+
         <CheckboxField
           label={t("show_hidden_achievement_description")}
           checked={form.showHiddenAchievementsDescription}
@@ -226,7 +242,7 @@ export function SettingsContextContentGameplay() {
         ) : (
           <button
             type="button"
-            className="settings-behavior__hydra-cloud-row"
+            className="settings-context-content-gameplay__hydra-cloud-row"
             onClick={() => showHydraCloudModal("achievements")}
           >
             <CheckboxField
@@ -237,13 +253,11 @@ export function SettingsContextContentGameplay() {
               readOnly
             />
 
-            <span className="settings-behavior__hydra-cloud-badge">
-              Hydra Cloud
-            </span>
+            <HydraCloudBadge />
           </button>
         )}
 
-        <div className="settings-behavior__screenshots-directory">
+        <div className="settings-context-content-gameplay__screenshots-directory">
           <TextField
             label={t("screenshots_directory")}
             value={screenshotsPath}
@@ -261,7 +275,7 @@ export function SettingsContextContentGameplay() {
                 </Button>
                 {hasCustomScreenshotsPath && (
                   <Button
-                    className="settings-behavior__reset-screenshots-button"
+                    className="settings-context-content-gameplay__reset-screenshots-button"
                     theme="outline"
                     disabled={!canManageScreenshots}
                     tooltip={t("reset_screenshots_directory")}
@@ -276,7 +290,7 @@ export function SettingsContextContentGameplay() {
           />
 
           <Button
-            className="settings-behavior__open-screenshots-button"
+            className="settings-context-content-gameplay__open-screenshots-button"
             theme="outline"
             disabled={!canManageScreenshots}
             onClick={handleOpenScreenshotsPath}
