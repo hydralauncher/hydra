@@ -42,6 +42,7 @@ import {
   markRecompilationRomLaunched,
   prepareRecompilationRom,
   shouldHideRecompilationConsole,
+  shouldPrepareAfterUpdate,
 } from "./recompilation-rom";
 import recompilationSaves from "./recompilation-saves.json";
 import {
@@ -51,6 +52,7 @@ import {
 import {
   findDeclaredRecompilationEntry,
   findRecompilationExecutable,
+  isBareReleaseExecutable,
   isNestedReleaseArchive,
   restoreExecutableBits,
 } from "./recompilation-executable";
@@ -166,6 +168,7 @@ const resolveExtractedRoot = async (stagingDirectory: string) => {
 
 const extractRelease = async (
   archivePath: string,
+  assetName: string,
   installDirectory: string,
   portName: string,
   executableOverride: string | null
@@ -174,10 +177,18 @@ const extractRelease = async (
   await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
 
   try {
-    await SevenZip.extractFile({
-      filePath: archivePath,
-      outputPath: stagingDirectory,
-    });
+    if (isBareReleaseExecutable(assetName, executableOverride)) {
+      await fs.promises.mkdir(stagingDirectory, { recursive: true });
+      await fs.promises.copyFile(
+        archivePath,
+        path.join(stagingDirectory, path.basename(assetName))
+      );
+    } else {
+      await SevenZip.extractFile({
+        filePath: archivePath,
+        outputPath: stagingDirectory,
+      });
+    }
     await extractNestedArchives(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
     await restoreExecutableBits(root);
@@ -312,6 +323,7 @@ const downloadAndInstall = async (
   sendProgress({ slug: ref.slug, phase: "extracting" });
   const executablePath = await extractRelease(
     archivePath,
+    asset.name,
     installDirectory,
     details.name,
     getRecompilationExecutableOverride(ref.slug)
@@ -351,6 +363,8 @@ export const installRecompilation = async (
   installsInProgress.add(ref.slug);
 
   let archivePath = null as string | null;
+  let installDirectory = null as string | null;
+  let preparing = false;
   let result: RecompilationActionResult;
 
   try {
@@ -359,7 +373,7 @@ export const installRecompilation = async (
       return { ok: false, reason: "running" };
     }
 
-    const installDirectory = await resolveTargetDirectory(
+    installDirectory = await resolveTargetDirectory(
       ref,
       rawParentDirectory,
       current?.installed === true
@@ -368,6 +382,7 @@ export const installRecompilation = async (
       archivePath = downloadPath;
     });
     result = { ok: true };
+    preparing = await shouldPrepareAfterUpdate(ref).catch(() => false);
   } catch (error) {
     logger.error(`Failed to install recompilation ${ref.slug}`, error);
     result = {
@@ -379,6 +394,8 @@ export const installRecompilation = async (
     };
   } finally {
     if (archivePath) await removeFileQuietly(archivePath);
+    // Hands the port straight to the preparation, so Play can't start in between.
+    if (preparing) launchesInProgress.add(ref.slug);
     installsInProgress.delete(ref.slug);
   }
 
@@ -387,6 +404,11 @@ export const installRecompilation = async (
       ? { slug: ref.slug, phase: "done" }
       : { slug: ref.slug, phase: "error", reason: result.reason }
   );
+
+  if (preparing && installDirectory) {
+    void runPreparation(ref, installDirectory);
+    return { ...result, preparing: true };
+  }
 
   return result;
 };
@@ -510,7 +532,7 @@ const launchRecompilation = async (
     isRecompilationRunning(ref) ||
     (await isExecutableInUse(executablePath))
   ) {
-    return { ok: false, reason: "running" };
+    return { ok: false, reason: "already_running" };
   }
 
   let prepared = false;
@@ -585,20 +607,29 @@ export const prepareRecompilation = async (
   const state = await getRecompilationInstallState(ref);
   if (!state?.installPath) return { ok: false, reason: "not_installed" };
 
+  return runPreparation(ref, state.installPath);
+};
+
+/** Marks the port busy before the first await, so callers can report it as preparing right away. */
+const runPreparation = async (
+  ref: RecompilationRef,
+  installPath: string
+): Promise<RecompilationActionResult> => {
   launchesInProgress.add(ref.slug);
   sendPrepareProgress({ slug: ref.slug, phase: "running" });
   try {
-    const result = await prepareRecompilationRom(
-      ref,
-      state.installPath,
-      (step) =>
-        sendPrepareProgress({ slug: ref.slug, phase: "running", ...step })
+    const result = await prepareRecompilationRom(ref, installPath, (step) =>
+      sendPrepareProgress({ slug: ref.slug, phase: "running", ...step })
     );
     sendPrepareProgress({
       slug: ref.slug,
       phase: result.ok ? "done" : "error",
     });
     return result.ok ? { ok: true } : { ok: false, reason: result.reason };
+  } catch (error) {
+    logger.error(`Failed to prepare recompilation ${ref.slug}`, error);
+    sendPrepareProgress({ slug: ref.slug, phase: "error" });
+    return { ok: false, reason: "rom_prepare_failed" };
   } finally {
     launchesInProgress.delete(ref.slug);
   }

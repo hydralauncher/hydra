@@ -40,7 +40,7 @@ type RecompilationTab = "about" | "releases";
 
 export default function RecompilationPage() {
   const { objectId = "", slug = "" } = useParams();
-  const { t } = useTranslation("recompilation");
+  const { t, i18n } = useTranslation("recompilation");
   const { userDetails } = useUserDetails();
   const { isFeatureEnabled, isFeaturesSettled, Feature } = useFeature();
   const isRecompilationsEnabled = isFeatureEnabled(Feature.Recompilations);
@@ -78,7 +78,6 @@ export default function RecompilationPage() {
   useEffect(() => {
     let cancelled = false;
     setDetails(null);
-    setReadme(null);
     setReleases([]);
     setIsNotFound(false);
     setActiveTab("about");
@@ -92,12 +91,6 @@ export default function RecompilationPage() {
         if (!cancelled) setIsNotFound(true);
       });
 
-    getRecompilationReadme(objectId, slug)
-      .then((data) => {
-        if (!cancelled) setReadme(data);
-      })
-      .catch((error) => logger.error("Failed to load README", error));
-
     getRecompilationReleases(objectId, slug)
       .then((data) => {
         if (!cancelled) setReleases(data.releases ?? []);
@@ -108,6 +101,23 @@ export default function RecompilationPage() {
       cancelled = true;
     };
   }, [objectId, slug]);
+
+  // The README comes translated to the launcher's language when there is a
+  // translation, so it is fetched again when the language changes.
+  useEffect(() => {
+    let cancelled = false;
+    setReadme(null);
+
+    getRecompilationReadme(objectId, slug, i18n.language)
+      .then((data) => {
+        if (!cancelled) setReadme(data);
+      })
+      .catch((error) => logger.error("Failed to load README", error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [objectId, slug, i18n.language]);
 
   useEffect(() => {
     let cancelled = false;

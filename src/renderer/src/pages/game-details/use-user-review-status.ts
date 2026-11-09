@@ -13,6 +13,11 @@ interface UserReviewStatusResult {
   hasReviewed: boolean;
 }
 
+// Last known answer per game and user. A revisit shows the right state on
+// the first render instead of waiting for the check, which would move the
+// page when the review prompt appears.
+const reviewStatusCache = new Map<string, boolean>();
+
 const buildIdentity = (
   shop?: GameShop,
   objectId?: string,
@@ -35,11 +40,22 @@ export function useUserReviewStatus({
   );
   const [result, setResult] = useState<UserReviewStatusResult | null>(null);
 
+  const rememberResult = useCallback(
+    (hasReviewed: boolean) => {
+      reviewStatusCache.set(identity, hasReviewed);
+      setResult({ identity, hasReviewed });
+    },
+    [identity]
+  );
+
   useEffect(() => {
     if (!shop || !objectId || shop === "custom" || !userDetailsId) {
       setResult({ identity, hasReviewed: false });
       return;
     }
+
+    const cached = reviewStatusCache.get(identity);
+    if (cached !== undefined) setResult({ identity, hasReviewed: cached });
 
     let cancelled = false;
 
@@ -53,7 +69,7 @@ export function useUserReviewStatus({
       )
       .then((response) => {
         if (cancelled) return;
-        setResult({ identity, hasReviewed: response?.hasReviewed || false });
+        rememberResult(response?.hasReviewed || false);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -64,16 +80,21 @@ export function useUserReviewStatus({
     return () => {
       cancelled = true;
     };
-  }, [identity, shop, objectId, userDetailsId, recompilationSlug]);
+  }, [
+    identity,
+    shop,
+    objectId,
+    userDetailsId,
+    recompilationSlug,
+    rememberResult,
+  ]);
 
-  const currentResult = result?.identity === identity ? result : null;
+  const cachedResult = reviewStatusCache.has(identity)
+    ? { identity, hasReviewed: reviewStatusCache.get(identity)! }
+    : null;
+  const currentResult = result?.identity === identity ? result : cachedResult;
 
-  const updateHasUserReviewed = useCallback(
-    (hasReviewed: boolean) => {
-      setResult({ identity, hasReviewed });
-    },
-    [identity]
-  );
+  const updateHasUserReviewed = rememberResult;
 
   return {
     hasUserReviewed: currentResult?.hasReviewed ?? false,

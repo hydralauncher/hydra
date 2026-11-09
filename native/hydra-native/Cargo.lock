@@ -1119,6 +1119,7 @@ dependencies = [
  "unicode-normalization",
  "uuid",
  "walkdir",
+ "windows",
  "windows-sys 0.61.2",
  "x11rb",
  "zbus",

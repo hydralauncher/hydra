@@ -1,6 +1,6 @@
 {
   "name": "hydralauncher",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "description": "Hydra",
   "main": "./out/main/index.js",
   "author": "Los Broxas",

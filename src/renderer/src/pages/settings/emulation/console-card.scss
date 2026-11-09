@@ -2,8 +2,8 @@
 
 .console-card {
   position: relative;
-  background: #0d0d0d;
-  border: 1px solid #1c1c1c;
+  background: globals.$dark-background-color;
+  border: 1px solid globals.$border-color;
   border-radius: 8px;
   padding: 64px 24px 24px;
   min-height: 280px;
@@ -13,7 +13,7 @@
   transition: border-color 0.15s ease;
 
   &:hover {
-    border-color: #424244;
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   &--unconfigured {
@@ -57,9 +57,9 @@
   }
 
   &__title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     letter-spacing: -0.22px;
     margin: 0;
   }
@@ -71,14 +71,14 @@
   }
 
   &__emulator {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
-    color: #c0c1c7;
+    color: globals.$body-color;
   }
 
   &__version {
-    font-size: 13px;
-    color: #8e919b;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -89,7 +89,7 @@
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: #8e919b;
+    background: globals.$subtle-color;
   }
 
   &__body {
@@ -115,33 +115,33 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #c0c1c7;
+    background: globals.$body-color;
     align-self: center;
   }
 
   &__stat-number {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     letter-spacing: -0.72px;
     line-height: 1;
   }
 
   &__stat-label {
-    font-size: 14px;
-    color: #c0c1c7;
+    font-size: globals.$body-font-size;
+    color: globals.$body-color;
   }
 
   &__last-scan {
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     margin: 0;
   }
 
   &__hint-box {
     background: #151515;
-    border: 1px solid #1c1c1c;
-    border-radius: 10px;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -152,14 +152,14 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
-    color: #c0c1c7;
+    color: globals.$body-color;
   }
 
   &__hint-text {
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     line-height: 18px;
     margin: 0;
   }
@@ -179,10 +179,11 @@
   &__chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 12px 4px 10px;
+    gap: calc(globals.$spacing-unit / 2);
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5)
+      calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 400;
     min-width: 0;
 
@@ -193,20 +194,20 @@
     }
 
     &--ready {
-      color: #c0c1c7;
+      color: globals.$body-color;
       background: rgba(192, 193, 199, 0.12);
 
       .console-card__chip-dot {
-        background: #c0c1c7;
+        background: globals.$body-color;
       }
     }
 
     &--warn {
-      color: #c0c1c7;
+      color: globals.$body-color;
       background: rgba(192, 193, 199, 0.12);
 
       .console-card__chip-dot {
-        background: #c0c1c7;
+        background: globals.$body-color;
       }
     }
   }
@@ -218,18 +219,19 @@
     gap: 4px;
     background: transparent;
     border: 0;
-    color: #c0c1c7;
-    font-size: 13px;
+    color: globals.$body-color;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
     cursor: pointer;
     padding: 4px 0;
 
     &:hover:not(&--disabled) {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
 
     &--disabled {
-      color: #555;
+      color: globals.$subtle-color;
+      opacity: globals.$disabled-opacity;
       cursor: not-allowed;
     }
   }

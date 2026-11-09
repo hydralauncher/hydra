@@ -29,6 +29,7 @@ import { format } from "date-fns";
 import { AchievementNotificationInfo, GameRepack } from "@types";
 
 export * from "./archive-org";
+export * from "./official-chat";
 export * from "./constants";
 export {
   shouldAutoStartSteamSync,

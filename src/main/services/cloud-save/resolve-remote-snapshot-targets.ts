@@ -90,8 +90,8 @@ export const resolveRestoreManifestTargets = async (
         remoteId: gameContext.game?.remoteId ?? undefined,
         userDataPath: SystemPath.getPath("userData"),
         recompilationRules: getRecompilationSaveRules(
-          manifest.snapshot.shop,
-          manifest.snapshot.objectId
+          pathContext,
+          gameContext.game?.executablePath
         ),
       });
   const customPathContext =

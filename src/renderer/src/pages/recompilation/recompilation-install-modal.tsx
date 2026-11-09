@@ -40,6 +40,11 @@ const PREPARE_STEP_KEYS: Record<string, string> = {
   "Game data": "prepare_step_data",
   "Self-test": "prepare_step_test",
   "European languages": "prepare_step_languages",
+  Validate: "prepare_step_disc",
+  Recompile: "prepare_step_data",
+  Compile: "prepare_step_data",
+  Game: "prepare_step_data",
+  Done: "prepare_step_data",
 };
 
 const ROM_DOWNLOAD_START_TIMEOUT_MS = 10_000;
@@ -177,9 +182,10 @@ function InstallModalContent({
   const [hasSeenPortProgress, setHasSeenPortProgress] = useState(false);
 
   const [hasLocationStep] = useState(!isInstalled && !install.isBusy);
-  const [step, setStep] = useState<InstallStep>(
-    hasLocationStep ? "location" : "rom"
-  );
+  const [step, setStep] = useState<InstallStep>(() => {
+    if (hasLocationStep) return "location";
+    return install.isPreparing ? "prepare" : "rom";
+  });
   const [parentDirectory, setParentDirectory] = useState(
     state?.installParentPath ?? ""
   );
@@ -192,7 +198,7 @@ function InstallModalContent({
   const handlesRom = romState?.handlesRom !== false;
   const needsPreparation = romState?.needsPreparation === true;
   const [prepare, setPrepare] = useState<RecompilationPrepareProgress | null>(
-    null
+    install.isPreparing ? { slug: details.slug, phase: "running" } : null
   );
 
   useEffect(
@@ -360,7 +366,9 @@ function InstallModalContent({
 
   const play = async () => {
     onClose();
-    if (!(await install.play())) showErrorToast(t("play_failed"));
+    const played = await install.play();
+    if (played === "already_running") showErrorToast(t("already_running"));
+    else if (!played) showErrorToast(t("play_failed"));
   };
 
   useEffect(() => {

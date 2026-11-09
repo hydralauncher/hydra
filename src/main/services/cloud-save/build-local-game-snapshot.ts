@@ -60,8 +60,8 @@ export const buildLocalGameSnapshotContext = async (
     hashCache,
     extraRules,
     recompilationRules: getRecompilationSaveRules(
-      pathContext.shop,
-      pathContext.objectId
+      pathContext,
+      game?.executablePath
     ),
   };
   let nativeSnapshot;

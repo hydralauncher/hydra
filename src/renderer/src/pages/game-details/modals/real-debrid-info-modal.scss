@@ -25,9 +25,9 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
-    color: #c0c1c7;
+    color: globals.$body-color;
     text-decoration: underline;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
 
     &:hover {
       text-decoration: underline;

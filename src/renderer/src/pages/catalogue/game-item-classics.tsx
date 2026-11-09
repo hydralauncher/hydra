@@ -1,4 +1,9 @@
-import { QuestionIcon, PlusIcon, CheckIcon } from "@primer/octicons-react";
+import {
+  QuestionIcon,
+  PlusIcon,
+  CheckIcon,
+  DeviceDesktopIcon,
+} from "@primer/octicons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import cn from "classnames";
@@ -84,9 +89,13 @@ function SourceBadges({ sources }: Readonly<{ sources: string[] }>) {
 
 export interface GameItemClassicsProps {
   game: CatalogueSearchResult;
+  showRecompilationBadge: boolean;
 }
 
-export function GameItemClassics({ game }: GameItemClassicsProps) {
+export function GameItemClassics({
+  game,
+  showRecompilationBadge,
+}: GameItemClassicsProps) {
   const { i18n, t } = useTranslation("game_details");
   const language = i18n.language.split("-")[0];
 
@@ -142,6 +151,9 @@ export function GameItemClassics({ game }: GameItemClassicsProps) {
     });
   }, [game.genres, language, steamGenres]);
 
+  const hasRecompilation =
+    showRecompilationBadge && (game.recompilations?.length ?? 0) > 0;
+
   return (
     <article className="game-item-classics">
       <Link
@@ -172,8 +184,20 @@ export function GameItemClassics({ game }: GameItemClassicsProps) {
           )}
 
           {game.platform && (
-            <span className="game-item-classics__platform-chip">
+            <span
+              className={cn("game-item-classics__platform-chip", {
+                "game-item-classics__platform-chip--beside-recompilation":
+                  hasRecompilation,
+              })}
+            >
               {game.platform}
+            </span>
+          )}
+
+          {hasRecompilation && (
+            <span className="game-item-classics__recompilation-chip">
+              <DeviceDesktopIcon size={11} aria-hidden="true" />
+              {t("recompilation_badge", { ns: "catalogue" })}
             </span>
           )}
         </div>
