@@ -241,7 +241,7 @@ export function AchievementNotification() {
       }
 
       try {
-        await window.electron.achievementNotificationSoundPlayed(
+        await window.electron.achievementNotificationSoundPlayed?.(
           requestId,
           batchId
         );
@@ -259,7 +259,7 @@ export function AchievementNotification() {
     const requestId = activeRequest.id;
 
     void window.electron
-      .achievementNotificationStarted(requestId)
+      .achievementNotificationStarted?.(requestId)
       .catch((error) => {
         logger.error("Failed to report notification start", error);
       });
