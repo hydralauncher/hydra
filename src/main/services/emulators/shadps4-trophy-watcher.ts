@@ -124,7 +124,7 @@ export const startShadps4TrophyWatcher = ({
   };
 
   const timer = setInterval(() => {
-    if (!inFlightRead) void runRead(false);
+    if (inFlightRead === null) void runRead(false);
   }, INTERVALS.achievementWatcher);
   timer.unref?.();
 
