@@ -57,7 +57,7 @@ export const inspectShadps4DiscIdentity = async (
   }
   return {
     status: { status: "ready", path: null, titleId: null },
-    saveTitleIds: [...saveTitleIds].sort(),
+    saveTitleIds: [...saveTitleIds].sort((a, b) => a.localeCompare(b)),
   };
 };
 
