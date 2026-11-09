@@ -82,6 +82,20 @@ const isProcessAlive = (pid: number): boolean => {
   }
 };
 
+const killRelaunchedProcess = (pid: number): void => {
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch (error) {
+    logger.warn("Failed to close relaunched shadPS4 process", error);
+  }
+};
+
+const listOtherSessionPids = (session: EmulatorSession): number[] =>
+  [...emulatorSessions.values()]
+    .filter((otherSession) => otherSession !== session)
+    .flatMap(({ child, relaunchedPid }) => [child.pid, relaunchedPid])
+    .filter((pid): pid is number => pid != null);
+
 const sendPresencePing = async (gameKey: string): Promise<void> => {
   const game = await gamesSublevel.get(gameKey);
   if (!game || game.shop === "custom") return;
@@ -190,11 +204,11 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   const { pid } = session.child;
   stopLinuxGameCaptureSession(gameKey);
 
+  if (session.relaunchedPid) killRelaunchedProcess(session.relaunchedPid);
+
   try {
     if (pid && process.platform !== "win32") {
       process.kill(-pid, "SIGKILL");
-    } else if (session.relaunchedPid) {
-      process.kill(session.relaunchedPid);
     } else {
       session.child.kill();
     }
@@ -230,7 +244,10 @@ const finalizeOrFollowRelaunch = async (
     session.system === "ps4"
       ? findNewShadps4Pid(
           await listShadps4Processes(),
-          session.knownShadps4Pids,
+          new Set([
+            ...session.knownShadps4Pids,
+            ...listOtherSessionPids(session),
+          ]),
           session.executablePath
         )
       : null;
@@ -261,10 +278,11 @@ const refreshShadps4DetectedVersion = async (
   const detectedVersion = readShadps4VersionAfterSession(executablePath);
   if (!detectedVersion) return;
 
-  await updateEmulatorConfig("ps4", (current) => ({
-    ...current,
-    detectedVersion,
-  })).catch((error) => {
+  await updateEmulatorConfig("ps4", (current) =>
+    current.executablePath === executablePath
+      ? { ...current, detectedVersion }
+      : current
+  ).catch((error) => {
     logger.warn("Failed to store shadPS4 version", error);
   });
 };
