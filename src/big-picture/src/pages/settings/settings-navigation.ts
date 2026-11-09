@@ -77,6 +77,7 @@ export const EMULATION_OVERVIEW_CARD_FOCUS_IDS = {
   ps1: "emulation-overview-ps1-card",
   ps2: "emulation-overview-ps2-card",
   ps3: "emulation-overview-ps3-card",
+  ps4: "emulation-overview-ps4-card",
   psp: "emulation-overview-psp-card",
   dolphin: "emulation-overview-dolphin-card",
   retroarch: "emulation-overview-retroarch-card",

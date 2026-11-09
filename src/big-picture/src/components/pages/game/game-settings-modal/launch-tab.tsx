@@ -7,7 +7,7 @@ import {
 } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@phosphor-icons/react";
-import { getClassicsDiscLabel } from "@shared";
+import { getClassicsDiscLabel, platformToSystem } from "@shared";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import { Disc3, FolderOpen, Monitor, Trash } from "lucide-react";
 import { useCallback, type ReactNode, useState } from "react";
@@ -764,6 +764,7 @@ export function GameLaunchSettingsTab({
         onSelect={handleDiscPicked}
         title={t("add_disc")}
         filters={discPickerFilters}
+        selectDirectory={platformToSystem(game.platform) === "ps4"}
       />
 
       <FileExplorerModal

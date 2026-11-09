@@ -611,8 +611,12 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   rescanEmulator: (system: EmulatorSystem, language?: string) =>
     ipcRenderer.invoke("rescanEmulator", system, language),
-  checkPs3Firmware: (executablePath: string | null) =>
-    ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  checkEmulatorFirmware: (
+    system: EmulatorSystem,
+    executablePath: string | null
+  ) => ipcRenderer.invoke("checkEmulatorFirmware", system, executablePath),
+  checkShadps4TrophyKey: (executablePath: string | null) =>
+    ipcRenderer.invoke("checkShadps4TrophyKey", executablePath),
   checkEmulatorBios: (
     system: EmulatorSystem,
     executablePath: string | null,

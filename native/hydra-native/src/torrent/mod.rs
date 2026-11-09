@@ -213,6 +213,7 @@ struct Cached {
 struct Pooled {
     handle: Rc<Handle>,
     delete_partfile: bool,
+    save_path: String,
 }
 struct Engine {
     downloads: BTreeMap<String, Download>,
@@ -283,6 +284,7 @@ impl Engine {
             params.append_tracker(&tracker, tier)?;
         }
         let handle = self.session.add(&params)?;
+        let (handle, replaced) = self.replace_unowned_handle(handle, &params, path, game)?;
         // libtorrent may return an existing handle for the same info hash.
         // Metadata lookup must not remove or change the active download.
         for entry in &self.pool {
@@ -328,9 +330,51 @@ impl Engine {
         self.pool.push(Pooled {
             handle: handle.clone(),
             delete_partfile: true,
+            save_path: path.to_string(),
         });
+        self.move_jobs(replaced, &handle);
         handle.resume()?;
         Ok(handle)
+    }
+    fn replace_unowned_handle(
+        &mut self,
+        handle: Handle,
+        params: &Params,
+        path: &str,
+        game: Option<&str>,
+    ) -> Result<(Handle, Option<Rc<Handle>>)> {
+        if game.is_none() {
+            return Ok((handle, None));
+        }
+        let Some(index) = self.unowned_entry_elsewhere(&handle, path)? else {
+            return Ok((handle, None));
+        };
+        self.session
+            .remove(&self.pool[index].handle, self.pool[index].delete_partfile)?;
+        let stale = self.pool.remove(index);
+        Ok((self.session.add(params)?, Some(stale.handle)))
+    }
+    fn move_jobs(&mut self, stale: Option<Rc<Handle>>, handle: &Rc<Handle>) {
+        let Some(stale) = stale else {
+            return;
+        };
+        for job in &mut self.jobs {
+            if Rc::ptr_eq(&job.handle, &stale) {
+                job.handle = handle.clone();
+            }
+        }
+    }
+    fn unowned_entry_elsewhere(&self, handle: &Handle, path: &str) -> Result<Option<usize>> {
+        for (index, entry) in self.pool.iter().enumerate() {
+            if handle.same(&entry.handle)? {
+                let owned = self
+                    .downloads
+                    .values()
+                    .any(|d| Rc::ptr_eq(&d.handle, &entry.handle));
+                return Ok((!owned && entry.save_path != path).then_some(index));
+            }
+        }
+        Ok(None)
     }
     fn collect_handles(&mut self) {
         self.pool.retain(|entry| {

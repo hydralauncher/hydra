@@ -102,6 +102,7 @@ async function fixture(
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};
     export const collectGameAchievementFiles = async () => [];
+    export const removeShadps4TrophyFile = async () => {};
     export const updateGameRecord = async () => {};
     export const cancelPendingSouvenirsForGame = async () => {if (state.resetGate) await state.resetGate;};
     export const deleteLocalSouvenirAssetsForGame = async () => {};
