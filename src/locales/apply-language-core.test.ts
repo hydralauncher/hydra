@@ -29,6 +29,25 @@ describe("createLanguageApplier", () => {
     assert.equal(i18n.t("greeting"), "Olá");
   });
 
+  it("uses the resolved locale key", async () => {
+    const i18n = createInstance();
+
+    await i18n.init({
+      resources: { en: { translation: {} } },
+      fallbackLng: "en",
+      lng: "en",
+    });
+
+    const applyLanguage = createLanguageApplier(i18n, async () => ({
+      key: "pt-BR",
+      resources: { translation: { greeting: "Olá" } },
+    }));
+
+    assert.equal(await applyLanguage("pt"), "pt-BR");
+    assert.equal(i18n.language, "pt-BR");
+    assert.equal(i18n.t("greeting"), "Olá");
+  });
+
   it("applies only the latest language when loads finish out of order", async () => {
     const i18n = createInstance();
 

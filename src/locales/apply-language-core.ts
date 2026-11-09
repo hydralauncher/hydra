@@ -13,7 +13,7 @@ export const createLanguageApplier = (i18n: I18n, loadLocale: LocaleLoader) => {
   return async (language: string) => {
     const requestId = ++latestLanguageRequest;
     const locale = await loadLocale(language);
-    const languageTag = language || locale.key;
+    const languageTag = locale.key;
 
     if (requestId !== latestLanguageRequest) {
       return languageTag;
