@@ -6,6 +6,7 @@ import {
   swcPlugin,
 } from "electron-vite";
 import JavaScriptObfuscator from "javascript-obfuscator";
+import { randomInt } from "node:crypto";
 import { resolve } from "path";
 import { transformWithEsbuild, type Plugin } from "vite";
 import svgr from "vite-plugin-svgr";
@@ -27,7 +28,7 @@ const mangleIdentifiers = (): Plugin => ({
   },
 });
 
-const buildSeed = Math.floor(Math.random() * 2 ** 31);
+const buildSeed = randomInt(2 ** 31);
 
 const obfuscate = (): Plugin => ({
   name: "hydra:obfuscate",
