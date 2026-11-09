@@ -9,6 +9,7 @@ import JavaScriptObfuscator from "javascript-obfuscator";
 import { resolve } from "path";
 import { transformWithEsbuild, type Plugin } from "vite";
 import svgr from "vite-plugin-svgr";
+import { contentSecurityPolicy } from "./src/big-picture/vite-content-security-policy";
 import { scopeBigPictureCss } from "./src/big-picture/vite-scope-big-picture-css";
 
 const mangleIdentifiers = (): Plugin => ({
@@ -23,38 +24,6 @@ const mangleIdentifiers = (): Plugin => ({
     });
 
     return { code: result.code, map: null };
-  },
-});
-
-const rendererContentSecurityPolicy = (
-  externalResourcesUrl: string | undefined
-): Plugin => ({
-  name: "hydra:renderer-content-security-policy",
-  transformIndexHtml: (_html, context) => {
-    const scriptSources = [
-      "'self'",
-      ...(externalResourcesUrl ? [new URL(externalResourcesUrl).origin] : []),
-      // React Refresh injects an inline preamble that only exists on the dev server.
-      ...(context.server ? ["'unsafe-inline'"] : []),
-    ];
-
-    return [
-      {
-        tag: "meta",
-        attrs: {
-          "http-equiv": "Content-Security-Policy",
-          content: [
-            "default-src 'self' 'unsafe-inline' * data: local: blob:",
-            `script-src ${scriptSources.join(" ")}`,
-            "worker-src 'self' blob:",
-            "object-src 'none'",
-            "base-uri 'self'",
-            "media-src 'self' 'unsafe-inline' * data: local: blob:",
-          ].join("; "),
-        },
-        injectTo: "head-prepend",
-      },
-    ];
   },
 });
 
@@ -95,9 +64,7 @@ const obfuscate = (): Plugin => ({
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode);
-  const contentSecurityPolicy = rendererContentSecurityPolicy(
-    env.RENDERER_VITE_EXTERNAL_RESOURCES_URL
-  );
+  const csp = contentSecurityPolicy(env.RENDERER_VITE_EXTERNAL_RESOURCES_URL);
 
   const isProduction = mode === "production";
   const minify = isProduction ? "esbuild" : false;
@@ -152,7 +119,7 @@ export default defineConfig(({ mode }) => {
           "@shared": resolve("src/shared"),
         },
       },
-      plugins: [svgr(), react(), contentSecurityPolicy],
+      plugins: [svgr(), react(), csp],
     },
     renderer: {
       build: {
@@ -179,7 +146,7 @@ export default defineConfig(({ mode }) => {
           "@shared": resolve("src/shared"),
         },
       },
-      plugins: [svgr(), react(), contentSecurityPolicy],
+      plugins: [svgr(), react(), csp],
     },
   };
 });

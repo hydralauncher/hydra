@@ -45,10 +45,12 @@ export function sanitizeHtml(html: string): string {
     return "";
   }
 
-  return DOMPurify.sanitize(removeZalgoText(html), {
-    ALLOWED_TAGS: SANITIZE_HTML_ALLOWED_TAGS,
-    ALLOWED_ATTR: [],
-  }).trim();
+  return removeZalgoText(
+    DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: SANITIZE_HTML_ALLOWED_TAGS,
+      ALLOWED_ATTR: [],
+    })
+  ).trim();
 }
 
 export function stripHtml(html: string): string {
