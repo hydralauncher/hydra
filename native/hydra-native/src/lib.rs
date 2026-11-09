@@ -36,7 +36,7 @@ use image::imageops::{crop_imm, resize, FilterType};
 use image::{AnimationDecoder, Frame, ImageFormat, ImageReader, ImageResult, RgbaImage};
 use napi::bindgen_prelude::{Buffer, Error};
 use napi_derive::napi;
-use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System};
+use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 use uuid::Uuid;
 
 #[napi(object)]
@@ -341,7 +341,19 @@ pub fn list_processes() -> Vec<NativeProcessPayload> {
     system.refresh_processes_specifics(
         ProcessesToUpdate::All,
         true,
-        ProcessRefreshKind::everything().without_tasks(),
+        ProcessRefreshKind::nothing()
+            .with_exe(UpdateKind::OnlyIfNotSet)
+            .with_cwd(if cfg!(target_os = "windows") {
+                UpdateKind::Never
+            } else {
+                UpdateKind::Always
+            })
+            .with_environ(if cfg!(any(target_os = "linux", target_os = "windows")) {
+                UpdateKind::Never
+            } else {
+                UpdateKind::OnlyIfNotSet
+            })
+            .without_tasks(),
     );
 
     let mut processes: Vec<NativeProcessPayload> = system
