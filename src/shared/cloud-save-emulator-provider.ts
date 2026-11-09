@@ -11,6 +11,7 @@ export const getCloudSaveEmulatorProvider = (
 ): CloudSaveEmulatorProvider | null => {
   if (shop !== "launchbox" || !platform) return null;
   if (/playstation\s*3|\bps3\b/i.test(platform)) return "rpcs3";
+  if (/playstation\s*4|\bps4\b/i.test(platform)) return "shadps4";
   return platformToRetroArchPlatform(platform) ? "retroarch" : null;
 };
 

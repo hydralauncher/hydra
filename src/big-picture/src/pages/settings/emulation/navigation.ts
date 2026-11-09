@@ -5,7 +5,11 @@ export const isRetroArchEmulationDeepLink = (search: string): boolean => {
   );
 };
 
-export const isRpcs3EmulationDeepLink = (search: string): boolean => {
+export const getEmulatorDetailDeepLinkSystem = (
+  search: string
+): "ps3" | "ps4" | null => {
   const params = new URLSearchParams(search);
-  return params.get("tab") === "emulation" && params.get("system") === "ps3";
+  if (params.get("tab") !== "emulation") return null;
+  const system = params.get("system");
+  return system === "ps3" || system === "ps4" ? system : null;
 };

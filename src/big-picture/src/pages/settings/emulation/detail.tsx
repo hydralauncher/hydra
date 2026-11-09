@@ -14,7 +14,7 @@ import {
   EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
   EMULATION_DETAIL_REGION_ID,
   EMULATION_DETAIL_RESCAN_BUTTON_ID,
-  EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID,
+  EMULATION_DETAIL_SAVE_LOCATION_BROWSE_BUTTON_ID,
   SETTINGS_HEADER_RETURN_TARGET,
   getEmulationRomFolderRemoveFocusId,
 } from "../settings-navigation";
@@ -29,7 +29,8 @@ import {
   RomFoldersSectionBP,
 } from "./detail-sections";
 import { MemoryCardsSection } from "./memory-cards-section";
-import { Rpcs3ConfigRootSection } from "./rpcs3-config-root-section";
+import { getEmulatorSaveLocation } from "@renderer/pages/settings/emulation/emulator-save-location";
+import { EmulatorSaveLocationSection } from "./emulator-save-location-section";
 import {
   EMULATOR_ICONS,
   KNOWN_BINARY_LABELS,
@@ -84,6 +85,7 @@ export function EmulationDetail({
 
   const binaryName = KNOWN_BINARY_LABELS[config.binary];
   const binaryIcon = EMULATOR_ICONS[config.binary];
+  const saveLocation = getEmulatorSaveLocation(config.system);
   const language = i18n.resolvedLanguage ?? i18n.language ?? "en";
   const isConfigured = config.executablePath !== null;
   const storageLabel = useMemo(
@@ -368,8 +370,8 @@ export function EmulationDetail({
         executableExists={executableExists}
         isBusy={isBusy}
         execDownTargetId={
-          config.system === "ps3" && config.executablePath
-            ? EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID
+          saveLocation && config.executablePath
+            ? EMULATION_DETAIL_SAVE_LOCATION_BROWSE_BUTTON_ID
             : EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID
         }
         onBrowse={() => {
@@ -380,8 +382,12 @@ export function EmulationDetail({
         }}
       />
 
-      {config.system === "ps3" && (
-        <Rpcs3ConfigRootSection config={config} onChange={onChange} />
+      {saveLocation && (
+        <EmulatorSaveLocationSection
+          config={config}
+          location={saveLocation}
+          onChange={onChange}
+        />
       )}
 
       <RomFoldersSectionBP
