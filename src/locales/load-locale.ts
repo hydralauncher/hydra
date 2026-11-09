@@ -1,5 +1,7 @@
 import type { ResourceLanguage } from "i18next";
 
+import { logger } from "@renderer/logger";
+
 import en from "./en/translation.json";
 import { resolveLanguage } from "./languages";
 
@@ -28,7 +30,7 @@ export async function loadLocale(language?: string | null) {
       resources: (await loader()).default,
     };
   } catch (error) {
-    console.error("Failed to load locale", key, error);
+    logger.error("Failed to load locale", key, error);
     return englishLocale;
   }
 }
