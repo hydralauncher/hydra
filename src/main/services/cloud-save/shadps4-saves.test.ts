@@ -88,7 +88,6 @@ describe("shadPS4 saves", () => {
   });
 
   it("reads the save folder from INSTALL_DIR_SAVEDATA, then the serial", async () => {
-    // Bloodborne GOTY saves under the original release's ID.
     const bloodborne = await makeDisc("CUSA03173", {
       TITLE_ID: "CUSA03173",
       CONTENT_ID: "EP9000-CUSA03173_00-BLOODBORNEGOTY00",
@@ -220,7 +219,6 @@ describe("shadPS4 saves", () => {
       path.join(title("1000"), "sce_bu_SPRJ0005", "userdata0000")
     );
     await writeFile(path.join(title("1001"), "SPRJ0005", "userdata0000"));
-    // Out of scope: trophies, inputs and other games' saves.
     await writeFile(path.join(home, "1000", "trophy", "data.xml"));
     await writeFile(
       path.join(home, "1000", "savedata", "CUSA99999", "X", "data")
@@ -337,6 +335,95 @@ describe("shadPS4 saves", () => {
     assert.deepEqual(
       result.coverage.map((entry) => [entry.rawPath, entry.outcome]),
       [[shadps4SaveRawPath("CUSA00207", "1000"), "partial"]]
+    );
+  });
+
+  it("rejects an INSTALL_DIR_SAVEDATA that is not a serial", async () => {
+    const disc = await makeDisc("odd", {
+      TITLE_ID: "CUSA03173",
+      INSTALL_DIR_SAVEDATA: "not-a-serial",
+    });
+    assert.equal(await readShadps4DiscIds(disc), null);
+  });
+
+  it("ignores PC executables and ports registered next to the game folder", async () => {
+    const disc = await makeDisc("CUSA03173", {
+      TITLE_ID: "CUSA03173",
+      INSTALL_DIR_SAVEDATA: "CUSA00207",
+    });
+    const pcGame = {
+      ...game([{ path: disc, sku: "CUSA-03173" }]),
+    } as Game;
+    pcGame.discs!.push(
+      {
+        path: path.join(root, "pc", "game.exe"),
+        label: "game.exe",
+        fileName: "game.exe",
+        isExecutable: true,
+      },
+      {
+        path: path.join(root, "ports", "port.exe"),
+        label: "port",
+        fileName: "port.exe",
+        recompilationSlug: "some-port",
+      }
+    );
+    assert.deepEqual(await inspectShadps4DiscIdentity(pcGame), {
+      status: { status: "ready", path: null, titleId: null },
+      saveTitleIds: ["CUSA00207"],
+    });
+    assert.deepEqual(await getShadps4SavedataTitleIds(pcGame), ["CUSA00207"]);
+  });
+
+  it("accepts a save folder that is itself named savedata", () => {
+    const save = path.join(root, "home", "1000", "savedata", "CUSA00207");
+    assert.equal(
+      isShadps4GameSaveFile(path.join(save, "SAVEDATA", "userdata0000"), [
+        "CUSA00207",
+      ]),
+      true
+    );
+    assert.doesNotThrow(() =>
+      assertShadps4SnapshotIdentity(
+        [
+          {
+            rawPath: "<custom>/home/1000/savedata/CUSA00207",
+            relativePath: "SAVEDATA/userdata0000",
+          },
+        ],
+        new Set(["CUSA00207"]),
+        [
+          {
+            rawPath: "<custom>/home/1000/savedata/CUSA00207",
+            kind: "dir",
+            path: save,
+          } as never,
+        ]
+      )
+    );
+  });
+
+  it("keeps coverage complete when a plain file sits next to the saves", async () => {
+    const home = path.join(root, "home");
+    const title = path.join(home, "1000", "savedata", "CUSA00207");
+    await writeFile(path.join(title, "SPRJ0005", "userdata0000"));
+    await writeFile(path.join(title, "desktop.ini"));
+    const result = await scanShadps4SaveRoot(
+      {
+        game: game([]),
+        environmentId: "env",
+        variantId: "variant",
+        savedataTitleIds: ["CUSA00207"],
+      },
+      home
+    );
+    assert.deepEqual(
+      result.files.map((file) => file.relativePath),
+      ["SPRJ0005/userdata0000"]
+    );
+    assert.deepEqual(
+      result.coverage.map((entry) => entry.outcome),
+      ["scanned"]
     );
   });
 });

@@ -28,6 +28,9 @@ const setShadps4DataDir = async (
   if (!config.executablePath) {
     throw new Error("cloud_save_shadps4_not_configured");
   }
+  if (dir !== null && typeof dir !== "string") {
+    throw new Error("cloud_save_shadps4_config_invalid_selection");
+  }
   const location = dir
     ? await validateShadps4DataDir(dir, path.dirname(config.executablePath))
     : null;
