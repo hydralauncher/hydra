@@ -378,6 +378,8 @@ fn activated(id: &str) {
                 context_menu::force_submenu("");
                 toggle_collection(id);
             })));
+            // Cancelled too: the submenu stops being forced open.
+            crate::dialogs::set_on_closed(|| context_menu::force_submenu(""));
         }
         id if id.starts_with("collection-") => {
             toggle_collection(id.trim_start_matches("collection-").to_string())
