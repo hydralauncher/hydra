@@ -54,7 +54,7 @@ export const assertEmulatorDiscIdentity = async (
     case "shadps4": {
       const { assertShadps4DiscIdentity, assertShadps4SnapshotIdentity } =
         await import("./shadps4-game-identity.js");
-      const savedataTitleIds = await assertShadps4DiscIdentity(game!);
+      const savedataTitleIds = await assertShadps4DiscIdentity(game);
       const allowed = new Set(savedataTitleIds);
       return {
         savedataTitleIds,

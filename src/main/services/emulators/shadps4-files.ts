@@ -51,10 +51,6 @@ export const shadps4DefaultUserDir = (): string => {
   return path.join(dataHome, "shadPS4");
 };
 
-/**
- * shadPS4 uses `<cwd>/user` when it exists. Hydra starts it from the
- * executable's folder, so that is where the portable folder lives.
- */
 export const shadps4PortableUserDir = (executablePath: string): string =>
   path.join(path.dirname(executablePath), PORTABLE_USER_DIR);
 

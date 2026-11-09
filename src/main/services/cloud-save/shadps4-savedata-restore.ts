@@ -11,10 +11,6 @@ import {
 import { isSafeEmulatorRestoreTarget } from "./emulator-safe-restore-target.js";
 import { isShadps4SyncedSaveFile } from "./shadps4-save-layout.js";
 
-/**
- * Restores into `<home>/<user_id>/savedata/<save title id>/`, creating the
- * user's folder when this PC does not have that shadPS4 user yet.
- */
 export const resolveShadps4SavedataRestoreRule = async (
   file: Pick<RestoreManifestFile, "rawPath" | "relativePath">,
   allowedSaveTitleIds: ReadonlySet<string>,

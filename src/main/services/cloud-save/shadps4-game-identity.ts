@@ -20,11 +20,6 @@ import {
 
 const WRONG_GAME = "cloud_save_shadps4_save_wrong_game";
 
-/**
- * PS4 games are identified from their own sce_sys/param.sfo. Unlike RPCS3,
- * there is no catalogue check, so "mismatch" and "catalogue-unavailable"
- * never happen here.
- */
 export const inspectShadps4DiscIdentity = async (
   game: Pick<Game, "discs">,
   readIds: (
@@ -64,7 +59,6 @@ export const inspectShadps4DiscIdentity = async (
 export const getShadps4DiscIdentityStatus = async (game: Game) =>
   (await inspectShadps4DiscIdentity(game)).status;
 
-/** Returns the save title IDs once every disc is confirmed. */
 export const assertShadps4DiscIdentity = async (game: Game) => {
   const { status, saveTitleIds } = await inspectShadps4DiscIdentity(game);
   if (status.status !== "ready") {
@@ -75,7 +69,6 @@ export const assertShadps4DiscIdentity = async (game: Game) => {
   return saveTitleIds;
 };
 
-/** Save title ID of a path that runs through `.../savedata/<id>/<dir>/...`. */
 const saveTitleIdForSegments = (segments: string[]) => {
   const savedataIndex = segments.findLastIndex(
     (segment) => segment.toLowerCase() === "savedata"
@@ -88,7 +81,6 @@ const saveTitleIdForSegments = (segments: string[]) => {
     : null;
 };
 
-/** Validate file identity before any merge can restore or delete it. */
 export const assertShadps4SnapshotIdentity = (
   files: Pick<CloudSaveFileIdentity, "rawPath" | "relativePath">[],
   allowedSaveTitleIds: ReadonlySet<string>,

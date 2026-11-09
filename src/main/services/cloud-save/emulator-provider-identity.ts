@@ -43,7 +43,6 @@ export const rpcs3SavestateRawPath = (titleId: string) =>
 export const rpcs3GamedataRawPath = (titleId: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}rpcs3-gamedata/${titleId}`;
 
-// shadPS4 keeps saves per user: <home>/<user_id>/savedata/<save title id>/.
 export const shadps4SaveRawPath = (saveTitleId: string, userId: string) =>
   `${EMULATOR_SAVE_RAW_PATH_PREFIX}shadps4/${saveTitleId}/${userId}`;
 

@@ -24,7 +24,6 @@ export interface EmulatorConfig {
   binary: EmulatorBinary;
   executablePath: string | null;
   rpcs3ConfigRoot?: string | null;
-  /** shadPS4 data folder picked by the user, overriding auto-detection. */
   shadps4DataDir?: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
