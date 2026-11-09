@@ -33,7 +33,6 @@ export interface EmulatorConfig {
 
 export type EmulatorConfigMap = Record<EmulatorSystem, EmulatorConfig>;
 
-/** Where an emulator keeps its save data, and whether Hydra could resolve it. */
 export interface EmulatorSaveLocationStatus {
   status:
     | "ready"
@@ -48,7 +47,6 @@ export interface EmulatorSaveLocationStatus {
 
 export type Rpcs3ConfigRootStatus = EmulatorSaveLocationStatus;
 
-/** Whether a game's discs match the game Cloud Save is syncing. */
 export interface EmulatorDiscIdentityStatus {
   status:
     | "ready"

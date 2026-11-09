@@ -19,7 +19,6 @@ const loadSaveLocationStatus = (
   }
 };
 
-/** Whether the emulator's save folder is resolved, for disc-based providers. */
 export function useEmulatorConfigStatus(
   provider: DiscCloudSaveEmulatorProvider | null,
   gameKey: string,

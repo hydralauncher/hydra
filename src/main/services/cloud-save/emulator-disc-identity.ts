@@ -13,25 +13,20 @@ type SnapshotIdentityFile = Pick<
 >;
 
 export interface EmulatorSaveIdentity {
-  /** Save directory IDs this game may read and write. */
   savedataTitleIds: string[];
-  /** Throws when a file does not belong to this game. */
   assertSnapshotFiles(
     files: SnapshotIdentityFile[],
     customPaths?: CloudSaveCustomPath[]
   ): void;
 }
 
-const discProvider = (game: Game | null | undefined) =>
-  game ? getDiscCloudSaveEmulatorProvider(game.shop, game.platform) : null;
+const discProvider = (game: Game) =>
+  getDiscCloudSaveEmulatorProvider(game.shop, game.platform);
 
-/**
- * Confirms the game's discs and returns what its saves may contain.
- * Returns null for games whose provider does not identify them by disc.
- */
 export const assertEmulatorDiscIdentity = async (
   game: Game | null | undefined
 ): Promise<EmulatorSaveIdentity | null> => {
+  if (!game) return null;
   switch (discProvider(game)) {
     case "rpcs3": {
       const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
@@ -39,9 +34,9 @@ export const assertEmulatorDiscIdentity = async (
       const { rpcs3SavedataTitleIdsForGame } = await import(
         "./rpcs3-title-ids.js"
       );
-      const allowedTitleIds = await assertRpcs3DiscIdentity(game!);
+      const allowedTitleIds = await assertRpcs3DiscIdentity(game);
       const savedataTitleIds = rpcs3SavedataTitleIdsForGame(
-        game!,
+        game,
         allowedTitleIds
       );
       const allowedSavedataTitleIds = new Set(savedataTitleIds);
@@ -76,7 +71,6 @@ export const getEmulatorDiscIdentityStatus = async (
   }
 };
 
-/** Savedata IDs to scan without confirming the disc against the catalogue. */
 export const getEmulatorSavedataTitleIds = async (
   game: Game
 ): Promise<string[] | undefined> => {
@@ -92,9 +86,5 @@ export const getEmulatorSavedataTitleIds = async (
   }
 };
 
-/**
- * Disc-based providers derive the save environment from emulator settings the
- * user can change at any time, so operations re-read the context first.
- */
 export const emulatorRequiresFreshContext = (game: Game | null | undefined) =>
-  discProvider(game) !== null;
+  game ? discProvider(game) !== null : false;

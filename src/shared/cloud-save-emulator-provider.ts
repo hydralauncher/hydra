@@ -54,8 +54,6 @@ export const hasSelectedRetroArchRom = (game: {
   discs?: RomDisc[];
 }) => getSelectedRetroArchRomPath(game) !== null;
 
-// Providers that read saves from an emulator data folder and identify the game
-// from its discs, rather than from a selected ROM.
 export type DiscCloudSaveEmulatorProvider = "rpcs3";
 
 const DISC_PROVIDER_SYSTEMS: Record<
@@ -64,6 +62,10 @@ const DISC_PROVIDER_SYSTEMS: Record<
 > = {
   rpcs3: "ps3",
 };
+
+export const DISC_CLOUD_SAVE_EMULATOR_PROVIDERS = Object.keys(
+  DISC_PROVIDER_SYSTEMS
+) as DiscCloudSaveEmulatorProvider[];
 
 export const isDiscCloudSaveEmulatorProvider = (
   provider: CloudSaveEmulatorProvider | null | undefined
@@ -84,8 +86,6 @@ export const discCloudSaveEmulatorSystem = (
   provider: DiscCloudSaveEmulatorProvider
 ): EmulatorSystem => DISC_PROVIDER_SYSTEMS[provider];
 
-// Matches provider-specific Cloud Save error codes, e.g.
-// `cloud_save_rpcs3_save_wrong_game`.
 export const DISC_CLOUD_SAVE_ERROR_CODE = new RegExp(
   `cloud_save_(?:${Object.keys(DISC_PROVIDER_SYSTEMS).join("|")})_[a-z0-9_]+`
 );

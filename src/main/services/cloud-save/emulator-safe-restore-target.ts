@@ -1,10 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-/**
- * True when `root/...segments` stays inside `root` and no existing segment on
- * the way is a symlink. Missing segments are allowed: restore creates them.
- */
 export const isSafeEmulatorRestoreTarget = async (
   root: string,
   segments: string[]

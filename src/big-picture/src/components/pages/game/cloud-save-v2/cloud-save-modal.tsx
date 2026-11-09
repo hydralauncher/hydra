@@ -175,9 +175,8 @@ export function BigPictureCloudSavePanel({
     discProvider,
     emulatorConfigStatus
   );
-  const discKey = (suffix: string) =>
-    discProvider ? discIdentityKey(discProvider, suffix) : "";
-  const identityBlocked =
+  const identityProvider =
+    discProvider &&
     shouldShowDiscIdentityCard(
       requiresDisc,
       discStatus,
@@ -185,7 +184,9 @@ export function BigPictureCloudSavePanel({
       isSyncing
     ) &&
     hasExecutablePath &&
-    emulatorConfigStatus === "ready";
+    emulatorConfigStatus === "ready"
+      ? discProvider
+      : null;
   const isSetupBlocked = panelMode !== "content";
   const hasUnconfiguredCustomPaths =
     (overview?.unconfiguredCustomPathCount ?? 0) > 0;
@@ -444,17 +445,20 @@ export function BigPictureCloudSavePanel({
               )}
             </span>
           </div>
-        ) : identityBlocked ? (
+        ) : identityProvider ? (
           <div className="big-picture-cloud-save__missing-executable-copy">
             <strong>
               <WarningCircleIcon size={NOTICE_ICON_SIZE} />
-              {t(discKey("title"))}
+              {t(discIdentityKey(identityProvider, "title"))}
             </strong>
             <span>
               {t(
                 discIdentityError
-                  ? discKey("remote")
-                  : discKey(discStatus?.status ?? "unverified"),
+                  ? discIdentityKey(identityProvider, "remote")
+                  : discIdentityKey(
+                      identityProvider,
+                      discStatus?.status ?? "unverified"
+                    ),
                 {
                   path: discStatus?.path,
                   titleId: discStatus?.titleId,
@@ -601,7 +605,7 @@ export function BigPictureCloudSavePanel({
                   : "cloud_save_v2_select_executable"
             )}
           </Button>
-        ) : identityBlocked ? (
+        ) : identityProvider ? (
           discIdentityError ? null : (
             <Button
               focusId={PRIMARY_ACTION_ID}
@@ -617,7 +621,7 @@ export function BigPictureCloudSavePanel({
               {t(
                 discStatus?.status === "catalogue-unavailable"
                   ? "cloud_save_v2_check_again"
-                  : discKey("edit_discs")
+                  : discIdentityKey(identityProvider, "edit_discs")
               )}
             </Button>
           )

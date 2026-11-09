@@ -43,7 +43,6 @@ export const getEmulatorConfigWarningKey = (
     ? `cloud_save_v2_${provider}_config_${status}`
     : null;
 
-/** Translation key for the disc identity card, e.g. `cloud_save_v2_rpcs3_identity_title`. */
 export const discIdentityKey = (
   provider: DiscCloudSaveEmulatorProvider,
   suffix: string
