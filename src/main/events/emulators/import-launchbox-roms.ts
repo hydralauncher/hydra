@@ -393,6 +393,7 @@ export interface LaunchboxImportResult {
   matched: number;
   unmatched: number;
   unmatchedFiles: UnmatchedFile[];
+  unsupportedPackages: number;
   cancelled: boolean;
 }
 
@@ -437,6 +438,7 @@ const cancelledResult = (
   matched,
   unmatched,
   unmatchedFiles,
+  unsupportedPackages: 0,
   cancelled: true,
 });
 
@@ -452,7 +454,7 @@ const scanFolders = async (
   folders: FolderInput[],
   signal: CancelSignal,
   onScan?: ScanReporter
-): Promise<ScannedGameInfo[]> => {
+): Promise<{ collected: ScannedGameInfo[]; unsupportedPackages: number }> => {
   const binary = emulators.KNOWN_BINARIES[system];
 
   const folderTotals: number[] = [];
@@ -474,6 +476,7 @@ const scanFolders = async (
 
   let scanBase = 0;
   let keptTotal = 0;
+  let unsupportedPackages = 0;
   const collected: ScannedGameInfo[] = [];
 
   for (let fi = 0; fi < folders.length; fi++) {
@@ -499,12 +502,13 @@ const scanFolders = async (
 
     scanBase += folderTotals[fi] ?? partial.games.length;
     keptTotal += partial.games.length;
+    unsupportedPackages += partial.unsupportedPackages;
     for (const game of partial.games) {
       collected.push({ folderPath: folder.path, ...game });
     }
   }
 
-  return collected;
+  return { collected, unsupportedPackages };
 };
 
 const resolveSkus = async (
@@ -822,7 +826,7 @@ export async function runLaunchboxImport(
     await ensureRomFolderRegistered(system, folder.path, folder.scanSubfolders);
   }
 
-  const collected = await scanFolders(
+  const { collected, unsupportedPackages } = await scanFolders(
     system,
     folders,
     signal,
@@ -986,6 +990,7 @@ export async function runLaunchboxImport(
     matched,
     unmatched,
     unmatchedFiles,
+    unsupportedPackages,
     cancelled: signal.cancelled,
   };
 }
@@ -1056,6 +1061,7 @@ const importLaunchboxRoms = async (
         matched: result.matched,
         unmatched: result.unmatched,
         unmatchedFiles: result.unmatchedFiles,
+        unsupportedPackages: result.unsupportedPackages,
       });
     } catch (err) {
       WindowManager.sendToAppWindows(CLASSICS_IMPORT_PROGRESS_CHANNEL, {

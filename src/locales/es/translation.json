@@ -1,6 +1,7 @@
 {
   "language_name": "Español",
   "app": {
+    "ps4_pkg_not_supported": "Los archivos PKG no son compatibles y se omitieron. Los juegos de PS4 necesitan un volcado en carpeta.",
     "successfully_signed_in": "Iniciaste sesión exitosamente",
     "error_boundary_title": "Algo salió mal",
     "error_boundary_description": "La aplicación encontró un error inesperado. Puedes recargar para seguir usando Hydra.",
@@ -1012,7 +1013,7 @@
     "core_not_installed_toast": "Núcleo del emulador no instalado. Descárgalo en Ajustes → Emulación.",
     "platform_unknown_toast": "No se pudo determinar el sistema del emulador para este juego.",
     "no_disc_toast": "No hay ningún disco disponible para este juego.",
-    "ps4_folder_missing_eboot": "Esta carpeta no tiene eboot.bin. Elige la carpeta del juego.",
+    "ps4_folder_missing_eboot": "Esta carpeta no tiene eboot.bin. PKG no es compatible, elige la carpeta con el volcado del juego.",
     "launch_failed_toast": "Error al iniciar el juego",
     "recompilation_already_running_toast": "Este juego ya está abierto.",
     "pkg_installing_toast": "Instalando el PKG en RPCS3. Cuando termine, pulsa Jugar de nuevo para iniciar el juego.",

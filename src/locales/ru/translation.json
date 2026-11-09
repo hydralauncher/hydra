@@ -1,6 +1,7 @@
 {
   "language_name": "Русский",
   "app": {
+    "ps4_pkg_not_supported": "Файлы PKG не поддерживаются и были пропущены. Для игр PS4 нужен дамп в виде папки.",
     "successfully_signed_in": "Успешный вход",
     "error_boundary_title": "Что-то пошло не так",
     "error_boundary_description": "В приложении произошла непредвиденная ошибка. Перезагрузите, чтобы продолжить пользоваться Hydra.",
@@ -438,7 +439,7 @@
     "core_not_installed_toast": "Ядро эмулятора не установлено. Скачайте его в Настройки → Эмуляция.",
     "platform_unknown_toast": "Не удалось определить систему эмуляции для этой игры.",
     "no_disc_toast": "Для этой игры нет доступного диска.",
-    "ps4_folder_missing_eboot": "В этой папке нет eboot.bin. Выберите папку самой игры.",
+    "ps4_folder_missing_eboot": "В этой папке нет eboot.bin. PKG не поддерживается, выберите папку с дампом игры.",
     "launch_failed_toast": "Не удалось запустить игру",
     "recompilation_already_running_toast": "Эта игра уже запущена.",
     "pkg_installing_toast": "Установка PKG в RPCS3. После завершения нажмите «Играть» ещё раз, чтобы запустить игру.",

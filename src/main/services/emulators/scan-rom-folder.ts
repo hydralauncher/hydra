@@ -20,6 +20,7 @@ export interface ScanResult {
   fileCount: number;
   sizeBytes: number;
   games: ScannedGame[];
+  unsupportedPackages: number;
 }
 
 export interface ScanProgress {
@@ -390,14 +391,19 @@ const isPs4GameDirectory = (entries: Dirent[]): boolean =>
     (entry) => entry.isDirectory() && matchesPs4EntryName(entry.name, "sce_sys")
   );
 
+const countPs4PackageFiles = (entries: Dirent[]): number =>
+  entries.filter(
+    (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".pkg")
+  ).length;
+
 const collectPs4Directory = (
   directory: string,
   entries: Dirent[],
   shouldDescend: boolean,
   candidates: Candidate[],
   queue: string[]
-): void => {
-  if (isPs4OverlayDirectory(directory)) return;
+): number => {
+  if (isPs4OverlayDirectory(directory)) return 0;
 
   if (isPs4GameDirectory(entries)) {
     candidates.push({
@@ -405,13 +411,16 @@ const collectPs4Directory = (
       name: path.basename(directory),
       isMarkerDir: true,
     });
-    return;
+    return 0;
   }
 
-  if (!shouldDescend) return;
-  for (const entry of entries) {
-    if (entry.isDirectory()) queue.push(path.join(directory, entry.name));
+  if (shouldDescend) {
+    for (const entry of entries) {
+      if (entry.isDirectory()) queue.push(path.join(directory, entry.name));
+    }
   }
+
+  return countPs4PackageFiles(entries);
 };
 
 const collectEntries = (
@@ -434,10 +443,11 @@ const collectCandidates = async (
   binary: KnownBinary,
   scanSubfolders: boolean,
   signal?: { cancelled: boolean }
-): Promise<Candidate[]> => {
+): Promise<{ candidates: Candidate[]; unsupportedPackages: number }> => {
   const candidates: Candidate[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();
+  let unsupportedPackages = 0;
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
     if (signal?.cancelled) break;
@@ -457,7 +467,7 @@ const collectCandidates = async (
     if (!entries) continue;
 
     if (binary.system === "ps4") {
-      collectPs4Directory(
+      unsupportedPackages += collectPs4Directory(
         dir,
         entries,
         scanSubfolders || dir === rootPath,
@@ -478,7 +488,7 @@ const collectCandidates = async (
     );
   }
 
-  return candidates;
+  return { candidates, unsupportedPackages };
 };
 
 const sizeGame = async (
@@ -513,13 +523,13 @@ export const scanRomFolder = async (
   scanSubfolders: boolean,
   options?: ScanOptions
 ): Promise<ScanResult> => {
-  const raw = await collectCandidates(
+  const { candidates, unsupportedPackages } = await collectCandidates(
     rootPath,
     binary,
     scanSubfolders,
     options?.signal
   );
-  const games = dedupGames(binary, raw);
+  const games = dedupGames(binary, candidates);
   const total = games.length;
 
   let fileCount = 0;
@@ -556,7 +566,7 @@ export const scanRomFolder = async (
     });
   }
 
-  return { fileCount, sizeBytes, games: scannedGames };
+  return { fileCount, sizeBytes, games: scannedGames, unsupportedPackages };
 };
 
 export const countRomGroups = async (
@@ -565,8 +575,13 @@ export const countRomGroups = async (
   scanSubfolders: boolean,
   signal?: { cancelled: boolean }
 ): Promise<number> => {
-  const raw = await collectCandidates(rootPath, binary, scanSubfolders, signal);
-  return dedupGames(binary, raw).length;
+  const { candidates } = await collectCandidates(
+    rootPath,
+    binary,
+    scanSubfolders,
+    signal
+  );
+  return dedupGames(binary, candidates).length;
 };
 
 export interface CollectedRomFile {

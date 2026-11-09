@@ -1,6 +1,7 @@
 {
   "language_name": "English",
   "app": {
+    "ps4_pkg_not_supported": "PKG files aren't supported and were skipped. PS4 games need a folder dump.",
     "successfully_signed_in": "Successfully signed in",
     "error_boundary_title": "Something went wrong",
     "error_boundary_description": "The app ran into an unexpected error. You can reload to keep using Hydra.",
@@ -434,7 +435,7 @@
     "core_not_installed_toast": "Emulator core not installed. Download it in Settings → Emulation.",
     "platform_unknown_toast": "Could not determine the emulator system for this game.",
     "no_disc_toast": "No disc available for this game.",
-    "ps4_folder_missing_eboot": "This folder has no eboot.bin. Choose the game's own folder.",
+    "ps4_folder_missing_eboot": "This folder has no eboot.bin. PKG isn't supported, so choose the game's folder dump.",
     "launch_failed_toast": "Failed to launch game",
     "recompilation_already_running_toast": "This game is already open.",
     "pkg_installing_toast": "Installing the PKG in RPCS3. Once it finishes, press Play again to launch the game.",

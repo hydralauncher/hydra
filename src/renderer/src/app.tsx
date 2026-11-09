@@ -453,11 +453,14 @@ export function App() {
           },
         })
       );
+      if (payload.type === "done" && payload.unsupportedPackages > 0) {
+        showWarningToast(t("ps4_pkg_not_supported"));
+      }
       updateLibrary();
     });
 
     return () => unsubscribe();
-  }, [dispatch, updateLibrary]);
+  }, [dispatch, updateLibrary, showWarningToast, t]);
 
   useEffect(() => {
     window.electron.getActiveRetroArchImport().then((snapshot) => {
