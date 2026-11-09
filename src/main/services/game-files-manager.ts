@@ -602,12 +602,17 @@ export class GameFilesManager {
 
       const sku = await emulators.extractDiscSku(romPath, system);
 
-      discs.push({
-        path: romPath,
-        label: getNextClassicsDiscLabel(discs),
-        fileName: path.basename(romPath),
-        sku,
-      });
+      discs.push(
+        await emulators.attachDiscRegion(
+          {
+            path: romPath,
+            label: getNextClassicsDiscLabel(discs),
+            fileName: path.basename(romPath),
+            sku,
+          },
+          system
+        )
+      );
       added += 1;
     }
 
