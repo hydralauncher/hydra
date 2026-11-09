@@ -42,9 +42,12 @@ const hasTrophyCatalogue = async (game: Game): Promise<boolean> => {
   return catalogue.length > 0;
 };
 
-const prepareCaptureOnce = async (gameKey: string, game: Game) => {
-  const tracking = await loadEmulatorAchievementTracking();
-  if (tracking.souvenirs && game.remoteId) {
+const prepareSouvenirCapture = async (gameKey: string) => {
+  const [game, tracking] = await Promise.all([
+    gamesSublevel.get(gameKey),
+    loadEmulatorAchievementTracking(),
+  ]);
+  if (tracking.souvenirs && game?.remoteId) {
     await prepareLinuxGameCaptureSession(gameKey);
   }
 };
@@ -57,7 +60,6 @@ export const startShadps4TrophyWatcher = ({
   let trophyFile: string | null = null;
   let lastModifiedAt = -1;
   let hasImportedExistingUnlocks = false;
-  let hasPreparedCapture = false;
   let nextCatalogueAttemptAt = 0;
   let inFlightRead: Promise<void> | null = null;
 
@@ -72,17 +74,6 @@ export const startShadps4TrophyWatcher = ({
 
     const game = await gamesSublevel.get(gameKey);
     if (!game) return;
-
-    if (!hasPreparedCapture && !isFinalRead) {
-      hasPreparedCapture = true;
-      prepareCaptureOnce(gameKey, game).catch((error) => {
-        achievementsLogger.warn(
-          "Failed to prepare shadPS4 trophy capture",
-          gameKey,
-          error
-        );
-      });
-    }
 
     const contents = await fs.readFile(trophyFile, "utf8").catch(() => null);
     const unlockedTrophies = contents ? parseUnlockedTrophies(contents) : null;
@@ -122,6 +113,14 @@ export const startShadps4TrophyWatcher = ({
       });
     return inFlightRead;
   };
+
+  prepareSouvenirCapture(gameKey).catch((error) => {
+    achievementsLogger.warn(
+      "Failed to prepare shadPS4 trophy capture",
+      gameKey,
+      error
+    );
+  });
 
   const timer = setInterval(() => {
     if (inFlightRead === null) void runRead(false);
