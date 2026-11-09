@@ -436,18 +436,6 @@ $cooldown-ring-length: 2 * math.$pi * 11;
     text-overflow: ellipsis;
   }
 
-  // The official account's seal: Twitter blue so it reads as verified at a
-  // glance, with the check cut out in white.
-  &__official-badge {
-    display: inline-flex;
-    flex-shrink: 0;
-    color: #1d9bf0;
-
-    svg {
-      display: block;
-    }
-  }
-
   &__sidebar-row-time {
     flex-shrink: 0;
     font-size: 11px;

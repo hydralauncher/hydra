@@ -1,0 +1,9 @@
+.chat-window__official-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: #1d9bf0;
+
+  svg {
+    display: block;
+  }
+}
