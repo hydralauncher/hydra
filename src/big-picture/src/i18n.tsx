@@ -4,8 +4,8 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { useLocation } from "react-router-dom";
 
-import { applyLanguage } from "../../locales/apply-language";
-import { loadLocale } from "../../locales/load-locale";
+import { applyLanguage } from "@locales/apply-language";
+import { loadLocale } from "@locales/load-locale";
 
 import {
   exactTranslations,

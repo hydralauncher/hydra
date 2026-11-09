@@ -14,8 +14,8 @@ import "react-tooltip/dist/react-tooltip.css";
 
 import "./app.scss";
 
-import { applyLanguage } from "../../locales/apply-language";
-import { loadLocale } from "../../locales/load-locale";
+import { applyLanguage } from "@locales/apply-language";
+import { loadLocale } from "@locales/load-locale";
 
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";

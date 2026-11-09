@@ -11,8 +11,8 @@ import {
 import type { DownloadDirectoryPreference, UserPreferences } from "@types";
 import { settingsContext } from "@renderer/context";
 import { useAppSelector } from "@renderer/hooks";
-import { applyLanguage } from "../../../../locales/apply-language";
-import { languageNames, resolveLanguage } from "../../../../locales/languages";
+import { applyLanguage } from "@locales/apply-language";
+import { languageNames, resolveLanguage } from "@locales/languages";
 import {
   prepareDefaultDownloadPathSync,
   replaceSavedDownloadDirectoryAndSetDefault,

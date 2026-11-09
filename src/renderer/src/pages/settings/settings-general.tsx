@@ -15,8 +15,8 @@ import {
 import type { DownloadDirectoryPreference } from "@types";
 import { useTranslation } from "react-i18next";
 import { useAppSelector } from "@renderer/hooks";
-import { applyLanguage } from "../../../../locales/apply-language";
-import { languageNames } from "../../../../locales/languages";
+import { applyLanguage } from "@locales/apply-language";
+import { languageNames } from "@locales/languages";
 import { orderBy } from "lodash-es";
 import { settingsContext } from "@renderer/context";
 import "./settings-general.scss";

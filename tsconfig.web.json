@@ -24,6 +24,7 @@
       ],
       "@types": ["src/types/index.ts"],
       "@locales": ["src/locales/index.ts"],
+      "@locales/*": ["src/locales/*"],
       "@shared": ["src/shared/index.ts"]
     }
   }

@@ -1,4 +1,4 @@
-import { languageNames } from "../../../../locales/languages";
+import { languageNames } from "@locales/languages";
 import { getLanguageFlagCountryCode, resolveLanguageKey } from "@shared";
 
 export interface LanguageOption {
