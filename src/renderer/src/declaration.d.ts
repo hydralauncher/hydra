@@ -726,10 +726,10 @@ declare global {
     getRpcs3ConfigRootStatus: () => Promise<
       import("@types").Rpcs3ConfigRootStatus
     >;
-    getRpcs3DiscIdentityStatus: (
+    getEmulatorDiscIdentityStatus: (
       objectId: string,
       shop: GameShop
-    ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
+    ) => Promise<import("@types").EmulatorDiscIdentityStatus>;
     setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (
@@ -776,7 +776,11 @@ declare global {
       system: EmulatorSystem,
       language?: string
     ) => Promise<EmulatorConfig>;
-    checkPs3Firmware: (
+    checkShadps4TrophyKey: (
+      executablePath: string | null
+    ) => Promise<{ installed: boolean; path: string }>;
+    checkEmulatorFirmware: (
+      system: EmulatorSystem,
       executablePath: string | null
     ) => Promise<{ installed: boolean; path: string | null }>;
     checkEmulatorBios: (

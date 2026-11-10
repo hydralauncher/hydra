@@ -22,18 +22,19 @@ import {
 } from "@renderer/pages/game-details/cloud-save-v2/cloud-save-presentation";
 import {
   getCloudSavePanelMode,
-  getRpcs3ConfigWarningKey,
-  shouldShowRpcs3IdentityCard,
-  type Rpcs3ConfigCheckStatus,
-} from "@renderer/pages/game-details/cloud-save-v2/rpcs3-config-presentation";
+  discIdentityKey,
+  getEmulatorConfigWarningKey,
+  shouldShowDiscIdentityCard,
+  type EmulatorConfigCheckStatus,
+} from "@renderer/pages/game-details/cloud-save-v2/emulator-config-presentation";
 import type { RetroArchExecutableStatus } from "@renderer/pages/game-details/cloud-save-v2/retroarch-executable-status";
-import { formatBytes } from "@shared";
+import { formatBytes, type DiscCloudSaveEmulatorProvider } from "@shared";
 import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   CloudSaveV2FileDetails,
-  Rpcs3DiscIdentityStatus,
+  EmulatorDiscIdentityStatus,
 } from "@types";
 
 import { useDate } from "../../../../hooks";
@@ -67,16 +68,16 @@ export interface BigPictureCloudSavePanelProps {
   isGameRunning: boolean;
   hasExecutablePath: boolean;
   requiresRom: boolean;
-  requiresDisc: boolean;
+  discProvider: DiscCloudSaveEmulatorProvider | null;
   retroArchExecutableStatus?: RetroArchExecutableStatus | null;
   onRetryRetroArchExecutable: () => void;
   onConfigureRetroArch: () => void;
-  rpcs3ConfigStatus?: Rpcs3ConfigCheckStatus | null;
-  onRetryRpcs3Config: () => void;
-  onConfigureRpcs3: () => void;
-  rpcs3DiscStatus?: Rpcs3DiscIdentityStatus | null;
-  rpcs3IdentityError?: boolean;
-  onRetryRpcs3Disc: () => void;
+  emulatorConfigStatus?: EmulatorConfigCheckStatus | null;
+  onRetryEmulatorConfig: () => void;
+  onConfigureEmulator: () => void;
+  discStatus?: EmulatorDiscIdentityStatus | null;
+  discIdentityError?: boolean;
+  onRetryDiscIdentity: () => void;
   hasError: boolean;
   errorMessageKey:
     | "cloud_save_v2_load_error"
@@ -128,16 +129,16 @@ export function BigPictureCloudSavePanel({
   isGameRunning,
   hasExecutablePath,
   requiresRom,
-  requiresDisc,
+  discProvider,
   retroArchExecutableStatus,
   onRetryRetroArchExecutable,
   onConfigureRetroArch,
-  rpcs3ConfigStatus,
-  onRetryRpcs3Config,
-  onConfigureRpcs3,
-  rpcs3DiscStatus,
-  rpcs3IdentityError = false,
-  onRetryRpcs3Disc,
+  emulatorConfigStatus,
+  onRetryEmulatorConfig,
+  onConfigureEmulator,
+  discStatus,
+  discIdentityError = false,
+  onRetryDiscIdentity,
   hasError,
   errorMessageKey,
   progress,
@@ -164,20 +165,28 @@ export function BigPictureCloudSavePanel({
   const activeSnapshot = overview?.activeRemoteSnapshot ?? null;
   const panelMode = getCloudSavePanelMode(
     hasExecutablePath,
-    rpcs3ConfigStatus,
+    emulatorConfigStatus,
     "content",
     isSyncing,
     retroArchExecutableStatus
   );
-  const identityBlocked =
-    shouldShowRpcs3IdentityCard(
+  const requiresDisc = discProvider !== null;
+  const emulatorConfigWarningKey = getEmulatorConfigWarningKey(
+    discProvider,
+    emulatorConfigStatus
+  );
+  const identityProvider =
+    discProvider &&
+    shouldShowDiscIdentityCard(
       requiresDisc,
-      rpcs3DiscStatus,
-      rpcs3IdentityError,
+      discStatus,
+      discIdentityError,
       isSyncing
     ) &&
     hasExecutablePath &&
-    rpcs3ConfigStatus === "ready";
+    emulatorConfigStatus === "ready"
+      ? discProvider
+      : null;
   const isSetupBlocked = panelMode !== "content";
   const hasUnconfiguredCustomPaths =
     (overview?.unconfiguredCustomPathCount ?? 0) > 0;
@@ -390,13 +399,13 @@ export function BigPictureCloudSavePanel({
             />
             <span>{t("cloud_save_v2_checking")}</span>
           </div>
-        ) : panelMode === "rpcs3-config" ? (
+        ) : panelMode === "emulator-config" ? (
           <div className="big-picture-cloud-save__missing-executable-copy">
             <strong>
               <WarningCircleIcon size={NOTICE_ICON_SIZE} />
-              {t("cloud_save_v2_rpcs3_config_required_title")}
+              {t(`cloud_save_v2_${discProvider}_config_required_title`)}
             </strong>
-            <span>{t(getRpcs3ConfigWarningKey(rpcs3ConfigStatus)!)}</span>
+            <span>{t(emulatorConfigWarningKey!)}</span>
           </div>
         ) : panelMode === "retroarch-config" ? (
           <div className="big-picture-cloud-save__missing-executable-copy">
@@ -436,20 +445,23 @@ export function BigPictureCloudSavePanel({
               )}
             </span>
           </div>
-        ) : identityBlocked ? (
+        ) : identityProvider ? (
           <div className="big-picture-cloud-save__missing-executable-copy">
             <strong>
               <WarningCircleIcon size={NOTICE_ICON_SIZE} />
-              {t("cloud_save_v2_rpcs3_identity_title")}
+              {t(discIdentityKey(identityProvider, "title"))}
             </strong>
             <span>
               {t(
-                rpcs3IdentityError
-                  ? "cloud_save_v2_rpcs3_identity_remote"
-                  : `cloud_save_v2_rpcs3_identity_${rpcs3DiscStatus?.status ?? "unverified"}`,
+                discIdentityError
+                  ? discIdentityKey(identityProvider, "remote")
+                  : discIdentityKey(
+                      identityProvider,
+                      discStatus?.status ?? "unverified"
+                    ),
                 {
-                  path: rpcs3DiscStatus?.path,
-                  titleId: rpcs3DiscStatus?.titleId,
+                  path: discStatus?.path,
+                  titleId: discStatus?.titleId,
                 }
               )}
             </span>
@@ -529,12 +541,12 @@ export function BigPictureCloudSavePanel({
           >
             {t("cloud_save_v2_checking")}
           </Button>
-        ) : panelMode === "rpcs3-config" ? (
+        ) : panelMode === "emulator-config" ? (
           <Button
             focusId={PRIMARY_ACTION_ID}
             variant="primary"
             icon={
-              rpcs3ConfigStatus === "error" ? (
+              emulatorConfigStatus === "error" ? (
                 <ArrowClockwiseIcon size={INLINE_STATUS_ICON_SIZE} />
               ) : (
                 <FolderOpenIcon size={INLINE_STATUS_ICON_SIZE} />
@@ -542,15 +554,15 @@ export function BigPictureCloudSavePanel({
             }
             stealFocusOnAppear={stealFocusOnActionAppear}
             onClick={
-              rpcs3ConfigStatus === "error"
-                ? onRetryRpcs3Config
-                : onConfigureRpcs3
+              emulatorConfigStatus === "error"
+                ? onRetryEmulatorConfig
+                : onConfigureEmulator
             }
           >
             {t(
-              rpcs3ConfigStatus === "error"
+              emulatorConfigStatus === "error"
                 ? "cloud_save_v2_check_again"
-                : "cloud_save_v2_rpcs3_config_open_settings"
+                : `cloud_save_v2_${discProvider}_config_open_settings`
             )}
           </Button>
         ) : panelMode === "retroarch-config" ? (
@@ -593,23 +605,23 @@ export function BigPictureCloudSavePanel({
                   : "cloud_save_v2_select_executable"
             )}
           </Button>
-        ) : identityBlocked ? (
-          rpcs3IdentityError ? null : (
+        ) : identityProvider ? (
+          discIdentityError ? null : (
             <Button
               focusId={PRIMARY_ACTION_ID}
               variant="primary"
               icon={<FolderOpenIcon size={INLINE_STATUS_ICON_SIZE} />}
               stealFocusOnAppear={stealFocusOnActionAppear}
               onClick={
-                rpcs3DiscStatus?.status === "catalogue-unavailable"
-                  ? onRetryRpcs3Disc
+                discStatus?.status === "catalogue-unavailable"
+                  ? onRetryDiscIdentity
                   : onSelectExecutable
               }
             >
               {t(
-                rpcs3DiscStatus?.status === "catalogue-unavailable"
+                discStatus?.status === "catalogue-unavailable"
                   ? "cloud_save_v2_check_again"
-                  : "cloud_save_v2_rpcs3_identity_edit_discs"
+                  : discIdentityKey(identityProvider, "edit_discs")
               )}
             </Button>
           )

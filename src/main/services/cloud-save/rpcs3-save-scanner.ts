@@ -97,12 +97,7 @@ export const unresolvedCoverage = (reason: string): UserLocationCoverage => ({
 });
 
 export const scanRpcs3SaveRoot = async (
-  {
-    game,
-    environmentId,
-    variantId,
-    rpcs3SavedataTitleIds,
-  }: EmulatorProviderContext,
+  { game, environmentId, variantId, savedataTitleIds }: EmulatorProviderContext,
   homeRoot: string
 ): Promise<EmulatorProviderDiscovery> => {
   const result: EmulatorProviderDiscovery = {
@@ -111,7 +106,7 @@ export const scanRpcs3SaveRoot = async (
     revision: "rpcs3-v4",
   };
   const titleIds = rpcs3TitleIdsForGame(game).length
-    ? (rpcs3SavedataTitleIds ?? rpcs3SavedataTitleIdsForGame(game))
+    ? (savedataTitleIds ?? rpcs3SavedataTitleIdsForGame(game))
     : [];
   if (!titleIds.length) {
     result.coverage.push(unresolvedCoverage("rpcs3-title-id-unresolved"));
@@ -365,12 +360,7 @@ const scanRpcs3GamedataFolder = async (
 };
 
 export const scanRpcs3Gamedata = async (
-  {
-    game,
-    environmentId,
-    variantId,
-    rpcs3SavedataTitleIds,
-  }: EmulatorProviderContext,
+  { game, environmentId, variantId, savedataTitleIds }: EmulatorProviderContext,
   hdd0Root: string
 ): Promise<EmulatorProviderDiscovery> => {
   const result: EmulatorProviderDiscovery = {
@@ -379,7 +369,7 @@ export const scanRpcs3Gamedata = async (
     revision: "rpcs3-gamedata-v1",
   };
   const titleIds = rpcs3TitleIdsForGame(game).length
-    ? (rpcs3SavedataTitleIds ?? rpcs3SavedataTitleIdsForGame(game))
+    ? (savedataTitleIds ?? rpcs3SavedataTitleIdsForGame(game))
     : [];
   if (!titleIds.length) {
     result.coverage.push(unresolvedCoverage("rpcs3-title-id-unresolved"));

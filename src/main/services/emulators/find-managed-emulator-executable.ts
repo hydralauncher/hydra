@@ -4,7 +4,7 @@ import path from "node:path";
 import type { KnownBinary } from "./known-binaries";
 import { assertValidEmulatorExecutable } from "./validate-emulator-executable.js";
 
-type ManagedExecutableBinary = Pick<
+export type ManagedExecutableBinary = Pick<
   KnownBinary,
   "displayName" | "linuxNames" | "windowsNames" | "macosBundleNames"
 >;
