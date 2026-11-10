@@ -445,3 +445,9 @@ export const attachDiscRegion = async (
   const region = await extractDiscRegion(disc.path, system);
   return region ? { ...disc, region } : disc;
 };
+
+export const attachDiscRegions = (
+  discs: ClassicsDisc[],
+  system: EmulatorSystem
+): Promise<ClassicsDisc[]> =>
+  Promise.all(discs.map((disc) => attachDiscRegion(disc, system)));

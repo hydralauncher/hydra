@@ -743,14 +743,25 @@ const persistMatchedEntries = async (
   system: EmulatorSystem,
   signal: CancelSignal
 ) => {
+  const discsByObjectId = new Map(
+    await Promise.all(
+      Array.from(
+        matchedEntries.keys(),
+        async (objectId) =>
+          [
+            objectId,
+            await emulators.attachDiscRegions(
+              buildDiscList(discsByTitle.get(objectId) ?? []),
+              system
+            ),
+          ] as const
+      )
+    )
+  );
+
   for (const entry of matchedEntries.values()) {
     if (signal.cancelled) break;
-    const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
-    const discs = await Promise.all(
-      buildDiscList(titleDiscs).map((disc) =>
-        emulators.attachDiscRegion(disc, system)
-      )
-    );
+    const discs = discsByObjectId.get(entry.objectId) ?? [];
     const romSizeBytes = titleByFolder.get(entry.objectId)?.sizeBytes ?? null;
     await persistEntryLocally(
       entry,
