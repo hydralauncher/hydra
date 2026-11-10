@@ -54,8 +54,9 @@ export const getRecompilationExecutableOverride = (slug: string) =>
     ? ROM_META[slug]?.executable?.[process.platform as MetaPlatform]
     : undefined) ?? null;
 
-const getLibraryRomExtensions = (slug: string) =>
-  getRecompilationRomMeta(slug)?.extensions ?? [];
+type RomKind = Pick<RecompilationRomMeta, "extensions" | "folder">;
+
+const EMPTY_ROM_KIND: RomKind = { extensions: [] };
 
 const ROM_CHOICE_FILE = ".hydra-recompilation-rom.json";
 const EXTRACTED_ROM_FOLDER = ".hydra-rom";
@@ -83,6 +84,53 @@ const fileExists = async (filePath: string | null | undefined) => {
   } catch {
     return false;
   }
+};
+
+const isFolderRom = (kind: RomKind) => Boolean(kind.folder?.length);
+
+/** A game kept as a folder (a PS4 dump) counts when it holds every file the port needs. */
+const isGameFolder = async (
+  directory: string | null | undefined,
+  files: string[]
+) => {
+  if (!directory) return false;
+  try {
+    if (!(await fs.promises.stat(directory)).isDirectory()) return false;
+  } catch {
+    return false;
+  }
+  for (const file of files) {
+    if (!(await fileExists(path.join(directory, ...file.split("/"))))) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const romExists = (romPath: string | null | undefined, kind: RomKind) =>
+  isFolderRom(kind) ? isGameFolder(romPath, kind.folder!) : fileExists(romPath);
+
+const findGameFolder = async (
+  directory: string,
+  files: string[],
+  depth = 0
+): Promise<string | null> => {
+  if (await isGameFolder(directory, files)) return directory;
+  if (depth >= ROM_SCAN_DEPTH) return null;
+
+  const entries = await fs.promises
+    .readdir(directory, { withFileTypes: true })
+    .catch(() => []);
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const found = await findGameFolder(
+      path.join(directory, entry.name),
+      files,
+      depth + 1
+    );
+    if (found) return found;
+  }
+  return null;
 };
 
 const readRomChoice = async (
@@ -139,12 +187,11 @@ const findRomInFolder = async (
   return best;
 };
 
-const getDownloadedRomPath = async (
-  download: Download,
-  extensions: string[]
-) => {
+const getDownloadedRomPath = async (download: Download, kind: RomKind) => {
   if (!download.folderName) return null;
   const downloaded = path.join(download.downloadPath, download.folderName);
+  if (isFolderRom(kind)) return findGameFolder(downloaded, kind.folder!);
+  const { extensions } = kind;
   if (await fileExists(downloaded)) {
     return hasExtension(downloaded, extensions) ||
       ARCHIVE_EXTENSIONS.has(path.extname(downloaded).toLowerCase())
@@ -154,13 +201,13 @@ const getDownloadedRomPath = async (
   return (await findRomInFolder(downloaded, extensions))?.path ?? null;
 };
 
-const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
+const getLibraryRomPath = async (objectId: string, kind: RomKind) => {
   const key = levelKeys.game("launchbox", objectId);
 
   const download = await downloadsSublevel.get(key).catch(() => null);
   if (download && isCompletedLikeDownload(download)) {
     if (download.extracting) return null;
-    const downloaded = await getDownloadedRomPath(download, extensions);
+    const downloaded = await getDownloadedRomPath(download, kind);
     if (downloaded) return downloaded;
   } else if (
     download &&
@@ -177,9 +224,9 @@ const getLibraryRomPath = async (objectId: string, extensions: string[]) => {
     ...(game.discs ?? []).map((disc) => disc.path),
   ];
   for (const disc of candidates) {
-    if (disc && hasExtension(disc, extensions) && (await fileExists(disc))) {
-      return disc;
-    }
+    if (!disc) continue;
+    const matches = isFolderRom(kind) || hasExtension(disc, kind.extensions);
+    if (matches && (await romExists(disc, kind))) return disc;
   }
   return null;
 };
@@ -235,14 +282,15 @@ export const getRecompilationRomState = async (
   if (!ref) return null;
 
   const meta = getRecompilationRomMeta(ref.slug);
+  const kind = meta ?? EMPTY_ROM_KIND;
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const [choice, libraryRomPath] = await Promise.all([
     readRomChoice(installDirectory),
-    getLibraryRomPath(ref.objectId, getLibraryRomExtensions(ref.slug)),
+    getLibraryRomPath(ref.objectId, kind),
   ]);
 
   let romPath: string | null = null;
-  if (choice?.source === "file" && (await fileExists(choice.path))) {
+  if (choice?.source === "file" && (await romExists(choice.path, kind))) {
     romPath = choice.path!;
   } else if (choice?.source === "library") {
     romPath = libraryRomPath;
@@ -254,6 +302,7 @@ export const getRecompilationRomState = async (
     romPath,
     libraryRomPath,
     needsPreparation: Boolean(meta?.path?.installer),
+    isFolder: isFolderRom(kind),
     isReady: meta
       ? (await isPortReady(
           meta,
@@ -286,10 +335,13 @@ export const setRecompilationRom = async (
     unknown
   >;
   if (source === "file") {
-    if (typeof romPath !== "string" || !(await fileExists(romPath))) {
+    if (typeof romPath !== "string" || !fs.existsSync(romPath)) {
       return { ok: false, reason: "rom_not_found" };
     }
-    if (!hasExtension(romPath, meta.extensions)) {
+    const isValid = isFolderRom(meta)
+      ? await isGameFolder(romPath, meta.folder!)
+      : (await fileExists(romPath)) && hasExtension(romPath, meta.extensions);
+    if (!isValid) {
       return { ok: false, reason: "rom_wrong_format" };
     }
   } else if (source !== "library") {
@@ -301,10 +353,11 @@ export const setRecompilationRom = async (
   const chosenPath =
     source === "file"
       ? (romPath as string)
-      : await getLibraryRomPath(ref.objectId, meta.extensions);
+      : await getLibraryRomPath(ref.objectId, meta);
   const isChecked =
     chosenPath !== null &&
-    !ARCHIVE_EXTENSIONS.has(path.extname(chosenPath).toLowerCase());
+    (isFolderRom(meta) ||
+      !ARCHIVE_EXTENSIONS.has(path.extname(chosenPath).toLowerCase()));
   await writeRomChoice(installDirectory, {
     preparedFrom: previous?.preparedFrom,
     preparedTarget: previous?.preparedTarget,
@@ -327,7 +380,7 @@ const isSupportedRomVersion = async (
   romPath: string,
   meta: RecompilationRomMeta
 ) => {
-  if (!meta.sha1?.length) return true;
+  if (!meta.sha1?.length || isFolderRom(meta)) return true;
   if (ARCHIVE_EXTENSIONS.has(path.extname(romPath).toLowerCase())) return true;
 
   try {
@@ -507,7 +560,12 @@ const writeRomConfig = async (
   baseDirectory: string,
   romPath: string
 ) => {
-  const file = resolveRecompilationPath(config.file, baseDirectory, "");
+  const template =
+    typeof config.file === "string"
+      ? config.file
+      : config.file[process.platform as MetaPlatform];
+  if (!template) return;
+  const file = resolveRecompilationPath(template, baseDirectory, "");
   let root: Record<string, unknown> = {};
   try {
     const parsed = JSON.parse(await fs.promises.readFile(file, "utf-8"));
@@ -579,7 +637,9 @@ export const prepareRecompilationRom = async (
   let romPath = state.romPath;
 
   try {
-    if (!isPrepared || !(await fileExists(romPath))) {
+    if (isFolderRom(meta)) {
+      // A game folder is used where it is: nothing to unpack or copy.
+    } else if (!isPrepared || !(await fileExists(romPath))) {
       romPath = await unpackRom(
         state.romPath,
         installDirectory,

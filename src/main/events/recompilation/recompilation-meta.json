@@ -290,5 +290,56 @@
       "prepareOnUpdate": true,
       "extensions": [".cue", ".chd"]
     }
+  },
+  "spartanport": {
+    "executable": {
+      "win32": "SpartanPort.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": {
+            "win32": "<base>/settings.json",
+            "linux": "<xdgData>/spartanport/settings.json"
+          },
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "extensions": []
+    }
+  },
+  "bloodborne-pc": {
+    "executable": {
+      "win32": "Bloodborne.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": "<winAppData>/bbport-launcher/settings.json",
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "extensions": []
+    }
+  },
+  "shadowofthecolossus-pc": {
+    "executable": {
+      "win32": "SotC.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": "<base>/user/launcher_settings.json",
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "extensions": []
+    }
   }
 }

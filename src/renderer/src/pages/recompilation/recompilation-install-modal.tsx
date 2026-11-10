@@ -292,13 +292,21 @@ function InstallModalContent({
     type: "disjunction",
   }).format((romState?.extensions ?? []).map((extension) => `.${extension}`));
 
+  const isFolderRom = romState?.isFolder === true;
   const pickFile = async () => {
-    const { filePaths } = await window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters: [
-        { name: t("rom_file_filter"), extensions: romState?.extensions ?? [] },
-      ],
-    });
+    const { filePaths } = await window.electron.showOpenDialog(
+      isFolderRom
+        ? { properties: ["openDirectory"] }
+        : {
+            properties: ["openFile"],
+            filters: [
+              {
+                name: t("rom_file_filter"),
+                extensions: romState?.extensions ?? [],
+              },
+            ],
+          }
+    );
     const [filePath] = filePaths ?? [];
     if (filePath) setPickedFile(filePath);
   };
@@ -315,7 +323,9 @@ function InstallModalContent({
 
   const romChoiceErrorMessage = (reason?: string) => {
     if (reason === "rom_wrong_format") {
-      return t("rom_wrong_format", { extensions: extensionList });
+      return isFolderRom
+        ? t("ps4_folder_missing_eboot", { ns: "game_details" })
+        : t("rom_wrong_format", { extensions: extensionList });
     }
     if (reason === "rom_not_found") return t("rom_not_found");
     return t("rom_save_failed");
@@ -480,7 +490,7 @@ function InstallModalContent({
           />
           <ChoiceRow
             title={t("rom_choice_file")}
-            info={extensionList}
+            info={isFolderRom ? "eboot.bin" : extensionList}
             onClick={pickFile}
           />
         </div>
