@@ -1,4 +1,5 @@
-import type { ChildProcess } from "node:child_process";
+import { execFile, type ChildProcess } from "node:child_process";
+import path from "node:path";
 
 import type { Game, RecompilationDetails, RecompilationRef } from "@types";
 import { toRecompilationCloudSaveObjectId } from "@shared";
@@ -280,12 +281,34 @@ const signalProcessGroup = (pid: number, signal: NodeJS.Signals) => {
   }
 };
 
+// Some ports start the game in a child process (the PS4 ports run it in a
+// separate probe executable), so killing only the launcher leaves it open.
+const killWindowsProcessTree = (pid: number) => {
+  const taskkillPath = path.win32.join(
+    process.env.SystemRoot || String.raw`C:\Windows`,
+    "System32",
+    "taskkill.exe"
+  );
+
+  execFile(
+    taskkillPath,
+    ["/PID", String(pid), "/T", "/F"],
+    { shell: false, windowsHide: true },
+    (error) => {
+      if (error)
+        logger.warn("Failed to close recompilation process tree", error);
+    }
+  );
+  return true;
+};
+
 export const closeRecompilation = (ref: RecompilationRef) => {
   const session = sessions.get(portKeyOf(ref));
   if (!session) return false;
 
   const { pid } = session.child;
-  if (!pid || process.platform === "win32") return session.child.kill();
+  if (!pid) return session.child.kill();
+  if (process.platform === "win32") return killWindowsProcessTree(pid);
   if (!signalProcessGroup(pid, "SIGTERM")) return session.child.kill();
 
   setTimeout(
