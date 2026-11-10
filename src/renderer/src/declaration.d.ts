@@ -819,6 +819,10 @@ declare global {
       ref: RecompilationRef,
       choice: { source: RecompilationRomSource; path?: string }
     ) => Promise<RecompilationActionResult>;
+    checkRecompilationRom: (
+      ref: RecompilationRef,
+      path: string
+    ) => Promise<RecompilationActionResult>;
     onRecompilationInstallProgress: (
       cb: (payload: RecompilationInstallProgress) => void
     ) => () => void;

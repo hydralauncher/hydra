@@ -3217,6 +3217,7 @@
     "rom_download_failed": "Не удалось начать загрузку.",
     "rom_wrong_format": "Выберите сам файл ROM: {{extensions}}.",
     "rom_not_found": "Файл ROM не найден. Выберите его ещё раз.",
+    "rom_other_game": "Этот eboot.bin от другой игры. Выберите eboot.bin из {{name}}.",
     "rom_version_warning": "Эта версия ROM не поддерживается {{name}}. Игра может не запуститься.",
     "rom_save_failed": "Не удалось сохранить ROM. Попробуйте ещё раз.",
     "rom_extracting": "ROM · распаковка",

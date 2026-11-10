@@ -659,6 +659,8 @@ contextBridge.exposeInMainWorld("electron", {
     ref: RecompilationRef,
     choice: { source: RecompilationRomSource; path?: string }
   ) => ipcRenderer.invoke("setRecompilationRom", ref, choice),
+  checkRecompilationRom: (ref: RecompilationRef, path: string) =>
+    ipcRenderer.invoke("checkRecompilationRom", ref, path),
   prepareRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("prepareRecompilation", ref),
   onRecompilationPrepareProgress: (

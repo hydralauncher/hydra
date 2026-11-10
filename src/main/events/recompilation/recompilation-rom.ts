@@ -100,11 +100,8 @@ const readTitleId = async (directory: string) => {
   return titleId?.replace(/[^A-Z0-9]/gi, "").toUpperCase() ?? null;
 };
 
-/**
- * A game kept as a folder (a PS4 dump) counts when it holds every file the
- * port needs and, when the port lists them, is one of the game IDs it runs.
- */
-const isGameFolder = async (
+/** A game kept as a folder (a PS4 dump) holds every file the port needs. */
+const hasGameFiles = async (
   directory: string | null | undefined,
   kind: RomKind
 ) => {
@@ -119,10 +116,21 @@ const isGameFolder = async (
       return false;
     }
   }
+  return true;
+};
+
+/** When the port lists game IDs, the folder must be one of those games. */
+const isPortGame = async (directory: string, kind: RomKind) => {
   if (!kind.titleIds?.length) return true;
   const titleId = await readTitleId(directory);
   return titleId !== null && kind.titleIds.includes(titleId);
 };
+
+const isGameFolder = async (
+  directory: string | null | undefined,
+  kind: RomKind
+) =>
+  (await hasGameFiles(directory, kind)) && (await isPortGame(directory!, kind));
 
 /** The folder ports take the game's own eboot.bin too, and keep its folder. */
 const toGameFolder = (romPath: string) =>
@@ -354,10 +362,39 @@ const checkChosenRom = async (
     return { ok: false, reason: "rom_not_found" };
   }
 
-  const isValid = isFolderRom(meta)
-    ? await isGameFolder(romPath, meta)
-    : (await fileExists(romPath)) && hasExtension(romPath, meta.extensions);
+  if (isFolderRom(meta)) {
+    if (!(await hasGameFiles(romPath, meta))) {
+      return { ok: false, reason: "rom_wrong_format" };
+    }
+    return (await isPortGame(romPath, meta))
+      ? null
+      : { ok: false, reason: "rom_other_game" };
+  }
+
+  const isValid =
+    (await fileExists(romPath)) && hasExtension(romPath, meta.extensions);
   return isValid ? null : { ok: false, reason: "rom_wrong_format" };
+};
+
+const toChosenPath = (rawPath: unknown, meta: RecompilationRomMeta) =>
+  typeof rawPath === "string" && isFolderRom(meta)
+    ? toGameFolder(rawPath)
+    : rawPath;
+
+/** Checks a file picked in the install modal without saving it. */
+export const checkRecompilationRom = async (
+  rawRef: unknown,
+  rawPath: unknown
+): Promise<RecompilationActionResult> => {
+  const ref = parseRecompilationRef(rawRef);
+  const meta = ref ? getRecompilationRomMeta(ref.slug) : null;
+  if (!meta) return { ok: false, reason: "invalid_port" };
+  const problem = await checkChosenRom(
+    "file",
+    toChosenPath(rawPath, meta),
+    meta
+  );
+  return problem ?? { ok: true };
 };
 
 export const setRecompilationRom = async (
@@ -374,10 +411,7 @@ export const setRecompilationRom = async (
     string,
     unknown
   >;
-  const romPath =
-    typeof rawRomPath === "string" && isFolderRom(meta)
-      ? toGameFolder(rawRomPath)
-      : rawRomPath;
+  const romPath = toChosenPath(rawRomPath, meta);
   const problem = await checkChosenRom(source, romPath, meta);
   if (problem) return problem;
 

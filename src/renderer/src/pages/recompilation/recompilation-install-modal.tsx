@@ -308,9 +308,22 @@ function InstallModalContent({
     });
     const [filePath] = filePaths ?? [];
     if (!filePath) return;
-    setPickedFile(
-      isFolderRom ? filePath.replace(/[\\/]eboot\.bin$/i, "") : filePath
+    if (!isFolderRom) {
+      setPickedFile(filePath);
+      return;
+    }
+
+    // Checked right away, so another game's eboot.bin is never left selected.
+    const check = await window.electron.checkRecompilationRom(
+      { objectId: details.game.objectId, slug: details.slug },
+      filePath
     );
+    if (!check.ok) {
+      setPickedFile(null);
+      showErrorToast(romChoiceErrorMessage(check.reason));
+      return;
+    }
+    setPickedFile(filePath.replace(/[\\/]eboot\.bin$/i, ""));
   };
 
   const libraryRom =
@@ -328,6 +341,9 @@ function InstallModalContent({
       return isFolderRom
         ? t("ps4_folder_missing_eboot", { ns: "game_details" })
         : t("rom_wrong_format", { extensions: extensionList });
+    }
+    if (reason === "rom_other_game") {
+      return t("rom_other_game", { name: romName });
     }
     if (reason === "rom_not_found") return t("rom_not_found");
     return t("rom_save_failed");
