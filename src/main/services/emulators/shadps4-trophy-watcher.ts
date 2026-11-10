@@ -118,7 +118,7 @@ export const startShadps4TrophyWatcher = ({
     const unlockLists = contents.map((xml) =>
       xml ? parseUnlockedTrophies(xml) : null
     );
-    if (unlockLists.some((unlocks) => unlocks === null)) return true;
+    if (unlockLists.includes(null)) return true;
 
     const merged = await mergeUnlocks(
       game,
