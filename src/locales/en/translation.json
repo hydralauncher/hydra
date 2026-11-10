@@ -1309,7 +1309,7 @@
     "firmware_status_optional": "Optional",
     "firmware_guide_link": "Setup guide",
     "trophy_key_section_title": "Trophy key",
-    "trophy_key_section_description": "shadPS4 needs the trophy key from your own PS4 to record trophies. Hydra can't include it.",
+    "trophy_key_section_description": "Optional. With the trophy key from your own PS4, shadPS4 saves trophies and Hydra can import earlier unlocks. Without it, Hydra reads unlocks from shadPS4's log while you play. Hydra can't include the key.",
     "trophy_key_found": "Trophy key found",
     "trophy_key_not_found": "Trophy key not found",
     "current_username": "Username:",

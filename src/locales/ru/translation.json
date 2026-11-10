@@ -1253,7 +1253,7 @@
     "firmware_status_optional": "Необязательно",
     "firmware_guide_link": "Руководство",
     "trophy_key_section_title": "Ключ трофеев",
-    "trophy_key_section_description": "shadPS4 нужен ключ трофеев с вашей PS4, чтобы записывать трофеи. Hydra не может включить его в комплект.",
+    "trophy_key_section_description": "Необязательно. С ключом трофеев с вашей PS4 shadPS4 сохраняет трофеи, и Hydra может импортировать прошлые разблокировки. Без него Hydra читает разблокировки из журнала shadPS4 во время игры. Hydra не может предоставить ключ.",
     "trophy_key_found": "Ключ трофеев найден",
     "trophy_key_not_found": "Ключ трофеев не найден",
     "current_username": "Имя пользователя:",

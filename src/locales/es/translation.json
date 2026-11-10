@@ -1249,7 +1249,7 @@
     "firmware_status_optional": "Opcional",
     "firmware_guide_link": "Guía de configuración",
     "trophy_key_section_title": "Clave de trofeos",
-    "trophy_key_section_description": "shadPS4 necesita la clave de trofeos de tu propia PS4 para registrar trofeos. Hydra no puede incluirla.",
+    "trophy_key_section_description": "Opcional. Con la clave de trofeos de tu propia PS4, shadPS4 guarda los trofeos y Hydra puede importar desbloqueos anteriores. Sin ella, Hydra lee los desbloqueos del registro de shadPS4 mientras juegas. Hydra no puede incluir la clave.",
     "trophy_key_found": "Clave de trofeos encontrada",
     "trophy_key_not_found": "Clave de trofeos no encontrada",
     "current_username": "Nombre de usuario:",
