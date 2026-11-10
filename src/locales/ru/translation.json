@@ -177,6 +177,7 @@
     "settings": "Настройки",
     "version_available_install": "Доступна версия {{version}}. Нажмите здесь для установки.",
     "version_available_download": "Доступна версия {{version}}. Нажмите здесь для загрузки.",
+    "scan_games": "Найти игры",
     "scan_games_tooltip": "Сканировать ПК на наличие установленных игр",
     "scan_games_title": "Сканировать ПК на наличие установленных игр",
     "scan_games_start": "Начать сканирование",

@@ -172,6 +172,7 @@
     "settings": "Settings",
     "version_available_install": "Version {{version}} available. Click here to restart and install.",
     "version_available_download": "Version {{version}} available. Click here to download.",
+    "scan_games": "Scan games",
     "scan_games_tooltip": "Scan PC for installed games",
     "scan_games_title": "Scan PC for installed games",
     "scan_games_start": "Start Scan",

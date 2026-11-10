@@ -178,6 +178,7 @@
     "settings": "Ajustes",
     "version_available_install": "Versão {{version}} disponível. Clique aqui para reiniciar e instalar.",
     "version_available_download": "Versão {{version}} disponível. Clique aqui para fazer o download.",
+    "scan_games": "Escanear jogos",
     "scan_games_tooltip": "Escanear PC por jogos instalados",
     "scan_games_title": "Escanear PC em busca de jogos instalados",
     "scan_games_start": "Iniciar Escaneamento",
