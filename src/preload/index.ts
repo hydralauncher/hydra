@@ -557,8 +557,8 @@ contextBridge.exposeInMainWorld("electron", {
   getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
   getRpcs3ConfigRootStatus: () =>
     ipcRenderer.invoke("getRpcs3ConfigRootStatus"),
-  getRpcs3DiscIdentityStatus: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getRpcs3DiscIdentityStatus", objectId, shop),
+  getEmulatorDiscIdentityStatus: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getEmulatorDiscIdentityStatus", objectId, shop),
   setRpcs3ConfigRoot: (root: string) =>
     ipcRenderer.invoke("setRpcs3ConfigRoot", root),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
@@ -612,8 +612,12 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   rescanEmulator: (system: EmulatorSystem, language?: string) =>
     ipcRenderer.invoke("rescanEmulator", system, language),
-  checkPs3Firmware: (executablePath: string | null) =>
-    ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  checkEmulatorFirmware: (
+    system: EmulatorSystem,
+    executablePath: string | null
+  ) => ipcRenderer.invoke("checkEmulatorFirmware", system, executablePath),
+  checkShadps4TrophyKey: (executablePath: string | null) =>
+    ipcRenderer.invoke("checkShadps4TrophyKey", executablePath),
   checkEmulatorBios: (
     system: EmulatorSystem,
     executablePath: string | null,

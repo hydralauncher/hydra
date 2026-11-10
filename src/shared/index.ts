@@ -64,6 +64,7 @@ export * from "./official-store-options";
 export * from "./download-directories";
 export * from "./comment-html-sanitizer";
 export * from "./html-sanitizer";
+export * from "./monaco";
 export * from "./language-flags";
 export * from "./use-hls-video";
 export * from "./use-souvenir-content-warning";

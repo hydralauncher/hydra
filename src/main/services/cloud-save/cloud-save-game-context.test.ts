@@ -30,7 +30,11 @@ function load(game: Game | undefined) {
     "@main/services/steam-login-users": {
       getSteamStoreUserContext: async () => ({ known: [] }),
     },
-    "@shared": { getCloudSaveEmulatorProvider: () => null },
+    "@shared": {
+      getCloudSaveEmulatorProvider: () => null,
+      isDiscCloudSaveEmulatorProvider: () => false,
+      discCloudSaveEmulatorSystem: () => null,
+    },
     "../emulators/emulators-repository": {
       getEmulatorConfig: async () => null,
     },

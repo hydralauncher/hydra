@@ -28,7 +28,7 @@ export const prepareEmulatorSouvenirs = async (
     return null;
   }
 
-  if (system === "ps2" || system === "ps3") {
+  if (system === "ps2" || system === "ps3" || system === "ps4") {
     return null;
   }
 
