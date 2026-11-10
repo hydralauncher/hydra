@@ -27,7 +27,9 @@ import { getHydraPlaytimeRevision } from "@main/services/library-sync/library-wr
 import { persistGamePlaytime } from "@main/services/process-watcher";
 import { logger } from "@main/services/logger";
 import { WindowManager } from "@main/services/window-manager";
+import type { TrophyFileWatcher } from "@main/services/emulators/trophy-file-watcher";
 import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
+import { startRecompilationTrophyWatcher } from "./recompilation-trophy-watcher";
 
 const SHOP = "launchbox";
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
@@ -39,6 +41,7 @@ interface RecompilationSession {
   startedAt: number;
   heartbeat: ReturnType<typeof setInterval> | null;
   baseGameReady: Promise<void>;
+  trophyWatcher: TrophyFileWatcher | null;
 }
 
 const sessions = new Map<string, RecompilationSession>();
@@ -216,6 +219,7 @@ const finishSession = async (session: RecompilationSession) => {
     : Promise.resolve();
 
   await session.baseGameReady;
+  await session.trophyWatcher?.finish();
   await creditPlaytime(baseKeyOf(session.ref), deltaMs).catch((error) => {
     logger.error("Failed to save recompilation playtime", error);
   });
@@ -234,6 +238,7 @@ export const startRecompilationSession = async (
     child,
     startedAt: performance.now(),
     heartbeat: null,
+    trophyWatcher: null,
     baseGameReady: getOrAddBaseGame(ref)
       .then(() => undefined)
       .catch((error) => {
@@ -258,6 +263,7 @@ export const startRecompilationSession = async (
   await session.baseGameReady;
   if (sessions.get(portKey) !== session) return;
 
+  session.trophyWatcher = startRecompilationTrophyWatcher(ref, baseKey);
   void sendPresencePing(baseKey);
   session.heartbeat = setInterval(() => {
     void sendPresencePing(baseKey);
