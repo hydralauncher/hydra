@@ -38,6 +38,7 @@ const ARTICLE_KEYS: Partial<Record<EmulatorBinary, string>> = {
   rpcs3: "install-rpcs3",
   ppsspp: "install-ppsspp",
   dolphin: "install-dolphin",
+  shadps4: "install-shadps4",
 };
 
 const SEMVER_RE = /v?\d{1,9}\.\d{1,9}(?:\.\d{1,9})?/;

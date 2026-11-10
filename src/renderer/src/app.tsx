@@ -285,6 +285,7 @@ export function App() {
           "install-retroarch": 7120,
           "install-ppsspp": 7328,
           "install-dolphin": 7281,
+          "install-shadps4": 0,
           "wii-saves": 7406,
           "retroachievements-emulators": 6692,
           "downloading-metadata": 7773,
