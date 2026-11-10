@@ -248,6 +248,11 @@ export function RecompilationHero({
             {hasCloudSave && <CloudSaveWidget />}
             {renderPrimary()}
           </div>
+          {!isInstalled && !isDownloading && !isExtracting && !installAsset && (
+            <span className="recompilation-page__hero-note">
+              {t("no_file_for_this_pc")}
+            </span>
+          )}
         </div>
       </div>
 
