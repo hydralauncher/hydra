@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { it } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import type { Game } from "@types";
 
@@ -145,4 +146,15 @@ it("reads trophy set ids from catalogue icon urls", () => {
     ]),
     ["NPWR00160_00"]
   );
+});
+
+it("reads a TROPUSR.DAT written by RPCS3", async () => {
+  const data = await fs.readFile(
+    fileURLToPath(new URL("./fixtures/rpcs3-tropusr.dat", import.meta.url))
+  );
+
+  assert.deepEqual(parseRpcs3TropUsr(data, 0), [
+    { name: "25", unlockTime: Date.UTC(2020, 0, 1, 0, 0, 0, 0) },
+    { name: "29", unlockTime: Date.UTC(2020, 0, 1, 0, 5, 0, 500) },
+  ]);
 });

@@ -3,6 +3,8 @@ import { promises as fs } from "node:fs";
 import type { Game, UnlockedAchievement } from "@types";
 import { platformToSystem } from "@shared";
 
+import { levelKeys } from "@main/level";
+
 import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
 import { getGameAchievementData } from "../achievements/get-game-achievement-data";
 import { achievementsLogger } from "../logger";
@@ -14,6 +16,9 @@ import {
   resolveRpcs3HomeRoots,
   resolveRpcs3NpCommIds,
 } from "./rpcs3-trophies";
+
+const CATALOGUE_RETRY_INTERVAL_MS = 30_000;
+const nextCatalogueFetchAt = new Map<string, number>();
 
 export interface Rpcs3TrophySources {
   homeRoots: string[];
@@ -31,11 +36,25 @@ const resolveGameDiscPaths = (game: Game, discPath?: string): string[] => [
 ];
 
 const resolveCatalogueNpCommIds = async (game: Game): Promise<string[]> => {
-  const catalogue =
-    AchievementMemoryStore.get(game.shop, game.objectId)?.achievements ??
-    (await getGameAchievementData(game.objectId, game.shop, true).catch(
-      () => []
-    ));
+  const cached = AchievementMemoryStore.get(game.shop, game.objectId);
+  if (cached?.achievements.length) {
+    return npCommIdsFromAchievementIcons(cached.achievements);
+  }
+
+  const gameKey = levelKeys.game(game.shop, game.objectId);
+  if (Date.now() < (nextCatalogueFetchAt.get(gameKey) ?? 0)) return [];
+
+  const catalogue = await getGameAchievementData(
+    game.objectId,
+    game.shop,
+    false
+  ).catch(() => []);
+  if (catalogue.length) {
+    nextCatalogueFetchAt.delete(gameKey);
+  } else {
+    nextCatalogueFetchAt.set(gameKey, Date.now() + CATALOGUE_RETRY_INTERVAL_MS);
+  }
+
   return npCommIdsFromAchievementIcons(catalogue);
 };
 
@@ -82,8 +101,11 @@ export const readRpcs3TrophyUnlocks = async (
 };
 
 export const removeRpcs3TrophyFiles = async (game: Game): Promise<void> => {
-  for (const file of await listGameTropUsrFiles(game)) {
-    achievementsLogger.log(`deleting ${file}`);
-    await fs.rm(file, { force: true });
-  }
+  const files = await listGameTropUsrFiles(game);
+  await Promise.all(
+    files.map((file) => {
+      achievementsLogger.log(`deleting ${file}`);
+      return fs.rm(file, { force: true });
+    })
+  );
 };

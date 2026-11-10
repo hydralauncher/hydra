@@ -186,25 +186,23 @@ export const listRpcs3TropUsrFiles = async (
 export const readRpcs3UnlockedTrophies = async (
   files: string[]
 ): Promise<UnlockedAchievement[] | null> => {
+  const unlockLists = await Promise.all(
+    files.map(async (file) => {
+      const [data, stats] = await Promise.all([
+        fs.readFile(file).catch(() => null),
+        fs.stat(file).catch(() => null),
+      ]);
+      return data && stats ? parseRpcs3TropUsr(data, stats.mtimeMs) : null;
+    })
+  );
+  if (unlockLists.includes(null)) return null;
+
   const earliest = new Map<string, UnlockedAchievement>();
-
-  for (const file of files) {
-    const [data, stats] = await Promise.all([
-      fs.readFile(file).catch(() => null),
-      fs.stat(file).catch(() => null),
-    ]);
-    if (!data || !stats) return null;
-
-    const unlocked = parseRpcs3TropUsr(data, stats.mtimeMs);
-    if (!unlocked) return null;
-
-    for (const trophy of unlocked) {
-      const known = earliest.get(trophy.name);
-      if (!known || trophy.unlockTime < known.unlockTime) {
-        earliest.set(trophy.name, trophy);
-      }
+  for (const trophy of (unlockLists as UnlockedAchievement[][]).flat()) {
+    const known = earliest.get(trophy.name);
+    if (!known || trophy.unlockTime < known.unlockTime) {
+      earliest.set(trophy.name, trophy);
     }
   }
-
   return [...earliest.values()];
 };
