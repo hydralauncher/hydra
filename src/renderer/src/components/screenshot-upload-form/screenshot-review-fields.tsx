@@ -16,7 +16,7 @@ import {
   HydraCloudBadge,
 } from "@renderer/components";
 import { useFeature, useUserDetails } from "@renderer/hooks";
-import { useSubscription } from "@renderer/hooks/use-subscription";
+import { useOpenGoogleDriveSettings } from "@renderer/hooks/use-google-drive-connection";
 
 import {
   ReviewSegmentedControl,
@@ -53,7 +53,7 @@ export function ScreenshotReviewFields({
 }: Readonly<ScreenshotReviewFieldsProps>) {
   const { t } = useTranslation("screenshots_capture");
   const { hasActiveSubscription } = useUserDetails();
-  const { showHydraCloudModal } = useSubscription();
+  const openGoogleDriveSettings = useOpenGoogleDriveSettings();
   const { isFeatureEnabled, Feature } = useFeature();
   const isCommentsEnabled = isFeatureEnabled(Feature.ScreenshotComments);
 
@@ -89,7 +89,7 @@ export function ScreenshotReviewFields({
   };
 
   const handleQualityChange = (quality: ScreenshotQuality) => {
-    if (quality === "CLOUD") showHydraCloudModal("achievements");
+    if (quality === "CLOUD") openGoogleDriveSettings();
   };
 
   return (
