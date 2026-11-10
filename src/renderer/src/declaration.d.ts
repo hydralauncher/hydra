@@ -63,6 +63,7 @@ import type {
   RecompilationActionResult,
   RecompilationInstallProgress,
   RecompilationPrepareProgress,
+  RecompilationRomPkgProgress,
   RecompilationInstallState,
   RecompilationRef,
   RecompilationRomSource,
@@ -823,6 +824,14 @@ declare global {
       ref: RecompilationRef,
       path: string
     ) => Promise<RecompilationActionResult>;
+    extractRecompilationRomPkg: (
+      ref: RecompilationRef,
+      pkgPath: string
+    ) => Promise<RecompilationActionResult>;
+    cancelRecompilationRomPkg: (ref: RecompilationRef) => Promise<void>;
+    onRecompilationRomPkgProgress: (
+      cb: (payload: RecompilationRomPkgProgress) => void
+    ) => () => void;
     onRecompilationInstallProgress: (
       cb: (payload: RecompilationInstallProgress) => void
     ) => () => void;

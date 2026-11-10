@@ -50,12 +50,33 @@ import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 import { runAutomaticCloudSaveSync } from "./cloud-save";
 import { updateGameRecord } from "./game-record-updater";
+import { installPs4Pkg, isPs4PkgPath, readPs4PkgInfo } from "./ps4-pkg";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
 const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
 
 const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
+
+const PS4_PKG_SEARCH_DEPTH = 3;
+
+const findPs4Pkgs = async (directory: string, depth = 0): Promise<string[]> => {
+  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
+  const found: string[] = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isFile() && isPs4PkgPath(entry.name)) {
+      found.push(entryPath);
+    } else if (entry.isDirectory() && depth < PS4_PKG_SEARCH_DEPTH) {
+      found.push(...(await findPs4Pkgs(entryPath, depth + 1)));
+    }
+  }
+
+  return found;
+};
+
+const PS4_PKG_KIND_ORDER = { game: 0, patch: 1 } as const;
 
 const IN_PLACE_EXTRACTION_FEATURE = "IN_PLACE_ARCHIVE_EXTRACTION";
 const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
@@ -198,6 +219,11 @@ export class GameFilesManager {
     filePath: string,
     { notify }: { notify: boolean }
   ) {
+    if (isPs4PkgPath(filePath) && (await this.isPs4Game())) {
+      await this.setExtractionComplete(notify);
+      return;
+    }
+
     const format = path.extname(filePath).toLowerCase();
 
     await this.searchAndBindExecutable();
@@ -460,7 +486,106 @@ export class GameFilesManager {
     return true;
   }
 
+  private async isPs4Game() {
+    const game = await gamesSublevel.get(this.gameKey);
+    return (
+      game?.shop === "launchbox" && platformToSystem(game.platform) === "ps4"
+    );
+  }
+
+  private async collectPs4Pkgs(sourcePath: string) {
+    const stats = await fs.promises.stat(sourcePath);
+    const pkgPaths = stats.isFile()
+      ? [sourcePath].filter(isPs4PkgPath)
+      : await findPs4Pkgs(sourcePath);
+
+    const pkgs: {
+      pkgPath: string;
+      titleId: string;
+      kind: "game" | "patch";
+      appVersion: string;
+      size: number;
+    }[] = [];
+
+    for (const pkgPath of pkgPaths) {
+      const info = await readPs4PkgInfo(pkgPath);
+      if (info.kind !== "game" && info.kind !== "patch") {
+        logger.info(
+          `[GameFilesManager] Keeping PS4 ${info.kind} PKG as is: ${pkgPath}`
+        );
+        continue;
+      }
+
+      pkgs.push({
+        pkgPath,
+        titleId: info.titleId,
+        kind: info.kind,
+        appVersion: info.appVersion ?? "",
+        size: (await fs.promises.stat(pkgPath)).size,
+      });
+    }
+
+    return pkgs.toSorted(
+      (a, b) =>
+        PS4_PKG_KIND_ORDER[a.kind] - PS4_PKG_KIND_ORDER[b.kind] ||
+        a.appVersion.localeCompare(b.appVersion)
+    );
+  }
+
+  private async extractPs4Pkgs(): Promise<boolean> {
+    const download = await downloadsSublevel.get(this.gameKey);
+    if (!download?.folderName || !(await this.isPs4Game())) return true;
+
+    const sourcePath = path.join(download.downloadPath, download.folderName);
+    if (!fs.existsSync(sourcePath)) return true;
+
+    let currentPkg = sourcePath;
+    try {
+      const pkgs = await this.collectPs4Pkgs(sourcePath);
+      if (pkgs.length === 0) return true;
+
+      const totalSize = pkgs.reduce((sum, pkg) => sum + pkg.size, 0) || 1;
+      const gameDirectories = new Map<string, string>();
+      let doneSize = 0;
+      this.updateExtractionProgress(0, true);
+
+      for (const pkg of pkgs) {
+        currentPkg = pkg.pkgPath;
+        const { gameDirectory } = await installPs4Pkg({
+          pkgPath: pkg.pkgPath,
+          gameDirectory: gameDirectories.get(pkg.titleId),
+          onProgress: (fraction) =>
+            this.updateExtractionProgress(
+              (doneSize + fraction * pkg.size) / totalSize
+            ),
+        });
+        gameDirectories.set(pkg.titleId, gameDirectory);
+        doneSize += pkg.size;
+        this.updateExtractionProgress(doneSize / totalSize, true);
+      }
+
+      const sourceWasPkg = (await getPathType(sourcePath)) === "missing";
+      const extractedGame = gameDirectories.values().next().value;
+      if (sourceWasPkg && extractedGame) {
+        const current = await downloadsSublevel.get(this.gameKey);
+        if (current) {
+          await downloadsSublevel.put(this.gameKey, {
+            ...current,
+            folderName: path.relative(current.downloadPath, extractedGame),
+          });
+        }
+      }
+
+      return true;
+    } catch (error) {
+      await this.setExtractionFailedState(error, currentPkg);
+      return false;
+    }
+  }
+
   async setExtractionComplete(publishNotification = true) {
+    if (!(await this.extractPs4Pkgs())) return;
+
     const extractedDownload = await downloadsSublevel.get(this.gameKey);
 
     if (!extractedDownload) return;

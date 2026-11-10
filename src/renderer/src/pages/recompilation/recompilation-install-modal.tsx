@@ -176,6 +176,22 @@ function InstallModalContent({
     void refreshRom();
   }, [refreshRom]);
 
+  const isExtractingPkgRef = useRef(false);
+  useEffect(() => {
+    const ref = { objectId: details.game.objectId, slug: details.slug };
+    const unsubscribe = window.electron.onRecompilationRomPkgProgress(
+      (payload) => {
+        if (payload.slug === details.slug) setPkgProgress(payload.progress);
+      }
+    );
+    return () => {
+      unsubscribe();
+      if (isExtractingPkgRef.current) {
+        void window.electron.cancelRecompilationRomPkg(ref);
+      }
+    };
+  }, [details.game.objectId, details.slug]);
+
   const { state, progress } = install;
   const isInstalled = state?.installed === true;
   const { updateLibrary } = useLibrary();
@@ -194,6 +210,9 @@ function InstallModalContent({
   );
   const [skipLibrary, setSkipLibrary] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [pkgProgress, setPkgProgress] = useState<number | null>(null);
+  const isExtractingPkg = pkgProgress !== null;
+  const pkgPercent = Math.round((pkgProgress ?? 0) * 100);
 
   const handlesRom = romState?.handlesRom !== false;
   const needsPreparation = romState?.needsPreparation === true;
@@ -293,13 +312,37 @@ function InstallModalContent({
   }).format((romState?.extensions ?? []).map((extension) => `.${extension}`));
 
   const isFolderRom = romState?.isFolder === true;
+  const folderRomChoices = new Intl.ListFormat(i18n.language, {
+    type: "disjunction",
+  }).format(["eboot.bin", ".pkg"]);
+
+  const extractPkg = async (pkgPath: string) => {
+    const ref = { objectId: details.game.objectId, slug: details.slug };
+    isExtractingPkgRef.current = true;
+    setPkgProgress(0);
+    const result = await window.electron
+      .extractRecompilationRomPkg(ref, pkgPath)
+      .finally(() => {
+        isExtractingPkgRef.current = false;
+        setPkgProgress(null);
+      });
+
+    if (result.ok && result.romPath) {
+      setPickedFile(result.romPath);
+      return;
+    }
+    if (result.reason !== "rom_pkg_cancelled") {
+      showErrorToast(romChoiceErrorMessage(result.reason, true));
+    }
+  };
+
   const pickFile = async () => {
     // A PS4 game is picked by its eboot.bin, which the folder picker would hide.
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [
         isFolderRom
-          ? { name: "eboot.bin", extensions: ["bin"] }
+          ? { name: folderRomChoices, extensions: ["bin", "pkg"] }
           : {
               name: t("rom_file_filter"),
               extensions: romState?.extensions ?? [],
@@ -318,9 +361,15 @@ function InstallModalContent({
       { objectId: details.game.objectId, slug: details.slug },
       filePath
     );
+    const isPkg = filePath.toLowerCase().endsWith(".pkg");
     if (!check.ok) {
       setPickedFile(null);
-      showErrorToast(romChoiceErrorMessage(check.reason));
+      showErrorToast(romChoiceErrorMessage(check.reason, isPkg));
+      return;
+    }
+    if (isPkg) {
+      setPickedFile(null);
+      await extractPkg(filePath);
       return;
     }
     setPickedFile(filePath.replace(/[\\/]eboot\.bin$/i, ""));
@@ -336,14 +385,24 @@ function InstallModalContent({
   };
   const romSource = getRomSource();
 
-  const romChoiceErrorMessage = (reason?: string) => {
+  const romChoiceErrorMessage = (reason?: string, isPkg = false) => {
     if (reason === "rom_wrong_format") {
+      if (isPkg) return t("rom_pkg_wrong_format");
       return isFolderRom
         ? t("ps4_folder_missing_eboot", { ns: "game_details" })
         : t("rom_wrong_format", { extensions: extensionList });
     }
     if (reason === "rom_other_game") {
-      return t("rom_other_game", { name: romName });
+      return t(isPkg ? "rom_pkg_other_game" : "rom_other_game", {
+        name: romName,
+      });
+    }
+    if (reason === "rom_update_needs_game") {
+      return t("rom_update_needs_game", { name: romName });
+    }
+    if (reason === "rom_pkg_no_space") return t("rom_pkg_no_space");
+    if (reason === "rom_pkg_failed" || reason === "rom_pkg_busy") {
+      return t("rom_pkg_failed");
     }
     if (reason === "rom_not_found") return t("rom_not_found");
     return t("rom_save_failed");
@@ -448,6 +507,15 @@ function InstallModalContent({
   };
 
   const renderRomStatus = () => {
+    if (isExtractingPkg) {
+      return (
+        <StatusLine
+          label={t("rom_extracting")}
+          detail={`${pkgPercent}%`}
+          progress={{ phase: "downloading", loaded: pkgPercent, total: 100 }}
+        />
+      );
+    }
     if (!isRomDownloading) return null;
     if (rom.downloadPhase === "extracting") {
       return (
@@ -477,7 +545,7 @@ function InstallModalContent({
         </p>
       )}
 
-      {shownFile && !isRomDownloading && (
+      {shownFile && !isRomDownloading && !isExtractingPkg && (
         <div className="recompilation-install__picked">
           <span className="recompilation-install__choice-text">
             <span className="recompilation-install__choice-title">
@@ -499,7 +567,7 @@ function InstallModalContent({
         </div>
       )}
 
-      {!shownFile && !isRomDownloading && (
+      {!shownFile && !isRomDownloading && !isExtractingPkg && (
         <div className="recompilation-install__choices">
           <ChoiceRow
             title={t("rom_choice_download")}
@@ -508,7 +576,7 @@ function InstallModalContent({
           />
           <ChoiceRow
             title={t("rom_choice_file")}
-            info={isFolderRom ? "eboot.bin" : extensionList}
+            info={isFolderRom ? folderRomChoices : extensionList}
             onClick={pickFile}
           />
         </div>
@@ -729,7 +797,7 @@ function InstallModalContent({
         continueDisabled={
           step === "location"
             ? !parentDirectory || !hasEnoughSpace
-            : !romSource || isSaving
+            : !romSource || isSaving || isExtractingPkg
         }
         onBack={() => setStep("rom")}
         onSkip={() => {}}

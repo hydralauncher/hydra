@@ -19,6 +19,12 @@ import { t } from "i18next";
 import { logger, SevenZip, WindowManager } from "@main/services";
 import { parseParamSfoValue } from "@main/services/emulators/param-sfo";
 import {
+  installPs4Pkg,
+  isPs4PkgPath,
+  Ps4PkgError,
+  readPs4PkgInfo,
+} from "@main/services/ps4-pkg";
+import {
   getRecompilationBaseDirectory,
   getRecompilationInstallDirectory,
   parseRecompilationRef,
@@ -399,6 +405,102 @@ const toChosenPath = (rawPath: unknown, meta: RecompilationRomMeta) =>
     ? toGameFolder(rawPath)
     : rawPath;
 
+const getChosenGameFolder = async (
+  slug: string,
+  meta: RecompilationRomMeta
+) => {
+  const choice = await readRomChoice(
+    await getRecompilationInstallDirectory(slug)
+  );
+  return choice?.source === "file" &&
+    choice.path &&
+    (await isGameFolder(choice.path, meta))
+    ? choice.path
+    : null;
+};
+
+const checkChosenPkg = async (
+  slug: string,
+  pkgPath: string,
+  meta: RecompilationRomMeta
+): Promise<RecompilationActionResult | null> => {
+  if (!fs.existsSync(pkgPath)) return { ok: false, reason: "rom_not_found" };
+
+  const info = await readPs4PkgInfo(pkgPath).catch(() => null);
+  if (
+    !info ||
+    info.isDeltaPatch ||
+    (info.kind !== "game" && info.kind !== "patch")
+  ) {
+    return { ok: false, reason: "rom_wrong_format" };
+  }
+  if (meta.titleIds?.length && !meta.titleIds.includes(info.titleId)) {
+    return { ok: false, reason: "rom_other_game" };
+  }
+  if (info.kind === "patch" && !(await getChosenGameFolder(slug, meta))) {
+    return { ok: false, reason: "rom_update_needs_game" };
+  }
+  return null;
+};
+
+const pkgExtractions = new Map<string, AbortController>();
+
+const PKG_FAILURE_REASONS: Record<string, string> = {
+  no_space: "rom_pkg_no_space",
+  cancelled: "rom_pkg_cancelled",
+};
+
+/** Extracts a PS4 game or update PKG picked in the install modal. */
+export const extractRecompilationRomPkg = async (
+  rawRef: unknown,
+  rawPath: unknown
+): Promise<RecompilationActionResult> => {
+  const ref = parseRecompilationRef(rawRef);
+  const meta = ref ? getRecompilationRomMeta(ref.slug) : null;
+  if (!ref || !meta || !isFolderRom(meta)) {
+    return { ok: false, reason: "invalid_port" };
+  }
+  if (typeof rawPath !== "string" || !isPs4PkgPath(rawPath)) {
+    return { ok: false, reason: "rom_wrong_format" };
+  }
+  if (pkgExtractions.has(ref.slug)) {
+    return { ok: false, reason: "rom_pkg_busy" };
+  }
+
+  const problem = await checkChosenPkg(ref.slug, rawPath, meta);
+  if (problem) return problem;
+
+  const controller = new AbortController();
+  pkgExtractions.set(ref.slug, controller);
+  const sendProgress = (progress: number) =>
+    WindowManager.mainWindow?.webContents.send(
+      "on-recompilation-rom-pkg-progress",
+      { slug: ref.slug, progress }
+    );
+
+  try {
+    sendProgress(0);
+    const { gameDirectory } = await installPs4Pkg({
+      pkgPath: rawPath,
+      gameDirectory: await getChosenGameFolder(ref.slug, meta),
+      onProgress: sendProgress,
+      signal: controller.signal,
+    });
+    return { ok: true, romPath: gameDirectory };
+  } catch (error) {
+    logger.error("Failed to extract PS4 PKG for port", error);
+    const code = error instanceof Ps4PkgError ? error.code : "failed";
+    return { ok: false, reason: PKG_FAILURE_REASONS[code] ?? "rom_pkg_failed" };
+  } finally {
+    pkgExtractions.delete(ref.slug);
+  }
+};
+
+export const cancelRecompilationRomPkg = (rawRef: unknown) => {
+  const ref = parseRecompilationRef(rawRef);
+  if (ref) pkgExtractions.get(ref.slug)?.abort();
+};
+
 /** Checks a file picked in the install modal without saving it. */
 export const checkRecompilationRom = async (
   rawRef: unknown,
@@ -406,7 +508,14 @@ export const checkRecompilationRom = async (
 ): Promise<RecompilationActionResult> => {
   const ref = parseRecompilationRef(rawRef);
   const meta = ref ? getRecompilationRomMeta(ref.slug) : null;
-  if (!meta) return { ok: false, reason: "invalid_port" };
+  if (!ref || !meta) return { ok: false, reason: "invalid_port" };
+  if (
+    typeof rawPath === "string" &&
+    isFolderRom(meta) &&
+    isPs4PkgPath(rawPath)
+  ) {
+    return (await checkChosenPkg(ref.slug, rawPath, meta)) ?? { ok: true };
+  }
   const problem = await checkChosenRom(
     "file",
     toChosenPath(rawPath, meta),

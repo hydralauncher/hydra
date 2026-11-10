@@ -34,6 +34,7 @@ import type {
   EmulatorInstallProgress,
   RecompilationInstallProgress,
   RecompilationPrepareProgress,
+  RecompilationRomPkgProgress,
   RecompilationRef,
   RecompilationRomSource,
   RetroArchCoreName,
@@ -661,6 +662,19 @@ contextBridge.exposeInMainWorld("electron", {
   ) => ipcRenderer.invoke("setRecompilationRom", ref, choice),
   checkRecompilationRom: (ref: RecompilationRef, path: string) =>
     ipcRenderer.invoke("checkRecompilationRom", ref, path),
+  extractRecompilationRomPkg: (ref: RecompilationRef, pkgPath: string) =>
+    ipcRenderer.invoke("extractRecompilationRomPkg", ref, pkgPath),
+  cancelRecompilationRomPkg: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("cancelRecompilationRomPkg", ref),
+  onRecompilationRomPkgProgress: (
+    cb: (payload: RecompilationRomPkgProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationRomPkgProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-rom-pkg-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-rom-pkg-progress", listener);
+  },
   prepareRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("prepareRecompilation", ref),
   onRecompilationPrepareProgress: (
