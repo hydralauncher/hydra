@@ -27,6 +27,7 @@ const OFFICIAL_WEBSITES: Record<EmulatorBinary, string> = {
   duckstation: "https://www.duckstation.org/",
   pcsx2: "https://pcsx2.net/",
   rpcs3: "https://rpcs3.net/",
+  shadps4: "https://shadps4.net/",
   ppsspp: "https://www.ppsspp.org/",
   dolphin: "https://dolphin-emu.org/",
 };

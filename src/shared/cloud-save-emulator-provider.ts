@@ -1,4 +1,4 @@
-import type { GameShop, RetroArchPlatform } from "@types";
+import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
 
 import { platformToRetroArchPlatform } from "./retroarch-platform.js";
 import { parseRecompilationCloudSaveObjectId } from "./recompilations.js";
@@ -54,9 +54,48 @@ export const hasSelectedRetroArchRom = (game: {
   discs?: RomDisc[];
 }) => getSelectedRetroArchRomPath(game) !== null;
 
-export const hasRpcs3CloudSaveDisc = (game: {
-  discs?: Array<{ path: string }>;
-}) => game.discs?.some((disc) => Boolean(disc.path.trim())) ?? false;
+export type DiscCloudSaveEmulatorProvider = "rpcs3";
+
+const DISC_PROVIDER_SYSTEMS: Record<
+  DiscCloudSaveEmulatorProvider,
+  EmulatorSystem
+> = {
+  rpcs3: "ps3",
+};
+
+export const DISC_CLOUD_SAVE_EMULATOR_PROVIDERS = Object.keys(
+  DISC_PROVIDER_SYSTEMS
+) as DiscCloudSaveEmulatorProvider[];
+
+export const isDiscCloudSaveEmulatorProvider = (
+  provider: CloudSaveEmulatorProvider | null | undefined
+): provider is DiscCloudSaveEmulatorProvider =>
+  provider !== null &&
+  provider !== undefined &&
+  Object.hasOwn(DISC_PROVIDER_SYSTEMS, provider);
+
+export const getDiscCloudSaveEmulatorProvider = (
+  shop: GameShop,
+  platform?: string | null
+): DiscCloudSaveEmulatorProvider | null => {
+  const provider = getCloudSaveEmulatorProvider(shop, platform);
+  return isDiscCloudSaveEmulatorProvider(provider) ? provider : null;
+};
+
+export const discCloudSaveEmulatorSystem = (
+  provider: DiscCloudSaveEmulatorProvider
+): EmulatorSystem => DISC_PROVIDER_SYSTEMS[provider];
+
+export const DISC_CLOUD_SAVE_ERROR_CODE = new RegExp(
+  `cloud_save_(?:${Object.keys(DISC_PROVIDER_SYSTEMS).join("|")})_[a-z0-9_]+`
+);
+
+export const discCloudSaveWrongGameErrorCode = (
+  provider: DiscCloudSaveEmulatorProvider
+) => `cloud_save_${provider}_save_wrong_game`;
+
+export const hasCloudSaveDisc = (game: { discs?: Array<{ path: string }> }) =>
+  game.discs?.some((disc) => Boolean(disc.path.trim())) ?? false;
 
 export const hasCloudSaveExecutableSelection = (game: {
   shop: GameShop;
@@ -67,7 +106,7 @@ export const hasCloudSaveExecutableSelection = (game: {
 }) => {
   const provider = getCloudSaveEmulatorProvider(game.shop, game.platform);
   if (provider === "retroarch") return hasSelectedRetroArchRom(game);
-  if (provider === "rpcs3") return hasRpcs3CloudSaveDisc(game);
+  if (isDiscCloudSaveEmulatorProvider(provider)) return hasCloudSaveDisc(game);
   return Boolean(game.executablePath || game.shop === "launchbox");
 };
 

@@ -15,6 +15,7 @@ import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import { getCloudSaveCustomPathBindings } from "./custom-path-store";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
+import { assertEmulatorDiscIdentity } from "./emulator-disc-identity.js";
 import {
   CLOUD_SAVE_HASH_PATTERN,
   cloudSaveFileKey,
@@ -114,19 +115,14 @@ export const createRemoteSnapshotFromLocalState = async (
     (await buildLocalGameSnapshotContext(objectId, shop));
   const variants = resolvedOptions.variants ?? context.variants;
   const files: SnapshotFile[] = resolvedOptions.files ?? context.files;
-  if (getEmulatorSaveProvider(game) === "rpcs3") {
-    const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
-      await import("./rpcs3-game-identity.js");
+  const saveIdentity = await assertEmulatorDiscIdentity(game);
+  if (saveIdentity) {
     const bindings = await getCloudSaveCustomPathBindings(
       shop,
       objectId,
       cloudSaveCustomPathContextFromPathContext(context.pathContext)
     );
-    assertRpcs3SnapshotIdentity(
-      files,
-      await assertRpcs3DiscIdentity(game),
-      bindings.ready
-    );
+    saveIdentity.assertSnapshotFiles(files, bindings.ready);
   }
   const customPathRawPaths =
     resolvedOptions.customPathRawPaths ?? context.customPathRawPaths;
