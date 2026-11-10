@@ -414,7 +414,7 @@ export const extractDiscSku = async (
   }
 };
 
-const PS4_CONTENT_ID_RE = /^([A-Z])[A-Z]\d{4}[A-Z]{4}\d{5}/;
+const PS4_CONTENT_ID_RE = /^([A-Z])[A-Z]\d{4}[-_]?[A-Z]{4}\d{5}/;
 
 const PS4_CONTENT_REGIONS: Partial<Record<string, SkuRegion>> = {
   U: "US",
