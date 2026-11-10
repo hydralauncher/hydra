@@ -35,6 +35,7 @@ interface RecompilationHeroProps {
   details: RecompilationDetails;
   game: LibraryGame | null;
   installAsset: RecompilationReleaseAsset | null;
+  areReleasesLoaded: boolean;
   install: RecompilationInstall;
   rom: RecompilationRom;
   hasCloudSave: boolean;
@@ -46,6 +47,7 @@ export function RecompilationHero({
   details,
   game,
   installAsset,
+  areReleasesLoaded,
   install,
   rom,
   hasCloudSave,
@@ -66,6 +68,14 @@ export function RecompilationHero({
   const handlesRom = rom.state?.handlesRom === true;
   const needsRomChoice =
     handlesRom && !rom.state?.romPath && !rom.state?.isReady;
+
+  const showsNoFileNote =
+    areReleasesLoaded &&
+    Boolean(state) &&
+    !isInstalled &&
+    !isDownloading &&
+    !isExtracting &&
+    !installAsset;
 
   const { prepareFailed } = install;
   useEffect(() => {
@@ -248,7 +258,7 @@ export function RecompilationHero({
             {hasCloudSave && <CloudSaveWidget />}
             {renderPrimary()}
           </div>
-          {!isInstalled && !isDownloading && !isExtracting && !installAsset && (
+          {showsNoFileNote && (
             <span className="recompilation-page__hero-note">
               {t("no_file_for_this_pc")}
             </span>

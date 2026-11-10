@@ -166,6 +166,8 @@ const resolveExtractedRoot = async (stagingDirectory: string) => {
     : stagingDirectory;
 };
 
+const APPIMAGE_EXTRACT_TIMEOUT_MS = 10 * 60 * 1000;
+
 /**
  * Some AppImages (Nix-built ones like bbport's) hold a compressed stream before
  * the image that 7-Zip opens instead, and symlinks 7-Zip refuses. The
@@ -182,12 +184,19 @@ const extractAppImageWithItself = (
       stdio: "ignore",
       shell: false,
     });
-    child.once("error", reject);
-    child.once("exit", (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`--appimage-extract exited with ${code}`))
-    );
+    const timeout = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error("--appimage-extract timed out"));
+    }, APPIMAGE_EXTRACT_TIMEOUT_MS);
+    child.once("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code === 0) resolve();
+      else reject(new Error(`--appimage-extract exited with ${code}`));
+    });
   });
 
 const extractReleaseArchive = async (
