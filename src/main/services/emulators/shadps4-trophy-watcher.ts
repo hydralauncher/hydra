@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 
-import type { Game } from "@types";
+import type { Game, UnlockedAchievement } from "@types";
 import { platformToSystem } from "@shared";
 
 import { INTERVALS } from "@main/constants";
@@ -14,8 +14,14 @@ import { achievementsLogger } from "../logger";
 import { getEmulatorConfig } from "./emulators-repository";
 import { loadEmulatorAchievementTracking } from "./load-emulator-achievement-tracking";
 import {
+  createShadps4LogScan,
+  mergeTrophyUnlocks,
   parseUnlockedTrophies,
-  resolveShadps4TrophyFile,
+  readNewShadps4LogUnlocks,
+  readShadps4TitleId,
+  resolveShadps4LogFiles,
+  resolveShadps4TrophyFiles,
+  type Shadps4LogScan,
 } from "./shadps4-trophies";
 
 const CATALOGUE_RETRY_INTERVAL_MS = 30_000;
@@ -42,9 +48,12 @@ const hasTrophyCatalogue = async (game: Game): Promise<boolean> => {
   return catalogue.length > 0;
 };
 
-const prepareCaptureOnce = async (gameKey: string, game: Game) => {
-  const tracking = await loadEmulatorAchievementTracking();
-  if (tracking.souvenirs && game.remoteId) {
+const prepareSouvenirCapture = async (gameKey: string) => {
+  const [game, tracking] = await Promise.all([
+    gamesSublevel.get(gameKey),
+    loadEmulatorAchievementTracking(),
+  ]);
+  if (tracking.souvenirs && game?.remoteId) {
     await prepareLinuxGameCaptureSession(gameKey);
   }
 };
@@ -54,58 +63,119 @@ export const startShadps4TrophyWatcher = ({
   executablePath,
   discPath,
 }: StartShadps4TrophyWatcherOptions): Shadps4TrophyWatcher => {
-  let trophyFile: string | null = null;
+  const sessionStartedAt = Date.now();
+  const logScans = new Map<string, Shadps4LogScan>();
+  const pendingLogUnlocks = new Map<string, number>();
+  let titleId: string | null = null;
+  let foundTrophyFile = false;
   let lastModifiedAt = -1;
   let hasImportedExistingUnlocks = false;
-  let hasPreparedCapture = false;
   let nextCatalogueAttemptAt = 0;
   let inFlightRead: Promise<void> | null = null;
+
+  const mergeUnlocks = async (
+    game: Game,
+    unlocks: UnlockedAchievement[],
+    isFinalRead: boolean,
+    publishNotification: boolean
+  ): Promise<boolean> => {
+    if (unlocks.length === 0) return true;
+    if (!isFinalRead && Date.now() < nextCatalogueAttemptAt) return false;
+
+    if (!(await hasTrophyCatalogue(game))) {
+      nextCatalogueAttemptAt = Date.now() + CATALOGUE_RETRY_INTERVAL_MS;
+      return false;
+    }
+
+    await mergeAchievements(game, unlocks, publishNotification, {
+      skipSouvenirCapture: isFinalRead,
+      alwaysUpdateInterface: true,
+    });
+    return true;
+  };
+
+  const readTrophyFiles = async (
+    game: Game,
+    isFinalRead: boolean
+  ): Promise<boolean> => {
+    const candidates = await resolveShadps4TrophyFiles(
+      executablePath,
+      discPath
+    );
+    const stats = await Promise.all(
+      candidates.map((file) => fs.stat(file).catch(() => null))
+    );
+    const files = candidates.filter((_, index) => stats[index]);
+    if (files.length === 0) return false;
+
+    foundTrophyFile = true;
+    const modifiedAt = Math.max(...stats.map((stat) => stat?.mtimeMs ?? -1));
+    if (modifiedAt === lastModifiedAt) return true;
+
+    const contents = await Promise.all(
+      files.map((file) => fs.readFile(file, "utf8").catch(() => null))
+    );
+    const unlockLists = contents.map((xml) =>
+      xml ? parseUnlockedTrophies(xml) : null
+    );
+    if (unlockLists.includes(null)) return true;
+
+    const merged = await mergeUnlocks(
+      game,
+      mergeTrophyUnlocks(unlockLists as UnlockedAchievement[][]),
+      isFinalRead,
+      hasImportedExistingUnlocks
+    );
+    if (merged) {
+      hasImportedExistingUnlocks = true;
+      lastModifiedAt = modifiedAt;
+    }
+    return true;
+  };
+
+  const scanFor = (logFile: string): Shadps4LogScan => {
+    const scan = logScans.get(logFile) ?? createShadps4LogScan();
+    logScans.set(logFile, scan);
+    return scan;
+  };
+
+  const readLog = async (game: Game, isFinalRead: boolean) => {
+    titleId ??= await readShadps4TitleId(discPath);
+    if (!titleId) return;
+    const sessionTitleId = titleId;
+
+    const unlockedIds = await Promise.all(
+      resolveShadps4LogFiles(executablePath, sessionTitleId).map((logFile) =>
+        readNewShadps4LogUnlocks(
+          scanFor(logFile),
+          logFile,
+          sessionTitleId,
+          sessionStartedAt
+        )
+      )
+    );
+    const seenAt = Date.now();
+    for (const id of unlockedIds.flat()) {
+      if (!pendingLogUnlocks.has(id)) pendingLogUnlocks.set(id, seenAt);
+    }
+
+    const unlocks = [...pendingLogUnlocks].map(([name, unlockTime]) => ({
+      name,
+      unlockTime,
+    }));
+    if (await mergeUnlocks(game, unlocks, isFinalRead, true)) {
+      pendingLogUnlocks.clear();
+    }
+  };
 
   const readTrophies = async (isFinalRead: boolean) => {
     if (!HydraApi.isLoggedIn()) return;
 
-    trophyFile ??= await resolveShadps4TrophyFile(executablePath, discPath);
-    if (!trophyFile) return;
-
-    const stats = await fs.stat(trophyFile).catch(() => null);
-    if (!stats || stats.mtimeMs === lastModifiedAt) return;
-
     const game = await gamesSublevel.get(gameKey);
     if (!game) return;
 
-    if (!hasPreparedCapture && !isFinalRead) {
-      hasPreparedCapture = true;
-      prepareCaptureOnce(gameKey, game).catch((error) => {
-        achievementsLogger.warn(
-          "Failed to prepare shadPS4 trophy capture",
-          gameKey,
-          error
-        );
-      });
-    }
-
-    const contents = await fs.readFile(trophyFile, "utf8").catch(() => null);
-    const unlockedTrophies = contents ? parseUnlockedTrophies(contents) : null;
-    if (!unlockedTrophies) return;
-
-    if (unlockedTrophies.length > 0) {
-      if (!isFinalRead && Date.now() < nextCatalogueAttemptAt) return;
-
-      if (!(await hasTrophyCatalogue(game))) {
-        nextCatalogueAttemptAt = Date.now() + CATALOGUE_RETRY_INTERVAL_MS;
-        return;
-      }
-
-      await mergeAchievements(
-        game,
-        unlockedTrophies,
-        hasImportedExistingUnlocks,
-        { skipSouvenirCapture: isFinalRead, alwaysUpdateInterface: true }
-      );
-    }
-
-    hasImportedExistingUnlocks = true;
-    lastModifiedAt = stats.mtimeMs;
+    if (await readTrophyFiles(game, isFinalRead)) return;
+    await readLog(game, isFinalRead);
   };
 
   const runRead = (isFinalRead: boolean) => {
@@ -123,6 +193,14 @@ export const startShadps4TrophyWatcher = ({
     return inFlightRead;
   };
 
+  prepareSouvenirCapture(gameKey).catch((error) => {
+    achievementsLogger.warn(
+      "Failed to prepare shadPS4 trophy capture",
+      gameKey,
+      error
+    );
+  });
+
   const timer = setInterval(() => {
     if (inFlightRead === null) void runRead(false);
   }, INTERVALS.achievementWatcher);
@@ -134,9 +212,12 @@ export const startShadps4TrophyWatcher = ({
       await inFlightRead;
       await runRead(true);
 
-      if (!trophyFile && HydraApi.isLoggedIn()) {
+      const foundGameLog = [...logScans.values()].some(
+        (scan) => scan.matchesGame
+      );
+      if (!foundTrophyFile && !foundGameLog && HydraApi.isLoggedIn()) {
         achievementsLogger.warn(
-          "No shadPS4 trophy file for this session",
+          "No shadPS4 trophy file or game log for this session",
           gameKey
         );
       }
@@ -151,6 +232,6 @@ export const removeShadps4TrophyFile = async (game: Game): Promise<void> => {
   const { executablePath } = await getEmulatorConfig("ps4");
   if (!discPath || !executablePath) return;
 
-  const trophyFile = await resolveShadps4TrophyFile(executablePath, discPath);
-  if (trophyFile) await fs.rm(trophyFile, { force: true });
+  const trophyFiles = await resolveShadps4TrophyFiles(executablePath, discPath);
+  await Promise.all(trophyFiles.map((file) => fs.rm(file, { force: true })));
 };
