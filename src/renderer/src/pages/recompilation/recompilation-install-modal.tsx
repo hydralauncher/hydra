@@ -294,21 +294,23 @@ function InstallModalContent({
 
   const isFolderRom = romState?.isFolder === true;
   const pickFile = async () => {
-    const { filePaths } = await window.electron.showOpenDialog(
-      isFolderRom
-        ? { properties: ["openDirectory"] }
-        : {
-            properties: ["openFile"],
-            filters: [
-              {
-                name: t("rom_file_filter"),
-                extensions: romState?.extensions ?? [],
-              },
-            ],
-          }
-    );
+    // A PS4 game is picked by its eboot.bin, which the folder picker would hide.
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [
+        isFolderRom
+          ? { name: "eboot.bin", extensions: ["bin"] }
+          : {
+              name: t("rom_file_filter"),
+              extensions: romState?.extensions ?? [],
+            },
+      ],
+    });
     const [filePath] = filePaths ?? [];
-    if (filePath) setPickedFile(filePath);
+    if (!filePath) return;
+    setPickedFile(
+      isFolderRom ? filePath.replace(/[\\/]eboot\.bin$/i, "") : filePath
+    );
   };
 
   const libraryRom =

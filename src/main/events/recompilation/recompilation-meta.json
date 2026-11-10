@@ -307,6 +307,7 @@
         }
       },
       "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": ["CUSA01623", "CUSA01715"],
       "extensions": []
     }
   },
@@ -323,6 +324,17 @@
         }
       },
       "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": [
+        "CUSA00207",
+        "CUSA00208",
+        "CUSA00299",
+        "CUSA00900",
+        "CUSA01363",
+        "CUSA03014",
+        "CUSA03023",
+        "CUSA03173",
+        "CUSA03179"
+      ],
       "extensions": []
     }
   },
@@ -339,6 +351,7 @@
         }
       },
       "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": ["CUSA08034", "CUSA08809"],
       "extensions": []
     }
   }

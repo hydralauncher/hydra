@@ -155,6 +155,8 @@ export interface RecompilationRomMeta {
   sha1?: string[];
   /** The game is a folder (a PS4 dump) holding these files, not a single ROM file. */
   folder?: string[];
+  /** PS4 game IDs (TITLE_ID in sce_sys/param.sfo) the port runs; a folder of another game is refused. */
+  titleIds?: string[];
   extensions: string[];
 }
 

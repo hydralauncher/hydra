@@ -17,6 +17,7 @@ import { isCompletedLikeDownload } from "../../../types";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { t } from "i18next";
 import { logger, SevenZip, WindowManager } from "@main/services";
+import { parseParamSfoValue } from "@main/services/emulators/param-sfo";
 import {
   getRecompilationBaseDirectory,
   getRecompilationInstallDirectory,
@@ -54,7 +55,7 @@ export const getRecompilationExecutableOverride = (slug: string) =>
     ? ROM_META[slug]?.executable?.[process.platform as MetaPlatform]
     : undefined) ?? null;
 
-type RomKind = Pick<RecompilationRomMeta, "extensions" | "folder">;
+type RomKind = Pick<RecompilationRomMeta, "extensions" | "folder" | "titleIds">;
 
 const EMPTY_ROM_KIND: RomKind = { extensions: [] };
 
@@ -88,10 +89,24 @@ const fileExists = async (filePath: string | null | undefined) => {
 
 const isFolderRom = (kind: RomKind) => Boolean(kind.folder?.length);
 
-/** A game kept as a folder (a PS4 dump) counts when it holds every file the port needs. */
+const PS4_PARAM_SFO = path.join("sce_sys", "param.sfo");
+
+const readTitleId = async (directory: string) => {
+  const data = await fs.promises
+    .readFile(path.join(directory, PS4_PARAM_SFO))
+    .catch(() => null);
+  // The shared reader returns the ID as a SKU ("CUSA-01623").
+  const titleId = data ? parseParamSfoValue(data, "TITLE_ID") : null;
+  return titleId?.replace(/[^A-Z0-9]/gi, "").toUpperCase() ?? null;
+};
+
+/**
+ * A game kept as a folder (a PS4 dump) counts when it holds every file the
+ * port needs and, when the port lists them, is one of the game IDs it runs.
+ */
 const isGameFolder = async (
   directory: string | null | undefined,
-  files: string[]
+  kind: RomKind
 ) => {
   if (!directory) return false;
   try {
@@ -99,23 +114,31 @@ const isGameFolder = async (
   } catch {
     return false;
   }
-  for (const file of files) {
+  for (const file of kind.folder ?? []) {
     if (!(await fileExists(path.join(directory, ...file.split("/"))))) {
       return false;
     }
   }
-  return true;
+  if (!kind.titleIds?.length) return true;
+  const titleId = await readTitleId(directory);
+  return titleId !== null && kind.titleIds.includes(titleId);
 };
 
+/** The folder ports take the game's own eboot.bin too, and keep its folder. */
+const toGameFolder = (romPath: string) =>
+  path.basename(romPath).toLowerCase() === "eboot.bin"
+    ? path.dirname(romPath)
+    : romPath;
+
 const romExists = (romPath: string | null | undefined, kind: RomKind) =>
-  isFolderRom(kind) ? isGameFolder(romPath, kind.folder!) : fileExists(romPath);
+  isFolderRom(kind) ? isGameFolder(romPath, kind) : fileExists(romPath);
 
 const findGameFolder = async (
   directory: string,
-  files: string[],
+  kind: RomKind,
   depth = 0
 ): Promise<string | null> => {
-  if (await isGameFolder(directory, files)) return directory;
+  if (await isGameFolder(directory, kind)) return directory;
   if (depth >= ROM_SCAN_DEPTH) return null;
 
   const entries = await fs.promises
@@ -125,7 +148,7 @@ const findGameFolder = async (
     if (!entry.isDirectory()) continue;
     const found = await findGameFolder(
       path.join(directory, entry.name),
-      files,
+      kind,
       depth + 1
     );
     if (found) return found;
@@ -190,7 +213,7 @@ const findRomInFolder = async (
 const getDownloadedRomPath = async (download: Download, kind: RomKind) => {
   if (!download.folderName) return null;
   const downloaded = path.join(download.downloadPath, download.folderName);
-  if (isFolderRom(kind)) return findGameFolder(downloaded, kind.folder!);
+  if (isFolderRom(kind)) return findGameFolder(downloaded, kind);
   const { extensions } = kind;
   if (await fileExists(downloaded)) {
     return hasExtension(downloaded, extensions) ||
@@ -332,7 +355,7 @@ const checkChosenRom = async (
   }
 
   const isValid = isFolderRom(meta)
-    ? await isGameFolder(romPath, meta.folder!)
+    ? await isGameFolder(romPath, meta)
     : (await fileExists(romPath)) && hasExtension(romPath, meta.extensions);
   return isValid ? null : { ok: false, reason: "rom_wrong_format" };
 };
@@ -347,10 +370,14 @@ export const setRecompilationRom = async (
     return { ok: false, reason: "invalid_port" };
   }
 
-  const { source, path: romPath } = (rawChoice ?? {}) as Record<
+  const { source, path: rawRomPath } = (rawChoice ?? {}) as Record<
     string,
     unknown
   >;
+  const romPath =
+    typeof rawRomPath === "string" && isFolderRom(meta)
+      ? toGameFolder(rawRomPath)
+      : rawRomPath;
   const problem = await checkChosenRom(source, romPath, meta);
   if (problem) return problem;
 
