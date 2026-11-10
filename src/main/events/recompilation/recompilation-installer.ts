@@ -207,7 +207,8 @@ const extractReleaseArchive = async (
     logger.warn(`7-Zip could not open ${assetName}, using its own extractor`);
     await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
     await fs.promises.mkdir(stagingDirectory, { recursive: true });
-    await fs.promises.chmod(archivePath, 0o755);
+    // Only this user runs the downloaded AppImage, once, to unpack it.
+    await fs.promises.chmod(archivePath, 0o700);
     await extractAppImageWithItself(archivePath, stagingDirectory);
   }
 };
