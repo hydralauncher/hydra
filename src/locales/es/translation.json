@@ -1,7 +1,8 @@
 {
   "language_name": "Español",
   "app": {
-    "ps4_pkg_not_supported": "Los archivos PKG no son compatibles y se omitieron. Los juegos de PS4 necesitan un volcado en carpeta.",
+    "ps4_pkg_not_supported_one": "Se encontró {{count, number}} archivo PKG. PKG no es compatible, así que se omitió. Los juegos de PS4 necesitan un volcado en carpeta.",
+    "ps4_pkg_not_supported_other": "Se encontraron {{count, number}} archivos PKG. PKG no es compatible, así que se omitieron. Los juegos de PS4 necesitan un volcado en carpeta.",
     "successfully_signed_in": "Iniciaste sesión exitosamente",
     "error_boundary_title": "Algo salió mal",
     "error_boundary_description": "La aplicación encontró un error inesperado. Puedes recargar para seguir usando Hydra.",
@@ -1785,6 +1786,7 @@
     "setup_scan_complete": "Escaneo completado",
     "setup_match_matched": "emparejados",
     "setup_match_unmatched": "sin emparejar",
+    "setup_match_unsupported_package": "PKG no compatible",
     "setup_match_wrong_platform": "plataforma incorrecta",
     "setup_unmatched_title_one": "No se pudo emparejar {{count, number}} archivo",
     "setup_unmatched_title_other": "No se pudieron emparejar {{count, number}} archivos",

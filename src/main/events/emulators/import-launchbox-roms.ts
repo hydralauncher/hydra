@@ -344,7 +344,7 @@ export type UnmatchedReason = "wrong_platform" | "unmatched";
 
 export interface UnmatchedFile {
   name: string;
-  reason: UnmatchedReason;
+  reason: UnmatchedReason | "unsupported_package";
 }
 
 export type LaunchboxImportProgress = {
@@ -454,7 +454,7 @@ const scanFolders = async (
   folders: FolderInput[],
   signal: CancelSignal,
   onScan?: ScanReporter
-): Promise<{ collected: ScannedGameInfo[]; unsupportedPackages: number }> => {
+): Promise<{ collected: ScannedGameInfo[]; unsupportedPackages: string[] }> => {
   const binary = emulators.KNOWN_BINARIES[system];
 
   const folderTotals: number[] = [];
@@ -476,7 +476,7 @@ const scanFolders = async (
 
   let scanBase = 0;
   let keptTotal = 0;
-  let unsupportedPackages = 0;
+  const unsupportedPackages: string[] = [];
   const collected: ScannedGameInfo[] = [];
 
   for (let fi = 0; fi < folders.length; fi++) {
@@ -502,7 +502,7 @@ const scanFolders = async (
 
     scanBase += folderTotals[fi] ?? partial.games.length;
     keptTotal += partial.games.length;
-    unsupportedPackages += partial.unsupportedPackages;
+    unsupportedPackages.push(...partial.unsupportedPackages);
     for (const game of partial.games) {
       collected.push({ folderPath: folder.path, ...game });
     }
@@ -991,8 +991,14 @@ export async function runLaunchboxImport(
     sizeBytes: totalSizeBytes,
     matched,
     unmatched,
-    unmatchedFiles,
-    unsupportedPackages,
+    unmatchedFiles: [
+      ...unmatchedFiles,
+      ...unsupportedPackages.map((packagePath) => ({
+        name: path.basename(packagePath),
+        reason: "unsupported_package" as const,
+      })),
+    ],
+    unsupportedPackages: unsupportedPackages.length,
     cancelled: signal.cancelled,
   };
 }

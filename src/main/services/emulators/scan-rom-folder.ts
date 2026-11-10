@@ -20,7 +20,7 @@ export interface ScanResult {
   fileCount: number;
   sizeBytes: number;
   games: ScannedGame[];
-  unsupportedPackages: number;
+  unsupportedPackages: string[];
 }
 
 export interface ScanProgress {
@@ -391,10 +391,12 @@ const isPs4GameDirectory = (entries: Dirent[]): boolean =>
     (entry) => entry.isDirectory() && matchesPs4EntryName(entry.name, "sce_sys")
   );
 
-const countPs4PackageFiles = (entries: Dirent[]): number =>
-  entries.filter(
-    (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".pkg")
-  ).length;
+const findPs4PackageFiles = (directory: string, entries: Dirent[]): string[] =>
+  entries
+    .filter(
+      (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".pkg")
+    )
+    .map((entry) => path.join(directory, entry.name));
 
 const collectPs4Directory = (
   directory: string,
@@ -402,8 +404,8 @@ const collectPs4Directory = (
   shouldDescend: boolean,
   candidates: Candidate[],
   queue: string[]
-): number => {
-  if (isPs4OverlayDirectory(directory)) return 0;
+): string[] => {
+  if (isPs4OverlayDirectory(directory)) return [];
 
   if (isPs4GameDirectory(entries)) {
     candidates.push({
@@ -411,7 +413,7 @@ const collectPs4Directory = (
       name: path.basename(directory),
       isMarkerDir: true,
     });
-    return 0;
+    return [];
   }
 
   if (shouldDescend) {
@@ -420,7 +422,7 @@ const collectPs4Directory = (
     }
   }
 
-  return countPs4PackageFiles(entries);
+  return findPs4PackageFiles(directory, entries);
 };
 
 const collectEntries = (
@@ -443,11 +445,11 @@ const collectCandidates = async (
   binary: KnownBinary,
   scanSubfolders: boolean,
   signal?: { cancelled: boolean }
-): Promise<{ candidates: Candidate[]; unsupportedPackages: number }> => {
+): Promise<{ candidates: Candidate[]; unsupportedPackages: string[] }> => {
   const candidates: Candidate[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();
-  let unsupportedPackages = 0;
+  const unsupportedPackages: string[] = [];
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
     if (signal?.cancelled) break;
@@ -467,12 +469,14 @@ const collectCandidates = async (
     if (!entries) continue;
 
     if (binary.system === "ps4") {
-      unsupportedPackages += collectPs4Directory(
-        dir,
-        entries,
-        scanSubfolders || dir === rootPath,
-        candidates,
-        queue
+      unsupportedPackages.push(
+        ...collectPs4Directory(
+          dir,
+          entries,
+          scanSubfolders || dir === rootPath,
+          candidates,
+          queue
+        )
       );
       continue;
     }

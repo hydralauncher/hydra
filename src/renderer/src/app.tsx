@@ -455,7 +455,9 @@ export function App() {
         })
       );
       if (payload.type === "done" && payload.unsupportedPackages > 0) {
-        showWarningToast(t("ps4_pkg_not_supported"));
+        showWarningToast(
+          t("ps4_pkg_not_supported", { count: payload.unsupportedPackages })
+        );
       }
       updateLibrary();
     });

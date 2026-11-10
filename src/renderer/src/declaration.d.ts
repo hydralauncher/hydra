@@ -690,7 +690,7 @@ declare global {
               unmatched: number;
               unmatchedFiles: {
                 name: string;
-                reason: "wrong_platform" | "unmatched";
+                reason: "wrong_platform" | "unmatched" | "unsupported_package";
               }[];
             }
           | {

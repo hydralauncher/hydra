@@ -303,7 +303,13 @@ export function EmulatorDetail({
       unmatched: scan.result?.unmatched ?? 0,
     });
     if (scan.result?.unsupportedPackages) {
-      showWarningToast(summary, t("ps4_pkg_not_supported", { ns: "app" }));
+      showWarningToast(
+        summary,
+        t("ps4_pkg_not_supported", {
+          ns: "app",
+          count: scan.result.unsupportedPackages,
+        })
+      );
       return;
     }
     showSuccessToast(summary);

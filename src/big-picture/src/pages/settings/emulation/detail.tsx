@@ -111,7 +111,10 @@ export function EmulationDetail({
       if (unsupportedPackages > 0) {
         showWarningToast(title, {
           ...SETTINGS_TOAST_OPTIONS,
-          message: t("ps4_pkg_not_supported", { ns: "app" }),
+          message: t("ps4_pkg_not_supported", {
+            ns: "app",
+            count: unsupportedPackages,
+          }),
         });
         return;
       }
