@@ -12,5 +12,5 @@ export const resetAccountScopedGameState = (game: Game): Game => ({
   ...game,
   remoteId: null,
   isHiddenFromOthers: false,
-  isConcealed: false,
+  isConcealed: game.shop === "custom" ? Boolean(game.isConcealed) : false,
 });

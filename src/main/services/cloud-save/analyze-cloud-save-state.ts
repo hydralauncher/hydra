@@ -3,6 +3,7 @@ import type {
   CloudSaveState,
   GameShop,
 } from "@types";
+import { logger } from "@main/services/logger";
 
 import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
@@ -16,14 +17,18 @@ import {
 } from "./custom-path-store";
 import { getInstallationOwnedCustomPathRawPaths } from "./installation-owned-custom-paths";
 import {
+  isEmulatorSaveRawPath,
   parseRetroArchGameRawPath,
   parseRetroArchSaveRawPath,
 } from "./emulator-provider-identity";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots";
 import { mergeUserVariantSnapshots } from "./merge-user-variant-snapshots";
-import { reconcileLocalSnapshotTargets } from "./reconcile-local-snapshot-targets";
-import { getRemoteSnapshotRestoreManifest } from "./resolve-remote-snapshot-targets";
+import { reconcileRemoteTargetObservations } from "./reconcile-remote-target-observations";
+import {
+  getRemoteSnapshotRestoreManifest,
+  resolveRestoreManifestTargets,
+} from "./resolve-remote-snapshot-targets";
 import {
   getCloudSaveSyncAnchor,
   getCloudSaveSyncAnchorForSnapshot,
@@ -35,7 +40,10 @@ import {
 } from "./retroarch-snapshot-migration";
 import { loadRetroArchBindings } from "./retroarch-state-bindings";
 import type { SyncDirection } from "./sync-game/policy";
-import { rpcs3SavedataTitleIdsForGame } from "./rpcs3-title-ids.js";
+import {
+  assertEmulatorDiscIdentity,
+  emulatorRequiresFreshContext,
+} from "./emulator-disc-identity.js";
 
 interface AnalyzeCloudSaveStateOptions {
   customPathBindings?: CloudSaveCustomPathBindings;
@@ -45,6 +53,12 @@ interface AnalyzeCloudSaveStateOptions {
 const samePaths = (left: string[], right: string[]) =>
   left.length === right.length &&
   left.every((value, index) => value === right[index]);
+
+const isUnavailableRestoreEnvironment = (error: unknown) =>
+  error instanceof Error &&
+  (error.message === "cloud_save_restore_prefix_unresolved" ||
+    error.message === "cloud_save_restore_prefix_invalid" ||
+    error.message === "cloud_save_restore_profile_unresolved");
 
 export const analyzeCloudSaveState = async (
   objectId: string,
@@ -57,10 +71,11 @@ export const analyzeCloudSaveState = async (
     suppliedContext ?? getCloudSaveGameContext(objectId, shop),
     listRemoteGameSnapshots(objectId, shop),
   ]);
-  const initialContext =
-    getEmulatorSaveProvider(suppliedOrCurrentContext.game) === "rpcs3"
-      ? await getCloudSaveGameContext(objectId, shop)
-      : suppliedOrCurrentContext;
+  const initialContext = emulatorRequiresFreshContext(
+    suppliedOrCurrentContext.game
+  )
+    ? await getCloudSaveGameContext(objectId, shop)
+    : suppliedOrCurrentContext;
   const activeRemoteSnapshot = remoteSnapshots[0] ?? null;
   const originalRemoteManifest = activeRemoteSnapshot
     ? await getRemoteSnapshotRestoreManifest(activeRemoteSnapshot)
@@ -92,25 +107,13 @@ export const analyzeCloudSaveState = async (
   ) {
     throw new Error("Active Cloud Save snapshot belongs to another game");
   }
-  let rpcs3AllowedTitleIds: ReadonlySet<string> | null = null;
-  let rpcs3SavedataTitleIds: string[] | undefined;
-  if (getEmulatorSaveProvider(initialContext.game) === "rpcs3") {
-    const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
-      await import("./rpcs3-game-identity.js");
-    rpcs3AllowedTitleIds = await assertRpcs3DiscIdentity(initialContext.game!);
-    rpcs3SavedataTitleIds = rpcs3SavedataTitleIdsForGame(
-      initialContext.game!,
-      rpcs3AllowedTitleIds
-    );
-    assertRpcs3SnapshotIdentity(
-      (remoteManifest?.files ?? []).filter(
-        (file) => !file.rawPath.startsWith("<custom>")
-      ),
-      rpcs3AllowedTitleIds,
-      [],
-      new Set(rpcs3SavedataTitleIds)
-    );
-  }
+  const saveIdentity = await assertEmulatorDiscIdentity(initialContext.game);
+  const savedataTitleIds = saveIdentity?.savedataTitleIds;
+  saveIdentity?.assertSnapshotFiles(
+    (remoteManifest?.files ?? []).filter(
+      (file) => !file.rawPath.startsWith("<custom>")
+    )
+  );
   const context = initialContext;
   const currentAnchor = await getCloudSaveSyncAnchor(
     shop,
@@ -181,17 +184,10 @@ export const analyzeCloudSaveState = async (
       remoteFiles: remoteManifest?.files ?? [],
     }
   );
-  if (rpcs3AllowedTitleIds) {
-    const { assertRpcs3SnapshotIdentity } = await import(
-      "./rpcs3-game-identity.js"
-    );
-    assertRpcs3SnapshotIdentity(
-      remoteManifest?.files ?? [],
-      rpcs3AllowedTitleIds,
-      customPathBindings.ready,
-      new Set(rpcs3SavedataTitleIds)
-    );
-  }
+  saveIdentity?.assertSnapshotFiles(
+    remoteManifest?.files ?? [],
+    customPathBindings.ready
+  );
   const preserveLocalMissingRawPaths =
     options.allowInstallationOwnedCustomPathDeletion
       ? new Set<string>()
@@ -241,30 +237,59 @@ export const analyzeCloudSaveState = async (
     {
       customPathBindings,
       remoteFiles: remoteManifest?.files ?? [],
-      rpcs3SavedataTitleIds,
+      savedataTitleIds,
     }
   );
-  if (rpcs3AllowedTitleIds) {
-    const { assertRpcs3SnapshotIdentity } = await import(
-      "./rpcs3-game-identity.js"
-    );
-    assertRpcs3SnapshotIdentity(
-      localSnapshotContext.files,
-      rpcs3AllowedTitleIds,
-      customPathBindings.ready,
-      new Set(rpcs3SavedataTitleIds)
-    );
-  }
+  saveIdentity?.assertSnapshotFiles(
+    localSnapshotContext.files,
+    customPathBindings.ready
+  );
+  const restorableEmulatorEntryIds = new Set<string>();
+
   if (remoteManifest) {
-    localSnapshotContext = await reconcileLocalSnapshotTargets({
-      objectId,
-      shop,
-      local: localSnapshotContext,
-      remoteManifest,
-      customPathBindings,
-      rpcs3SavedataTitleIds,
-      pathContext: context.pathContext,
-    });
+    const localEntryIds = new Set(
+      localSnapshotContext.files.map(cloudSaveFileKey)
+    );
+    const missingRemoteFiles = remoteManifest.files.filter(
+      (file) => !localEntryIds.has(cloudSaveFileKey(file))
+    );
+    if (missingRemoteFiles.length > 0) {
+      const usedVariantIds = new Set(
+        missingRemoteFiles.map((file) => file.variantId)
+      );
+      try {
+        const resolution = await resolveRestoreManifestTargets(
+          {
+            ...remoteManifest,
+            variants: remoteManifest.variants.filter((variant) =>
+              usedVariantIds.has(variant.variantId)
+            ),
+            files: missingRemoteFiles,
+          },
+          context.pathContext,
+          customPathBindings,
+          savedataTitleIds
+        );
+        for (const action of resolution.actions) {
+          if (isEmulatorSaveRawPath(action.rawPath)) {
+            restorableEmulatorEntryIds.add(cloudSaveFileKey(action));
+          }
+        }
+        localSnapshotContext = reconcileRemoteTargetObservations(
+          localSnapshotContext,
+          remoteManifest.variants,
+          missingRemoteFiles,
+          resolution,
+          buildCloudSaveAggregateHash
+        );
+      } catch (error) {
+        if (!isUnavailableRestoreEnvironment(error)) throw error;
+        logger.info(
+          "[Cloud Save] Skipping remote target observation without a usable restore environment",
+          { shop, objectId, error }
+        );
+      }
+    }
   }
 
   const {

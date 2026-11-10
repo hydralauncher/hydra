@@ -160,6 +160,8 @@ async function fixture(t: TestContext, apiUrl = "http://localhost:3000") {
     "./friends-snapshot": "export const FriendsSnapshotCache = { clear() {} };",
     "./chat/chat-unread-store":
       "export const ChatUnreadStore = { clear() {} };",
+    "./chat/chat-official-messages":
+      "export const ChatOfficialMessages = { stop() {} };",
     "./chat/chat-sender-profiles":
       "export const clearChatSenderProfiles = () => {};",
     "./notifications": "export const closeChatNotifications = () => {};",
@@ -560,4 +562,22 @@ test("existing HTTP contracts and optional integration failures preserve Hydra l
   assert.equal(f.api.isLoggedIn(), true);
   await assert.rejects(f.api.get(endpoint));
   assert.equal(f.api.isLoggedIn(), false);
+});
+
+test("errors without a response keep their code", async (t) => {
+  const f = await fixture(t);
+  await f.signIn("A");
+  f.hooks.request = async (request) => {
+    throw new AxiosError(
+      "timeout of 5000ms exceeded",
+      "ECONNABORTED",
+      request.config,
+      {}
+    );
+  };
+  await assert.rejects(f.api.get(endpoint), {
+    message: "Request failed with ECONNABORTED timeout of 5000ms exceeded",
+    code: "ECONNABORTED",
+  });
+  assert.equal(f.api.isLoggedIn(), true);
 });

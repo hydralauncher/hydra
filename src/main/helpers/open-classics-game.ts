@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import path from "node:path";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger, NativeAddon } from "@main/services";
@@ -13,7 +14,13 @@ import {
   setCloudSaveLaunchGuard,
 } from "@main/services/cloud-save";
 import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
+import {
+  findSelectedExecutableDisc,
+  findSelectedRecompilationDisc,
+} from "./classics-executable-disc";
+import { launchRecompilationDisc } from "./launch-recompilation-disc";
 import { launchClassicsGame } from "./launch-classics-game";
+import { launchGame } from "./launch-game";
 import { launchRetroArchGame } from "./launch-retroarch-game";
 import { platformToRetroArchPlatform } from "./platform-to-retroarch-platform";
 import { platformToSystem } from "./platform-to-system";
@@ -26,6 +33,11 @@ const codedLaunchError = (
   logger.error("Failed to launch classics game", { code, ...context });
   return Object.assign(new Error(message), { code });
 };
+
+const resolveDiscBootPath = (
+  discPath: string,
+  system: EmulatorSystem
+): string => (system === "ps4" ? path.join(discPath, "eboot.bin") : discPath);
 
 const isRpcs3RunningExternally = async (): Promise<number[]> => {
   const procs = await NativeAddon.listProcesses();
@@ -196,6 +208,34 @@ export const openClassicsGame = async (
   if (!game) throw new Error(`Game not found: ${gameKey}`);
   clearCloudSaveLaunchGuard(objectId, shop);
 
+  const recompilationDisc = findSelectedRecompilationDisc(
+    game.discs,
+    discPath,
+    game.selectedDiscPath
+  );
+  if (recompilationDisc?.recompilationSlug) {
+    await launchRecompilationDisc(
+      objectId,
+      recompilationDisc.recompilationSlug
+    );
+    return;
+  }
+
+  const executableDisc = findSelectedExecutableDisc(
+    game.discs,
+    discPath,
+    game.selectedDiscPath
+  );
+  if (executableDisc) {
+    await launchGame({
+      shop,
+      objectId,
+      executablePath: executableDisc.path,
+      launchOptions: game.launchOptions ?? null,
+    });
+    return;
+  }
+
   const prepareCloudSaveBeforeLaunch = async () => {
     if (!(await canRunAutomaticCloudSaveSync(objectId, shop))) return true;
     const context = await getCloudSaveGameContext(objectId, shop).catch(
@@ -323,7 +363,10 @@ export const openClassicsGame = async (
 
   const resolvedDiscPath =
     discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-  if (!resolvedDiscPath || !existsSync(resolvedDiscPath)) {
+  if (
+    !resolvedDiscPath ||
+    !existsSync(resolveDiscBootPath(resolvedDiscPath, system))
+  ) {
     throw codedLaunchError(
       "NO_DISC",
       `NO_DISC: No disc available for game ${objectId}`,

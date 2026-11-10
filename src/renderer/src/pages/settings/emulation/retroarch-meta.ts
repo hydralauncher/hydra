@@ -5,7 +5,7 @@ import type {
   RetroArchCoreName,
 } from "@types";
 
-import { installPercent } from "./setup/install-progress";
+import { installPercent } from "@renderer/components/setup-modal/install-progress-bar";
 
 export interface RetroArchCoreMeta {
   name: RetroArchCoreName;
@@ -26,6 +26,10 @@ export const RETROARCH_LABEL = "RetroArch";
 export const RETROARCH_CORES_LINE = RETROARCH_CORE_LIST.map(
   (core) => core.label
 ).join(" · ");
+
+export const RETROARCH_CORES_TOOLTIP = RETROARCH_CORE_LIST.map(
+  (core) => `${core.platforms} - ${core.label}`
+).join("\n");
 
 export const RETROARCH_CORES_TAGLINE = `${RETROARCH_CORE_LIST.slice(0, 2)
   .map((core) => core.label)

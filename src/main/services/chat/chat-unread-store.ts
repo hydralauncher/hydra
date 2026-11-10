@@ -1,3 +1,4 @@
+import { OFFICIAL_CHAT_FRIEND_ID } from "@shared";
 import type { ChatUnreadState, ChatUnreadSummary } from "@types";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
@@ -29,6 +30,12 @@ export class ChatUnreadStore {
   private static isLoaded = false;
   private static loading: Promise<void> | null = null;
   private static pendingChanges: Map<string, PendingUnreadChange> | null = null;
+  // Kept apart from `unread`: catch-up reads that to announce missed messages,
+  // and official messages have neither a chat API nor notifications.
+  private static officialUnread = 0;
+  private static officialRevision = 0;
+  // Bumped by each read, so a poll that started before it can't undo it.
+  private static officialReadMark = 0;
   // Bumped on clear() so a load started before sign-out can't repopulate the
   // store with the previous user's counts.
   private static generation = 0;
@@ -69,6 +76,8 @@ export class ChatUnreadStore {
       change.incoming.push(createdAt);
       this.pendingChanges.set(friendId, change);
     }
+
+    this.recordMessageTime(friendId, createdAt);
 
     if (this.isLoaded) {
       this.unread.set(friendId, (this.unread.get(friendId) ?? 0) + 1);
@@ -118,8 +127,33 @@ export class ChatUnreadStore {
     this.broadcast();
   }
 
+  public static getOfficialReadMark() {
+    return this.officialReadMark;
+  }
+
+  public static applyOfficialPoll(
+    unreadCount: number,
+    generation: number,
+    readMark: number
+  ) {
+    if (generation !== this.generation) return;
+
+    if (readMark === this.officialReadMark) this.officialUnread = unreadCount;
+    this.officialRevision++;
+    this.broadcast();
+  }
+
+  public static clearOfficialUnread(generation: number) {
+    if (generation !== this.generation) return;
+
+    this.officialReadMark++;
+    this.officialUnread = 0;
+    this.broadcast();
+  }
+
   public static clear() {
     this.generation++;
+    this.officialUnread = 0;
     this.unread.clear();
     this.lastMessageAt.clear();
     this.lastSeenSeq.clear();
@@ -154,6 +188,9 @@ export class ChatUnreadStore {
       );
       for (const [friendId, change] of changes) {
         this.applyPendingChange(friendId, change);
+        for (const createdAt of change.incoming) {
+          this.recordMessageTime(friendId, createdAt);
+        }
       }
       this.isLoaded = true;
       this.broadcast();
@@ -186,11 +223,33 @@ export class ChatUnreadStore {
     else this.unread.delete(friendId);
   }
 
+  private static recordMessageTime(friendId: string, createdAt: string) {
+    const current = this.lastMessageAt.get(friendId);
+    if (!current || Date.parse(createdAt) > Date.parse(current)) {
+      this.lastMessageAt.set(friendId, createdAt);
+    }
+  }
+
   private static toState(): ChatUnreadState {
     let totalUnread = 0;
-    for (const count of this.unread.values()) totalUnread += count;
+    const lastMessageAtByFriend: Record<string, string> = {};
+    for (const [friendId, count] of this.unread) {
+      totalUnread += count;
+      const lastMessageAt = this.lastMessageAt.get(friendId);
+      if (lastMessageAt) lastMessageAtByFriend[friendId] = lastMessageAt;
+    }
 
-    return { totalUnread, byFriend: Object.fromEntries(this.unread) };
+    return {
+      totalUnread: totalUnread + this.officialUnread,
+      byFriend: {
+        ...Object.fromEntries(this.unread),
+        ...(this.officialUnread > 0
+          ? { [OFFICIAL_CHAT_FRIEND_ID]: this.officialUnread }
+          : {}),
+      },
+      lastMessageAtByFriend,
+      officialRevision: this.officialRevision,
+    };
   }
 
   private static broadcast() {

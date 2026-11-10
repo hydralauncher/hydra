@@ -15,19 +15,29 @@ import {
   useGameCollections,
   useUserDetails,
 } from "@renderer/hooks";
-import { selectIsLibraryLoading, setHeaderTitle } from "@renderer/features";
+import {
+  selectGroupedLibrary,
+  selectIsLibraryLoading,
+  setHeaderTitle,
+} from "@renderer/features";
 import {
   HeartIcon,
   TelescopeIcon,
   FileDirectoryIcon,
+  PlusIcon,
   SearchIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { AuthPage, groupLibraryGames, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
-import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
-import { useCollectionContextMenu } from "@renderer/context";
+import {
+  Button,
+  CreateCollectionModal,
+  GameContextMenu,
+} from "@renderer/components";
+import { SidebarAddingCustomGameModal } from "@renderer/components/sidebar/sidebar-adding-custom-game-modal";
+import { useCollectionContextMenu, useScanGames } from "@renderer/context";
 import {
   getGameCollectionIds,
   isGameInstalled,
@@ -36,13 +46,13 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
-import { ViewOptions, ViewMode } from "./view-options";
-import { FilterOptions, SortOption } from "./filter-options";
+import {
+  LibraryDisplayMenu,
+  type SortOption,
+  type ViewMode,
+} from "./library-display-menu";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
-import { InstalledFilter } from "./installed-filter";
-import { PlatformFilter } from "./platform-filter";
-import { SourceFilter } from "./source-filter";
-import { CollectionsFilter } from "./collections-filter";
+import { LibraryFiltersMenu } from "./library-filters-menu";
 import { LibraryGamesSkeleton } from "./library-games-skeleton";
 import {
   categoryShowsPlatforms,
@@ -187,6 +197,8 @@ export default function Library() {
   }>({ game: null, visible: false, position: { x: 0, y: 0 } });
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
+  const [showAddGameModal, setShowAddGameModal] = useState(false);
+  const { isScanSupported, isScanning, openScanModal } = useScanGames();
 
   const [storedFilters] = useState(() =>
     readStoredLibraryFilters(
@@ -487,10 +499,7 @@ export default function Library() {
     userDetails,
   ]);
 
-  const groupedLibrary = useMemo(
-    () => groupLibraryGames(library, runningGameId ? [runningGameId] : []),
-    [library, runningGameId]
-  );
+  const groupedLibrary = useAppSelector(selectGroupedLibrary);
   const groupedHiddenGames = useMemo(
     () => groupLibraryGames(hiddenGames, runningGameId ? [runningGameId] : []),
     [hiddenGames, runningGameId]
@@ -500,7 +509,11 @@ export default function Library() {
     [groupedLibrary, sortBy]
   );
 
-  const { platforms: uniquePlatforms, hasImportedGames } = useMemo(
+  const {
+    platforms: uniquePlatforms,
+    sources: availableSources,
+    hasImportedGames,
+  } = useMemo(
     () =>
       getLibraryFilterOptions(
         selectedCollectionId === HIDDEN_COLLECTION_ID ? hiddenGames : library
@@ -508,6 +521,13 @@ export default function Library() {
     [library, hiddenGames, selectedCollectionId]
   );
   const hasPlatforms = uniquePlatforms.length > 0;
+  const effectiveSources = useMemo(
+    () =>
+      hasImportedGames
+        ? selectedSources.filter((source) => availableSources.includes(source))
+        : [],
+    [hasImportedGames, selectedSources, availableSources]
+  );
   const showSourceFilter =
     categoryShowsSources(effectiveCategory) && hasImportedGames;
   const showPlatformFilter =
@@ -535,7 +555,7 @@ export default function Library() {
 
     filtered = filterLibraryGames(filtered, {
       category: effectiveCategory,
-      sources: hasImportedGames ? selectedSources : [],
+      sources: effectiveSources,
       platforms: hasPlatforms ? selectedPlatforms : [],
     });
 
@@ -571,8 +591,7 @@ export default function Library() {
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
-    hasImportedGames,
-    selectedSources,
+    effectiveSources,
     hasPlatforms,
     selectedPlatforms,
     showInstalledOnly,
@@ -602,7 +621,9 @@ export default function Library() {
         name: t("favorites"),
         gamesCount: favoritesCount,
       },
-      ...(userDetails
+      ...(userDetails &&
+      (groupedHiddenGames.length > 0 ||
+        selectedCollectionId === HIDDEN_COLLECTION_ID)
         ? [
             {
               id: HIDDEN_COLLECTION_ID,
@@ -623,6 +644,7 @@ export default function Library() {
     groupedLibrary,
     favoritesCount,
     groupedHiddenGames,
+    selectedCollectionId,
     t,
     userDetails,
   ]);
@@ -684,9 +706,13 @@ export default function Library() {
   const isFavoritesCollectionSelected =
     selectedCollectionId === FAVORITES_COLLECTION_ID;
   const shouldShowFavoritesEmptyState =
-    hasGames && isFavoritesCollectionSelected && hasNoFilteredGames;
+    hasGames &&
+    !isLibraryLoading &&
+    isFavoritesCollectionSelected &&
+    hasNoFilteredGames;
   const shouldShowCollectionEmptyState =
     hasGames &&
+    !isLibraryLoading &&
     !shouldShowFavoritesEmptyState &&
     !(
       isHiddenCollectionSelected &&
@@ -701,6 +727,7 @@ export default function Library() {
     hasNoFilteredGames;
   const shouldShowNoResultsEmptyState =
     hasGames &&
+    !isLibraryLoading &&
     hasNoFilteredGames &&
     !shouldShowFavoritesEmptyState &&
     !shouldShowCollectionEmptyState &&
@@ -714,54 +741,75 @@ export default function Library() {
     <section
       className={`library__content${hasGames && isHeaderHidden ? " library__content--header-hidden" : ""}`}
     >
-      {showControls && (
-        <div
-          className={`library__page-header${isHeaderHidden ? " library__page-header--hidden" : ""}`}
-        >
-          <div className="library__controls-row">
-            <div className="library__controls-left">
+      {/* Hides on scroll down and comes back on scroll up. Without games
+          there is nothing to scroll, so adding one stays in reach. */}
+      <div
+        className={`library__page-header${hasGames && isHeaderHidden ? " library__page-header--hidden" : ""}`}
+      >
+        <div className="library__toolbar">
+          {showControls && (
+            <>
               <CategoryFilter
                 category={effectiveCategory}
                 onCategoryChange={handleCategoryChange}
               />
-              <CollectionsFilter
+
+              <LibraryFiltersMenu
                 collections={libraryCollections}
                 selectedCollectionId={selectedCollectionId}
                 favoritesCollectionId={FAVORITES_COLLECTION_ID}
                 hiddenCollectionId={HIDDEN_COLLECTION_ID}
-                onSelect={handleCollectionSelect}
-                onCreate={handleCreateCollectionButtonClick}
+                onCollectionSelect={handleCollectionSelect}
+                onCollectionCreate={handleCreateCollectionButtonClick}
                 onCollectionContextMenu={openCollectionContextMenu}
-              />
-              {showSourceFilter && (
-                <SourceFilter
-                  selectedSources={selectedSources}
-                  onSourcesChange={handleSourcesChange}
-                />
-              )}
-              {showPlatformFilter && (
-                <PlatformFilter
-                  selectedPlatforms={selectedPlatforms}
-                  platforms={uniquePlatforms}
-                  onPlatformsChange={handlePlatformsChange}
-                />
-              )}
-              <InstalledFilter
+                showSources={showSourceFilter}
+                sources={availableSources}
+                selectedSources={effectiveSources}
+                onSourcesChange={handleSourcesChange}
+                showPlatforms={showPlatformFilter}
+                platforms={uniquePlatforms}
+                selectedPlatforms={selectedPlatforms}
+                onPlatformsChange={handlePlatformsChange}
                 showInstalledOnly={showInstalledOnly}
                 onShowInstalledOnlyChange={handleShowInstalledOnlyChange}
               />
-            </div>
+            </>
+          )}
 
-            <div className="library__controls-right">
-              <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              <ViewOptions
+          <div className="library__actions">
+            {showControls && (
+              <LibraryDisplayMenu
+                sortBy={sortBy}
+                onSortChange={handleSortChange}
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
               />
-            </div>
+            )}
+
+            {isScanSupported && (
+              <Button
+                theme="outline"
+                className={`library__action library__action--icon${isScanning ? " library__action--scanning" : ""}`}
+                onClick={openScanModal}
+                aria-label={t("scan_games_tooltip", { ns: "header" })}
+                tooltip={t("scan_games_tooltip", { ns: "header" })}
+                tooltipPlace="bottom"
+              >
+                <SyncIcon size={16} />
+              </Button>
+            )}
+
+            <Button
+              theme="primary"
+              className="library__action"
+              onClick={() => setShowAddGameModal(true)}
+            >
+              <PlusIcon size={16} />
+              {t("add_game", { ns: "header" })}
+            </Button>
           </div>
         </div>
-      )}
+      </div>
 
       {!hasGames && !shouldShowClassicsImporting && !isLibraryLoading && (
         <div className="library__no-games">
@@ -864,6 +912,7 @@ export default function Library() {
         )}
         {containerWidth > 0 &&
           hasGames &&
+          !isLibraryLoading &&
           !shouldShowFavoritesEmptyState &&
           !shouldShowCollectionEmptyState &&
           !shouldShowClassicsImporting &&
@@ -922,6 +971,11 @@ export default function Library() {
       <CreateCollectionModal
         visible={showCreateCollectionModal}
         onClose={() => setShowCreateCollectionModal(false)}
+      />
+
+      <SidebarAddingCustomGameModal
+        visible={showAddGameModal}
+        onClose={() => setShowAddGameModal(false)}
       />
 
       <ClassicsOnboardingModal

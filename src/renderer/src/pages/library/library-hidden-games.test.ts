@@ -151,6 +151,7 @@ async function renderLibrary(
     },
     "@renderer/features": {
       selectIsLibraryLoading: () => false,
+      selectGroupedLibrary: () => library,
       setHeaderTitle: noop,
     },
     "@primer/octicons-react": Object.fromEntries(
@@ -160,6 +161,7 @@ async function renderLibrary(
         "FileDirectoryIcon",
         "SearchIcon",
         "SyncIcon",
+        "PlusIcon",
       ].map((name) => [name, () => null])
     ),
     "react-i18next": { useTranslation: () => ({ t: translate }) },
@@ -169,11 +171,20 @@ async function renderLibrary(
       removeDiacritics: (value: string) => value,
     },
     "@renderer/components": {
+      Button: () => null,
       CreateCollectionModal: () => null,
       GameContextMenu: () => null,
     },
     "@renderer/context": {
       useCollectionContextMenu: () => ({ openCollectionContextMenu: noop }),
+      useScanGames: () => ({
+        isScanSupported: false,
+        isScanning: false,
+        openScanModal: noop,
+      }),
+    },
+    "@renderer/components/sidebar/sidebar-adding-custom-game-modal": {
+      SidebarAddingCustomGameModal: () => null,
     },
     "@renderer/helpers": {
       getGameCollectionIds: () => [],
@@ -185,13 +196,9 @@ async function renderLibrary(
     },
     "./library-game-card": { LibraryGameCard: gameCard },
     "./library-game-card-large": { LibraryGameCardLarge: gameCard },
-    "./view-options": { ViewOptions: () => null },
-    "./filter-options": { FilterOptions: () => null },
+    "./library-display-menu": { LibraryDisplayMenu: () => null },
     "./category-filter": { CategoryFilter: () => null },
-    "./installed-filter": { InstalledFilter: () => null },
-    "./platform-filter": { PlatformFilter: () => null },
-    "./source-filter": { SourceFilter: () => null },
-    "./collections-filter": { CollectionsFilter: () => null },
+    "./library-filters-menu": { LibraryFiltersMenu: () => null },
     "./library-games-skeleton": { LibraryGamesSkeleton: () => null },
     "./library-category": {
       categoryShowsPlatforms: () => false,

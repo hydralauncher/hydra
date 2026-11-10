@@ -12,6 +12,7 @@ import {
 } from "@main/services/steam-integration/steam-imported-games";
 import { clearImportedSteamGames } from "@main/services/steam-integration/clear-imported-steam-games";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
 import { db, gamesSublevel } from "@main/level";
 import type { Game } from "@types";
 import { chunk } from "lodash-es";
@@ -119,6 +120,7 @@ const disconnectSteam = async (
     return;
   }
 
+  UnlockedAchievementsCache.clear();
   await clearImportedSteamGames(steamOnlyObjectIds);
   WindowManager.sendToAppWindows("on-library-batch-complete");
   const didMerge = await mergeWithRemoteGames();

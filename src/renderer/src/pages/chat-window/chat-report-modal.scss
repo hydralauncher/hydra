@@ -1,7 +1,5 @@
 @use "../../scss/globals.scss";
 
-$faded-text: rgba(globals.$body-color, 0.7);
-$meta-text: rgba(globals.$body-color, 0.6);
 $pill-border: rgba(255, 255, 255, 0.12);
 // Error text on the tinted banner, at 7:1.
 $error-text: #fda4af;
@@ -48,7 +46,7 @@ $error-text: #fda4af;
   &__form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 2);
     padding: 20px calc(globals.$spacing-unit * 2)
       calc(globals.$spacing-unit * 2);
   }
@@ -83,7 +81,7 @@ $error-text: #fda4af;
   &__reason-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   // Selecting a reason only recolors its pill, so the rows never reflow.
@@ -96,7 +94,7 @@ $error-text: #fda4af;
     box-sizing: border-box;
     border: 1px solid $pill-border;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     color: globals.$body-color;
     cursor: pointer;
     transition:
@@ -135,7 +133,7 @@ $error-text: #fda4af;
   &__details {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__details-header {
@@ -147,13 +145,13 @@ $error-text: #fda4af;
 
   &__optional {
     font-weight: 400;
-    color: $meta-text;
+    color: globals.$subtle-color;
   }
 
   &__counter {
     flex-shrink: 0;
-    font-size: 11px;
-    color: $meta-text;
+    font-size: globals.$tiny-font-size;
+    color: globals.$subtle-color;
     font-variant-numeric: tabular-nums;
   }
 
@@ -168,12 +166,12 @@ $error-text: #fda4af;
     outline: none;
     color: globals.$muted-color;
     font-family: inherit;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     line-height: 18px;
     transition: border-color 0.2s ease;
 
     &::placeholder {
-      color: $meta-text;
+      color: globals.$subtle-color;
     }
 
     &:hover {
@@ -215,7 +213,7 @@ $error-text: #fda4af;
   &__actions {
     display: flex;
     gap: globals.$spacing-unit;
-    padding-top: 2px;
+    padding-top: calc(globals.$spacing-unit / 2);
 
     > * {
       flex: 1;

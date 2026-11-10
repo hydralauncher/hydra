@@ -21,16 +21,16 @@ export function HydraCloudV2SettingsSection({
     progress,
     hasExecutablePath,
     requiresRom,
-    requiresDisc,
+    discProvider,
     retroArchExecutableStatus,
     retryRetroArchExecutable,
     openRetroArchSettings,
-    rpcs3ConfigStatus,
-    retryRpcs3Config,
-    rpcs3DiscStatus,
-    rpcs3IdentityError,
-    retryRpcs3Disc,
-    openRpcs3Settings,
+    emulatorConfigStatus,
+    retryEmulatorConfig,
+    discStatus,
+    discIdentityError,
+    retryDiscIdentity,
+    openEmulatorSettings,
     openFileBrowser,
     runCloudSaveOperation,
     setAutomaticSyncEnabled,
@@ -52,16 +52,16 @@ export function HydraCloudV2SettingsSection({
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
         requiresRom={requiresRom}
-        requiresDisc={requiresDisc}
+        discProvider={discProvider}
         retroArchExecutableStatus={retroArchExecutableStatus}
         onRetryRetroArchExecutable={retryRetroArchExecutable}
         onConfigureRetroArch={openRetroArchSettings}
-        rpcs3ConfigStatus={rpcs3ConfigStatus}
-        onRetryRpcs3Config={retryRpcs3Config}
-        rpcs3DiscStatus={rpcs3DiscStatus}
-        rpcs3IdentityError={rpcs3IdentityError}
-        onRetryRpcs3Disc={retryRpcs3Disc}
-        onConfigureRpcs3={openRpcs3Settings}
+        emulatorConfigStatus={emulatorConfigStatus}
+        onRetryEmulatorConfig={retryEmulatorConfig}
+        discStatus={discStatus}
+        discIdentityError={discIdentityError}
+        onRetryDiscIdentity={retryDiscIdentity}
+        onConfigureEmulator={openEmulatorSettings}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled ?? true}
         hasError={hasError}
         errorMessageKey={errorMessageKey}

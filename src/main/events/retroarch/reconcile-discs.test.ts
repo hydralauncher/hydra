@@ -29,4 +29,23 @@ describe("RetroArch ROM removal", () => {
     );
     assert.equal(result?.selectedDiscPath, discs[0].path);
   });
+
+  it("keeps a manually added executable when its ROM folder is removed", () => {
+    const executable = {
+      path: "/ports/Mario/mario.exe",
+      label: "Executable",
+      fileName: "mario.exe",
+      isExecutable: true,
+    };
+    const result = reconcileDiscsForRemovedFolder(
+      [discs[0], executable],
+      executable.path,
+      "/roms/usa",
+      []
+    );
+
+    assert.equal(result?.isDeleted, false);
+    assert.deepEqual(result?.discs, [executable]);
+    assert.equal(result?.selectedDiscPath, executable.path);
+  });
 });

@@ -1,3 +1,4 @@
+import { chunk } from "lodash-es";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { HydraApi } from "./hydra-api";
 import {
@@ -19,6 +20,17 @@ interface DownloadSourcesChangeResponse {
   newDownloadOptionsCount: number;
   downloadSourceIds: string[];
 }
+
+const DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES = 1000;
+const DOWNLOAD_SOURCE_API_ID_LENGTH = 8;
+
+const hasGameIdentity = (game: Game) =>
+  Boolean(game.shop) &&
+  typeof game.objectId === "string" &&
+  game.objectId !== "";
+
+const isApiDownloadSourceId = (id: unknown) =>
+  typeof id === "string" && id.length === DOWNLOAD_SOURCE_API_ID_LENGTH;
 
 export class DownloadSourcesChecker {
   private static async clearStaleBadges(
@@ -81,6 +93,36 @@ export class DownloadSourcesChecker {
     return gamesWithNewOptions;
   }
 
+  private static async requestChangesInChunks(
+    downloadSourceIds: string[],
+    gamesChunks: { shop: string; objectId: string }[][],
+    since: string
+  ): Promise<{
+    responses: DownloadSourcesChangeResponse[];
+    allChunksSucceeded: boolean;
+  }> {
+    const responses: DownloadSourcesChangeResponse[] = [];
+
+    for (const [chunkIndex, gamesChunk] of gamesChunks.entries()) {
+      try {
+        const chunkResponse = await HydraApi.checkDownloadSourcesChanges(
+          downloadSourceIds,
+          gamesChunk,
+          since
+        );
+        if (Array.isArray(chunkResponse)) responses.push(...chunkResponse);
+      } catch (error) {
+        logger.error(
+          `Failed to check download sources changes for chunk ${chunkIndex + 1} of ${gamesChunks.length}, keeping the baseline:`,
+          error
+        );
+        return { responses, allChunksSucceeded: false };
+      }
+    }
+
+    return { responses, allChunksSucceeded: true };
+  }
+
   private static sendNewDownloadOptionsEvent(
     clearedPayload: { gameId: string; count: number }[],
     gamesWithNewOptions: { gameId: string; count: number }[]
@@ -119,7 +161,7 @@ export class DownloadSourcesChecker {
       // Get all installed games (excluding custom games)
       const installedGames = await gamesSublevel.values().all();
       const nonCustomGames = installedGames.filter(
-        (game: Game) => game.shop !== "custom"
+        (game: Game) => game.shop !== "custom" && hasGameIdentity(game)
       );
       logger.info(
         `Found ${installedGames.length} total games, ${nonCustomGames.length} non-custom games`
@@ -133,14 +175,16 @@ export class DownloadSourcesChecker {
       }
 
       const downloadSources = await downloadSourcesSublevel.values().all();
-      const downloadSourceIds = downloadSources.map((source) => source.id);
+      const downloadSourceIds = downloadSources
+        .map((source) => source.id)
+        .filter(isApiDownloadSourceId);
       logger.info(
-        `Found ${downloadSourceIds.length} download sources: ${downloadSourceIds.join(", ")}`
+        `Found ${downloadSources.length} download sources, ${downloadSourceIds.length} usable: ${downloadSourceIds.join(", ")}`
       );
 
       if (downloadSourceIds.length === 0) {
         logger.info(
-          "No download sources found, skipping download sources check"
+          "No usable download sources found, skipping download sources check"
         );
         return;
       }
@@ -162,40 +206,50 @@ export class DownloadSourcesChecker {
       logger.info(
         `Checking download sources changes for ${games.length} non-custom games since ${since}`
       );
+      const gamesChunks = chunk(games, DOWNLOAD_SOURCES_CHANGES_API_MAX_GAMES);
+
       logger.info(
-        `Making API call to HydraApi.checkDownloadSourcesChanges with:`,
+        `Making ${gamesChunks.length} sequential API calls to HydraApi.checkDownloadSourcesChanges with:`,
         {
           downloadSourceIds,
           gamesCount: games.length,
+          chunksCount: gamesChunks.length,
           since,
         }
       );
 
-      const response = await HydraApi.checkDownloadSourcesChanges(
-        downloadSourceIds,
-        games,
-        since
-      );
+      const { responses, allChunksSucceeded } =
+        await this.requestChangesInChunks(
+          downloadSourceIds,
+          gamesChunks,
+          since
+        );
 
-      logger.info("API call completed, response:", response);
+      logger.info("API calls completed, responses:", responses);
 
       await updateDownloadSourcesSinceValue(since);
       logger.info(`Saved 'since' value: ${since} (for modal comparison)`);
 
-      const now = new Date().toISOString();
-      await updateDownloadSourcesCheckBaseline(now);
-      logger.info(
-        `Updated baseline to: ${now} (will be 'since' on next app start)`
-      );
+      if (allChunksSucceeded) {
+        const now = new Date().toISOString();
+        await updateDownloadSourcesCheckBaseline(now);
+        logger.info(
+          `Updated baseline to: ${now} (will be 'since' on next app start)`
+        );
+      }
 
       const gamesWithNewOptions = await this.processApiResponse(
-        response,
+        responses,
         nonCustomGames
       );
 
       this.sendNewDownloadOptionsEvent(clearedPayload, gamesWithNewOptions);
 
-      logger.info("Download sources check completed successfully");
+      logger.info(
+        allChunksSucceeded
+          ? "Download sources check completed successfully"
+          : "Download sources check completed partially, will retry from the same baseline on next start"
+      );
     } catch (error) {
       logger.error("Failed to check download sources changes:", error);
     }

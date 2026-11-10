@@ -1,15 +1,13 @@
-import { BottomPanel, Header, Sidebar, Toast } from "@renderer/components";
-import { VideoIcon } from "@primer/octicons-react";
-import {
-  DashIcon,
-  ScreenFullIcon,
-  ScreenNormalIcon,
-  XIcon,
-} from "@primer/octicons-react";
+import { AppTitleBar, Sidebar, Toast } from "@renderer/components";
+import { AutoUpdateSubHeader } from "@renderer/components/header/auto-update-sub-header";
+import { ScanGamesProvider } from "@renderer/context";
 import {
   useAppDispatch,
   useAppSelector,
   useDownload,
+  useGamificationFeatureSync,
+  useGamificationProgressSync,
+  useDragTextSelection,
   useLibrary,
   useToast,
   useUserDetails,
@@ -22,6 +20,7 @@ import { WorkWonders } from "workwonders-sdk";
 import {
   clearExtraction,
   closeToast,
+  showToast,
   failClassicsScan,
   failRetroArchScan,
   finishClassicsScan,
@@ -31,6 +30,7 @@ import {
   setExtractionProgress,
   setGameRunning,
   setLibrarySyncingRemote,
+  setLibraryAwaitingAccount,
   setProfileBackground,
   setUserDetails,
   setUserPreferences,
@@ -45,6 +45,10 @@ import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { LevelUpModal } from "./components/gamification";
+import { useMissingScreenshotsToast } from "./hooks/use-missing-screenshots-toast";
+import { useScreenshotUploadFailureToast } from "./hooks/use-screenshot-upload-failure-toast";
+import { LeaderboardNotificationLayer } from "./components/leaderboard-notification/leaderboard-notification-layer";
 import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
 import type { UserPreferences } from "@types";
@@ -74,6 +78,7 @@ export function App() {
 
   // Listen for new download options updates
   useDownloadOptionsListener();
+  useDragTextSelection();
 
   const { t } = useTranslation("app");
 
@@ -89,6 +94,8 @@ export function App() {
     clearUserDetails,
   } = useUserDetails();
 
+  useGamificationFeatureSync();
+  useGamificationProgressSync();
   const dispatch = useAppDispatch();
 
   const navigate = useNavigate();
@@ -100,7 +107,15 @@ export function App() {
 
   const toast = useAppSelector((state) => state.toast);
 
-  const { showSuccessToast, showErrorToast } = useToast();
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    window.electron.getVersion().then(setVersion);
+  }, []);
+
+  const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
+  useMissingScreenshotsToast();
+  useScreenshotUploadFailureToast();
 
   const [showArchiveDeletionModal, setShowArchiveDeletionModal] =
     useState(false);
@@ -165,6 +180,19 @@ export function App() {
     });
 
     return () => unsubscribe();
+  }, [updateLibrary]);
+
+  useEffect(() => {
+    const refreshLibrary = () => {
+      void updateLibrary();
+    };
+
+    window.addEventListener("hydra:game-visibility-updated", refreshLibrary);
+    return () =>
+      window.removeEventListener(
+        "hydra:game-visibility-updated",
+        refreshLibrary
+      );
   }, [updateLibrary]);
 
   useEffect(() => {
@@ -251,6 +279,7 @@ export function App() {
           "install-retroarch": 7120,
           "install-ppsspp": 7328,
           "install-dolphin": 7281,
+          "install-shadps4": 0,
           "wii-saves": 7406,
           "retroachievements-emulators": 6692,
           "downloading-metadata": 7773,
@@ -338,23 +367,40 @@ export function App() {
   }, [setupExternalResources]);
 
   const onSignIn = useCallback(() => {
+    dispatch(setLibraryAwaitingAccount(true));
     fetchUserDetails().then((response) => {
       if (response) {
         updateUserDetails(response);
         showSuccessToast(t("successfully_signed_in"));
       }
     });
-  }, [fetchUserDetails, t, showSuccessToast, updateUserDetails]);
+  }, [dispatch, fetchUserDetails, t, showSuccessToast, updateUserDetails]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesRunning) => {
       if (gamesRunning.length) {
+        const runningIds = new Set(gamesRunning.map((game) => game.id));
+        const concealedExecutables = new Set(
+          downloadLibrary
+            .filter(
+              (game) =>
+                game.isConcealed &&
+                game.executablePath &&
+                runningIds.has(game.id)
+            )
+            .map((game) => game.executablePath!.toLowerCase())
+        );
         const lastGame = gamesRunning[gamesRunning.length - 1];
         const libraryGame = library.find(
           (library) => library.id === lastGame.id
         );
 
-        if (libraryGame) {
+        if (
+          libraryGame &&
+          !concealedExecutables.has(
+            libraryGame.executablePath?.toLowerCase() ?? ""
+          )
+        ) {
           dispatch(
             setGameRunning({
               ...libraryGame,
@@ -371,7 +417,7 @@ export function App() {
     return () => {
       unsubscribe();
     };
-  }, [dispatch, library]);
+  }, [dispatch, library, downloadLibrary]);
 
   useEffect(() => {
     window.electron.getActiveClassicsImport().then((snapshot) => {
@@ -399,14 +445,20 @@ export function App() {
             matched: payload.matched,
             unmatched: payload.unmatched,
             unmatchedFiles: payload.unmatchedFiles,
+            unsupportedPackages: payload.unsupportedPackages,
           },
         })
       );
+      if (payload.type === "done" && payload.unsupportedPackages > 0) {
+        showWarningToast(
+          t("ps4_pkg_not_supported", { count: payload.unsupportedPackages })
+        );
+      }
       updateLibrary();
     });
 
     return () => unsubscribe();
-  }, [dispatch, updateLibrary]);
+  }, [dispatch, updateLibrary, showWarningToast, t]);
 
   useEffect(() => {
     window.electron.getActiveRetroArchImport().then((snapshot) => {
@@ -457,9 +509,10 @@ export function App() {
         return;
       }
 
-      void updateLibrary().finally(() =>
-        dispatch(setLibrarySyncingRemote(false))
-      );
+      void updateLibrary().finally(() => {
+        dispatch(setLibrarySyncingRemote(false));
+        dispatch(setLibraryAwaitingAccount(false));
+      });
     });
   }, [dispatch, updateLibrary]);
 
@@ -528,12 +581,47 @@ export function App() {
         setArchivePaths(paths);
         setShowArchiveDeletionModal(true);
       }),
+      window.electron.onGameInstallerClosed(
+        (_shop, _objectId, executableFound) => {
+          updateLibrary();
+
+          if (executableFound) {
+            showSuccessToast(
+              t("game_installed_title", { ns: "downloads" }),
+              t("game_installed_description", { ns: "downloads" })
+            );
+            return;
+          }
+
+          showWarningToast(
+            t("installed_game_not_found_title", { ns: "downloads" }),
+            t("installed_game_not_found_description", { ns: "downloads" })
+          );
+        }
+      ),
+      window.electron.onCommonRedistProgress(({ complete }) => {
+        if (!complete) return;
+
+        showSuccessToast(
+          t("installation_complete", { ns: "bottom_panel" }),
+          t("installation_complete_message", { ns: "bottom_panel" })
+        );
+      }),
     ];
 
     return () => {
       listeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [onSignIn, updateLibrary, clearUserDetails, dispatch, showErrorToast, t]);
+  }, [
+    onSignIn,
+    updateLibrary,
+    clearUserDetails,
+    dispatch,
+    showErrorToast,
+    showSuccessToast,
+    showWarningToast,
+    t,
+  ]);
 
   useEffect(() => {
     const asyncScrollAndNotify = async () => {
@@ -595,6 +683,14 @@ export function App() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = globalThis.electron.onShowToast((toast) => {
+      dispatch(showToast(toast));
+    });
+
+    return () => unsubscribe();
+  }, [dispatch]);
+
   const playAudio = useCallback(async () => {
     const soundUrl = await getAchievementSoundUrl();
     const volume = await getAchievementSoundVolume();
@@ -604,9 +700,11 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = window.electron.onAchievementUnlocked(() => {
-      playAudio();
-    });
+    const unsubscribe = window.electron.onAchievementUnlocked(
+      (suppressSound) => {
+        if (!suppressSound) playAudio();
+      }
+    );
 
     return () => {
       unsubscribe();
@@ -627,7 +725,12 @@ export function App() {
   const [isWindowMaximized, setIsWindowMaximized] = useState(false);
 
   useEffect(() => {
-    if (window.electron.platform !== "linux") return;
+    if (
+      window.electron.platform !== "linux" ||
+      window.electron.hasNativeWindowDecorations
+    ) {
+      return;
+    }
 
     if (window.electron.isWayland) {
       document.body.classList.add("window-rounded");
@@ -655,70 +758,11 @@ export function App() {
 
   return (
     <>
-      {(window.electron.platform === "win32" ||
-        window.electron.platform === "linux") && (
-        <div
-          className={`title-bar${
-            window.electron.platform === "win32" ? " title-bar--windows" : ""
-          }`}
-        >
-          <h4>
-            Hydra
-            {hasActiveSubscription && (
-              <span className="title-bar__cloud-text"> Cloud</span>
-            )}
-          </h4>
-
-          <button
-            type="button"
-            className="title-bar__big-picture"
-            onClick={() => globalThis.window.electron.openBigPictureWindow()}
-          >
-            <VideoIcon size={14} />
-            {t("big_picture", { ns: "sidebar" })}
-          </button>
-
-          {window.electron.platform === "linux" && (
-            <div className="title-bar__window-controls">
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.minimizeMainWindow()}
-                title={t("header:minimize")}
-                aria-label={t("header:minimize")}
-              >
-                <DashIcon size={16} />
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control"
-                onClick={() => window.electron.toggleMaximizeMainWindow()}
-                title={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-                aria-label={
-                  isWindowMaximized ? t("header:restore") : t("header:maximize")
-                }
-              >
-                {isWindowMaximized ? (
-                  <ScreenNormalIcon size={16} />
-                ) : (
-                  <ScreenFullIcon size={16} />
-                )}
-              </button>
-              <button
-                type="button"
-                className="title-bar__window-control title-bar__window-control--close"
-                onClick={() => window.electron.closeMainWindow()}
-                title={t("header:close")}
-                aria-label={t("header:close")}
-              >
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      <AppTitleBar
+        hasActiveSubscription={hasActiveSubscription}
+        version={version}
+        isWindowMaximized={isWindowMaximized}
+      />
 
       <Toast
         visible={toast.visible}
@@ -729,7 +773,10 @@ export function App() {
         duration={toast.duration}
       />
 
+      <LevelUpModal />
       <CloudGiftNotificationModal />
+
+      <LeaderboardNotificationLayer />
 
       <ArchiveDeletionModal
         visible={showArchiveDeletionModal}
@@ -745,23 +792,23 @@ export function App() {
       <ClassicsScanModal />
       <RetroArchScanModal />
 
-      <main>
-        <Sidebar />
+      <ScanGamesProvider>
+        <main>
+          <Sidebar />
 
-        <article className="container">
-          <Header />
+          <article className="container">
+            <AutoUpdateSubHeader />
 
-          <section
-            ref={contentRef}
-            id="scrollableDiv"
-            className="container__content"
-          >
-            <Outlet />
-          </section>
-        </article>
-      </main>
-
-      <BottomPanel />
+            <section
+              ref={contentRef}
+              id="scrollableDiv"
+              className="container__content"
+            >
+              <Outlet />
+            </section>
+          </article>
+        </main>
+      </ScanGamesProvider>
     </>
   );
 }

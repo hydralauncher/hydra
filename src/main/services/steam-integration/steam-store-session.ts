@@ -11,10 +11,14 @@ import {
   parseSteamOpenIdReturn,
 } from "./steam-openid-return";
 import {
+  parseSteamCommunityPageSteamId,
   parseSteamStoreSessionConfig,
+  resolveSteamCommunityLogin,
+  type SteamCommunityLogin,
   type SteamWebApiToken,
 } from "./steam-store-session-config";
 import { parseSteamTimezoneOffsetSeconds } from "./steam-community-achievements";
+import { isSteamSyncAbortError } from "./steam-sync-errors";
 
 export { isSteamOpenIdSuccessUrl } from "./steam-openid-return";
 export { STEAM_CONNECTED_DEEP_LINK } from "./steam-openid-return";
@@ -24,6 +28,7 @@ export type { SteamWebApiToken } from "./steam-store-session-config";
 export const STEAM_SESSION_PARTITION = "persist:steam";
 export const STEAM_STORE_EXPLORE_URL =
   "https://store.steampowered.com/explore/";
+export const STEAM_COMMUNITY_REFRESH_URL = "https://steamcommunity.com/my/";
 export const STEAM_STORE_MAX_REDIRECTS = 5;
 
 const STEAM_CHROME_USER_AGENT =
@@ -258,40 +263,15 @@ export const openSteamOpenIdWindow = (
 
 export type SteamCommunitySession = {
   fetch: typeof fetch;
-  hasLoginCookie: boolean;
+  login: SteamCommunityLogin;
   timeZoneOffsetSeconds: number;
 };
 
-export const readSteamCommunitySession =
-  async (): Promise<SteamCommunitySession> => {
-    applySteamSessionUserAgent();
-
-    const steamSession = session.fromPartition(STEAM_SESSION_PARTITION);
-    const [communityCookies, storeCookies] = await Promise.all([
-      steamSession.cookies.get({ url: "https://steamcommunity.com/" }),
-      steamSession.cookies.get({ url: "https://store.steampowered.com/" }),
-    ]);
-    const hasLoginCookie = communityCookies.some(
-      (cookie) => cookie.name === "steamLoginSecure" && cookie.value.length > 0
-    );
-    const timezone =
-      communityCookies.find((cookie) => cookie.name === "timezoneOffset") ??
-      storeCookies.find((cookie) => cookie.name === "timezoneOffset");
-    const cookieHeader = communityCookies
-      .filter((cookie) => cookie.value.length > 0)
-      .map((cookie) => `${cookie.name}=${cookie.value}`)
-      .join("; ");
-
-    return {
-      fetch: createSteamCommunityCookieFetch(cookieHeader),
-      hasLoginCookie,
-      timeZoneOffsetSeconds: parseSteamTimezoneOffsetSeconds(timezone?.value),
-    };
-  };
-
-export const getSteamWebApiToken = async (
-  signal?: AbortSignal
-): Promise<SteamWebApiToken> => {
+const loadHiddenSteamPage = async <T>(
+  url: string,
+  signal: AbortSignal | undefined,
+  read: (window: BrowserWindow) => Promise<T>
+): Promise<T> => {
   applySteamSessionUserAgent();
 
   const window = new BrowserWindow({
@@ -312,17 +292,101 @@ export const getSteamWebApiToken = async (
     }
   };
 
+  const abortError = () => {
+    const error = new Error("steam-sync-aborted");
+    error.name = "AbortError";
+    return error;
+  };
+
   signal?.addEventListener("abort", abort, { once: true });
 
   try {
     if (signal?.aborted) {
-      const error = new Error("steam-sync-aborted");
-      error.name = "AbortError";
-      throw error;
+      throw abortError();
     }
 
-    await window.loadURL(STEAM_STORE_EXPLORE_URL);
+    await window.loadURL(url);
+    return await read(window);
+  } catch (error) {
+    // Destroying the window on abort rejects the load with ERR_ABORTED.
+    if (signal?.aborted) {
+      throw abortError();
+    }
+    throw error;
+  } finally {
+    signal?.removeEventListener("abort", abort);
+    if (!window.isDestroyed()) {
+      window.destroy();
+    }
+  }
+};
 
+/**
+ * Steam Community access tokens (steamLoginSecure) expire after about a day.
+ * Loading a Community page in the Steam partition lets Steam renew it through
+ * login.steampowered.com/jwt/refresh before the cookies are copied into the
+ * non-browser fetch used for scraping.
+ */
+const refreshSteamCommunityLogin = (signal?: AbortSignal) =>
+  loadHiddenSteamPage(STEAM_COMMUNITY_REFRESH_URL, signal, async (window) => {
+    const currentUrl = window.webContents.getURL();
+    const steamIdRaw: unknown = await window.webContents.executeJavaScript(
+      'typeof g_steamID === "undefined" ? null : g_steamID'
+    );
+
+    const steamId64 = parseSteamCommunityPageSteamId({
+      currentUrl,
+      steamIdRaw,
+    });
+    if (!steamId64) {
+      steamSyncLogger.log("Steam Community session is logged out", currentUrl);
+    }
+
+    return steamId64;
+  });
+
+export const readSteamCommunitySession = async (
+  signal?: AbortSignal
+): Promise<SteamCommunitySession> => {
+  let refreshed: { steamId64: string | null } | null = null;
+  try {
+    refreshed = { steamId64: await refreshSteamCommunityLogin(signal) };
+  } catch (error) {
+    if (isSteamSyncAbortError(error)) throw error;
+    steamSyncLogger.error(
+      "Steam Community refresh failed, using stored cookies",
+      error
+    );
+  }
+
+  const steamSession = session.fromPartition(STEAM_SESSION_PARTITION);
+  const [communityCookies, storeCookies] = await Promise.all([
+    steamSession.cookies.get({ url: "https://steamcommunity.com/" }),
+    steamSession.cookies.get({ url: "https://store.steampowered.com/" }),
+  ]);
+  const hasLoginCookie = communityCookies.some(
+    (cookie) => cookie.name === "steamLoginSecure" && cookie.value.length > 0
+  );
+  const login = resolveSteamCommunityLogin({ refreshed, hasLoginCookie });
+  const timezone =
+    communityCookies.find((cookie) => cookie.name === "timezoneOffset") ??
+    storeCookies.find((cookie) => cookie.name === "timezoneOffset");
+  const cookieHeader = communityCookies
+    .filter((cookie) => cookie.value.length > 0)
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
+
+  return {
+    fetch: createSteamCommunityCookieFetch(cookieHeader),
+    login,
+    timeZoneOffsetSeconds: parseSteamTimezoneOffsetSeconds(timezone?.value),
+  };
+};
+
+export const getSteamWebApiToken = (
+  signal?: AbortSignal
+): Promise<SteamWebApiToken> =>
+  loadHiddenSteamPage(STEAM_STORE_EXPLORE_URL, signal, async (window) => {
     const currentUrl = window.webContents.getURL();
     const config = (await window.webContents.executeJavaScript(`
       (() => {
@@ -341,10 +405,4 @@ export const getSteamWebApiToken = async (
       ...config,
       currentUrl,
     });
-  } finally {
-    signal?.removeEventListener("abort", abort);
-    if (!window.isDestroyed()) {
-      window.destroy();
-    }
-  }
-};
+  });

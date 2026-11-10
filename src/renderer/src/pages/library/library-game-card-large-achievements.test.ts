@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { it } from "node:test";
+import { it, mock } from "node:test";
 import { JSDOM } from "jsdom";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
@@ -11,6 +11,7 @@ import ts from "typescript";
 const requireModule = createRequire(import.meta.url);
 
 it("refreshes grouped progress on member changes and preserves known offline totals", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
   const dom = new JSDOM("<div id='root'></div>");
   const globals = { window: globalThis.window, document: globalThis.document };
   Object.assign(globalThis, {
@@ -39,13 +40,29 @@ it("refreshes grouped progress on member changes and preserves known offline tot
       useCoverPoster: () => undefined,
       isAnimatedCoverCandidate: () => false,
       useAnimatedSourceWarmup: () => {},
+      useCatalogueImage: () => ({
+        variants: null,
+        placeholderStyle: undefined,
+        markLoaded: () => {},
+        markFailed: () => false,
+      }),
+      useViewportCatalogueImageUrl: () => null,
     },
-    "./library-category": { getLibraryPresentationBadgeSource: () => "steam" },
+    "./library-category": {
+      getLibraryPresentationImportSources: () => ({
+        steam: true,
+        epic: false,
+      }),
+    },
     "@shared": { getDisplayedPlayTimeInMilliseconds: () => 0 },
     "@renderer/helpers": {
       CLASSICS_PS_PLATFORM_LABELS: {},
       isGameReadyToPlay: () => false,
       resolveClassicsBadge: () => ({}),
+    },
+    "@renderer/helpers/catalogue-images": {
+      getCatalogueImageDensitySrcSet: () => "",
+      pickCatalogueImageUrl: () => "",
     },
     "@renderer/components": {
       SteamLibraryBadge: () => null,
@@ -88,15 +105,22 @@ it("refreshes grouped progress on member changes and preserves known offline tot
     availableShops: ["steam", "epic"],
     members: [member],
   };
-  const render = async (value: typeof game) => {
-    await act(async () => {
+  const mount = (value: typeof game) =>
+    act(async () => {
       root.render(
-        React.createElement(exported.LibraryGameCardLarge, {
-          game: value,
-          onContextMenu: () => {},
-        })
+        React.createElement(
+          React.StrictMode,
+          null,
+          React.createElement(exported.LibraryGameCardLarge, {
+            game: value,
+            onContextMenu: () => {},
+          })
+        )
       );
     });
+  const render = async (value: typeof game) => {
+    await mount(value);
+    await act(async () => mock.timers.tick(1_000));
     return JSON.parse(
       dom.window.document.querySelector("output")!.textContent!
     );
@@ -135,6 +159,8 @@ it("refreshes grouped progress on member changes and preserves known offline tot
       ...game,
       members: [{ ...member, unlockedAchievementCount: 1 }],
     };
+    await mount({ ...game, members: [{ ...member, achievementCount: 4 }] });
+    assert.equal(calls, 1);
     const second = await render(updated);
     assert.equal(calls, 2);
     assert.equal(second.achievementCount, 3);
@@ -152,5 +178,6 @@ it("refreshes grouped progress on member changes and preserves known offline tot
     await act(async () => root.unmount());
     Object.assign(globalThis, globals);
     dom.window.close();
+    mock.timers.reset();
   }
 });

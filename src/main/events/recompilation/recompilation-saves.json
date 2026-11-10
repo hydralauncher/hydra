@@ -1,0 +1,366 @@
+{
+  "shipwright": {
+    "saves": [
+      {
+        "id": "Save",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/Save/",
+          "linux": "<base>/Save/"
+        }
+      }
+    ]
+  },
+  "dusklight": {
+    "saves": [
+      {
+        "id": "USA/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/TwilitRealm/Dusklight/USA/Card A/",
+          "linux": "<xdgData>/TwilitRealm/Dusklight/USA/Card A/"
+        }
+      },
+      {
+        "id": "EUR/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/TwilitRealm/Dusklight/EUR/Card A/",
+          "linux": "<xdgData>/TwilitRealm/Dusklight/EUR/Card A/"
+        }
+      },
+      {
+        "id": "JAP/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/TwilitRealm/Dusklight/JAP/Card A/",
+          "linux": "<xdgData>/TwilitRealm/Dusklight/JAP/Card A/"
+        }
+      }
+    ]
+  },
+  "zelda64recomp": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winLocalAppData>/Zelda64Recompiled/saves/",
+          "linux": "<home>/.config/Zelda64Recompiled/saves/"
+        }
+      },
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "super-mario-bros-remastered-public": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/SMB1R/saves/",
+          "linux": "<xdgData>/SMB1R/saves/"
+        }
+      },
+      {
+        "id": "achievements.sav",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/SMB1R/achievements.sav",
+          "linux": "<xdgData>/SMB1R/achievements.sav"
+        }
+      }
+    ]
+  },
+  "spaghettikart": {
+    "saves": [
+      {
+        "path": "<base>/default.sav",
+        "kind": "file",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/controllerPak_*.sav",
+        "kind": "file",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "ghostship": {
+    "saves": [
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "gen1recomp": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/pokemon-love2d/saves/",
+          "linux": "<xdgData>/pokemon-love2d/saves/"
+        }
+      },
+      {
+        "id": "box/storage.lua",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/pokemon-love2d/box/storage.lua",
+          "linux": "<xdgData>/pokemon-love2d/box/storage.lua"
+        }
+      },
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/box/storage.lua",
+        "kind": "file",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "tenkaichi3decomp": {
+    "saves": [
+      {
+        "path": "<base>/saves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "ico-pc": {
+    "saves": [
+      {
+        "id": "memcard",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/ico-pc/ico-pc/memcard/",
+          "linux": "<xdgData>/ico-pc/ico-pc/memcard/"
+        }
+      },
+      {
+        "id": "memcard-preview",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/ico-pc/ico-pc/memcard-preview/",
+          "linux": "<xdgData>/ico-pc/ico-pc/memcard-preview/"
+        }
+      },
+      {
+        "id": "memcard2",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/ico-pc/ico-pc/memcard2/",
+          "linux": "<xdgData>/ico-pc/ico-pc/memcard2/"
+        }
+      },
+      {
+        "id": "memcard2-preview",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/ico-pc/ico-pc/memcard2-preview/",
+          "linux": "<xdgData>/ico-pc/ico-pc/memcard2-preview/"
+        }
+      },
+      {
+        "path": "<base>/userdata/memcard/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/userdata/memcard-preview/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/userdata/memcard2/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/userdata/memcard2-preview/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "silent-hill-decomp": {
+    "saves": [
+      {
+        "path": "<base>/gamedata/save/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "symphonyrecomp": {
+    "saves": [
+      {
+        "path": "<base>/carda.sav",
+        "kind": "file",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/cardb.sav",
+        "kind": "file",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "starfox64recomp": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winLocalAppData>/Starfox64Recompiled/saves/",
+          "linux": "<home>/.config/Starfox64Recompiled/saves/"
+        }
+      }
+    ]
+  },
+  "donkey-kong-64-recompiled": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winLocalAppData>/DK64Recompiled/saves/",
+          "linux": "<home>/.config/DK64Recompiled/saves/"
+        }
+      }
+    ]
+  },
+  "perfect-dark-dabs-mod": {
+    "saves": [
+      {
+        "path": "<base>/eeprom.bin",
+        "kind": "file",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/ghosts/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/exported/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/modsaves/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "battleship": {
+    "saves": [
+      {
+        "id": "ssb64_save.bin",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/ssb64_save.bin",
+          "linux": "<xdgData>/BattleShip/ssb64_save.bin"
+        }
+      }
+    ]
+  },
+  "metroidprimeport": {
+    "saves": [
+      {
+        "id": "USA/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/USA/Card A/",
+          "linux": "<base>/usr/bin/user/USA/Card A/"
+        }
+      },
+      {
+        "id": "EUR/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/EUR/Card A/",
+          "linux": "<base>/usr/bin/user/EUR/Card A/"
+        }
+      }
+    ]
+  },
+  "melee-pc": {
+    "saves": [
+      {
+        "id": "USA/Card A",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/melee-pc/USA/Card A/",
+          "linux": "<xdgData>/melee-pc/USA/Card A/"
+        }
+      }
+    ]
+  },
+  "bluewake": {
+    "saves": [
+      {
+        "id": "GZLE01.card",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/BlueWake/GZLE01.card",
+          "linux": "<xdgData>/BlueWake/GZLE01.card"
+        }
+      }
+    ]
+  },
+  "gen2recomped": {
+    "saves": [
+      {
+        "id": "saves",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<winAppData>/Gen2Recomp/saves/",
+          "linux": "<xdgData>/Gen2Recomp/saves/"
+        }
+      }
+    ]
+  },
+  "crashbandicoot-launcher": {
+    "saves": [
+      {
+        "path": "<base>/save/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  }
+}

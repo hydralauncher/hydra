@@ -23,7 +23,6 @@ import {
   useDownload,
   useFeature,
   useToast,
-  useUserDetails,
 } from "@renderer/hooks";
 import { useOpenGoogleDriveSettings } from "@renderer/hooks/use-google-drive-connection";
 import {
@@ -49,7 +48,15 @@ import { Trans, useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import "./download-settings-modal.scss";
 import { RealDebridInfoModal } from "./real-debrid-info-modal";
+import {
+  getDefaultDownloader,
+  useDownloadOptions,
+} from "./use-download-options";
 import { gameDetailsContext } from "@renderer/context";
+import {
+  beginDownloadFlight,
+  type PendingDownloadFlight,
+} from "@renderer/components/sidebar/download-flight";
 import {
   platformToRetroArchPlatform,
   platformToSystem,
@@ -306,7 +313,7 @@ export function DownloadSettingsModal({
     deleteArchiveFilesAfterExtraction,
     setDeleteArchiveFilesAfterExtraction,
   ] = useState(
-    userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+    userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
   );
   const [selectedDownloader, setSelectedDownloader] =
     useState<Downloader | null>(null);
@@ -342,7 +349,6 @@ export function DownloadSettingsModal({
   const startAbortControllerRef = useRef<AbortController | null>(null);
 
   const { isFeatureEnabled, Feature } = useFeature();
-  const { hasActiveSubscription } = useUserDetails();
   const openGoogleDriveSettings = useOpenGoogleDriveSettings();
 
   const selectedUri = useMemo(() => {
@@ -391,133 +397,7 @@ export function DownloadSettingsModal({
     }
   }, [visible, checkFolderWritePermission, selectedPath]);
 
-  const downloadOptions = useMemo(() => {
-    const unavailableUrisSet = new Set(repack?.unavailableUris ?? []);
-
-    const downloaderMap = new Map<
-      Downloader,
-      { hasAvailable: boolean; hasUnavailable: boolean }
-    >();
-
-    if (repack) {
-      for (const uri of repack.uris) {
-        const uriDownloaders = getDownloadersForUri(uri);
-        const isAvailable = !unavailableUrisSet.has(uri);
-
-        for (const downloader of uriDownloaders) {
-          const existing = downloaderMap.get(downloader);
-          if (existing) {
-            existing.hasAvailable = existing.hasAvailable || isAvailable;
-            existing.hasUnavailable = existing.hasUnavailable || !isAvailable;
-          } else {
-            downloaderMap.set(downloader, {
-              hasAvailable: isAvailable,
-              hasUnavailable: !isAvailable,
-            });
-          }
-        }
-      }
-    }
-
-    const allDownloaders = Object.values(Downloader).filter(
-      (value) => typeof value === "number" && value !== Downloader.Epic
-    ) as Downloader[];
-
-    const getDownloaderPriority = (option: {
-      isAvailable: boolean;
-      isAvailableButNotConfigured: boolean;
-    }) => {
-      if (option.isAvailable) return 0;
-      if (option.isAvailableButNotConfigured) return 2;
-      return 1;
-    };
-
-    return allDownloaders
-      .filter((downloader) => {
-        if (downloader === Downloader.Hydra) return false; // Temporarily comment out Nimbus
-        if (!downloaderMap.has(downloader)) return false;
-        if (
-          downloader === Downloader.Premiumize &&
-          !isFeatureEnabled(Feature.Premiumize)
-        ) {
-          return false;
-        }
-
-        if (
-          downloader === Downloader.AllDebrid &&
-          !isFeatureEnabled(Feature.AllDebrid)
-        ) {
-          return false;
-        }
-
-        return true;
-      })
-      .map((downloader) => {
-        const status = downloaderMap.get(downloader);
-        const hasAvailableUri = status?.hasAvailable ?? false;
-
-        let isConfigured = true;
-        if (downloader === Downloader.RealDebrid) {
-          isConfigured = !!userPreferences?.realDebridApiToken;
-        } else if (downloader === Downloader.Premiumize) {
-          isConfigured = !!userPreferences?.premiumizeApiToken;
-        } else if (downloader === Downloader.AllDebrid) {
-          isConfigured = !!userPreferences?.allDebridApiToken;
-        } else if (downloader === Downloader.TorBox) {
-          isConfigured = !!userPreferences?.torBoxApiToken;
-        } else if (downloader === Downloader.VikingFile) {
-          isConfigured = hasActiveSubscription;
-        }
-        // } else if (downloader === Downloader.Hydra) {
-        //   isConfigured = isFeatureEnabled(Feature.Nimbus);
-        // }
-
-        const isAvailableButNotConfigured = hasAvailableUri && !isConfigured;
-
-        const isAvailable = hasAvailableUri && isConfigured;
-
-        return {
-          downloader,
-          isAvailable,
-          isAvailableButNotConfigured,
-        };
-      })
-      .sort((a, b) => getDownloaderPriority(a) - getDownloaderPriority(b));
-  }, [
-    repack,
-    userPreferences?.realDebridApiToken,
-    userPreferences?.premiumizeApiToken,
-    userPreferences?.allDebridApiToken,
-    userPreferences?.torBoxApiToken,
-    hasActiveSubscription,
-    isFeatureEnabled,
-    Feature,
-  ]);
-
-  const getDefaultDownloader = useCallback(
-    (availableDownloaders: Downloader[]) => {
-      if (availableDownloaders.length === 0) return null;
-
-      if (availableDownloaders.includes(Downloader.RealDebrid)) {
-        return Downloader.RealDebrid;
-      }
-
-      if (availableDownloaders.includes(Downloader.Premiumize)) {
-        return Downloader.Premiumize;
-      }
-
-      if (availableDownloaders.includes(Downloader.AllDebrid)) {
-        return Downloader.AllDebrid;
-      }
-
-      if (availableDownloaders.includes(Downloader.TorBox)) {
-        return Downloader.TorBox;
-      }
-
-      return availableDownloaders[0];
-    },
-    []
-  );
+  const downloadOptions = useDownloadOptions(repack);
 
   useEffect(() => {
     let cancelled = false;
@@ -564,7 +444,6 @@ export function DownloadSettingsModal({
       cancelled = true;
     };
   }, [
-    getDefaultDownloader,
     userPreferences?.downloadsPath,
     downloadOptions,
     emulatorSystem,
@@ -574,7 +453,7 @@ export function DownloadSettingsModal({
   useEffect(() => {
     if (visible) {
       setDeleteArchiveFilesAfterExtraction(
-        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? false
+        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ?? true
       );
       setAutomaticExtractionEnabled(
         userPreferences?.extractFilesByDefault ?? true
@@ -1046,60 +925,68 @@ export function DownloadSettingsModal({
   };
 
   const handleStartClick = async (
+    flight: PendingDownloadFlight,
     selectedFileIndices?: number[],
     totalSelectedSize?: number
   ) => {
-    if (repack) {
-      const requestId = ++activeStartRequestIdRef.current;
-      startAbortControllerRef.current?.abort();
-      const abortController = new AbortController();
-      startAbortControllerRef.current = abortController;
+    if (!repack) {
+      flight.cancel();
+      return;
+    }
 
-      setDownloadStarting(true);
+    const requestId = ++activeStartRequestIdRef.current;
+    startAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    startAbortControllerRef.current = abortController;
 
-      try {
-        const response = await startDownload(
-          repack,
-          selectedDownloader!,
-          selectedPath,
-          automaticExtractionEnabled,
-          hasActiveDownload,
-          selectedFileIndices,
-          totalSelectedSize,
-          deleteArchiveFilesAfterExtraction,
-          abortController.signal
-        );
+    setDownloadStarting(true);
 
-        if (
-          requestId !== activeStartRequestIdRef.current ||
-          abortController.signal.aborted
-        ) {
-          return;
-        }
+    try {
+      const response = await startDownload(
+        repack,
+        selectedDownloader!,
+        selectedPath,
+        automaticExtractionEnabled,
+        hasActiveDownload,
+        selectedFileIndices,
+        totalSelectedSize,
+        deleteArchiveFilesAfterExtraction,
+        abortController.signal
+      );
 
-        if (response.ok) {
-          resetTorrentStepState();
-          onClose();
-          return;
-        } else if (response.error) {
-          showErrorToast(t("download_error"), t(response.error), 4_000);
-        }
-      } catch (error) {
-        if (
-          abortController.signal.aborted ||
-          (error instanceof Error && error.name === "AbortError")
-        ) {
-          return;
-        }
+      if (
+        requestId !== activeStartRequestIdRef.current ||
+        abortController.signal.aborted
+      ) {
+        return;
+      }
 
-        if (error instanceof Error) {
-          showErrorToast(t("download_error"), error.message, 4_000);
-        }
-      } finally {
-        if (requestId === activeStartRequestIdRef.current) {
-          startAbortControllerRef.current = null;
-          setDownloadStarting(false);
-        }
+      if (response.ok) {
+        flight.launch(shopDetails?.assets?.iconUrl || game?.iconUrl);
+        resetTorrentStepState();
+        onClose();
+        return;
+      } else if (response.error) {
+        showErrorToast(t("download_error"), t(response.error), 4_000);
+      }
+    } catch (error) {
+      if (
+        abortController.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
+        return;
+      }
+
+      if (error instanceof Error) {
+        showErrorToast(t("download_error"), error.message, 4_000);
+      }
+    } finally {
+      // Does nothing once the flight launched.
+      flight.cancel();
+
+      if (requestId === activeStartRequestIdRef.current) {
+        startAbortControllerRef.current = null;
+        setDownloadStarting(false);
       }
     }
   };
@@ -1113,16 +1000,21 @@ export function DownloadSettingsModal({
     onClose();
   }, [onClose, resetTorrentStepState]);
 
-  const handlePrimaryButtonClick = async () => {
-    await handleStartClick();
+  const handlePrimaryButtonClick = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    await handleStartClick(beginDownloadFlight(event.currentTarget));
   };
 
-  const handleTorrentStepDownload = async () => {
+  const handleTorrentStepDownload = async (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const flight = beginDownloadFlight(event.currentTarget);
     const selectedFileIndices = Array.from(selectedTorrentIndices).sort(
       (a, b) => a - b
     );
 
-    await handleStartClick(selectedFileIndices, selectedTorrentSize);
+    await handleStartClick(flight, selectedFileIndices, selectedTorrentSize);
   };
 
   const handleOpenTorrentStep = async () => {

@@ -214,6 +214,25 @@ export const publishNotificationUpdateReadyToInstall = async (
   );
 };
 
+export const publishLeaderboardNotification = async (
+  content: { title: string; body: string; imageUrl: string | null },
+  onClick: () => void,
+  signal?: AbortSignal
+) => {
+  const notificationIcon =
+    (await downloadImage(content.imageUrl, signal).catch(() => undefined)) ??
+    trayIcon;
+  if (signal?.aborted) return;
+
+  const notification = new Notification({
+    title: content.title,
+    body: content.body,
+    icon: notificationIcon,
+  });
+  notification.on("click", onClick);
+  notification.show();
+};
+
 export const publishNewFriendRequestNotification = async (
   user: UserProfile,
   signal?: AbortSignal
@@ -470,6 +489,7 @@ export const publishNewAchievementNotification = async (info: {
   totalAchievementCount: number;
   gameTitle: string;
   gameIcon: string | null;
+  suppressSound?: boolean;
 }) => {
   const partialOptions =
     info.achievements.length > 1
@@ -507,8 +527,11 @@ export const publishNewAchievementNotification = async (info: {
   }).show();
 
   if (WindowManager.mainWindow) {
-    WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
-  } else if (process.platform !== "linux") {
+    WindowManager.mainWindow.webContents.send(
+      "on-achievement-unlocked",
+      info.suppressSound
+    );
+  } else if (!info.suppressSound && process.platform !== "linux") {
     const soundPath = await getAchievementSoundPath();
     sound.play(soundPath);
   }

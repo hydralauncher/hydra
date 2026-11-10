@@ -137,11 +137,20 @@ export type CloudSaveModalSyncResult =
       result: SyncGameCloudSaveResult;
     };
 
+export interface RecompilationSaveRule {
+  rawPath: string;
+  kind: "dir" | "file";
+  tags: string[];
+  when: CloudSaveRuleCondition[];
+  preferredPath?: string;
+}
+
 export interface GetSaveRulesForGameInput extends CloudSaveGameId {
   title?: string;
   remoteId?: string;
   userDataPath: string;
   sourceUrl?: string;
+  recompilationRules?: RecompilationSaveRule[];
 }
 
 export interface GameSaveRules {
@@ -227,6 +236,7 @@ export interface BuildLocalGameSnapshotPipelineInput
   environmentId: string;
   hashCache: LocalFileHashCacheEntry[];
   extraRules?: CloudSaveRule[];
+  recompilationRules?: RecompilationSaveRule[];
 }
 
 export interface DiscoveredLocalSaveFile extends CloudSaveFileIdentity {
@@ -781,6 +791,7 @@ export interface NativeLocalGameSnapshotPipelineResult
 }
 
 export interface PrepareSnapshotRequest extends CloudSaveGameId {
+  recompilationSlug?: string;
   platform: CloudSavePathContext["platform"];
   hostname?: string;
   snapshotHash: string;

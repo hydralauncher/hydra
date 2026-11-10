@@ -25,7 +25,9 @@ interface FormErrors {
 
 export default function RetroAchievementsConnectionWindow() {
   const { t } = useTranslation("settings");
-  const isLinux = globalThis.window.electron.platform === "linux";
+  const hasCustomTitleBar =
+    globalThis.window.electron.platform === "linux" &&
+    !globalThis.window.electron.hasNativeWindowDecorations;
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -120,6 +122,13 @@ export default function RetroAchievementsConnectionWindow() {
         })
         .catch(() => {});
 
+      void globalThis.window.electron
+        .linkRetroAchievementsEmulatorAccount(
+          form.username.trim(),
+          form.password
+        )
+        .catch(() => false);
+
       await globalThis.window.electron.completeRetroAchievementsConnectionWindow();
     } catch (error) {
       const message = error instanceof Error ? error.message : undefined;
@@ -139,10 +148,10 @@ export default function RetroAchievementsConnectionWindow() {
   return (
     <div
       className={`retroachievements-connection-window${
-        isLinux ? " retroachievements-connection-window--linux" : ""
+        hasCustomTitleBar ? " retroachievements-connection-window--linux" : ""
       }`}
     >
-      {isLinux ? (
+      {hasCustomTitleBar ? (
         <WindowTitleBar
           onMinimize={() =>
             globalThis.window.electron.minimizeRetroAchievementsConnectionWindow()

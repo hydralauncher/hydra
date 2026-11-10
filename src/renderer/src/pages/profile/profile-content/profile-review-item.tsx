@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { ClockIcon } from "@primer/octicons-react";
 import { Star, ThumbsUp, ThumbsDown, TrashIcon, Languages } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GameShop } from "@types";
 import { getReviewTranslationLanguage, sanitizeHtml } from "@shared";
 import { Button } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
-import { buildGameDetailsPath } from "@renderer/helpers";
+import { buildGameDetailsPath, resolveImageSource } from "@renderer/helpers";
 import "./profile-content.scss";
 
 interface UserReview {
@@ -37,6 +37,36 @@ interface UserReview {
   detectedLanguage: string | null;
 }
 
+function useReviewGameIcon(game: UserReview["game"]) {
+  const isEpic = game.shop === "epic";
+  const [epicIconUrl, setEpicIconUrl] = useState<string | null | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    if (!isEpic) return;
+
+    let cancelled = false;
+    setEpicIconUrl(undefined);
+    globalThis.window.electron
+      .getGameAssets(game.objectId, game.shop)
+      .then((assets) => {
+        if (!cancelled) setEpicIconUrl(assets?.iconUrl ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setEpicIconUrl(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEpic, game.objectId, game.shop]);
+
+  if (!isEpic) return game.iconUrl;
+  if (epicIconUrl === undefined) return undefined;
+  return resolveImageSource(epicIconUrl) || game.iconUrl;
+}
+
 interface ProfileReviewItemProps {
   review: UserReview;
   isOwnReview: boolean;
@@ -58,6 +88,7 @@ export function ProfileReviewItem({
 }: Readonly<ProfileReviewItemProps>) {
   const navigate = useNavigate();
   const { formatDistance } = useDate();
+  const gameIconUrl = useReviewGameIcon(review.game);
   const { t } = useTranslation("user_profile");
   const { t: tGameDetails, i18n } = useTranslation("game_details");
   const [showOriginal, setShowOriginal] = useState(false);
@@ -103,7 +134,7 @@ export function ProfileReviewItem({
             <div className="user-reviews__game-info">
               <div className="user-reviews__game-details">
                 <img
-                  src={review.game.iconUrl}
+                  src={gameIconUrl}
                   alt={review.game.title}
                   className="user-reviews__game-icon"
                 />

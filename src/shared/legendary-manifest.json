@@ -43,12 +43,13 @@
   },
   "managedRuntime": {
     "protocolVersion": 1,
-    "adapterSha256": "a9720481aa3435a48ed743ae38d89931800be84a28ed12fd08701a0f38fe0dcb",
+    "adapterSha256": "a84b9dfd835d829f67d040e69068e28d0305d6b465d88a7c2bdbce0ccd0e8089",
     "capabilities": [
       "inspect-target",
       "install-target",
       "access-only",
-      "refresh-session"
+      "refresh-session",
+      "install-components"
     ],
     "windows": {
       "x64": {

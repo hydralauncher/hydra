@@ -39,6 +39,12 @@ export const getGameAssets = async (
   );
   const cachedAssets = await gamesShopAssetsSublevel.get(gameKey);
 
+  if (options?.cacheOnly) {
+    return cachedAssets
+      ? applyArtworkSelection(artworkKey, cachedAssets)
+      : null;
+  }
+
   if (
     !options?.forceFresh &&
     cachedAssets &&

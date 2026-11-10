@@ -9,7 +9,9 @@ import type {
 } from "@types";
 
 import {
+  EMULATOR_SYSTEMS,
   platformToRetroArchPlatform,
+  platformToSystem,
   RETROARCH_PLATFORM_LABELS,
   getDisplayedPlayTimeInMilliseconds,
 } from "@shared";
@@ -20,7 +22,7 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
-import type { SortOption } from "./pages/library/filter-options";
+import type { SortOption } from "./pages/library/library-display-menu";
 import type { SkuRegion } from "./helpers/sku-region";
 import {
   appendProfileLibraryFilterParams,
@@ -31,6 +33,7 @@ import {
 } from "./pages/library/library-category";
 
 export {
+  getDiscRegion,
   getRegionsFromSkus,
   getSkuRegion,
   getSkuRegionFromSaveIdentity,
@@ -63,29 +66,17 @@ export const ensureArray = <T>(value: unknown, source: string): T[] => {
   return [];
 };
 
-export const platformToSystem = (
-  platform?: string | null
-): EmulatorSystem | null => {
-  if (!platform) return null;
-  const p = platform.toLowerCase();
-  if (/playstation\s*portable|\bpsp\b/.test(p)) return "psp";
-  if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
-  if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
-  if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
-  if (/game\s*cube/.test(p)) return "dolphin";
-  if (/^(nintendo\s+)?wii$/.test(p.trim())) return "dolphin";
-  return null;
-};
-
 export const platformToEmulationSavePlatform = (
   platform?: string | null
 ): EmulationSavePlatform | null => {
   if (!platform) return null;
   const normalized = platform.toLowerCase().trim();
   if (/playstation\s*portable|\bpsp\b/.test(normalized)) return "psp";
-  if (/playstation\s*3|\bps3\b/.test(normalized)) return null;
+  if (/playstation\s*[34]|\bps[34]\b/.test(normalized)) return null;
   if (/playstation\s*2|\bps2\b/.test(normalized)) return "ps2";
-  if (/playstation|\bps1\b|\bpsx\b/.test(normalized)) return "ps1";
+  if (/playstation(?!\s*(?:[5-9]|vita))|\bps1\b|\bpsx\b/.test(normalized)) {
+    return "ps1";
+  }
   if (/game\s*cube/.test(normalized)) return "gamecube";
   if (/^(nintendo\s+)?wii$/.test(normalized)) return "wii";
   return null;
@@ -109,14 +100,21 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+  ps4: "shadps4",
   psp: "ppsspp",
   dolphin: "dolphin",
 };
 
 export {
   platformToRetroArchPlatform,
+  platformToSystem,
   RETROARCH_PLATFORM_LABELS,
 } from "@shared";
+
+export const isPs4GameFolder = async (folderPath: string): Promise<boolean> => {
+  const info = await window.electron.getPathInfo(`${folderPath}/eboot.bin`);
+  return info.exists && info.isFile;
+};
 
 export const RETROARCH_EMULATION_SETTINGS_PATH =
   "/settings?tab=emulation&system=retroarch&section=emulator";
@@ -156,6 +154,7 @@ export const CLASSICS_PS_PLATFORM_LABELS: Partial<
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
+  ps4: "PS4",
   psp: "PSP",
   dolphin: "GC/Wii",
 };
@@ -232,11 +231,20 @@ export const handleClassicsLaunchError = (
     showErrorToast(t("pkg_unreadable_toast"));
   } else if (code === "EMULATOR_ALREADY_RUNNING") {
     context.onEmulatorAlreadyRunning();
+  } else if (code === "RECOMPILATION_NEEDS_SETUP") {
+    const port = getRecompilationFromLaunchError(error);
+    if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
+  } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
+    showErrorToast(t("recompilation_already_running_toast"));
   } else {
     showErrorToast(t("launch_failed_toast"));
   }
 
-  return code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING";
+  return (
+    code !== "EMULATOR_ALREADY_RUNNING" &&
+    code !== "PKG_INSTALLING" &&
+    code !== "RECOMPILATION_ALREADY_RUNNING"
+  );
 };
 
 export const formatDownloadProgress = (
@@ -408,7 +416,18 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "PKG_UNREADABLE",
   "RETROARCH_NOT_CONFIGURED",
   "CORE_NOT_INSTALLED",
+  "RECOMPILATION_NEEDS_SETUP",
+  "RECOMPILATION_ALREADY_RUNNING",
+  "RECOMPILATION_LAUNCH_FAILED",
 ] as const;
+
+const getRecompilationFromLaunchError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = /RECOMPILATION_NEEDS_SETUP: (\d+)\/([a-z0-9._-]+)/i.exec(
+    message
+  );
+  return match ? { objectId: match[1], slug: match[2] } : null;
+};
 
 export const getClassicsLaunchErrorCode = (
   error: unknown
@@ -428,14 +447,13 @@ export const getClassicsLaunchErrorSystem = (
   error: unknown
 ): EmulatorSystem | undefined => {
   const direct = (error as { system?: string })?.system;
-  const systems: EmulatorSystem[] = ["ps1", "ps2", "ps3", "psp", "dolphin"];
-  if (systems.includes(direct as EmulatorSystem))
+  if (EMULATOR_SYSTEMS.includes(direct as EmulatorSystem))
     return direct as EmulatorSystem;
 
   let message = "";
   if (error instanceof Error) message = error.message;
   else if (typeof error === "string") message = error;
-  return systems.find((system) => message.includes(system));
+  return EMULATOR_SYSTEMS.find((system) => message.includes(system));
 };
 
 const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {

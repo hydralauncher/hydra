@@ -14,6 +14,7 @@ import { GoogleDriveStorage } from "../google-drive";
 import { toGoogleDriveRestoreManifest } from "../google-drive/google-drive-manifest";
 import { NativeAddon } from "../native-addon";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getRecompilationSaveRules } from "./recompilation-cloud-save";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { customPathToCloudSaveRule } from "./custom-path-store";
 import { getUsableCloudSaveCustomPathBindings } from "./custom-path-overlap";
@@ -76,7 +77,7 @@ export const resolveRestoreManifestTargets = async (
   manifest: RestoreManifestResponse,
   suppliedPathContext?: CloudSavePathContext,
   suppliedCustomPathBindings?: CloudSaveCustomPathBindings,
-  rpcs3SavedataTitleIds?: readonly string[]
+  savedataTitleIds?: readonly string[]
 ): Promise<ResolveRestoreTargetsResult> => {
   const gameContext = await getCloudSaveGameContext(
     manifest.snapshot.objectId,
@@ -95,6 +96,10 @@ export const resolveRestoreManifestTargets = async (
         title: gameContext.game?.title,
         remoteId: gameContext.game?.remoteId ?? undefined,
         userDataPath: SystemPath.getPath("userData"),
+        recompilationRules: getRecompilationSaveRules(
+          pathContext,
+          gameContext.game?.executablePath
+        ),
       });
   const customPathContext =
     cloudSaveCustomPathContextFromPathContext(pathContext);
@@ -182,7 +187,7 @@ export const resolveRestoreManifestTargets = async (
   const emulatorRules = await getEmulatorRestoreRules(
     gameContext.game,
     emulatorFiles,
-    rpcs3SavedataTitleIds
+    savedataTitleIds
   );
   const emulatorPlans = await Promise.all(
     emulatorFiles.map((file) => {

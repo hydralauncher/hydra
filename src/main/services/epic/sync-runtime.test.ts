@@ -15,6 +15,7 @@ import { EpicAchievementSource } from "./achievement-source.js";
 import * as achievementProtocol from "./achievement-protocol.js";
 import * as snapshot from "./sync-snapshot.js";
 import { AchievementMemoryStore } from "../achievements/achievement-memory-store.js";
+import { UnlockedAchievementsCache } from "../achievements/unlocked-achievements-cache.js";
 import type { EpicConnectionState } from "../../../types/epic-integration.types";
 import type { Game } from "@types";
 import {
@@ -110,6 +111,9 @@ function fixture() {
     "./achievement-protocol": achievementProtocol,
     "./sync-snapshot": snapshot,
     "../achievements/achievement-memory-store": { AchievementMemoryStore },
+    "../achievements/unlocked-achievements-cache": {
+      UnlockedAchievementsCache,
+    },
     "node:crypto": {
       createHash: () => ({ update: () => ({ digest: () => "scope-key" }) }),
     },

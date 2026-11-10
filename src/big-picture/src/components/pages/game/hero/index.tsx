@@ -1,6 +1,9 @@
 import {
+  ArchiveIcon,
   DownloadSimpleIcon,
+  FileIcon,
   GearIcon,
+  HourglassIcon,
   HeartIcon,
   PlayIcon,
   PlusCircleIcon,
@@ -8,7 +11,8 @@ import {
 } from "@phosphor-icons/react";
 import type { LibraryGame, ShopDetailsWithAssets } from "@types";
 import { isCloudSaveV2Eligible, isLibraryGameDownloading } from "@shared";
-import { useEffect, useMemo, useRef } from "react";
+import type { GamePageDownloadStep } from "@renderer/hooks/use-finished-download-step";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FocusOverrides,
@@ -49,6 +53,10 @@ export interface HeroProps {
   toggleFavorite: () => void;
   onPlay: () => void;
   onDownload: () => void;
+  installStep?: GamePageDownloadStep | null;
+  onInstall: () => void;
+  onExtract: () => void;
+  onSelectExecutable: () => void;
   onAddToLibrary: () => void;
   onOpenDownloadOptions: () => void;
   onOpenSettings: () => void;
@@ -91,6 +99,10 @@ export function Hero({
   toggleFavorite,
   onPlay,
   onDownload,
+  installStep = null,
+  onInstall,
+  onExtract,
+  onSelectExecutable,
   onAddToLibrary,
   onOpenDownloadOptions,
   onOpenSettings,
@@ -175,6 +187,79 @@ export function Hero({
       : lastActionRightTarget,
     down: heroDownNavigationTarget,
   };
+
+  const libraryGameAction = useMemo<{
+    label: string;
+    icon: ReactNode;
+    onClick?: () => void;
+    disabled: boolean;
+  }>(() => {
+    if (installStep === "checking") {
+      return {
+        label: t("checking_files", { ns: "downloads" }),
+        icon: <HourglassIcon size={24} />,
+        disabled: true,
+      };
+    }
+
+    if (installStep === "extracting") {
+      return {
+        label: t("extracting"),
+        icon: <ArchiveIcon size={24} />,
+        disabled: true,
+      };
+    }
+
+    if (installStep === "extract") {
+      return {
+        label: t("extract", { ns: "downloads" }),
+        icon: <ArchiveIcon size={24} />,
+        onClick: onExtract,
+        disabled: false,
+      };
+    }
+
+    if (installStep === "installing") {
+      return {
+        label: t("installing", { ns: "downloads" }),
+        icon: <HourglassIcon size={24} />,
+        disabled: true,
+      };
+    }
+
+    if (installStep === "install") {
+      return {
+        label: t("install"),
+        icon: <DownloadSimpleIcon size={24} />,
+        onClick: onInstall,
+        disabled: false,
+      };
+    }
+
+    if (installStep === "select-executable") {
+      return {
+        label: t("select_executable", { ns: "downloads" }),
+        icon: <FileIcon size={24} />,
+        onClick: onSelectExecutable,
+        disabled: false,
+      };
+    }
+
+    return {
+      label: "Download Game",
+      icon: <DownloadSimpleIcon size={24} />,
+      onClick: onDownload,
+      disabled: isDownloading,
+    };
+  }, [
+    installStep,
+    isDownloading,
+    onExtract,
+    onDownload,
+    onInstall,
+    onSelectExecutable,
+    t,
+  ]);
 
   const { primaryActionButton, downloadOptionsButton, settingsButton } =
     useMemo(() => {
@@ -301,11 +386,11 @@ export function Hero({
               focusNavigationOverrides={primaryActionNavigationOverrides}
               variant="primary"
               color={dominantColor ?? undefined}
-              icon={<DownloadSimpleIcon size={24} />}
-              onClick={onDownload}
-              disabled={isDownloading}
+              icon={libraryGameAction.icon}
+              onClick={libraryGameAction.onClick}
+              disabled={libraryGameAction.disabled}
             >
-              Download Game
+              {libraryGameAction.label}
             </Button>
           ),
           downloadOptionsButton: null,
@@ -367,11 +452,10 @@ export function Hero({
       heroDownNavigationTarget,
       isAddingToLibrary,
       isGameRunning,
-      isDownloading,
       isPlayableClassicsGame,
       onAddToLibrary,
       onClose,
-      onDownload,
+      libraryGameAction,
       onOpenDownloadOptions,
       onOpenSettings,
       onPlay,

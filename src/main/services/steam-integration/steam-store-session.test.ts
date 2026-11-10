@@ -9,6 +9,8 @@ import {
   parseSteamOpenIdReturn,
 } from "./steam-openid-return.ts";
 import {
+  parseSteamCommunityPageSteamId,
+  resolveSteamCommunityLogin,
   parseSteamStoreSessionConfig,
   SteamSessionRequiredError,
 } from "./steam-store-session-config.ts";
@@ -158,6 +160,108 @@ describe("parseSteamStoreSessionConfig", () => {
           storeConfigRaw: JSON.stringify({ webapi_token: "store-token" }),
         }),
       SteamSessionRequiredError
+    );
+  });
+});
+
+describe("parseSteamCommunityPageSteamId", () => {
+  it("reads the SteamID64 from a logged-in Community page", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://steamcommunity.com/id/player/",
+        steamIdRaw: "76561199208012825",
+      }),
+      "76561199208012825"
+    );
+  });
+
+  it("treats g_steamID = false as logged out", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://steamcommunity.com/id/player/",
+        steamIdRaw: false,
+      }),
+      null
+    );
+  });
+
+  it("treats a Community login redirect as logged out", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://steamcommunity.com/login/home/?goto=my",
+        steamIdRaw: "76561199208012825",
+      }),
+      null
+    );
+  });
+
+  it("keeps a logged-in vanity URL that starts with login", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://steamcommunity.com/id/loginking/",
+        steamIdRaw: "76561199208012825",
+      }),
+      "76561199208012825"
+    );
+  });
+
+  it("treats the Steam login host as logged out", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://login.steampowered.com/jwt/refresh",
+        steamIdRaw: "76561199208012825",
+      }),
+      null
+    );
+  });
+
+  it("rejects a missing or malformed g_steamID", () => {
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://steamcommunity.com/id/player/",
+        steamIdRaw: null,
+      }),
+      null
+    );
+    assert.equal(
+      parseSteamCommunityPageSteamId({
+        currentUrl: "https://steamcommunity.com/id/player/",
+        steamIdRaw: "12345",
+      }),
+      null
+    );
+  });
+});
+
+describe("resolveSteamCommunityLogin", () => {
+  it("is logged in when the refreshed page reports a SteamID64", () => {
+    assert.deepEqual(
+      resolveSteamCommunityLogin({
+        refreshed: { steamId64: "76561199208012825" },
+        hasLoginCookie: true,
+      }),
+      { status: "logged-in", steamId64: "76561199208012825" }
+    );
+  });
+
+  it("is logged out when the refreshed page reports no SteamID64", () => {
+    assert.deepEqual(
+      resolveSteamCommunityLogin({
+        refreshed: { steamId64: null },
+        hasLoginCookie: true,
+      }),
+      { status: "logged-out" }
+    );
+  });
+
+  it("falls back to the stored cookie when the page failed to load", () => {
+    assert.deepEqual(
+      resolveSteamCommunityLogin({ refreshed: null, hasLoginCookie: true }),
+      { status: "unverified" }
+    );
+    assert.deepEqual(
+      resolveSteamCommunityLogin({ refreshed: null, hasLoginCookie: false }),
+      { status: "logged-out" }
     );
   });
 });

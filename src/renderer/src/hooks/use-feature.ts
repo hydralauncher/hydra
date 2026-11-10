@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { logger } from "@renderer/logger";
 import { ensureArray } from "@renderer/helpers";
 
-enum Feature {
+export enum Feature {
   CheckDownloadWritePermission = "CHECK_DOWNLOAD_WRITE_PERMISSION",
   TorBox = "TORBOX",
   Premiumize = "PREMIUMIZE",
@@ -11,9 +11,20 @@ enum Feature {
   Nimbus = "NIMBUS",
   NimbusPreview = "NIMBUS_PREVIEW",
   ChatImages = "CHAT_IMAGES",
+  Gamification = "GAMIFICATION",
+  GamificationShop = "GAMIFICATION_SHOP",
+  Screenshots = "SCREENSHOTS",
+  ScreenshotComments = "SCREENSHOT_COMMENTS",
+  GameLeaderboardsExtended = "GAME_LEADERBOARDS_EXTENDED",
+  GlobalLeaderboards = "GLOBAL_LEADERBOARDS",
+  LeaderboardReports = "LEADERBOARD_REPORTS",
+  MultipartHosterDownloads = "MULTIPART_HOSTER_DOWNLOADS",
+  LeaderboardBadges = "LEADERBOARD_BADGES",
+  Recompilations = "RECOMPILATIONS",
+  RecompilationCloudSaves = "RECOMPILATION_CLOUD_SAVES",
 }
 
-const readCachedFeatures = (): string[] => {
+export const readCachedFeatures = (): string[] => {
   try {
     const parsed = JSON.parse(localStorage.getItem("features") ?? "[]");
     return Array.isArray(parsed) ? parsed : [];
@@ -24,6 +35,7 @@ const readCachedFeatures = (): string[] => {
 
 export function useFeature() {
   const [features, setFeatures] = useState<string[] | null>(null);
+  const [hasFeaturesFailed, setHasFeaturesFailed] = useState(false);
 
   useEffect(() => {
     window.electron.hydraApi
@@ -33,7 +45,10 @@ export function useFeature() {
         localStorage.setItem("features", JSON.stringify(safeFeatures));
         setFeatures(safeFeatures);
       })
-      .catch(logger.error);
+      .catch((error) => {
+        logger.error(error);
+        setHasFeaturesFailed(true);
+      });
   }, []);
 
   const isFeatureEnabled = useCallback(
@@ -45,6 +60,8 @@ export function useFeature() {
 
   return {
     isFeatureEnabled,
+    isFeaturesLoaded: features !== null,
+    isFeaturesSettled: features !== null || hasFeaturesFailed,
     Feature,
   };
 }

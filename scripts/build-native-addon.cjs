@@ -176,6 +176,11 @@ const build = async () => {
 
   fs.mkdirSync(outputDir, { recursive: true });
   fs.copyFileSync(sourceLibraryPath, outputNodePath);
+  // The addon embeds UnRAR, whose license must ship with it.
+  fs.copyFileSync(
+    path.join(path.dirname(manifestPath), "LICENSE-UNRAR"),
+    path.join(outputDir, "LICENSE-UNRAR")
+  );
 
   await copySidecarLibrariesOnWindows();
   await ensureDepsResolvableOnLinux();

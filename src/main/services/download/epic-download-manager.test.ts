@@ -12,6 +12,7 @@ import { Downloader } from "../../../shared/constants.js";
 import * as downloadContract from "../../../types/download-contract.js";
 import * as downloaderTypes from "./types.js";
 import * as completion from "./download-completion.js";
+import * as downloadParts from "./download-parts.js";
 import * as queueVerify from "./download-queue-verify.js";
 import { withDownloadActivation } from "./download-activation.ts";
 import { deferred } from "../epic/store-test-helpers.js";
@@ -134,6 +135,10 @@ function fixture() {
     "../../types": downloadContract,
     "./types": downloaderTypes,
     "./download-completion": completion,
+    "./download-parts": downloadParts,
+    "./multipart-hoster-feature": {
+      assertMultipartHosterDownloadsEnabled: async () => {},
+    },
     "./download-queue-verify": queueVerify,
     "node:path": path,
     "node:fs": fs,

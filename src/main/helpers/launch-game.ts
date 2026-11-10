@@ -3,7 +3,8 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { GameShop, type Game, type UserPreferences } from "@types";
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { isEpicUpdateInterrupted } from "@shared";
 import { updateGameExecutablePath } from "./update-executable-path";
 import {
   clearCloudSaveLaunchGuard,
@@ -38,7 +39,11 @@ import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/st
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
-import { parseExecutablePath } from "../events/helpers/parse-executable-path";
+import {
+  parseExecutablePath,
+  readExecutableShortcut,
+  type ExecutableShortcut,
+} from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
@@ -64,6 +69,7 @@ export interface LaunchGameOptions {
   launchOptions?: string | null;
   epicSavePolicy?: "local-once";
   epicOffline?: boolean;
+  epicSkipUpdateCheck?: boolean;
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
@@ -114,11 +120,14 @@ const launchNatively = (
   executablePath: string,
   launchOptions?: string | null,
   useMangohud = false,
-  useGamemode = false
+  useGamemode = false,
+  shortcut: ExecutableShortcut | null = null
 ): number | null => {
-  const workingDirectory = path.dirname(executablePath);
+  const workingDirectory =
+    shortcut?.workingDirectory ?? path.dirname(executablePath);
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: executablePath,
+    baseArgs: shortcut?.arguments,
     launchOptions,
     wrapperCommands: [
       ...(useGamemode ? ["gamemoderun"] : []),
@@ -446,7 +455,7 @@ const launchWindowsBinaryOnLinux = async (
   void UmuUpdater.checkForUpdates();
 
   try {
-    await Umu.launchExecutable(parsedPath, [], {
+    const pid = await Umu.launchExecutable(parsedPath, [], {
       winePrefixPath,
       protonPath,
       gameId: objectId,
@@ -456,6 +465,7 @@ const launchWindowsBinaryOnLinux = async (
       onStatus: reportUmuStatus,
       wasGameDetected: () => wasGameLauncherGameDetected(gameKey),
     });
+    if (pid !== undefined) launchedGamePids.set(gameKey, pid);
     PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
     return true;
   } catch (error) {
@@ -614,10 +624,17 @@ const launchResolvedGame = async (
   compatibilityContext: LinuxCompatibilityLaunchContext | null,
   launchOptions: string | null | undefined,
   useMangohud: boolean,
-  useGamemode: boolean
+  useGamemode: boolean,
+  shortcut: ExecutableShortcut | null = null
 ) => {
   if (process.platform !== "linux") {
-    return launchNatively(parsedPath, launchOptions, useMangohud, useGamemode);
+    return launchNatively(
+      parsedPath,
+      launchOptions,
+      useMangohud,
+      useGamemode,
+      shortcut
+    );
   }
 
   if (isWindowsExecutable(parsedPath)) {
@@ -688,6 +705,7 @@ const launchGameWithCloudSaveChecks = async (
   const { shop, objectId, executablePath, launchOptions } = options;
 
   const parsedPath = parseExecutablePath(executablePath);
+  const shortcut = readExecutableShortcut(executablePath);
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
@@ -900,6 +918,11 @@ const launchGameWithCloudSaveChecks = async (
             winePrefixPath: compatibilityContext?.winePrefixPath,
             epicSavePolicy: options.epicSavePolicy,
             epicOffline: options.epicOffline,
+            epicSkipUpdateCheck:
+              options.epicSkipUpdateCheck &&
+              !isEpicUpdateInterrupted(
+                (await downloadsSublevel.get(gameKey)) ?? null
+              ),
             onStatus: createUmuStatusReporter(gameKey),
             // Runs once the Linux prefix exists, so Hydra restores into it and
             // records its upload guard against the prepared environment.
@@ -997,7 +1020,8 @@ const launchGameWithCloudSaveChecks = async (
           compatibilityContext,
           launchOptions,
           useMangohud,
-          useGamemode
+          useGamemode,
+          shortcut
         );
       }
     );
@@ -1029,7 +1053,8 @@ const launchGameWithCloudSaveChecks = async (
     compatibilityContext,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    shortcut
   );
 };
 

@@ -51,8 +51,7 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
   useEffect(() => {
     const unsubscribe = window.electron.onGamesRunning((gamesIds) => {
       const updatedIsGameRunning =
-        !!game?.id &&
-        !!gamesIds.find((gameRunning) => gameRunning.id == game.id);
+        !!game?.id && gamesIds.some((gameRunning) => gameRunning.id == game.id);
 
       setIsGameRunning(updatedIsGameRunning);
     });
@@ -363,23 +362,28 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
     }
   };
 
-  const handleRemoveFiles = async () => {
+  const handleRemoveFiles = async (
+    targetGame: GameContextMenuGame = downloadGame,
+    deleteSourceArchive = false
+  ) => {
     if (
-      isLibraryGameDownloading(downloadGame) ||
-      isGameDeleting(downloadGame.objectId)
+      isLibraryGameDownloading(targetGame) ||
+      isGameDeleting(targetGame.objectId)
     )
       return;
 
     try {
-      await removeGameInstaller(downloadGame.shop, downloadGame.objectId);
+      await removeGameInstaller(targetGame.shop, targetGame.objectId, {
+        deleteSourceArchive,
+      });
       await updateLibrary();
       showSuccessToast(t("files_removed_success"));
       try {
         window.dispatchEvent(
           new CustomEvent("hydra:game-files-removed", {
             detail: {
-              shop: downloadGame.shop,
-              objectId: downloadGame.objectId,
+              shop: targetGame.shop,
+              objectId: targetGame.objectId,
             },
           })
         );

@@ -13,6 +13,7 @@ import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { BiosSection } from "./bios-section";
 import { FirmwareSection } from "./firmware-section";
+import { TrophyKeySection } from "./trophy-key-section";
 import {
   DetailHeader,
   DetailRemoveModals,
@@ -68,7 +69,7 @@ export function EmulatorDetail({
 
   const formatLastScan = (ts: number | null): string =>
     ts !== null ? formatRelativeShort(ts, i18n.language) : "—";
-  const { showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
   const { scan, start } = useClassicsScan();
 
   const [busy, setBusy] = useState(false);
@@ -76,12 +77,16 @@ export function EmulatorDetail({
   const [romsNonce, setRomsNonce] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const removeTarget = useMemo(
+    () => ({ kind: "emulator" as const, system: config.system }),
+    [config.system]
+  );
   const [executableExists, setExecutableExists] = useState<boolean>(true);
 
   const hasMemoryCards = supportsMemoryCards(config.system);
   const hasEmulatorSaves = supportsEmulatorSaves(config.system);
   const supportsBios = hasMemoryCards;
-  const supportsFirmware = config.system === "ps3";
+  const supportsFirmware = config.system === "ps3" || config.system === "ps4";
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
     readStoredTab(config.system)
@@ -114,17 +119,31 @@ export function EmulatorDetail({
     };
   }, [config.system, config.executablePath]);
 
-  const handleConfirmRemoveEmulator = useCallback(async () => {
-    setBusy(true);
-    try {
-      const next = await window.electron.removeEmulator(config.system);
-      onChange(next);
-      setRemoveOpen(false);
-      onBack();
-    } finally {
-      setBusy(false);
-    }
-  }, [config.system, onChange, onBack]);
+  const handleConfirmRemoveEmulator = useCallback(
+    async (gamesToRemove: number) => {
+      setBusy(true);
+      try {
+        const next = await window.electron.removeEmulator(config.system, {
+          removeGames: gamesToRemove > 0,
+        });
+        onChange(next);
+        setRemoveOpen(false);
+        showSuccessToast(
+          t("remove_emulator_success", {
+            name: KNOWN_BINARY_LABELS[config.binary],
+          }),
+          gamesToRemove > 0
+            ? t("remove_emulator_games_removed", { count: gamesToRemove })
+            : undefined
+        );
+
+        onBack();
+      } finally {
+        setBusy(false);
+      }
+    },
+    [config.binary, config.system, onChange, onBack, showSuccessToast, t]
+  );
 
   const binaryName = KNOWN_BINARY_LABELS[config.binary];
   const binaryIcon = EMULATOR_ICONS[config.binary];
@@ -136,7 +155,9 @@ export function EmulatorDetail({
         executablePath: config.executablePath,
         detectedVersion: config.detectedVersion,
       };
-      const next = await window.electron.detectEmulator(config.system);
+      const next = await window.electron.detectEmulator(config.system, {
+        includeDriveRoots: true,
+      });
       onChange(next);
       notifyRedetectOutcome(
         next,
@@ -277,18 +298,28 @@ export function EmulatorDetail({
     if (scan.completedNonce === lastScanNonceRef.current) return;
     lastScanNonceRef.current = scan.completedNonce;
     if (scan.completedSystem !== config.system) return;
-    showSuccessToast(
-      t("scan_complete_toast", {
-        matched: scan.result?.matched ?? 0,
-        unmatched: scan.result?.unmatched ?? 0,
-      })
-    );
+    const summary = t("scan_complete_toast", {
+      matched: scan.result?.matched ?? 0,
+      unmatched: scan.result?.unmatched ?? 0,
+    });
+    if (scan.result?.unsupportedPackages) {
+      showWarningToast(
+        summary,
+        t("ps4_pkg_not_supported", {
+          ns: "app",
+          count: scan.result.unsupportedPackages,
+        })
+      );
+      return;
+    }
+    showSuccessToast(summary);
   }, [
     scan.completedNonce,
     scan.completedSystem,
     scan.result,
     config.system,
     showSuccessToast,
+    showWarningToast,
     t,
   ]);
 
@@ -362,6 +393,10 @@ export function EmulatorDetail({
 
           {supportsFirmware && (
             <FirmwareSection config={config} disabled={busy} />
+          )}
+
+          {config.system === "ps4" && (
+            <TrophyKeySection config={config} disabled={busy} />
           )}
 
           {isConfigured && (
@@ -448,6 +483,7 @@ export function EmulatorDetail({
 
       <DetailRemoveModals
         emulatorName={binaryName}
+        removeTarget={removeTarget}
         folderToRemove={folderToRemove}
         removeEmulatorOpen={removeOpen}
         busy={busy}

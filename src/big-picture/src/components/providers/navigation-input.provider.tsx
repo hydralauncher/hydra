@@ -123,6 +123,19 @@ function isEditableElement(element: EventTarget | null) {
   );
 }
 
+function handleEscapeInEditable(event: KeyboardEvent) {
+  if (event.key !== "Escape") return false;
+  if (event.defaultPrevented) return true;
+
+  const activeElement = document.activeElement;
+  if (!(activeElement instanceof HTMLElement)) return false;
+  if (!isEditableElement(activeElement)) return false;
+
+  event.preventDefault();
+  activeElement.blur();
+  return true;
+}
+
 function shouldIgnoreKeyboardNavigation(event: KeyboardEvent) {
   return (
     isEditableElement(event.target) || isEditableElement(document.activeElement)
@@ -403,6 +416,8 @@ export function NavigationInputProvider({
       if (!isInputActive || isSystemSwitcherActiveRef.current) {
         return;
       }
+
+      if (handleEscapeInEditable(event)) return;
 
       if (shouldIgnoreKeyboardNavigation(event)) {
         return;

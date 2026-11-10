@@ -24,7 +24,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.5);
+    color: globals.$subtle-color;
   }
 
   &__value {
@@ -47,7 +47,7 @@
 
   &__previous {
     font-size: globals.$small-font-size;
-    color: rgba(255, 255, 255, 0.4);
+    color: globals.$subtle-color;
     white-space: nowrap;
   }
 }
@@ -57,13 +57,13 @@
     gap: 4px;
     &__label {
       gap: 4px;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
     }
     &__value {
       padding: 6px 4px;
     }
     &__next {
-      font-size: 12px;
+      font-size: globals.$small-font-size;
     }
   }
 }

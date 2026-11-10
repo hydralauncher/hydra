@@ -1,10 +1,13 @@
 import type { ClassicsDisc } from "@types";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
-import { CheckCircleIcon, CircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, CircleIcon, FileIcon } from "@phosphor-icons/react";
+import { Disc3 } from "lucide-react";
+import { getClassicsDiscLabel } from "@shared";
+import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -55,11 +58,26 @@ export function DiscSelectionModal({
   onClose,
   onConfirm,
 }: Readonly<DiscSelectionModalProps>) {
+  const executableIcons = useFileIcons(
+    discs.filter((disc) => disc.isExecutable).map((disc) => disc.path)
+  );
+
+  const renderDiscTypeIcon = (disc: ClassicsDisc) => {
+    if (!disc.isExecutable) return <Disc3 size={20} />;
+
+    const fileIcon = executableIcons[disc.path];
+    return fileIcon ? (
+      <img src={fileIcon} alt="" width={20} height={20} />
+    ) : (
+      <FileIcon size={20} />
+    );
+  };
+
   const sortedDiscs = useMemo(() => {
     const regionOrder = new Map<string, number>();
 
     for (const disc of discs) {
-      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      const region = getDiscRegion(disc);
 
       if (region && !regionOrder.has(region)) {
         regionOrder.set(region, regionOrder.size);
@@ -67,12 +85,13 @@ export function DiscSelectionModal({
     }
 
     const rankOf = (disc: ClassicsDisc): number => {
-      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      const region = getDiscRegion(disc);
       if (!region) return Number.MAX_SAFE_INTEGER;
       return regionOrder.get(region) ?? Number.MAX_SAFE_INTEGER;
     };
 
     const numberOf = (disc: ClassicsDisc): number => {
+      if (disc.isExecutable) return Number.MAX_SAFE_INTEGER;
       const match = /\d+/.exec(disc.label);
       return match ? Number.parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
     };
@@ -130,7 +149,7 @@ export function DiscSelectionModal({
         >
           {sortedDiscs.map((disc, index) => {
             const isSelected = selectedDiscPath === disc.path;
-            const region = disc.sku ? getSkuRegion(disc.sku) : null;
+            const region = getDiscRegion(disc);
             const previousDisc = sortedDiscs[index - 1] ?? null;
             const nextDisc = sortedDiscs[index + 1] ?? null;
             const navigationOverrides: FocusOverrides = {
@@ -168,9 +187,13 @@ export function DiscSelectionModal({
                     )}
                   </span>
 
+                  <span className="disc-selection-modal__disc-type">
+                    {renderDiscTypeIcon(disc)}
+                  </span>
+
                   <span className="disc-selection-modal__disc-text">
                     <span className="disc-selection-modal__disc-label">
-                      {disc.label}
+                      {getClassicsDiscLabel(disc)}
                     </span>
                     <span className="disc-selection-modal__disc-file">
                       {disc.fileName}

@@ -2,16 +2,23 @@ import { ASSETS_PATH } from "@main/constants";
 import { getGameAssets } from "@main/events/catalogue/get-game-assets";
 import { getDirectorySize } from "@main/events/helpers/get-directory-size";
 import { findGameExecutableInFolder } from "@main/helpers/find-game-executable";
+import { findDownloadInstaller } from "@main/helpers/find-game-installer";
+import {
+  getInstallerTargetDirectories,
+  listFoldersChangedSince,
+} from "@main/helpers/installer-target-directories";
 import { updateGameExecutablePath } from "@main/helpers/update-executable-path";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import {
   Downloader,
   FILE_EXTENSIONS_TO_EXTRACT,
+  getNextClassicsDiscLabel,
   removeSymbolsFromName,
 } from "@shared";
 import type {
   ClassicsDisc,
+  Download,
   EmulatorSystem,
   ExtractionFailure,
   Game,
@@ -26,6 +33,9 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 import { ExtractionProgress, SevenZip } from "./7zip";
+import { type ArchiveExtractors, extractArchive } from "./archive-extraction";
+import { NativeAddon } from "./native-addon";
+import { HydraApi } from "./hydra-api";
 import * as emulators from "./emulators";
 import * as retroarch from "./retroarch";
 import { getPathType } from "./extraction-path";
@@ -39,14 +49,60 @@ import { publishExtractionCompleteNotification } from "./notifications";
 import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 import { runAutomaticCloudSaveSync } from "./cloud-save";
+import { updateGameRecord } from "./game-record-updater";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
 const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
 
+const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
+
+const IN_PLACE_EXTRACTION_FEATURE = "IN_PLACE_ARCHIVE_EXTRACTION";
+const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
+
+// Fails closed: without an answer from the API, archives go to 7-Zip.
+const isInPlaceExtractionEnabled = () =>
+  HydraApi.get<string[]>("/features", null, {
+    needsAuth: false,
+    timeout: FEATURES_REQUEST_TIMEOUT_MS,
+  })
+    .then(
+      (features) =>
+        Array.isArray(features) &&
+        features.includes(IN_PLACE_EXTRACTION_FEATURE)
+    )
+    .catch((error) => {
+      logger.warn("[GameFilesManager] Could not load feature flags", error);
+      return false;
+    });
+
+const archiveExtractors: Omit<ArchiveExtractors, "inPlaceEnabled"> = {
+  inPlace: (options, onProgress) =>
+    NativeAddon.extractArchiveInPlace(options, onProgress),
+  hasInPlaceJournal: (archivePath) => {
+    try {
+      return NativeAddon.inPlaceJournalExists(archivePath);
+    } catch {
+      // Without the addon the in-place call fails too, and 7-Zip extracts.
+      return false;
+    }
+  },
+  sevenZip: (options, onProgress) => SevenZip.extractFile(options, onProgress),
+  log: (message) => logger.info(`[GameFilesManager] ${message}`),
+};
+
 export class GameFilesManager {
   private lastProgressUpdateTime = 0;
   private lastProgressUpdateValue = 0;
+  private inPlaceExtractionEnabled: Promise<boolean> | null = null;
+
+  // The flag is read once per extraction run, so every archive of a download
+  // gets the same answer and a slow API only delays the first.
+  private readonly extractors: ArchiveExtractors = {
+    ...archiveExtractors,
+    inPlaceEnabled: () =>
+      (this.inPlaceExtractionEnabled ??= isInPlaceExtractionEnabled()),
+  };
 
   constructor(
     private readonly shop: GameShop,
@@ -91,11 +147,14 @@ export class GameFilesManager {
           : "complete"
         : download.status;
 
+    const hasInstaller = (await findDownloadInstaller(download)) !== null;
+
     await downloadsSublevel.put(this.gameKey, {
       ...download,
       status,
       queued: false,
       extracting: false,
+      hasInstaller,
     });
     WindowManager.sendDownloadsUpdated();
   }
@@ -141,6 +200,8 @@ export class GameFilesManager {
   ) {
     const format = path.extname(filePath).toLowerCase();
 
+    await this.searchAndBindExecutable();
+
     if (notify) {
       await this.setExtractionFailedState(
         new Error(`Unsupported extraction format "${format}" for ${filePath}`),
@@ -154,7 +215,6 @@ export class GameFilesManager {
       await this.resetExtractingState();
     }
 
-    await this.searchAndBindExecutable();
     await this.autoLinkClassicsDiscs();
   }
 
@@ -163,21 +223,81 @@ export class GameFilesManager {
     this.updateExtractionProgress(progress.percent / 100);
   };
 
+  private async shouldDeleteArchives(download?: Download | null) {
+    const userPreferences = await db.get<string, UserPreferences | null>(
+      levelKeys.userPreferences,
+      { valueEncoding: "json" }
+    );
+
+    return (
+      download?.automaticallyDeleteArchiveFiles ??
+      userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
+      true
+    );
+  }
+
+  private async recordInPlaceStart(archivePath: string) {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download) {
+      throw new Error(`No download to record extracting ${archivePath} for`);
+    }
+
+    if (download.inPlaceArchives?.includes(archivePath)) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      inPlaceArchives: [...(download.inPlaceArchives ?? []), archivePath],
+    });
+  }
+
+  private async forgetInPlaceStart(archivePath: string) {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download?.inPlaceArchives?.includes(archivePath)) return;
+
+    const inPlaceArchives = download.inPlaceArchives.filter(
+      (startedArchive) => startedArchive !== archivePath
+    );
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      inPlaceArchives: inPlaceArchives.length > 0 ? inPlaceArchives : undefined,
+    });
+  }
+
+  private async clearInPlaceArchives() {
+    const download = await downloadsSublevel.get(this.gameKey);
+
+    if (!download?.inPlaceArchives) return;
+
+    await downloadsSublevel.put(this.gameKey, {
+      ...download,
+      inPlaceArchives: undefined,
+    });
+  }
+
   private async extractArchivePass(
     directoryPath: string,
     filesToExtract: string[],
     pass: number,
-    extractedFiles: Set<string>
+    extractedFiles: Set<string>,
+    inPlace: boolean,
+    startedInPlace: Set<string>
   ): Promise<boolean> {
     let completedFiles = 0;
     for (const file of filesToExtract) {
       const filePath = path.join(directoryPath, file);
       try {
-        const result = await SevenZip.extractFile(
+        const result = await extractArchive(
+          this.extractors,
           {
             filePath,
-            cwd: path.dirname(filePath),
-            passwords: ["online-fix.me", "steamrip.com"],
+            outputPath: path.dirname(filePath),
+            inPlace,
+            resume: startedInPlace.has(filePath),
+            recordInPlaceStart: () => this.recordInPlaceStart(filePath),
+            forgetInPlaceStart: () => this.forgetInPlaceStart(filePath),
           },
           (progress) => {
             const passProgress =
@@ -227,17 +347,9 @@ export class GameFilesManager {
       .filter((archivePath) => fs.existsSync(archivePath));
 
     if (archivePaths.length > 0) {
-      const [download, userPreferences] = await Promise.all([
-        downloadsSublevel.get(this.gameKey),
-        db.get<string, UserPreferences | null>(levelKeys.userPreferences, {
-          valueEncoding: "json",
-        }),
-      ]);
-
-      const shouldDelete =
-        download?.automaticallyDeleteArchiveFiles ??
-        userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-        false;
+      const shouldDelete = await this.shouldDeleteArchives(
+        await downloadsSublevel.get(this.gameKey)
+      );
 
       if (shouldDelete) {
         for (const archivePath of archivePaths) {
@@ -281,6 +393,19 @@ export class GameFilesManager {
 
     const compressedFiles = new Set<string>();
     const extractedFiles = new Set<string>();
+    const download = await downloadsSublevel.get(this.gameKey);
+    // Only multi-part hoster downloads, which need the feature to start, number their first volume part01.
+    const firstRarVolume = download?.parts ? /part0*1\.rar$/i : /part1\.rar$/i;
+    // Archives nested in an outer one are kept, so only top-level downloads
+    // that will be deleted anyway are consumed while extracting.
+    const inPlace =
+      !outerArchivePath && (await this.shouldDeleteArchives(download));
+    const startedInPlace = new Set(download?.inPlaceArchives ?? []);
+    // An archive consumed in place is no longer listed, but a run that
+    // stopped before cleaning up still has links and progress files to finish.
+    const unlistedInPlace = [...startedInPlace]
+      .map((archivePath) => path.basename(archivePath))
+      .filter((file) => startedInPlace.has(path.join(directoryPath, file)));
 
     // Only process archives at the extraction root. Archives in game subfolders
     // may be runtime assets and must remain intact.
@@ -296,11 +421,12 @@ export class GameFilesManager {
         return false;
       }
 
+      archives = [...new Set([...archives, ...unlistedInPlace])];
       archives.forEach((file) => compressedFiles.add(file));
       const filesToExtract = archives.filter(
         (file) =>
           !extractedFiles.has(file) &&
-          (/part1\.rar$/i.test(file) || !/part\d+\.rar$/i.test(file))
+          (firstRarVolume.test(file) || !/part\d+\.rar$/i.test(file))
       );
 
       if (filesToExtract.length === 0) continue;
@@ -312,7 +438,9 @@ export class GameFilesManager {
           directoryPath,
           filesToExtract,
           pass,
-          extractedFiles
+          extractedFiles,
+          inPlace,
+          startedInPlace
         ))
       ) {
         return false;
@@ -325,10 +453,22 @@ export class GameFilesManager {
       compressedFiles,
       extractedFiles
     );
+
+    // With an outer archive, the caller clears them once that is done too.
+    if (!outerArchivePath) await this.clearInPlaceArchives();
+
     return true;
   }
 
   async setExtractionComplete(publishNotification = true) {
+    const extractedDownload = await downloadsSublevel.get(this.gameKey);
+
+    if (!extractedDownload) return;
+
+    await this.searchAndBindExecutable();
+    const hasInstaller =
+      (await findDownloadInstaller(extractedDownload)) !== null;
+
     const [download, game] = await Promise.all([
       downloadsSublevel.get(this.gameKey),
       gamesSublevel.get(this.gameKey),
@@ -339,6 +479,7 @@ export class GameFilesManager {
     await downloadsSublevel.put(this.gameKey, {
       ...download,
       extracting: false,
+      hasInstaller,
     });
     WindowManager.sendDownloadsUpdated();
 
@@ -347,10 +488,7 @@ export class GameFilesManager {
       const gamePath = path.join(download.downloadPath, download.folderName);
       const installedSizeInBytes = await getDirectorySize(gamePath);
 
-      await gamesSublevel.put(this.gameKey, {
-        ...game,
-        installedSizeInBytes,
-      });
+      await updateGameRecord(this.gameKey, { installedSizeInBytes });
     }
 
     WindowManager.sendToAppWindows(
@@ -366,7 +504,6 @@ export class GameFilesManager {
     this.lastProgressUpdateTime = 0;
     this.lastProgressUpdateValue = 0;
 
-    await this.searchAndBindExecutable();
     await this.autoLinkClassicsDiscs();
   }
 
@@ -383,7 +520,8 @@ export class GameFilesManager {
       discs,
       selectedDiscPath:
         game.selectedDiscPath === undefined
-          ? (discs[0]?.path ?? null)
+          ? ((discs.find((disc) => !disc.recompilationSlug) ?? discs[0])
+              ?.path ?? null)
           : game.selectedDiscPath,
     });
 
@@ -413,7 +551,7 @@ export class GameFilesManager {
 
       roms.push({
         path: entry.primaryPath,
-        label: `Disc ${roms.length + 1}`,
+        label: getNextClassicsDiscLabel(roms),
         fileName: path.basename(entry.primaryPath),
         sku: null,
       });
@@ -457,23 +595,25 @@ export class GameFilesManager {
     const romPaths = await this.collectClassicsRomPaths(gameFolderPath, system);
 
     const discs = [...(game.discs ?? [])];
-    let added = 0;
-
-    for (const romPath of romPaths) {
-      if (discs.some((disc) => disc.path === romPath)) continue;
-
-      const sku = await emulators.extractDiscSku(romPath, system);
-
-      discs.push({
+    const newPaths = romPaths.filter(
+      (romPath) => !discs.some((disc) => disc.path === romPath)
+    );
+    const scannedDiscs: ClassicsDisc[] = [];
+    for (const romPath of newPaths) {
+      scannedDiscs.push({
         path: romPath,
-        label: `Disc ${discs.length + 1}`,
+        label: "",
         fileName: path.basename(romPath),
-        sku,
+        sku: await emulators.extractDiscSku(romPath, system),
       });
-      added += 1;
+    }
+    const newDiscs = await emulators.attachDiscRegions(scannedDiscs, system);
+
+    for (const disc of newDiscs) {
+      discs.push({ ...disc, label: getNextClassicsDiscLabel(discs) });
     }
 
-    await this.persistLinkedDiscs(game, discs, added, "disc(s)");
+    await this.persistLinkedDiscs(game, discs, newDiscs.length, "disc(s)");
   }
 
   async autoLinkClassicsDiscs(): Promise<void> {
@@ -513,25 +653,24 @@ export class GameFilesManager {
     }
   }
 
-  async searchAndBindExecutable(): Promise<void> {
+  async searchAndBindExecutable(): Promise<boolean> {
     try {
       const [download, game] = await Promise.all([
         downloadsSublevel.get(this.gameKey),
         gamesSublevel.get(this.gameKey),
       ]);
 
-      if (!download || !game || game.executablePath) {
-        return;
-      }
+      if (!download || !game) return false;
+      if (game.executablePath) return true;
 
       const executables = GameExecutables.getExecutablesForGame(this.objectId);
 
       if (!executables || executables.length === 0) {
-        return;
+        return false;
       }
 
       if (!download.folderName) {
-        return;
+        return false;
       }
 
       const gameFolderPath = path.join(
@@ -540,7 +679,7 @@ export class GameFilesManager {
       );
 
       if (!fs.existsSync(gameFolderPath)) {
-        return;
+        return false;
       }
 
       const foundExePath = await findGameExecutableInFolder(
@@ -548,32 +687,102 @@ export class GameFilesManager {
         executables
       );
 
-      if (foundExePath) {
-        logger.info(
-          `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${foundExePath}`
-        );
+      if (!foundExePath) return false;
 
-        const updatedGame = updateGameExecutablePath(game, foundExePath);
-
-        await gamesSublevel.put(this.gameKey, { ...updatedGame });
-        void runAutomaticCloudSaveSync(
-          this.objectId,
-          this.shop,
-          "environment-changed"
-        );
-
-        void runAchievementMetadataExport(this.gameKey, updatedGame);
-
-        WindowManager.sendToAppWindows("on-library-batch-complete");
-
-        await this.createDesktopShortcutForGame(game.title);
-      }
+      return await this.bindExecutable(foundExePath);
     } catch (err) {
       logger.error(
         `[GameFilesManager] Error searching for executable: ${this.objectId}`,
         err
       );
+      return false;
     }
+  }
+
+  async searchAndBindInstalledExecutable(
+    installerStartedAt: number,
+    winePrefixPath: string | null
+  ): Promise<boolean> {
+    if (await this.searchAndBindExecutable()) return true;
+
+    try {
+      const download = await downloadsSublevel.get(this.gameKey);
+      if (!download) return false;
+
+      const executables = GameExecutables.getExecutablesForGame(this.objectId);
+
+      if (!executables || executables.length === 0) {
+        return false;
+      }
+
+      const changedFolders = await listFoldersChangedSince(
+        getInstallerTargetDirectories(download.downloadPath, winePrefixPath),
+        installerStartedAt,
+        [download.downloadPath]
+      );
+
+      const matches = await Promise.all(
+        changedFolders.map((folderPath) =>
+          findGameExecutableInFolder(
+            folderPath,
+            executables,
+            "installation",
+            INSTALLED_EXECUTABLE_MAX_DEPTH
+          )
+        )
+      );
+      const distinctMatches = [
+        ...new Set(matches.filter((match): match is string => !!match)),
+      ];
+
+      if (distinctMatches.length > 1) {
+        logger.warn(
+          `[GameFilesManager] Not binding ${this.objectId}, several installed copies match: ${distinctMatches.join(", ")}`
+        );
+        return false;
+      }
+
+      if (distinctMatches.length === 0) return false;
+
+      return await this.bindExecutable(distinctMatches[0]);
+    } catch (err) {
+      logger.error(
+        `[GameFilesManager] Error searching for installed executable: ${this.objectId}`,
+        err
+      );
+      return false;
+    }
+  }
+
+  private async bindExecutable(executablePath: string): Promise<boolean> {
+    let bound = false;
+
+    const updatedGame = await updateGameRecord(this.gameKey, (current) => {
+      if (current.executablePath) return {};
+
+      bound = true;
+      return updateGameExecutablePath(current, executablePath);
+    });
+
+    if (!updatedGame) return false;
+    if (!bound) return Boolean(updatedGame.executablePath);
+
+    logger.info(
+      `[GameFilesManager] Auto-detected executable for ${this.objectId}: ${executablePath}`
+    );
+
+    void runAutomaticCloudSaveSync(
+      this.objectId,
+      this.shop,
+      "environment-changed"
+    );
+
+    void runAchievementMetadataExport(this.gameKey, updatedGame);
+
+    WindowManager.sendToAppWindows("on-library-batch-complete");
+
+    await this.createDesktopShortcutForGame(updatedGame.title);
+    return true;
   }
 
   private isValidIconUrl(url: string | null | undefined): url is string {
@@ -889,12 +1098,6 @@ export class GameFilesManager {
     }
 
     const filePath = path.join(download.downloadPath, download.folderName);
-
-    if (!fs.existsSync(filePath)) {
-      await this.failMissingExtractionSource(filePath);
-      return false;
-    }
-
     const archivePath = path.parse(download.folderName);
     const extractedFolderName = path.join(archivePath.dir, archivePath.name);
     const extractionPath = path.join(
@@ -902,14 +1105,29 @@ export class GameFilesManager {
       extractedFolderName
     );
 
+    // An in-place run Hydra started may have consumed the archive already.
+    // hatchzip then finishes what is left of it, or reports it done, so a
+    // retry after a failed nested archive goes on from there.
+    const resume = download.inPlaceArchives?.includes(filePath) ?? false;
+
+    if (!resume && !fs.existsSync(filePath)) {
+      await this.failMissingExtractionSource(filePath);
+      return false;
+    }
+
     this.updateExtractionProgress(0, true);
 
     try {
-      const result = await SevenZip.extractFile(
+      const shouldDelete = await this.shouldDeleteArchives(download);
+      const result = await extractArchive(
+        this.extractors,
         {
           filePath,
           outputPath: extractionPath,
-          passwords: ["online-fix.me", "steamrip.com"],
+          inPlace: shouldDelete,
+          resume,
+          recordInPlaceStart: () => this.recordInPlaceStart(filePath),
+          forgetInPlaceStart: () => this.forgetInPlaceStart(filePath),
         },
         this.handleProgress
       );
@@ -924,20 +1142,11 @@ export class GameFilesManager {
           return false;
         }
 
-        if (fs.existsSync(extractionPath) && fs.existsSync(filePath)) {
-          const userPreferences = await db.get<string, UserPreferences | null>(
-            levelKeys.userPreferences,
-            { valueEncoding: "json" }
-          );
-
-          const shouldDelete =
-            download.automaticallyDeleteArchiveFiles ??
-            userPreferences?.deleteArchiveFilesAfterExtractionByDefault ??
-            false;
-
+        if (fs.existsSync(extractionPath)) {
           if (shouldDelete) {
+            // Clears the installer size too when the archive went in place.
             await deleteArchiveFile(filePath);
-          } else {
+          } else if (fs.existsSync(filePath)) {
             WindowManager.sendToAppWindows("on-archive-deletion-prompt", [
               filePath,
             ]);
@@ -947,6 +1156,8 @@ export class GameFilesManager {
         await downloadsSublevel.put(this.gameKey, {
           ...download,
           folderName: extractedFolderName,
+          sourceArchiveName: download.folderName,
+          inPlaceArchives: undefined,
         });
 
         await this.setExtractionComplete();

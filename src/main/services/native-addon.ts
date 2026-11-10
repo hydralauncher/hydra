@@ -46,6 +46,84 @@ type NativeActiveWindowResponse = {
   process_id?: number;
 };
 
+export interface ScreenshotInputNativeConfig {
+  key: string;
+  ctrl: boolean;
+  alt: boolean;
+  shift: boolean;
+  gamepadEnabled: boolean;
+  gamepadButtons: string[];
+}
+
+export interface ScreenshotInputNativeEvent {
+  kind: string;
+  source: string;
+  backend: string;
+}
+
+export interface ScreenshotInputNativeStatus {
+  keyboardBackend: string;
+  gamepadBackend: string;
+  keyboardError?: string | null;
+  gamepadError?: string | null;
+  waylandSession: boolean;
+}
+type NativeScreenRect = {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
+type NativeWindowBoundsResponse = {
+  frame: NativeScreenRect;
+  client: NativeScreenRect;
+};
+
+type NativeDesktopFrameResponse = {
+  width: number;
+  height: number;
+  pixels: Buffer;
+};
+
+type NativeBgraScreenshotOptions = {
+  pixels: Buffer;
+  width: number;
+  height: number;
+  quality: number;
+  previewMaxWidth: number;
+  previewQuality: number;
+};
+
+type NativeEncodedScreenshotResponse = {
+  jpeg: Buffer;
+  preview: Buffer;
+};
+
+type NativeForegroundWindowResponse = {
+  windowHandle?: string;
+  window_handle?: string;
+  processId?: number;
+  process_id?: number;
+};
+
+export type InPlaceExtractionOptions = {
+  archivePath: string;
+  outputPath: string;
+  passwords: string[];
+  allowFresh: boolean;
+  // Hydra recorded starting an in-place extraction of this archive.
+  resume: boolean;
+};
+
+// "unavailable" leaves the archive untouched; "failed" means part of it is
+// already extracted and removed, and only another in-place call resumes it.
+// The call itself only rejects when the addon could not run.
+export type InPlaceExtractionResult = {
+  status: "finished" | "unavailable" | "failed";
+  message?: string | null;
+};
+
 export type NativeProcessPayload = ProcessPayload &
   Pick<
     EpicProcessNode,
@@ -73,6 +151,38 @@ type HydraNativeModule = {
   ) => Promise<NativeProcessSizedImageResponse>;
   listProcesses: () => NativeProcessPayload[];
   getLinuxActiveWindow: () => NativeActiveWindowResponse | null;
+  startScreenshotInput: (
+    config: ScreenshotInputNativeConfig,
+    callback: (event: ScreenshotInputNativeEvent) => void
+  ) => ScreenshotInputNativeStatus;
+  updateScreenshotInputBinding: (
+    config: ScreenshotInputNativeConfig
+  ) => boolean;
+  stopScreenshotInput: () => void;
+  probeScreenshotInput: (
+    config: ScreenshotInputNativeConfig
+  ) => ScreenshotInputNativeStatus;
+  getWindowsForegroundWindow?: () => NativeForegroundWindowResponse | null;
+  getLinuxWindowClientPid?: (windowId: string) => number | null;
+  getKdeFocusedProcessId?: () => number | null;
+  startKdeFocusWatch?: () => void;
+  stopKdeFocusWatch?: () => void;
+  getWindowsWindowBounds?: (
+    windowHandle: string
+  ) => NativeWindowBoundsResponse | null;
+  prepareWindowsDesktopCapture?: () => Promise<void>;
+  releaseWindowsDesktopCapture?: () => Promise<void>;
+  captureWindowsDesktopFrame?: (
+    windowHandle: string
+  ) => Promise<NativeDesktopFrameResponse | null>;
+  encodeBgraScreenshot: (
+    options: NativeBgraScreenshotOptions
+  ) => Promise<NativeEncodedScreenshotResponse>;
+  extractArchiveInPlace: (
+    options: InPlaceExtractionOptions,
+    onProgress: (fraction: number) => void
+  ) => Promise<InPlaceExtractionResult>;
+  inPlaceJournalExists: (archivePath: string) => boolean;
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -145,11 +255,6 @@ export type SystemProcessMap = {
 const WORKER_CODE = `
 const { workerData, parentPort } = require('worker_threads');
 const path = require('path');
-if (process.platform === 'linux' && workerData.addonDir) {
-  process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
-    ? workerData.addonDir + ':' + process.env.LD_LIBRARY_PATH
-    : workerData.addonDir;
-}
 const addon = require(workerData.addonPath);
 const platform = process.platform;
 
@@ -255,16 +360,9 @@ export class NativeAddon {
     if (this.nativeModule) return this.nativeModule;
 
     const addonPath = this.resolveAddonPath();
-    const addonDir = path.dirname(addonPath);
 
     if (!fs.existsSync(addonPath)) {
       throw new Error(`Hydra native addon not found at ${addonPath}`);
-    }
-
-    if (process.platform === "linux") {
-      process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
-        ? `${addonDir}:${process.env.LD_LIBRARY_PATH}`
-        : addonDir;
     }
 
     const require = createRequire(import.meta.url);
@@ -279,7 +377,6 @@ export class NativeAddon {
     if (this.worker) return this.worker;
 
     const addonPath = this.resolveAddonPath();
-    const addonDir = path.dirname(addonPath);
 
     if (!fs.existsSync(addonPath)) {
       throw new Error(`Hydra native addon not found at ${addonPath}`);
@@ -287,7 +384,7 @@ export class NativeAddon {
 
     this.worker = new Worker(WORKER_CODE, {
       eval: true,
-      workerData: { addonPath, addonDir },
+      workerData: { addonPath },
     });
 
     this.worker.on("message", ({ result }) => {
@@ -427,6 +524,142 @@ export class NativeAddon {
     }
   }
 
+  public static startScreenshotInput(
+    config: ScreenshotInputNativeConfig,
+    callback: (event: ScreenshotInputNativeEvent) => void
+  ) {
+    return this.load().startScreenshotInput(config, callback);
+  }
+
+  public static updateScreenshotInputBinding(
+    config: ScreenshotInputNativeConfig
+  ) {
+    return this.load().updateScreenshotInputBinding(config);
+  }
+
+  public static stopScreenshotInput() {
+    this.nativeModule?.stopScreenshotInput();
+  }
+
+  public static probeScreenshotInput(config: ScreenshotInputNativeConfig) {
+    return this.load().probeScreenshotInput(config);
+  }
+
+  public static getWindowsForegroundWindow() {
+    if (process.platform !== "win32") return null;
+
+    try {
+      const getForegroundWindow = this.load().getWindowsForegroundWindow;
+      if (!getForegroundWindow) return undefined;
+
+      const response = getForegroundWindow();
+      if (!response) return null;
+
+      const windowHandle = response.windowHandle ?? response.window_handle;
+      const processId = response.processId ?? response.process_id;
+      if (!windowHandle || !processId) return null;
+
+      return { windowHandle, processId };
+    } catch (error) {
+      logger.error("Failed to identify the Windows foreground window", error);
+      return undefined;
+    }
+  }
+
+  public static getWindowsWindowBounds(windowHandle: string) {
+    if (process.platform !== "win32") return null;
+
+    try {
+      return this.load().getWindowsWindowBounds?.(windowHandle) ?? null;
+    } catch (error) {
+      logger.error("Failed to read the Windows window bounds", error);
+      return null;
+    }
+  }
+
+  public static prepareWindowsDesktopCapture() {
+    if (process.platform !== "win32") return;
+
+    try {
+      void this.load()
+        .prepareWindowsDesktopCapture?.()
+        .catch((error) => {
+          logger.warn("Failed to prepare desktop duplication", error);
+        });
+    } catch (error) {
+      logger.warn("Failed to prepare desktop duplication", error);
+    }
+  }
+
+  public static releaseWindowsDesktopCapture() {
+    if (process.platform !== "win32") return;
+
+    try {
+      void this.load()
+        .releaseWindowsDesktopCapture?.()
+        .catch((error) => {
+          logger.warn("Failed to release desktop duplication", error);
+        });
+    } catch (error) {
+      logger.warn("Failed to release desktop duplication", error);
+    }
+  }
+
+  public static async captureWindowsDesktopFrame(windowHandle: string) {
+    if (process.platform !== "win32") return null;
+
+    try {
+      return (
+        (await this.load().captureWindowsDesktopFrame?.(windowHandle)) ?? null
+      );
+    } catch (error) {
+      logger.warn("Desktop duplication failed, using window capture", error);
+      return null;
+    }
+  }
+
+  public static encodeBgraScreenshot(options: NativeBgraScreenshotOptions) {
+    return this.load().encodeBgraScreenshot(options);
+  }
+
+  public static getLinuxWindowClientPid(windowId: string) {
+    if (process.platform !== "linux") return null;
+
+    try {
+      return this.load().getLinuxWindowClientPid?.(windowId) ?? null;
+    } catch (error) {
+      logger.error("Failed to resolve the Linux window client process", error);
+      return null;
+    }
+  }
+
+  public static getKdeFocusedProcessId() {
+    if (process.platform !== "linux") return undefined;
+
+    try {
+      const getFocusedProcessId = this.load().getKdeFocusedProcessId;
+      if (!getFocusedProcessId) return undefined;
+      return getFocusedProcessId() ?? null;
+    } catch (error) {
+      logger.warn("Failed to read the KWin active window", error);
+      return undefined;
+    }
+  }
+
+  public static startKdeFocusWatch() {
+    if (process.platform !== "linux") return;
+
+    try {
+      this.load().startKdeFocusWatch?.();
+    } catch (error) {
+      logger.warn("Failed to start the KWin focus watch", error);
+    }
+  }
+
+  public static stopKdeFocusWatch() {
+    this.nativeModule?.stopKdeFocusWatch?.();
+  }
+
   public static getSystemProcessMap(): Promise<SystemProcessMap | null> {
     return new Promise((resolve) => {
       try {
@@ -437,6 +670,17 @@ export class NativeAddon {
         resolve(null);
       }
     });
+  }
+
+  public static extractArchiveInPlace(
+    options: InPlaceExtractionOptions,
+    onProgress: (fraction: number) => void
+  ) {
+    return this.load().extractArchiveInPlace(options, onProgress);
+  }
+
+  public static inPlaceJournalExists(archivePath: string) {
+    return this.load().inPlaceJournalExists(archivePath);
   }
 
   public static buildLocalGameSnapshotPipeline(

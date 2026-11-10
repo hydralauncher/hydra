@@ -4,6 +4,7 @@ import { logger } from "../logger";
 import { publishChatUnreadNotification } from "../notifications";
 import { WindowManager } from "../window-manager";
 import { getChatSenderProfile } from "./chat-sender-profiles";
+import { ChatOfficialMessages } from "./chat-official-messages";
 import { ChatUnreadStore } from "./chat-unread-store";
 import {
   getMissedChatConversations,
@@ -122,7 +123,7 @@ const announceMissedMessages = async (signal?: AbortSignal) => {
 
     await publishChatUnreadNotification(
       { kind: "friend", sender, messageCount: conversation.unreadCount },
-      () => WindowManager.openChatWindow(sender),
+      () => void WindowManager.openChatWindow(sender),
       signal
     );
     return;
@@ -134,7 +135,7 @@ const announceMissedMessages = async (signal?: AbortSignal) => {
       friendCount: missed.conversations.length,
       messageCount: missed.messageCount,
     },
-    () => WindowManager.openFriendsWindow(),
+    () => void WindowManager.openFriendsWindow(),
     signal
   );
 };
@@ -167,6 +168,7 @@ export const catchUpChatUnread = (signal?: AbortSignal) => {
 
   const task = (async () => {
     try {
+      ChatOfficialMessages.start();
       await ChatUnreadStore.refresh();
       if (!controller.signal.aborted) {
         await announceMissedMessages(controller.signal);
