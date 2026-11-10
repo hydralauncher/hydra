@@ -28,7 +28,8 @@ const mangleIdentifiers = (): Plugin => ({
   },
 });
 
-const buildSeed = randomInt(2 ** 31);
+const BUILD_SEED_UPPER_BOUND = 2 ** 31;
+const buildSeed = randomInt(BUILD_SEED_UPPER_BOUND);
 
 const obfuscate = (): Plugin => ({
   name: "hydra:obfuscate",
