@@ -12,7 +12,6 @@ import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot";
 import { getCloudSaveCustomPathBindings } from "./custom-path-store";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
-import { getEmulatorSaveProvider } from "./emulator-save-provider";
 import { assertEmulatorDiscIdentity } from "./emulator-disc-identity.js";
 import { createGoogleDriveSnapshotFromLocalState } from "./create-google-drive-snapshot";
 

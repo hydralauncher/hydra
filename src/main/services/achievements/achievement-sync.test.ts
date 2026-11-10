@@ -100,6 +100,9 @@ async function fixture(
     export const getUnlockedAchievements = async () => [];
     export const presentCombinedAchievements = () => [];
     export const publishNewAchievementNotification = () => {};
+    export const publishAchievementUnlockNotifications = () => {};
+    export const UnlockedAchievementsCache = {invalidate: () => Date.now(), set: () => {}, clear: () => {}, recordCombinedMembers: () => {}};
+    export const getRetryAfterMs = error => { const retryAfter = error?.response?.headers?.["retry-after"]; const seconds = typeof retryAfter === "string" || typeof retryAfter === "number" ? Number(retryAfter) : Number.NaN; const date = typeof retryAfter === "string" ? Date.parse(retryAfter) : Number.NaN; if (Number.isFinite(seconds)) return seconds * 1000; if (Number.isFinite(date)) return date - Date.now(); return 0; };
     export const registerEvent = (name, handler) => state.events.set(name, handler);
     export const gamesSublevel = {get: async () => state.game};
     export const collectGameAchievementFiles = async () => [];
@@ -107,6 +110,9 @@ async function fixture(
     export const cancelPendingSouvenirsForGame = async () => {if (state.resetGate) await state.resetGate;};
     export const deleteLocalSouvenirAssetsForGame = async () => {};
     export const AchievementSouvenirStore = {invalidate: () => {}, set: () => {}};
+    export const removeShadps4TrophyFile = async () => {};
+    export const CombinedAchievementsRequests = {fetch: async () => null};
+    export const createCombinedDefinitionLookup = () => () => [];
     export const fetchRemoteUserGameAchievements = async () => state.remoteGate ? await state.remoteGate : {souvenirs:new Map(),unlocked:[],achievements:[]};
     export const logger = {error: () => {}};
     export const achievementsLogger = {error: () => {}, warn: () => {}, log: () => {}};
