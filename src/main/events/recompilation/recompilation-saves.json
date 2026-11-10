@@ -407,5 +407,18 @@
         "tags": ["save"]
       }
     ]
+  },
+  "bbport": {
+    "saves": [
+      {
+        "id": "savedata",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/savedata/",
+          "linux": "<xdgData>/bbport/user/savedata/"
+        }
+      }
+    ]
   }
 }

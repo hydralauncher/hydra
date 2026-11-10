@@ -354,5 +354,36 @@
       "titleIds": ["CUSA08034", "CUSA08809"],
       "extensions": []
     }
+  },
+  "bbport": {
+    "executable": {
+      "win32": "Bloodborne.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": {
+            "win32": "<winAppData>/bbport-launcher/settings.json",
+            "linux": "<xdgConfig>/bbport-launcher/settings.json"
+          },
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": [
+        "CUSA00207",
+        "CUSA00208",
+        "CUSA00299",
+        "CUSA00900",
+        "CUSA01363",
+        "CUSA03014",
+        "CUSA03023",
+        "CUSA03173",
+        "CUSA03179"
+      ],
+      "appVersions": ["01.09"],
+      "extensions": []
+    }
   }
 }

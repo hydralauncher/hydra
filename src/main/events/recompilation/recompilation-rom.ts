@@ -91,13 +91,31 @@ const isFolderRom = (kind: RomKind) => Boolean(kind.folder?.length);
 
 const PS4_PARAM_SFO = path.join("sce_sys", "param.sfo");
 
-const readTitleId = async (directory: string) => {
+// The shared reader returns values as SKUs ("CUSA-01623", "0109" for "01.09").
+const toParamSfoKey = (value: string) =>
+  value.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+
+const readParamSfoKey = async (directory: string, key: string) => {
   const data = await fs.promises
     .readFile(path.join(directory, PS4_PARAM_SFO))
     .catch(() => null);
-  // The shared reader returns the ID as a SKU ("CUSA-01623").
-  const titleId = data ? parseParamSfoValue(data, "TITLE_ID") : null;
-  return titleId?.replace(/[^A-Z0-9]/gi, "").toUpperCase() ?? null;
+  const value = data ? parseParamSfoValue(data, key) : null;
+  return value ? toParamSfoKey(value) : null;
+};
+
+const readTitleId = (directory: string) =>
+  readParamSfoKey(directory, "TITLE_ID");
+
+/** A PS4 game folder is a version the port runs, when the port lists them. */
+const isSupportedGameVersion = async (
+  directory: string,
+  meta: RecompilationRomMeta
+) => {
+  if (!meta.appVersions?.length) return true;
+  const version = await readParamSfoKey(directory, "APP_VER");
+  return (
+    version !== null && meta.appVersions.map(toParamSfoKey).includes(version)
+  );
 };
 
 /** A game kept as a folder (a PS4 dump) holds every file the port needs. */
@@ -448,7 +466,8 @@ const isSupportedRomVersion = async (
   romPath: string,
   meta: RecompilationRomMeta
 ) => {
-  if (!meta.sha1?.length || isFolderRom(meta)) return true;
+  if (isFolderRom(meta)) return isSupportedGameVersion(romPath, meta);
+  if (!meta.sha1?.length) return true;
   if (ARCHIVE_EXTENSIONS.has(path.extname(romPath).toLowerCase())) return true;
 
   try {

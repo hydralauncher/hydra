@@ -157,6 +157,8 @@ export interface RecompilationRomMeta {
   folder?: string[];
   /** PS4 game IDs (TITLE_ID in sce_sys/param.sfo) the port runs; a folder of another game is refused. */
   titleIds?: string[];
+  /** PS4 game versions (APP_VER in sce_sys/param.sfo) the port runs; others get a warning. */
+  appVersions?: string[];
   extensions: string[];
 }
 
