@@ -598,17 +598,16 @@ export class GameFilesManager {
     const newPaths = romPaths.filter(
       (romPath) => !discs.some((disc) => disc.path === romPath)
     );
-    const newDiscs = await emulators.attachDiscRegions(
-      await Promise.all(
-        newPaths.map(async (romPath) => ({
-          path: romPath,
-          label: "",
-          fileName: path.basename(romPath),
-          sku: await emulators.extractDiscSku(romPath, system),
-        }))
-      ),
-      system
-    );
+    const scannedDiscs: ClassicsDisc[] = [];
+    for (const romPath of newPaths) {
+      scannedDiscs.push({
+        path: romPath,
+        label: "",
+        fileName: path.basename(romPath),
+        sku: await emulators.extractDiscSku(romPath, system),
+      });
+    }
+    const newDiscs = await emulators.attachDiscRegions(scannedDiscs, system);
 
     for (const disc of newDiscs) {
       discs.push({ ...disc, label: getNextClassicsDiscLabel(discs) });
