@@ -128,17 +128,19 @@ const clearIdleSoundWindowTimer = () => {
 };
 
 export class ScreenshotFeedback {
-  public static prepare() {
-    if (soundWindow && !soundWindow.window.isDestroyed()) return;
-    if (soundWindowFailed) return;
-    soundWindow = createSoundWindow();
+  public static prepare(): Promise<boolean> {
+    if (soundWindowFailed) return Promise.resolve(false);
+    if (!soundWindow || soundWindow.window.isDestroyed()) {
+      soundWindow = createSoundWindow();
+    }
+    return soundWindow.ready;
   }
 
   public static async prepareToast() {
     const userPreferences = await readUserPreferences();
     if (!usesCustomNotifications(userPreferences)) return;
 
-    achievementNotificationPresenter.keepWarm(
+    await achievementNotificationPresenter.keepWarm(
       userPreferences?.achievementCustomNotificationPosition ??
         DEFAULT_TOAST_POSITION
     );
@@ -177,7 +179,7 @@ export class ScreenshotFeedback {
     if (!preferences.captureSoundEnabled) return;
 
     try {
-      this.prepare();
+      void this.prepare();
       const current = soundWindow;
       if (!current) return;
 

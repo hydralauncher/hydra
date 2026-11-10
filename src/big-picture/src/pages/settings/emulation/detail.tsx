@@ -52,7 +52,8 @@ export function EmulationDetail({
   onChange,
 }: Readonly<EmulationDetailProps>) {
   const { t, i18n } = useTranslation("settings");
-  const { showSuccessToast, showErrorToast } = useBigPictureToast();
+  const { showSuccessToast, showErrorToast, showWarningToast } =
+    useBigPictureToast();
   const [isBusy, setIsBusy] = useState(false);
   const [cloudRefreshKey, setCloudRefreshKey] = useState(0);
   const [folderToRemove, setFolderToRemove] = useState<RomFolder | null>(null);
@@ -104,6 +105,23 @@ export function EmulationDetail({
   const romSectionDownTargetId = hasMemoryCardsSection
     ? EMULATION_DETAIL_MEMORY_CARDS_PICK_BUTTON_ID
     : EMULATION_DETAIL_RESCAN_BUTTON_ID;
+
+  const showScanOutcome = useCallback(
+    (title: string, unsupportedPackages: number) => {
+      if (unsupportedPackages > 0) {
+        showWarningToast(title, {
+          ...SETTINGS_TOAST_OPTIONS,
+          message: t("ps4_pkg_not_supported", {
+            ns: "app",
+            count: unsupportedPackages,
+          }),
+        });
+        return;
+      }
+      showSuccessToast(title, SETTINGS_TOAST_OPTIONS);
+    },
+    [showSuccessToast, showWarningToast, t]
+  );
 
   const handleBrowseExecutable = useCallback(async () => {
     const result = await showExecutableOpenDialog(config.executablePath);
@@ -203,8 +221,8 @@ export function EmulationDetail({
         true,
         language
       );
-      onChange(next);
-      showSuccessToast("ROM folder added", SETTINGS_TOAST_OPTIONS);
+      onChange(next.config);
+      showScanOutcome("ROM folder added", next.unsupportedPackages);
     } catch {
       showErrorToast("Failed to add ROM folder", SETTINGS_TOAST_OPTIONS);
     } finally {
@@ -216,7 +234,7 @@ export function EmulationDetail({
     language,
     onChange,
     showErrorToast,
-    showSuccessToast,
+    showScanOutcome,
   ]);
 
   const handleToggleSubfolders = useCallback(
@@ -276,8 +294,8 @@ export function EmulationDetail({
         config.system,
         language
       );
-      onChange(next);
-      showSuccessToast("Library rescanned", SETTINGS_TOAST_OPTIONS);
+      onChange(next.config);
+      showScanOutcome("Library rescanned", next.unsupportedPackages);
     } catch {
       showErrorToast(
         "Failed to rescan emulator library",
@@ -286,7 +304,7 @@ export function EmulationDetail({
     } finally {
       setIsBusy(false);
     }
-  }, [config.system, language, onChange, showErrorToast, showSuccessToast]);
+  }, [config.system, language, onChange, showErrorToast, showScanOutcome]);
 
   const handleConfirmRemoveEmulator = useCallback(async () => {
     setIsBusy(true);

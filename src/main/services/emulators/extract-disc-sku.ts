@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import type { EmulatorSystem } from "@types";
+import type { ClassicsDisc, EmulatorSystem, SkuRegion } from "@types";
 import { logger } from "@main/services/logger";
 import { resolveSniffTarget } from "./sniff-disc-platform";
 import { readChdLeadingData } from "./chd-reader";
@@ -413,3 +413,41 @@ export const extractDiscSku = async (
       return extractDolphinGameId(primaryPath);
   }
 };
+
+const PS4_CONTENT_ID_RE = /^([A-Z])[A-Z]\d{4}[-_]?[A-Z]{4}\d{5}/;
+
+const PS4_CONTENT_REGIONS: Partial<Record<string, SkuRegion>> = {
+  U: "US",
+  E: "EU",
+  J: "JP",
+  K: "KR",
+  H: "ASIA",
+};
+
+const extractDiscRegion = async (
+  primaryPath: string,
+  system: EmulatorSystem
+): Promise<SkuRegion | null> => {
+  if (system !== "ps4") return null;
+
+  const data = await fs
+    .readFile(path.join(primaryPath, "sce_sys", "param.sfo"))
+    .catch(() => null);
+  const contentId = data ? parseParamSfoValue(data, "CONTENT_ID") : null;
+  const prefix = contentId ? PS4_CONTENT_ID_RE.exec(contentId)?.[1] : null;
+  return prefix ? (PS4_CONTENT_REGIONS[prefix] ?? null) : null;
+};
+
+export const attachDiscRegion = async (
+  disc: ClassicsDisc,
+  system: EmulatorSystem
+): Promise<ClassicsDisc> => {
+  const region = await extractDiscRegion(disc.path, system);
+  return region ? { ...disc, region } : disc;
+};
+
+export const attachDiscRegions = (
+  discs: ClassicsDisc[],
+  system: EmulatorSystem
+): Promise<ClassicsDisc[]> =>
+  Promise.all(discs.map((disc) => attachDiscRegion(disc, system)));

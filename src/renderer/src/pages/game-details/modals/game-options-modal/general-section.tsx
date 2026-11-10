@@ -30,7 +30,7 @@ import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   isPs4GameFolder,
   platformToSystem,
@@ -95,7 +95,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       );
     }
 
-    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+    const region = disc ? getDiscRegion(disc) : null;
 
     if (!region) return <Disc3 size={18} className="disc-field__icon" />;
 

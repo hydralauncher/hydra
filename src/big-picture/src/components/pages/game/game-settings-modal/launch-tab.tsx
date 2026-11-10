@@ -1,6 +1,6 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   isSteamImportedGame,
   type SkuRegion,
@@ -139,7 +139,7 @@ function LaunchboxDiscsSection({
             ariaLabel={t("discs_section_title")}
             value={selectedDisc.path}
             options={discs.map((disc) => {
-              const region = disc.sku ? getSkuRegion(disc.sku) : null;
+              const region = getDiscRegion(disc);
 
               const executableIcon = executableIcons[disc.path];
               let icon: ReactNode = <Disc3 size={20} />;
