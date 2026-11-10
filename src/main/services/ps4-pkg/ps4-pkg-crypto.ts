@@ -90,20 +90,46 @@ export const createSectorDecryptor = (ekpfs: Buffer, seed: Buffer) => {
     .update(index)
     .update(seed)
     .digest();
-  const xtsKey = Buffer.concat([
-    digest.subarray(16, 32),
-    digest.subarray(0, 16),
-  ]);
+  // XTS on top of ECB: Electron's BoringSSL has no aes-128-xts.
+  const tweakCipher = crypto
+    .createCipheriv("aes-128-ecb", digest.subarray(0, 16), null)
+    .setAutoPadding(false);
+  const dataDecipher = crypto
+    .createDecipheriv("aes-128-ecb", digest.subarray(16, 32), null)
+    .setAutoPadding(false);
+  const sectorNumber = Buffer.alloc(16);
+  const tweaks = Buffer.alloc(XTS_SECTOR_SIZE);
+
+  const fillTweaks = (sector: number) => {
+    sectorNumber.writeBigUInt64LE(BigInt(sector));
+    tweakCipher.update(sectorNumber).copy(tweaks, 0);
+    for (let block = 16; block < XTS_SECTOR_SIZE; block += 16) {
+      const carry = tweaks[block - 1] >> 7;
+      for (let byte = 15; byte > 0; byte--) {
+        tweaks[block + byte] =
+          ((tweaks[block - 16 + byte] << 1) |
+            (tweaks[block - 16 + byte - 1] >> 7)) &
+          0xff;
+      }
+      tweaks[block] = ((tweaks[block - 16] << 1) & 0xff) ^ (carry ? 0x87 : 0);
+    }
+  };
+
+  const xorTweaks = (target: Buffer, offset: number) => {
+    for (let index = 0; index < XTS_SECTOR_SIZE; index++) {
+      target[offset + index] ^= tweaks[index];
+    }
+  };
 
   return (data: Buffer, firstSector: number) => {
-    const output = Buffer.allocUnsafe(data.length);
-    const tweak = Buffer.alloc(16);
-    for (let offset = 0; offset < data.length; offset += XTS_SECTOR_SIZE) {
-      tweak.writeBigUInt64LE(BigInt(firstSector + offset / XTS_SECTOR_SIZE));
-      crypto
-        .createDecipheriv("aes-128-xts", xtsKey, tweak)
-        .update(data.subarray(offset, offset + XTS_SECTOR_SIZE))
+    const output = Buffer.from(data);
+    for (let offset = 0; offset < output.length; offset += XTS_SECTOR_SIZE) {
+      fillTweaks(firstSector + offset / XTS_SECTOR_SIZE);
+      xorTweaks(output, offset);
+      dataDecipher
+        .update(output.subarray(offset, offset + XTS_SECTOR_SIZE))
         .copy(output, offset);
+      xorTweaks(output, offset);
     }
     return output;
   };
