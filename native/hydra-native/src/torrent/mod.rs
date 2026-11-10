@@ -181,9 +181,36 @@ pub async fn torrent_shutdown() -> napi::Result<()> {
     Ok(())
 }
 
+fn selection_priorities(indices: &[i64], count: i32) -> Result<Vec<u8>> {
+    if indices.iter().any(|i| *i < 0 || *i >= count as i64) {
+        return Err("invalid_file_indices".into());
+    }
+    if indices.is_empty() {
+        return Err("empty_selection".into());
+    }
+    let mut values = vec![0; count as usize];
+    for index in indices {
+        values[*index as usize] = 1;
+    }
+    Ok(values)
+}
+fn selection_is_applied(handle: &Handle, indices: Option<&[i64]>) -> Result<bool> {
+    let Some(indices) = indices else {
+        return Ok(true);
+    };
+    if handle.status()?.metadata == 0 {
+        return Ok(false);
+    }
+    let (_, _, count) = handle.info()?;
+    match selection_priorities(indices, count) {
+        Ok(values) => handle.priorities_match(&values),
+        Err(_) => Ok(false),
+    }
+}
 struct Download {
     handle: Rc<Handle>,
     selected_size: Option<i64>,
+    save_path: String,
 }
 enum JobKind {
     Files {
@@ -213,6 +240,7 @@ struct Cached {
 struct Pooled {
     handle: Rc<Handle>,
     delete_partfile: bool,
+    save_path: String,
 }
 struct Engine {
     downloads: BTreeMap<String, Download>,
@@ -283,6 +311,7 @@ impl Engine {
             params.append_tracker(&tracker, tier)?;
         }
         let handle = self.session.add(&params)?;
+        let (handle, replaced) = self.replace_unowned_handle(handle, &params, path, game)?;
         // libtorrent may return an existing handle for the same info hash.
         // Metadata lookup must not remove or change the active download.
         for entry in &self.pool {
@@ -328,9 +357,51 @@ impl Engine {
         self.pool.push(Pooled {
             handle: handle.clone(),
             delete_partfile: true,
+            save_path: path.to_string(),
         });
+        self.move_jobs(replaced, &handle);
         handle.resume()?;
         Ok(handle)
+    }
+    fn replace_unowned_handle(
+        &mut self,
+        handle: Handle,
+        params: &Params,
+        path: &str,
+        game: Option<&str>,
+    ) -> Result<(Handle, Option<Rc<Handle>>)> {
+        if game.is_none() {
+            return Ok((handle, None));
+        }
+        let Some(index) = self.unowned_entry_elsewhere(&handle, path)? else {
+            return Ok((handle, None));
+        };
+        self.session
+            .remove(&self.pool[index].handle, self.pool[index].delete_partfile)?;
+        let stale = self.pool.remove(index);
+        Ok((self.session.add(params)?, Some(stale.handle)))
+    }
+    fn move_jobs(&mut self, stale: Option<Rc<Handle>>, handle: &Rc<Handle>) {
+        let Some(stale) = stale else {
+            return;
+        };
+        for job in &mut self.jobs {
+            if Rc::ptr_eq(&job.handle, &stale) {
+                job.handle = handle.clone();
+            }
+        }
+    }
+    fn unowned_entry_elsewhere(&self, handle: &Handle, path: &str) -> Result<Option<usize>> {
+        for (index, entry) in self.pool.iter().enumerate() {
+            if handle.same(&entry.handle)? {
+                let owned = self
+                    .downloads
+                    .values()
+                    .any(|d| Rc::ptr_eq(&d.handle, &entry.handle));
+                return Ok((!owned && entry.save_path != path).then_some(index));
+            }
+        }
+        Ok(None)
     }
     fn collect_handles(&mut self) {
         self.pool.retain(|entry| {
@@ -544,8 +615,10 @@ impl Engine {
             };
             let trackers = validation::trackers(&request.params["trackers"])?;
             self.cancel_jobs(&game);
-            if indices.is_none() {
-                if let Some(existing) = self.downloads.get(&game) {
+            if let Some(existing) = self.downloads.get(&game) {
+                if existing.save_path == path
+                    && selection_is_applied(&existing.handle, indices.as_deref())?
+                {
                     existing.handle.resume()?;
                     for tracker in &trackers {
                         if let Err(e) = existing.handle.add_tracker(tracker) {
@@ -557,7 +630,8 @@ impl Engine {
                     }
                     return Ok(None);
                 }
-            } else if let Some(old) = self.downloads.remove(&game) {
+            }
+            if let Some(old) = self.downloads.remove(&game) {
                 old.handle.pause()?;
                 for entry in &mut self.pool {
                     if Rc::ptr_eq(&old.handle, &entry.handle) {
@@ -581,6 +655,7 @@ impl Engine {
                 Download {
                     handle: handle.clone(),
                     selected_size: None,
+                    save_path: path.to_string(),
                 },
             );
             if let Some(indices) = indices {
@@ -667,16 +742,9 @@ impl Engine {
             } => {
                 if priorities.is_none() {
                     let (_, _, count) = job.handle.info()?;
-                    if indices.iter().any(|i| *i < 0 || *i >= count as i64) {
-                        return Err("invalid_file_indices".into());
-                    }
-                    if indices.is_empty() {
-                        return Err("empty_selection".into());
-                    }
+                    let values = selection_priorities(indices, count)?;
                     let mut selected_size = 0;
-                    let mut values = vec![0; count as usize];
-                    for index in indices {
-                        values[*index as usize] = 1;
+                    for index in indices.iter() {
                         selected_size += job.handle.file(*index as i32)?.1;
                     }
                     job.handle.pause()?;

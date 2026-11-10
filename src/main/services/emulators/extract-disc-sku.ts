@@ -224,6 +224,7 @@ const titleIdFromPs3Directory = async (
   const sfoCandidates = [
     path.join(dirPath, "PARAM.SFO"),
     path.join(dirPath, "PS3_GAME", "PARAM.SFO"),
+    path.join(dirPath, "sce_sys", "param.sfo"),
   ];
   for (const sfoPath of sfoCandidates) {
     const data = await fs.readFile(sfoPath).catch(() => null);
@@ -404,6 +405,7 @@ export const extractDiscSku = async (
     case "ps2":
       return extractPs12Sku(primaryPath);
     case "ps3":
+    case "ps4":
       return extractPs3TitleId(primaryPath);
     case "psp":
       return extractPspDiscId(primaryPath);

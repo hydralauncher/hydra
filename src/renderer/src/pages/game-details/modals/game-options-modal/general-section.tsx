@@ -32,6 +32,7 @@ import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import {
   getSkuRegion,
   getSkuRegionFlag,
+  isPs4GameFolder,
   platformToSystem,
 } from "@renderer/helpers";
 
@@ -216,6 +217,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       properties: ["openDirectory"],
     });
     if (res.canceled || !res.filePaths[0]) return;
+    if (system === "ps4" && !(await isPs4GameFolder(res.filePaths[0]))) {
+      showErrorToast(t("ps4_folder_missing_eboot"));
+      return;
+    }
     await addDiscFromPath(res.filePaths[0]);
   };
 
@@ -353,16 +358,18 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 isAddMenuOpen ? "disc-field__menu--open" : ""
               }`}
             >
-              <button
-                type="button"
-                className="disc-field__option"
-                onClick={() => void handleAddDiscFile()}
-              >
-                <Disc3 size={16} className="disc-field__icon" />
-                <span className="disc-field__label">
-                  {t("add_disc_option")}
-                </span>
-              </button>
+              {system !== "ps4" && (
+                <button
+                  type="button"
+                  className="disc-field__option"
+                  onClick={() => void handleAddDiscFile()}
+                >
+                  <Disc3 size={16} className="disc-field__icon" />
+                  <span className="disc-field__label">
+                    {t("add_disc_option")}
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 className="disc-field__option"
@@ -373,7 +380,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                   {t("add_executable_option")}
                 </span>
               </button>
-              {system === "ps3" && (
+              {(system === "ps3" || system === "ps4") && (
                 <button
                   type="button"
                   className="disc-field__option"

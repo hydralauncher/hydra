@@ -370,6 +370,65 @@ const collectEntry = (
   }
 };
 
+const PS4_OVERLAY_SUFFIXES = ["-UPDATE", "-patch", "-mods"];
+
+const isPs4OverlayDirectory = (directory: string): boolean =>
+  PS4_OVERLAY_SUFFIXES.some((suffix) =>
+    path.basename(directory).endsWith(suffix)
+  );
+
+const matchesPs4EntryName = (entryName: string, expected: string): boolean =>
+  process.platform === "win32"
+    ? entryName.toLowerCase() === expected
+    : entryName === expected;
+
+const isPs4GameDirectory = (entries: Dirent[]): boolean =>
+  entries.some(
+    (entry) => entry.isFile() && matchesPs4EntryName(entry.name, "eboot.bin")
+  ) &&
+  entries.some(
+    (entry) => entry.isDirectory() && matchesPs4EntryName(entry.name, "sce_sys")
+  );
+
+const collectPs4Directory = (
+  directory: string,
+  entries: Dirent[],
+  shouldDescend: boolean,
+  candidates: Candidate[],
+  queue: string[]
+): void => {
+  if (isPs4OverlayDirectory(directory)) return;
+
+  if (isPs4GameDirectory(entries)) {
+    candidates.push({
+      fullPath: directory,
+      name: path.basename(directory),
+      isMarkerDir: true,
+    });
+    return;
+  }
+
+  if (!shouldDescend) return;
+  for (const entry of entries) {
+    if (entry.isDirectory()) queue.push(path.join(directory, entry.name));
+  }
+};
+
+const collectEntries = (
+  entries: Dirent[],
+  dir: string,
+  binary: KnownBinary,
+  scanSubfolders: boolean,
+  candidates: Candidate[],
+  queue: string[],
+  signal?: { cancelled: boolean }
+): void => {
+  for (const entry of entries) {
+    if (signal?.cancelled) break;
+    collectEntry(entry, dir, binary, scanSubfolders, candidates, queue);
+  }
+};
+
 const collectCandidates = async (
   rootPath: string,
   binary: KnownBinary,
@@ -397,10 +456,26 @@ const collectCandidates = async (
     const entries = await safeReaddirTypes(dir);
     if (!entries) continue;
 
-    for (const entry of entries) {
-      if (signal?.cancelled) break;
-      collectEntry(entry, dir, binary, scanSubfolders, candidates, queue);
+    if (binary.system === "ps4") {
+      collectPs4Directory(
+        dir,
+        entries,
+        scanSubfolders || dir === rootPath,
+        candidates,
+        queue
+      );
+      continue;
     }
+
+    collectEntries(
+      entries,
+      dir,
+      binary,
+      scanSubfolders,
+      candidates,
+      queue,
+      signal
+    );
   }
 
   return candidates;

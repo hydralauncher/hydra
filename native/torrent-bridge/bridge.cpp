@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace lt = libtorrent;
+constexpr int MIN_RECONNECT_SECONDS = 10;
 struct ht_session { lt::session value; explicit ht_session(lt::settings_pack const& s) : value(s) {} };
 struct ht_params { lt::add_torrent_params value; };
 struct ht_handle { lt::torrent_handle value; };
@@ -37,6 +38,7 @@ void ht_string_free(char* p) { delete[] p; }
 int ht_session_new(uint16_t port, ht_session** out) { return protect([&] {
   lt::settings_pack s;
   s.set_str(lt::settings_pack::listen_interfaces, "0.0.0.0:" + std::to_string(port));
+  s.set_int(lt::settings_pack::min_reconnect_time, MIN_RECONNECT_SECONDS);
   *out = new ht_session(s);
 }); }
 void ht_session_free(ht_session* p) { protect([&] { delete p; }); }
