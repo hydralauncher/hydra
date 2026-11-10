@@ -23,6 +23,10 @@ import {
 import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
 import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 import { buildShadps4LaunchArguments } from "@main/services/emulators/shadps4-files";
+import {
+  holdGameHelpersBeforeLaunch,
+  releaseGameHelpersIfIdle,
+} from "@main/services/screenshots";
 
 export class EmulatorNotConfiguredError extends Error {
   code = "EMULATOR_NOT_CONFIGURED" as const;
@@ -275,10 +279,12 @@ export const launchClassicsGame = async (
   const workingDirectory = path.dirname(executableTarget);
 
   let sessionStarted = false;
+  const holdsGameHelpers = system === "ps4" && Boolean(game);
 
   try {
     const existingEmulatorPids =
       system === "ps4" ? await emulators.listShadps4ProcessIds() : [];
+    if (holdsGameHelpers) await holdGameHelpersBeforeLaunch();
 
     const processRef = await spawnDetachedEmulator(
       resolvedLaunchCommand,
@@ -304,6 +310,7 @@ export const launchClassicsGame = async (
   } catch (error) {
     if (!sessionStarted) {
       await cleanupEmulatorSouvenirSession(souvenirSession);
+      if (holdsGameHelpers) releaseGameHelpersIfIdle();
     }
     logger.error("Failed to spawn classics emulator", error);
     throw error;
