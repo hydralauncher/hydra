@@ -14,7 +14,7 @@ import { cloudSaveCustomPathContextFromPathContext } from "./custom-path.js";
 import { withCloudSaveCustomPathStoreMutation } from "./custom-path-store.js";
 import { executeCloudSaveCustomPathUntracking } from "./custom-path-untracking-policy.js";
 import { getCloudSaveGameContext } from "./cloud-save-game-context.js";
-import { getEmulatorSaveProvider } from "./emulator-save-provider.js";
+import { assertEmulatorDiscIdentity } from "./emulator-disc-identity.js";
 import { buildDeleteGameCloudSaveSnapshotsUrl } from "./delete-game-cloud-save-data-policy.js";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots.js";
 import {
@@ -38,15 +38,10 @@ const publishCustomPathRemoval = async (
 
     const manifest = await getRemoteSnapshotRestoreManifest(activeSnapshot);
     const proposal = buildCloudSaveCustomPathRemovalProposal(manifest, rawPath);
-    if (getEmulatorSaveProvider(context.game) === "rpcs3") {
-      const { assertRpcs3DiscIdentity, assertRpcs3SnapshotIdentity } =
-        await import("./rpcs3-game-identity.js");
-      assertRpcs3SnapshotIdentity(
-        proposal.files,
-        await assertRpcs3DiscIdentity(context.game!),
-        bindings.ready
-      );
-    }
+    (await assertEmulatorDiscIdentity(context.game))?.assertSnapshotFiles(
+      proposal.files,
+      bindings.ready
+    );
     await executeCloudSaveCustomPathRemoteRemoval({
       proposal,
       deleteSnapshot: () =>

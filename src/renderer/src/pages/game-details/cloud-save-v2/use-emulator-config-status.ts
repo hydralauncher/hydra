@@ -1,14 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 
-import type { Rpcs3ConfigCheckStatus } from "./rpcs3-config-presentation";
+import type { EmulatorSaveLocationStatus } from "@types";
+import type { DiscCloudSaveEmulatorProvider } from "../../../../../shared/cloud-save-emulator-provider.js";
+
+import type { EmulatorConfigCheckStatus } from "./emulator-config-presentation";
 
 interface StatusEntry {
   gameKey: string;
-  status: Rpcs3ConfigCheckStatus;
+  status: EmulatorConfigCheckStatus;
 }
 
-export function useRpcs3ConfigStatus(
-  enabled: boolean,
+const loadSaveLocationStatus = (
+  provider: DiscCloudSaveEmulatorProvider
+): Promise<EmulatorSaveLocationStatus> => {
+  switch (provider) {
+    case "rpcs3":
+      return window.electron.getRpcs3ConfigRootStatus();
+  }
+};
+
+export function useEmulatorConfigStatus(
+  provider: DiscCloudSaveEmulatorProvider | null,
   gameKey: string,
   isModalVisible: boolean
 ) {
@@ -21,15 +33,14 @@ export function useRpcs3ConfigStatus(
   }, [isModalVisible, retry]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!provider) {
       setEntry(null);
       return;
     }
 
     let cancelled = false;
     setEntry({ gameKey, status: "checking" });
-    void window.electron
-      .getRpcs3ConfigRootStatus()
+    void loadSaveLocationStatus(provider)
       .then(({ status }) => {
         if (!cancelled) setEntry({ gameKey, status });
       })
@@ -40,10 +51,10 @@ export function useRpcs3ConfigStatus(
     return () => {
       cancelled = true;
     };
-  }, [enabled, gameKey, retryCount]);
+  }, [provider, gameKey, retryCount]);
 
   return {
-    status: enabled
+    status: provider
       ? entry?.gameKey === gameKey
         ? entry.status
         : ("checking" as const)
