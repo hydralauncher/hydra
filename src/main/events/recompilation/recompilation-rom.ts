@@ -320,6 +320,23 @@ export const getRecompilationRomState = async (
   };
 };
 
+const checkChosenRom = async (
+  source: unknown,
+  romPath: unknown,
+  meta: RecompilationRomMeta
+): Promise<RecompilationActionResult | null> => {
+  if (source === "library") return null;
+  if (source !== "file") return { ok: false, reason: "invalid_rom" };
+  if (typeof romPath !== "string" || !fs.existsSync(romPath)) {
+    return { ok: false, reason: "rom_not_found" };
+  }
+
+  const isValid = isFolderRom(meta)
+    ? await isGameFolder(romPath, meta.folder!)
+    : (await fileExists(romPath)) && hasExtension(romPath, meta.extensions);
+  return isValid ? null : { ok: false, reason: "rom_wrong_format" };
+};
+
 export const setRecompilationRom = async (
   rawRef: unknown,
   rawChoice: unknown
@@ -334,19 +351,8 @@ export const setRecompilationRom = async (
     string,
     unknown
   >;
-  if (source === "file") {
-    if (typeof romPath !== "string" || !fs.existsSync(romPath)) {
-      return { ok: false, reason: "rom_not_found" };
-    }
-    const isValid = isFolderRom(meta)
-      ? await isGameFolder(romPath, meta.folder!)
-      : (await fileExists(romPath)) && hasExtension(romPath, meta.extensions);
-    if (!isValid) {
-      return { ok: false, reason: "rom_wrong_format" };
-    }
-  } else if (source !== "library") {
-    return { ok: false, reason: "invalid_rom" };
-  }
+  const problem = await checkChosenRom(source, romPath, meta);
+  if (problem) return problem;
 
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const previous = await readRomChoice(installDirectory);
@@ -363,7 +369,8 @@ export const setRecompilationRom = async (
     preparedTarget: previous?.preparedTarget,
     preparedVersion: previous?.preparedVersion,
     launched: false,
-    source,
+    // checkChosenRom only lets "file" and "library" through.
+    source: source as RecompilationRomSource,
     path: source === "file" ? (romPath as string) : undefined,
     checkedFrom: isChecked ? chosenPath : undefined,
   });
