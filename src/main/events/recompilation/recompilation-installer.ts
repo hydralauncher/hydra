@@ -166,6 +166,52 @@ const resolveExtractedRoot = async (stagingDirectory: string) => {
     : stagingDirectory;
 };
 
+/**
+ * Some AppImages (Nix-built ones like bbport's) hold a compressed stream before
+ * the image that 7-Zip opens instead, and symlinks 7-Zip refuses. The
+ * AppImage's own extractor handles both; it lands in `squashfs-root`.
+ */
+const extractAppImageWithItself = (
+  appImagePath: string,
+  stagingDirectory: string
+) =>
+  new Promise<void>((resolve, reject) => {
+    const child = spawn(appImagePath, ["--appimage-extract"], {
+      cwd: stagingDirectory,
+      env: getPortEnv({}),
+      stdio: "ignore",
+      shell: false,
+    });
+    child.once("error", reject);
+    child.once("exit", (code) =>
+      code === 0
+        ? resolve()
+        : reject(new Error(`--appimage-extract exited with ${code}`))
+    );
+  });
+
+const extractReleaseArchive = async (
+  archivePath: string,
+  assetName: string,
+  stagingDirectory: string
+) => {
+  try {
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: stagingDirectory,
+    });
+  } catch (error) {
+    const isAppImage = assetName.toLowerCase().endsWith(".appimage");
+    if (process.platform !== "linux" || !isAppImage) throw error;
+
+    logger.warn(`7-Zip could not open ${assetName}, using its own extractor`);
+    await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
+    await fs.promises.mkdir(stagingDirectory, { recursive: true });
+    await fs.promises.chmod(archivePath, 0o755);
+    await extractAppImageWithItself(archivePath, stagingDirectory);
+  }
+};
+
 const extractRelease = async (
   archivePath: string,
   assetName: string,
@@ -184,10 +230,7 @@ const extractRelease = async (
         path.join(stagingDirectory, path.basename(assetName))
       );
     } else {
-      await SevenZip.extractFile({
-        filePath: archivePath,
-        outputPath: stagingDirectory,
-      });
+      await extractReleaseArchive(archivePath, assetName, stagingDirectory);
     }
     await extractNestedArchives(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
