@@ -29,6 +29,7 @@ import {
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { updateGameRecord } from "@main/services/game-record-updater";
 import { removeShadps4TrophyFile } from "@main/services/emulators/shadps4-trophy-watcher";
+import { removeRpcs3TrophyFiles } from "@main/services/emulators/rpcs3-trophy-sources";
 
 const deleteRemoteAchievements = async (
   levelKey: string,
@@ -113,6 +114,7 @@ const resetGameAchievementsNow = async (
     }
 
     await removeShadps4TrophyFile(game);
+    await removeRpcs3TrophyFiles(game);
 
     assertCurrent();
     AchievementWatcherManager.forgetAchievementFiles(

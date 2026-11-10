@@ -250,7 +250,11 @@ export const launchClassicsGame = async (
   }
 
   const souvenirSession = game
-    ? await prepareEmulatorSouvenirs(system, executableTarget)
+    ? await prepareEmulatorSouvenirs(
+        system,
+        executableTarget,
+        selectedDisc?.sku ?? null
+      )
     : null;
   const baseArgs = [
     ...(souvenirSession?.launchArguments ?? []),
