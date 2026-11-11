@@ -14,6 +14,11 @@ const CATALOGUE_RETRY_INTERVAL_MS = 30_000;
 
 export interface TrophyFileWatcher {
   finish: () => Promise<void>;
+  /**
+   * Drops what was read so far, after the achievements were reset: what is in
+   * the trophy file from now on counts as new.
+   */
+  forget: () => void;
 }
 
 export interface StartTrophyFileWatcherOptions {
@@ -27,6 +32,8 @@ export interface StartTrophyFileWatcherOptions {
     game: Game
   ) => UnlockedAchievement[];
   onFirstChange?: (game: Game) => void;
+  /** Clears what `readUnlocks` keeps between reads. */
+  onForget?: () => void;
   skipSouvenirCapture?: boolean;
 }
 
@@ -44,6 +51,7 @@ export const startTrophyFileWatcher = ({
   readUnlocks,
   completeUnlocks,
   onFirstChange,
+  onForget,
   skipSouvenirCapture = false,
 }: StartTrophyFileWatcherOptions): TrophyFileWatcher => {
   let trophyFile: string | null = null;
@@ -52,9 +60,13 @@ export const startTrophyFileWatcher = ({
   let hasSeenChange = false;
   let nextCatalogueAttemptAt = 0;
   let inFlightRead: Promise<void> | null = null;
+  // Bumped by forget(), so a read that started before it changes nothing.
+  let generation = 0;
 
   const readTrophies = async (isFinalRead: boolean) => {
     if (!HydraApi.isLoggedIn()) return;
+    const startedAt = generation;
+    const isStale = () => generation !== startedAt;
 
     trophyFile ??= await resolveFile();
     if (!trophyFile) return;
@@ -75,7 +87,7 @@ export const startTrophyFileWatcher = ({
     }
 
     let unlockedTrophies = await readUnlocks(trophyFile);
-    if (!unlockedTrophies) return;
+    if (!unlockedTrophies || isStale()) return;
 
     if (unlockedTrophies.length > 0) {
       if (!isFinalRead && Date.now() < nextCatalogueAttemptAt) return;
@@ -90,6 +102,7 @@ export const startTrophyFileWatcher = ({
         unlockedTrophies = completeUnlocks(unlockedTrophies, catalogue, game);
       }
 
+      if (isStale()) return;
       if (unlockedTrophies.length > 0) {
         await mergeAchievements(
           game,
@@ -103,6 +116,7 @@ export const startTrophyFileWatcher = ({
       }
     }
 
+    if (isStale()) return;
     hasImportedExistingUnlocks = true;
     lastModifiedAt = stats.mtimeMs;
   };
@@ -128,6 +142,12 @@ export const startTrophyFileWatcher = ({
   timer.unref?.();
 
   return {
+    forget: () => {
+      generation += 1;
+      lastModifiedAt = -1;
+      hasImportedExistingUnlocks = true;
+      onForget?.();
+    },
     finish: async () => {
       clearInterval(timer);
       await inFlightRead;

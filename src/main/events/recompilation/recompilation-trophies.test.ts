@@ -3,12 +3,14 @@ import { describe, it } from "node:test";
 
 import meta from "./recompilation-meta.json" with { type: "json" };
 import {
+  emptyTrophyBitmask,
   getTrophySourcePath,
   keepCatalogueTrophies,
   parseTrophyBitmask,
   parseTrophyIdTimeLines,
   parseTrophyJsonLines,
   parseTrophyLogLines,
+  stripTrophyLogLines,
   withHydraPlatinum,
   type RecompilationTrophySource,
 } from "./recompilation-trophies.js";
@@ -155,5 +157,34 @@ describe("recompilation trophy sources", () => {
         /^<base>\/user\//
       );
     }
+  });
+});
+
+describe("trophy reset", () => {
+  it("writes a bitmask with no trophy unlocked", () => {
+    assert.deepEqual(parseTrophyBitmask(emptyTrophyBitmask(), NOW), []);
+    assert.equal(emptyTrophyBitmask().length, 16);
+  });
+
+  it("takes only the trophy lines out of a log", () => {
+    const log = [
+      "Runtime: boot\r",
+      "Runtime: trophy 5 unlocked\r",
+      "Runtime: trophy 0 (platinum) unlocked",
+      "Runtime: frame 10",
+      "",
+    ].join("\n");
+    const stripped = stripTrophyLogLines(log);
+    assert.equal(stripped, "Runtime: boot\r\nRuntime: frame 10\n");
+    assert.deepEqual(parseTrophyLogLines(stripped), []);
+  });
+
+  it("clears the file bbport uses to know what was unlocked", () => {
+    const source = (
+      meta as Record<string, { trophies?: RecompilationTrophySource }>
+    ).bbport.trophies!;
+    assert.deepEqual(source.resetFiles?.win32, [
+      "<base>/user/trophy/NPWR05818_00/unlocked.txt",
+    ]);
   });
 });

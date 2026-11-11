@@ -13,6 +13,8 @@ export interface RecompilationTrophySource {
   path: Partial<Record<TrophyPlatform, string>>;
   history?: string[];
   grantPlatinum?: boolean;
+  /** Other files the port keeps its trophies in, cleared on a reset. */
+  resetFiles?: Partial<Record<TrophyPlatform, string[]>>;
 }
 
 export const PLATINUM_TROPHY = "0";
@@ -91,6 +93,16 @@ export const parseTrophyLogLines = (contents: string): number[] =>
     const match = LOG_LINE.exec(line);
     return match ? [Number(match[1])] : [];
   });
+
+/** A bitmask with no trophy unlocked. */
+export const emptyTrophyBitmask = () => Buffer.alloc(BITMASK_BYTES);
+
+/** The log without its trophy lines; every other line stays as it was. */
+export const stripTrophyLogLines = (contents: string) =>
+  contents
+    .split("\n")
+    .filter((line) => !LOG_LINE.test(line))
+    .join("\n");
 
 export const keepCatalogueTrophies = (
   unlocks: UnlockedAchievement[],

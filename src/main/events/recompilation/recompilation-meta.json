@@ -416,6 +416,10 @@
       "path": {
         "win32": "<base>/user/trophies.jsonl",
         "linux": "<xdgData>/bbport/user/trophies.jsonl"
+      },
+      "resetFiles": {
+        "win32": ["<base>/user/trophy/NPWR05818_00/unlocked.txt"],
+        "linux": ["<xdgData>/bbport/user/trophy/NPWR05818_00/unlocked.txt"]
       }
     }
   }

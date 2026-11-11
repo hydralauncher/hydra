@@ -278,6 +278,13 @@ export const findRunningRecompilation = (objectId: string) =>
   [...sessions.values()].find((session) => session.ref.objectId === objectId)
     ?.ref ?? null;
 
+/** After a reset, the running port of the game stops counting old trophies. */
+export const forgetRunningRecompilationTrophies = (objectId: string) => {
+  for (const session of sessions.values()) {
+    if (session.ref.objectId === objectId) session.trophyWatcher?.forget();
+  }
+};
+
 const signalProcessGroup = (pid: number, signal: NodeJS.Signals) => {
   try {
     process.kill(-pid, signal);
