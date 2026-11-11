@@ -46,19 +46,11 @@ interface LibraryGameCardProps {
   ) => void;
   onShowTooltip?: (gameId: string) => void;
   onHideTooltip?: () => void;
-  letterbox?: boolean;
 }
-
-const LETTERBOX_BACKDROP_WIDTH = 320;
-const LETTERBOX_LOGO_WIDTH = 400;
-
-const pickArtwork = (...urls: (string | null | undefined)[]) =>
-  urls.find((url) => url && url.trim() !== "") ?? null;
 
 export const LibraryGameCard = memo(function LibraryGameCard({
   game,
   onContextMenu,
-  letterbox = false,
 }: Readonly<LibraryGameCardProps>) {
   const { t } = useTranslation("library");
   const { formatPlayTime, handleCardClick, handleContextMenuClick } =
@@ -134,20 +126,6 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const rawActiveSource = sources[fallbackIndex];
   const catalogueImage = useCatalogueImage(rawActiveSource, game.images);
   const coverVariants = catalogueImage.variants;
-
-  const rawHeroSource = letterbox
-    ? pickArtwork(game.customHeroImageUrl, game.libraryHeroImageUrl)
-    : null;
-  const heroImage = useCatalogueImage(rawHeroSource, game.images);
-  const [failedHeroSource, setFailedHeroSource] = useState<string | null>(null);
-  const hasHero = Boolean(rawHeroSource) && failedHeroSource !== rawHeroSource;
-
-  const rawLogoSource = letterbox
-    ? pickArtwork(game.customLogoImageUrl, game.logoImageUrl)
-    : null;
-  const logoImage = useCatalogueImage(rawLogoSource, game.images);
-  const [failedLogoSource, setFailedLogoSource] = useState<string | null>(null);
-  const hasLogo = Boolean(rawLogoSource) && failedLogoSource !== rawLogoSource;
   const isAnimatedCover =
     !coverVariants && isAnimatedCoverCandidate(rawActiveSource);
   const coverPoster = useCoverPoster(rawActiveSource, isAnimatedCover);
@@ -241,76 +219,13 @@ export const LibraryGameCard = memo(function LibraryGameCard({
       );
     }
 
-    const coverSource = coverVariants
-      ? pickCatalogueImageUrl(coverVariants, COVER_DISPLAY_WIDTH)
-      : displayImageSource;
-
-    if (letterbox) {
-      const heroBackdrop = heroImage.variants
-        ? pickCatalogueImageUrl(heroImage.variants, LETTERBOX_BACKDROP_WIDTH)
-        : resolveImageSource(rawHeroSource);
-      const coverBackdrop =
-        catalogueImage.placeholder ??
-        (coverVariants
-          ? pickCatalogueImageUrl(coverVariants, LETTERBOX_BACKDROP_WIDTH)
-          : displayImageSource);
-      const logoSource = logoImage.variants
-        ? pickCatalogueImageUrl(logoImage.variants, LETTERBOX_LOGO_WIDTH)
-        : resolveImageSource(rawLogoSource);
-
-      return (
-        <div className="library-game-card__letterbox-cover">
-          <img
-            src={hasHero ? heroBackdrop : coverBackdrop}
-            alt=""
-            aria-hidden="true"
-            className="library-game-card__letterbox-backdrop"
-            decoding="async"
-            onError={() => {
-              if (hasHero && !heroImage.markFailed()) {
-                setFailedHeroSource(rawHeroSource);
-              }
-            }}
-          />
-          {hasLogo ? (
-            <img
-              src={logoSource}
-              alt={game.title}
-              className="library-game-card__letterbox-logo"
-              loading="lazy"
-              decoding="async"
-              onError={() => {
-                if (!logoImage.markFailed()) {
-                  setFailedLogoSource(rawLogoSource);
-                }
-              }}
-            />
-          ) : (
-            <img
-              src={coverSource}
-              srcSet={
-                coverVariants
-                  ? getCatalogueImageSrcSet(coverVariants)
-                  : undefined
-              }
-              sizes={
-                coverVariants ? `auto, ${COVER_DISPLAY_WIDTH}px` : undefined
-              }
-              alt={game.title}
-              className="library-game-card__letterbox-image"
-              loading="lazy"
-              decoding="async"
-              onLoad={catalogueImage.markLoaded}
-              onError={handleImageError}
-            />
-          )}
-        </div>
-      );
-    }
-
     return (
       <img
-        src={coverSource}
+        src={
+          coverVariants
+            ? pickCatalogueImageUrl(coverVariants, COVER_DISPLAY_WIDTH)
+            : displayImageSource
+        }
         srcSet={
           coverVariants ? getCatalogueImageSrcSet(coverVariants) : undefined
         }

@@ -76,20 +76,10 @@ import {
   type LibraryDragOverlay,
 } from "./library-drag-overlay";
 import {
-  DEFAULT_LIBRARY_CARD_SIZE,
-  findLibraryGridCellAt,
-  getLibraryCardSize,
+  findLibraryGridKeyAt,
   getLibraryPlacementBox,
-  packLibraryGrid,
-  planLibraryGridMove,
-  readLibraryCardSizes,
-  setLibraryCardSize,
-  writeLibraryCardSizes,
-  type LibraryCardSize,
-  type LibraryGridCell,
-  type LibraryGridLayout,
+  layoutLibraryGrid,
   type LibraryGridMetrics,
-  type LibraryGridMove,
 } from "./library-grid-layout";
 import { createLibraryDragAutoscroll } from "./library-drag-autoscroll";
 import {
@@ -119,9 +109,6 @@ const LARGE_CARD_ESTIMATED_HEIGHT = 300;
 const FALLBACK_ITEM_WIDTH = 150;
 const LIBRARY_GRID_DROP_TYPE = "library-grid";
 const DRAG_MOVE_MIN_DISTANCE = 12;
-const WIDE_CARD_MIN_COLUMNS = 3;
-const COVER_ASPECT_RATIO = 2 / 3;
-const COVER_ASPECT_TOLERANCE = 0.05;
 
 const COLUMN_BREAKPOINTS = [3000, 2600, 2000, 1300, 900] as const;
 const COLUMNS: Record<"grid" | "compact", readonly number[]> = {
@@ -242,9 +229,6 @@ export default function Library() {
     order: string[];
   } | null>(null);
   const effectiveCustomOrder = dragPreview?.order ?? customOrder;
-  const [cardSizes, setCardSizes] = useState(() =>
-    readLibraryCardSizes(localStorage)
-  );
   const [gameContextMenu, setGameContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -763,29 +747,11 @@ export default function Library() {
 
   const gridLayout = useMemo(
     () =>
-      packLibraryGrid(
-        filteredLibrary.map((game) => ({
-          key: getLibraryGameOrderKey(game),
-          ...(isCustomOrder
-            ? getLibraryCardSize(cardSizes, game)
-            : DEFAULT_LIBRARY_CARD_SIZE),
-        })),
+      layoutLibraryGrid(
+        filteredLibrary.map(getLibraryGameOrderKey),
         columnsCount
       ),
-    [filteredLibrary, isCustomOrder, cardSizes, columnsCount]
-  );
-
-  useEffect(() => {
-    writeLibraryCardSizes(localStorage, cardSizes);
-  }, [cardSizes]);
-
-  const handleCardResize = useCallback(
-    (orderKey: string, size: LibraryCardSize) => {
-      const game = gamesByKey.get(orderKey);
-      if (!game) return;
-      setCardSizes((previous) => setLibraryCardSize(previous, game, size));
-    },
-    [gamesByKey]
+    [filteredLibrary, columnsCount]
   );
 
   const dragStateRef = useRef({
@@ -825,49 +791,19 @@ export default function Library() {
     let pointer: { clientX: number; clientY: number } | null = null;
     let activeSourceKey: string | null = null;
 
-    let grabOffset: LibraryGridCell = { row: 0, column: 0 };
-    let lastPlannedCell: {
-      layout: LibraryGridLayout;
-      row: number;
-      column: number;
-    } | null = null;
-
-    const getGrabOffset = (
-      sourceKey: string,
-      input: { clientX: number; clientY: number }
-    ): LibraryGridCell => {
-      const grid = gridRef.current;
-      const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
-      const placement = layout.placementByKey.get(sourceKey);
-      if (!grid || !placement) return { row: 0, column: 0 };
-
-      const rect = grid.getBoundingClientRect();
-      const cell = findLibraryGridCellAt(
-        layout,
-        metrics,
-        input.clientX - rect.left,
-        input.clientY - rect.top
-      );
-      if (!cell) return { row: 0, column: 0 };
-
-      return {
-        row: Math.min(
-          Math.max(cell.row - placement.row, 0),
-          placement.rows - 1
-        ),
-        column: Math.min(
-          Math.max(cell.column - placement.column, 0),
-          placement.columns - 1
-        ),
-      };
-    };
-
-    const applyPreviewMove = (sourceKey: string, move: LibraryGridMove) => {
+    const previewMoveOnto = (sourceKey: string, targetKey: string) => {
       const {
         customOrder: savedOrder,
         dragPreview: preview,
         displayedGames,
       } = dragStateRef.current;
+      const sourceIndex = displayedGames.findIndex(
+        (game) => getLibraryGameOrderKey(game) === sourceKey
+      );
+      const targetIndex = displayedGames.findIndex(
+        (game) => getLibraryGameOrderKey(game) === targetKey
+      );
+      if (sourceIndex === -1 || targetIndex === -1) return false;
 
       setDragPreview({
         sourceKey,
@@ -875,10 +811,11 @@ export default function Library() {
           preview?.order ?? savedOrder,
           displayedGames,
           sourceKey,
-          move.anchorKey,
-          move.edge
+          targetKey,
+          sourceIndex < targetIndex ? "after" : "before"
         ),
       });
+      return true;
     };
 
     const updateHoveredSlot = () => {
@@ -899,27 +836,19 @@ export default function Library() {
       }
 
       const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
-      const cell = findLibraryGridCellAt(layout, metrics, point.x, point.y);
-      if (!cell) return;
-      if (
-        lastPlannedCell?.layout === layout &&
-        lastPlannedCell.row === cell.row &&
-        lastPlannedCell.column === cell.column
-      ) {
-        return;
-      }
-      lastPlannedCell = { layout, ...cell };
-
-      const move = planLibraryGridMove(
+      const hoveredKey = findLibraryGridKeyAt(
         layout,
-        activeSourceKey,
-        cell,
-        grabOffset
+        metrics,
+        point.x,
+        point.y
       );
-      if (!move) return;
-
-      applyPreviewMove(activeSourceKey, move);
-      lastMovePoint = point;
+      if (
+        hoveredKey &&
+        hoveredKey !== activeSourceKey &&
+        previewMoveOnto(activeSourceKey, hoveredKey)
+      ) {
+        lastMovePoint = point;
+      }
     };
 
     scrollElement.addEventListener("scroll", updateHoveredSlot, {
@@ -938,10 +867,8 @@ export default function Library() {
           if (!isLibraryGameDragData(source.data)) return;
           removeOverlay();
           lastMovePoint = null;
-          lastPlannedCell = null;
           activeSourceKey = source.data.orderKey;
           pointer = location.current.input;
-          grabOffset = getGrabOffset(source.data.orderKey, pointer);
           overlay = createLibraryDragOverlay(
             source.element,
             location.current.input
@@ -1004,8 +931,7 @@ export default function Library() {
   const lastVisibleRow = virtualRows[virtualRows.length - 1]?.index ?? -1;
   const visiblePlacements = gridLayout.placements.filter(
     (placement) =>
-      placement.row <= lastVisibleRow &&
-      placement.row + placement.rows > firstVisibleRow
+      placement.row >= firstVisibleRow && placement.row <= lastVisibleRow
   );
 
   const committedOrderIndex = useMemo(
@@ -1291,10 +1217,6 @@ export default function Library() {
                 if (!game) return null;
 
                 const box = getLibraryPlacementBox(placement, gridMetrics);
-                const useWideCard =
-                  viewMode === "large" ||
-                  (placement.columns >= WIDE_CARD_MIN_COLUMNS &&
-                    box.width > box.height);
 
                 return (
                   <LibrarySortableGame
@@ -1307,12 +1229,8 @@ export default function Library() {
                       width: box.width,
                       height: box.height,
                     }}
-                    size={placement}
-                    maxColumns={columnsCount}
-                    metrics={gridMetrics}
-                    onResize={handleCardResize}
                   >
-                    {useWideCard ? (
+                    {viewMode === "large" ? (
                       <LibraryGameCardLarge
                         game={game}
                         onContextMenu={handleOpenContextMenu}
@@ -1321,11 +1239,6 @@ export default function Library() {
                       <LibraryGameCard
                         game={game}
                         onContextMenu={handleOpenContextMenu}
-                        letterbox={
-                          Math.abs(
-                            box.width / box.height - COVER_ASPECT_RATIO
-                          ) > COVER_ASPECT_TOLERANCE
-                        }
                       />
                     )}
                   </LibrarySortableGame>

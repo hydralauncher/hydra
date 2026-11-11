@@ -226,28 +226,13 @@ async function renderLibrary(
       settleLibraryCard: noop,
     },
     "./library-grid-layout": {
-      DEFAULT_LIBRARY_CARD_SIZE: { columns: 1, rows: 1 },
-      findLibraryGridCellAt: () => null,
-      planLibraryGridMove: () => null,
-      getLibraryCardSize: () => ({ columns: 1, rows: 1 }),
+      findLibraryGridKeyAt: () => null,
       getLibraryPlacementBox: () => ({ left: 0, top: 0, width: 1, height: 1 }),
-      packLibraryGrid: (
-        items: { key: string; columns: number; rows: number }[],
-        columnCount: number
-      ) => ({
+      layoutLibraryGrid: (keys: string[], columnCount: number) => ({
         columnCount,
-        rowCount: items.length,
-        placements: items.map((item, index) => ({
-          ...item,
-          column: 0,
-          row: index,
-        })),
-        placementByKey: new Map(),
-        keyByCell: new Map(),
+        rowCount: keys.length,
+        placements: keys.map((key, index) => ({ key, column: 0, row: index })),
       }),
-      readLibraryCardSizes: () => ({}),
-      setLibraryCardSize: (sizes: unknown) => sizes,
-      writeLibraryCardSizes: noop,
     },
     "./library-category": {
       categoryShowsPlatforms: () => false,
