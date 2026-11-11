@@ -193,11 +193,4 @@ export interface RecompilationActionResult {
   warning?: string;
   /** Set when an update finished and the port started preparing again. */
   preparing?: boolean;
-  /** Game folder a PS4 PKG was extracted to. */
-  romPath?: string;
-}
-
-export interface RecompilationRomPkgProgress {
-  slug: string;
-  progress: number;
 }

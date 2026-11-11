@@ -63,7 +63,6 @@ import type {
   RecompilationActionResult,
   RecompilationInstallProgress,
   RecompilationPrepareProgress,
-  RecompilationRomPkgProgress,
   Ps4PkgAccept,
   Ps4PkgCheck,
   Ps4PkgJobEvent,
@@ -832,7 +831,6 @@ declare global {
       ref: RecompilationRef,
       pkgPath: string
     ) => Promise<RecompilationActionResult>;
-    cancelRecompilationRomPkg: (ref: RecompilationRef) => Promise<void>;
     hasPs4GameFolder: (shop: GameShop, objectId: string) => Promise<boolean>;
     checkPs4Pkg: (
       shop: GameShop,
@@ -852,9 +850,6 @@ declare global {
     ) => Promise<Ps4PkgResult>;
     cancelPs4PkgJob: () => Promise<void>;
     onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => () => void;
-    onRecompilationRomPkgProgress: (
-      cb: (payload: RecompilationRomPkgProgress) => void
-    ) => () => void;
     onRecompilationInstallProgress: (
       cb: (payload: RecompilationInstallProgress) => void
     ) => () => void;

@@ -176,22 +176,6 @@ function InstallModalContent({
     void refreshRom();
   }, [refreshRom]);
 
-  const isExtractingPkgRef = useRef(false);
-  useEffect(() => {
-    const ref = { objectId: details.game.objectId, slug: details.slug };
-    const unsubscribe = window.electron.onRecompilationRomPkgProgress(
-      (payload) => {
-        if (payload.slug === details.slug) setPkgProgress(payload.progress);
-      }
-    );
-    return () => {
-      unsubscribe();
-      if (isExtractingPkgRef.current) {
-        void window.electron.cancelRecompilationRomPkg(ref);
-      }
-    };
-  }, [details.game.objectId, details.slug]);
-
   const { state, progress } = install;
   const isInstalled = state?.installed === true;
   const { updateLibrary } = useLibrary();
@@ -209,10 +193,14 @@ function InstallModalContent({
     romState?.source === "file" ? romState.romPath : null
   );
   const [skipLibrary, setSkipLibrary] = useState(false);
+
+  // A PKG extracted in the background is saved as the chosen ROM when it ends.
+  useEffect(() => {
+    if (romState?.source === "file" && romState.romPath) {
+      setPickedFile((current) => current ?? romState.romPath);
+    }
+  }, [romState?.source, romState?.romPath]);
   const [isSaving, setIsSaving] = useState(false);
-  const [pkgProgress, setPkgProgress] = useState<number | null>(null);
-  const isExtractingPkg = pkgProgress !== null;
-  const pkgPercent = Math.round((pkgProgress ?? 0) * 100);
 
   const handlesRom = romState?.handlesRom !== false;
   const needsPreparation = romState?.needsPreparation === true;
@@ -318,21 +306,11 @@ function InstallModalContent({
 
   const extractPkg = async (pkgPath: string) => {
     const ref = { objectId: details.game.objectId, slug: details.slug };
-    isExtractingPkgRef.current = true;
-    setPkgProgress(0);
     const result = await window.electron
       .extractRecompilationRomPkg(ref, pkgPath)
-      .finally(() => {
-        isExtractingPkgRef.current = false;
-        setPkgProgress(null);
-      });
-
-    if (result.ok && result.romPath) {
-      setPickedFile(result.romPath);
-      return;
-    }
-    if (result.reason !== "rom_pkg_cancelled") {
-      showErrorToast(romChoiceErrorMessage(result.reason, true));
+      .catch(() => null);
+    if (!result?.ok) {
+      showErrorToast(romChoiceErrorMessage(result?.reason, true));
     }
   };
 
@@ -511,15 +489,6 @@ function InstallModalContent({
   };
 
   const renderRomStatus = () => {
-    if (isExtractingPkg) {
-      return (
-        <StatusLine
-          label={t("rom_extracting")}
-          detail={`${pkgPercent}%`}
-          progress={{ phase: "downloading", loaded: pkgPercent, total: 100 }}
-        />
-      );
-    }
     if (!isRomDownloading) return null;
     if (rom.downloadPhase === "extracting") {
       return (
@@ -549,7 +518,7 @@ function InstallModalContent({
         </p>
       )}
 
-      {shownFile && !isRomDownloading && !isExtractingPkg && (
+      {shownFile && !isRomDownloading && (
         <div className="recompilation-install__picked">
           <span className="recompilation-install__choice-text">
             <span className="recompilation-install__choice-title">
@@ -571,7 +540,7 @@ function InstallModalContent({
         </div>
       )}
 
-      {!shownFile && !isRomDownloading && !isExtractingPkg && (
+      {!shownFile && !isRomDownloading && (
         <div className="recompilation-install__choices">
           <ChoiceRow
             title={t("rom_choice_download")}
@@ -801,7 +770,7 @@ function InstallModalContent({
         continueDisabled={
           step === "location"
             ? !parentDirectory || !hasEnoughSpace
-            : !romSource || isSaving || isExtractingPkg
+            : !romSource || isSaving || isRomDownloading
         }
         onBack={() => setStep("rom")}
         onSkip={() => {}}

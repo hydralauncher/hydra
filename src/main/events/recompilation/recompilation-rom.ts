@@ -33,6 +33,11 @@ import {
   resolveRecompilationPath,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
+import {
+  formatPs4Version,
+  isPs4PkgJobRunning,
+  runPs4PkgJob,
+} from "../emulators/ps4-pkg-job";
 import { toZ64 } from "./n64-rom";
 import {
   isPreparedForVersion,
@@ -450,8 +455,6 @@ const checkChosenPkg = async (
   return null;
 };
 
-const pkgExtractions = new Map<string, AbortController>();
-
 const PKG_FAILURE_REASONS: Record<string, string> = {
   no_space: "rom_pkg_no_space",
   cancelled: "rom_pkg_cancelled",
@@ -466,7 +469,11 @@ function toPkgFailureReason(error: unknown) {
   return PKG_FAILURE_REASONS[code] ?? "rom_pkg_failed";
 }
 
-/** Extracts a PS4 game or update PKG picked in the install modal. */
+/**
+ * Extracts a PS4 game or update PKG picked in the install modal. It runs as
+ * the shared PKG job, like any other extraction: it shows in Downloads, the
+ * modal can be closed, and the ROM is chosen for the port when it ends.
+ */
 export const extractRecompilationRomPkg = async (
   rawRef: unknown,
   rawPath: unknown
@@ -479,41 +486,33 @@ export const extractRecompilationRomPkg = async (
   if (typeof rawPath !== "string" || !isPs4PkgPath(rawPath)) {
     return { ok: false, reason: "rom_wrong_format" };
   }
-  if (pkgExtractions.has(ref.slug)) {
-    return { ok: false, reason: "rom_pkg_busy" };
-  }
+  if (isPs4PkgJobRunning()) return { ok: false, reason: "rom_pkg_busy" };
 
   const problem = await checkChosenPkg(ref.slug, rawPath, meta);
   if (problem) return problem;
 
-  const controller = new AbortController();
-  pkgExtractions.set(ref.slug, controller);
-  const sendProgress = (progress: number) =>
-    WindowManager.mainWindow?.webContents.send(
-      "on-recompilation-rom-pkg-progress",
-      { slug: ref.slug, progress }
-    );
-
-  try {
-    sendProgress(0);
-    const { gameDirectory } = await installPs4Pkg({
-      pkgPath: rawPath,
-      gameDirectory: await getChosenGameFolder(ref.slug, meta),
-      onProgress: sendProgress,
-      signal: controller.signal,
-    });
-    return { ok: true, romPath: gameDirectory };
-  } catch (error) {
-    logger.error("Failed to extract PS4 PKG for port", error);
-    return { ok: false, reason: toPkgFailureReason(error) };
-  } finally {
-    pkgExtractions.delete(ref.slug);
-  }
-};
-
-export const cancelRecompilationRomPkg = (rawRef: unknown) => {
-  const ref = parseRecompilationRef(rawRef);
-  if (ref) pkgExtractions.get(ref.slug)?.abort();
+  const info = await readPs4PkgInfo(rawPath);
+  const gameDirectory = await getChosenGameFolder(ref.slug, meta);
+  void runPs4PkgJob(
+    "launchbox",
+    ref.objectId,
+    info.kind === "patch" ? "update" : "extract",
+    {},
+    async (signal, onProgress) => {
+      const installed = await installPs4Pkg({
+        pkgPath: rawPath,
+        gameDirectory,
+        onProgress,
+        signal,
+      });
+      await setRecompilationRom(ref, {
+        source: "file",
+        path: installed.gameDirectory,
+      });
+      return { version: formatPs4Version(info.appVersion) };
+    }
+  );
+  return { ok: true };
 };
 
 /** Checks a file picked in the install modal without saving it. */

@@ -7,13 +7,10 @@ import type {
   Ps4PkgAccept,
   Ps4PkgCheck,
   Ps4PkgFailure,
-  Ps4PkgJobEvent,
-  Ps4PkgJobMode,
   Ps4PkgResult,
 } from "@types";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { platformToSystem } from "@main/helpers";
-import { logger, WindowManager } from "@main/services";
 import { publishExtractionCompleteNotification } from "@main/services/notifications";
 import { normalize } from "@main/services/emulators/sku-normalize";
 import {
@@ -28,26 +25,12 @@ import {
 import { getNextClassicsDiscLabel } from "@shared";
 import { getRecompilationGameFolder } from "../recompilation/recompilation-rom";
 import { registerEvent } from "../register-event";
-
-const FAILURE_REASONS: Record<string, Ps4PkgFailure> = {
-  missing_base_game: "no_game_folder",
-  other_game: "other_game",
-  not_newer: "not_newer",
-  no_space: "no_space",
-  keys_unavailable: "keys_unavailable",
-  cancelled: "cancelled",
-};
-
-let running: { objectId: string; controller: AbortController } | null = null;
-
-/** "0109" → "01.09". */
-const formatVersion = (version: string | null | undefined) => {
-  const digits = version?.replace(/\D/g, "");
-  if (!digits) return null;
-  return digits.length > 2
-    ? `${digits.slice(0, -2)}.${digits.slice(-2)}`
-    : digits;
-};
+import {
+  cancelPs4PkgJob,
+  formatPs4Version,
+  runPs4PkgJob,
+  toPs4PkgFailure,
+} from "./ps4-pkg-job";
 
 const toGameFolder = (filePath: string) =>
   path.basename(filePath).toLowerCase() === "eboot.bin"
@@ -85,11 +68,6 @@ const getGameFolders = async (shop: GameShop, objectId: string) => {
   return [...folders.values()];
 };
 
-const toReason = (error: unknown): Ps4PkgFailure => {
-  const code = error instanceof Ps4PkgError ? error.code : "failed";
-  return FAILURE_REASONS[code] ?? "failed";
-};
-
 /** Checks an update PKG against every linked folder; it goes to the ones it fits. */
 const findUpdateTargets = async (
   shop: GameShop,
@@ -106,7 +84,7 @@ const findUpdateTargets = async (
       await assertPs4UpdateFits(info, folder);
       targets.push(folder);
     } catch (error) {
-      firstProblem ??= toReason(error);
+      firstProblem ??= toPs4PkgFailure(error);
     }
   }
   return targets.length > 0 ? targets : (firstProblem ?? "failed");
@@ -135,8 +113,8 @@ export const checkPs4Pkg = async (
     return {
       ok: true,
       mode: "update",
-      version: formatVersion(info.appVersion),
-      currentVersion: formatVersion(
+      version: formatPs4Version(info.appVersion),
+      currentVersion: formatPs4Version(
         await readPs4FolderParam(targets[0], "APP_VER")
       ),
     };
@@ -149,7 +127,7 @@ export const checkPs4Pkg = async (
     return {
       ok: true,
       mode: "extract",
-      version: formatVersion(info.appVersion),
+      version: formatPs4Version(info.appVersion),
       currentVersion: null,
     };
   }
@@ -159,58 +137,6 @@ export const checkPs4Pkg = async (
 
 export const hasPs4GameFolder = async (shop: GameShop, objectId: string) =>
   (await getGameFolders(shop, objectId)).length > 0;
-
-const sendJob = (event: Ps4PkgJobEvent) =>
-  WindowManager.sendToAppWindows("on-ps4-pkg-job", event);
-
-/** Runs one PKG job at a time and tells every window how it goes. */
-const runJob = async (
-  shop: GameShop,
-  objectId: string,
-  mode: Ps4PkgJobMode,
-  versions: { version?: string | null; currentVersion?: string | null },
-  work: (
-    signal: AbortSignal,
-    onProgress: (fraction: number) => void
-  ) => Promise<{ version: string | null }>
-): Promise<Ps4PkgResult> => {
-  if (running) return { ok: false, reason: "busy" };
-
-  const controller = new AbortController();
-  running = { objectId, controller };
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch(() => undefined);
-  const base = { shop, objectId, mode, title: game?.title ?? "", ...versions };
-
-  let lastSent = 0;
-  const onProgress = (progress: number) => {
-    const now = Date.now();
-    if (progress > 0 && progress < 1 && now - lastSent < 200) return;
-    lastSent = now;
-    sendJob({ ...base, phase: "progress", progress });
-  };
-
-  try {
-    sendJob({ ...base, phase: "start", progress: 0 });
-    const { version } = await work(controller.signal, onProgress);
-    WindowManager.sendToAppWindows("on-library-batch-complete");
-    sendJob({ ...base, phase: "done", progress: 1, version });
-    return { ok: true, version };
-  } catch (error) {
-    const reason = toReason(error);
-    if (reason !== "cancelled") logger.error("PS4 PKG job failed", error);
-    sendJob({
-      ...base,
-      phase: reason === "cancelled" ? "cancelled" : "error",
-      progress: 0,
-      reason,
-    });
-    return { ok: false, reason };
-  } finally {
-    running = null;
-  }
-};
 
 export const applyPs4Update = async (
   shop: GameShop,
@@ -224,13 +150,13 @@ export const applyPs4Update = async (
   if (typeof targets === "string") return { ok: false, reason: targets };
 
   const versions = {
-    version: formatVersion(info.appVersion),
-    currentVersion: formatVersion(
+    version: formatPs4Version(info.appVersion),
+    currentVersion: formatPs4Version(
       await readPs4FolderParam(targets[0], "APP_VER")
     ),
   };
 
-  return runJob(
+  return runPs4PkgJob(
     shop,
     objectId,
     "update",
@@ -314,34 +240,38 @@ export const extractPs4GamePkg = async (
   const source = pkgPath ?? (await getSelectedPkgDisc(shop, objectId));
   if (!source) return { ok: false, reason: "unsupported" };
 
-  return runJob(shop, objectId, "extract", {}, async (signal, onProgress) => {
-    const info = await readUsablePkg(source);
-    if (!info || info.kind !== "game") {
-      throw new Ps4PkgError("unsupported_pkg", "Not a game PKG");
+  return runPs4PkgJob(
+    shop,
+    objectId,
+    "extract",
+    {},
+    async (signal, onProgress) => {
+      const info = await readUsablePkg(source);
+      if (!info || info.kind !== "game") {
+        throw new Ps4PkgError("unsupported_pkg", "Not a game PKG");
+      }
+
+      const folder = path.join(path.dirname(source), info.titleId);
+      const folderTitleId = isGameFolder(folder)
+        ? await readPs4FolderParam(folder, "TITLE_ID")
+        : null;
+      const alreadyExtracted =
+        folderTitleId?.replace(/\W/g, "").toUpperCase() === info.titleId;
+
+      if (!alreadyExtracted) {
+        onProgress(0);
+        await installPs4Pkg({ pkgPath: source, signal, onProgress });
+      }
+      onProgress(1);
+
+      await linkExtractedDisc(shop, objectId, source, folder, info.titleId);
+
+      const game = await getPs4Game(shop, objectId);
+      if (game) void publishExtractionCompleteNotification(game);
+      return { version: formatPs4Version(info.appVersion) };
     }
-
-    const folder = path.join(path.dirname(source), info.titleId);
-    const folderTitleId = isGameFolder(folder)
-      ? await readPs4FolderParam(folder, "TITLE_ID")
-      : null;
-    const alreadyExtracted =
-      folderTitleId?.replace(/\W/g, "").toUpperCase() === info.titleId;
-
-    if (!alreadyExtracted) {
-      onProgress(0);
-      await installPs4Pkg({ pkgPath: source, signal, onProgress });
-    }
-    onProgress(1);
-
-    await linkExtractedDisc(shop, objectId, source, folder, info.titleId);
-
-    const game = await getPs4Game(shop, objectId);
-    if (game) void publishExtractionCompleteNotification(game);
-    return { version: formatVersion(info.appVersion) };
-  });
+  );
 };
-
-export const cancelPs4PkgJob = () => running?.controller.abort();
 
 registerEvent(
   "hasPs4GameFolder",
