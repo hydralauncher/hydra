@@ -36,7 +36,13 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import { AuthPage, groupLibraryGames, removeDiacritics } from "@shared";
+import {
+  AuthPage,
+  applyLibraryCollectionOrder,
+  getLibraryCollectionOrderPositions,
+  groupLibraryGames,
+  removeDiacritics,
+} from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import {
   Button,
@@ -238,7 +244,9 @@ export default function Library() {
   const [dragPreview, setDragPreview] = useState<{
     sourceKey: string;
     order: string[];
+    restingIndex: ReadonlyMap<string, number>;
   } | null>(null);
+  const orderSavesRef = useRef({ pending: 0, failed: false });
   const [showResetCustomOrderModal, setShowResetCustomOrderModal] =
     useState(false);
   const [gameContextMenu, setGameContextMenu] = useState<{
@@ -620,11 +628,33 @@ export default function Library() {
 
   const commitCollectionOrder = useCallback(
     (collectionId: string, games: Pick<LibraryGame, "shop" | "objectId">[]) => {
+      const positions = getLibraryCollectionOrderPositions(games);
       dispatch(setCollectionGameOrder({ collectionId, games }));
+      setHiddenGamesState((state) => ({
+        ...state,
+        games: state.games.map((game) => {
+          const collectionPositions = applyLibraryCollectionOrder(
+            game,
+            collectionId,
+            positions
+          );
+          return collectionPositions ? { ...game, collectionPositions } : game;
+        }),
+      }));
+
+      const saves = orderSavesRef.current;
+      saves.pending += 1;
       window.electron
         .setCollectionGameOrder(collectionId, games)
-        .catch(() => showErrorToast(t("custom_order_save_failed")))
+        .catch(() => {
+          saves.failed = true;
+          showErrorToast(t("custom_order_save_failed"));
+        })
         .finally(() => {
+          saves.pending -= 1;
+          if (saves.pending > 0 || !saves.failed) return;
+
+          saves.failed = false;
           void updateLibrary();
           void updateHiddenGames();
         });
@@ -640,18 +670,33 @@ export default function Library() {
         return;
       }
 
-      commitCollectionOrder(
-        orderCollectionId,
-        expandLibraryCollectionOrder(order, collectionGames, [
-          ...groupedLibrary,
-          ...groupedHiddenGames,
-        ])
+      const groups = [...groupedLibrary, ...groupedHiddenGames];
+      const nextGames = expandLibraryCollectionOrder(
+        order,
+        collectionGames,
+        groups
       );
+      const currentGames = expandLibraryCollectionOrder(
+        collectionOrder ?? [],
+        collectionGames,
+        groups
+      );
+      if (
+        isSameLibraryOrder(
+          nextGames.map(getLibraryGameOrderKey),
+          currentGames.map(getLibraryGameOrderKey)
+        )
+      ) {
+        return;
+      }
+
+      commitCollectionOrder(orderCollectionId, nextGames);
     },
     [
       orderCollectionId,
       commitCollectionOrder,
       collectionGames,
+      collectionOrder,
       groupedLibrary,
       groupedHiddenGames,
     ]
@@ -904,16 +949,16 @@ export default function Library() {
       );
       if (sourceIndex === -1 || targetIndex === -1) return false;
 
-      setDragPreview({
+      const order = moveLibraryGameInCustomOrder(
+        preview?.order ?? committedOrder,
+        displayedGames,
         sourceKey,
-        order: moveLibraryGameInCustomOrder(
-          preview?.order ?? committedOrder,
-          displayedGames,
-          sourceKey,
-          targetKey,
-          sourceIndex < targetIndex ? "after" : "before"
-        ),
-      });
+        targetKey,
+        sourceIndex < targetIndex ? "after" : "before"
+      );
+      setDragPreview((current) =>
+        current ? { ...current, sourceKey, order } : current
+      );
       return true;
     };
 
@@ -975,6 +1020,11 @@ export default function Library() {
           setDragPreview({
             sourceKey: source.data.orderKey,
             order: dragStateRef.current.savedOrder,
+            restingIndex: new Map(
+              dragStateRef.current.gridLayout.placements.map(
+                (placement, index) => [placement.key, index]
+              )
+            ),
           });
         },
         onDrag: ({ location }) => {
@@ -1040,15 +1090,11 @@ export default function Library() {
       placement.row >= firstVisibleRow && placement.row <= lastVisibleRow
   );
 
-  const committedOrderIndex = useMemo(
-    () => new Map(savedOrder.map((key, index) => [key, index])),
-    [savedOrder]
-  );
   const renderedPlacements = dragPreview
     ? [...visiblePlacements].sort(
         (a, b) =>
-          (committedOrderIndex.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
-          (committedOrderIndex.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+          (dragPreview.restingIndex.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+          (dragPreview.restingIndex.get(b.key) ?? Number.MAX_SAFE_INTEGER)
       )
     : visiblePlacements;
 
