@@ -437,7 +437,9 @@ function InstallModalContent({
     onClose();
     const played = await install.play();
     if (played === "already_running") showErrorToast(t("already_running"));
-    else if (!played) showErrorToast(t("play_failed"));
+    if (played === "pkg_job_running") {
+      showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
+    } else if (!played) showErrorToast(t("play_failed"));
   };
 
   useEffect(() => {

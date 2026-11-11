@@ -361,6 +361,18 @@ export const openClassicsGame = async (
     );
   }
 
+  if (system === "ps4") {
+    const { isPs4PkgJobRunningFor } = await import(
+      "@main/events/emulators/ps4-pkg-job"
+    );
+    if (isPs4PkgJobRunningFor(objectId)) {
+      throw Object.assign(
+        new Error(`PS4_PKG_JOB_RUNNING: ${shop}/${objectId}`),
+        { code: "PS4_PKG_JOB_RUNNING" }
+      );
+    }
+  }
+
   const resolvedDiscPath =
     discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
 

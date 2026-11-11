@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useAppSelector, useLibrary } from "@renderer/hooks";
@@ -17,6 +17,12 @@ export function Ps4PkgJobGroup() {
   const job = useAppSelector((state) => state.ps4PkgJob.job);
   const { library } = useLibrary();
   const [cancelledJob, setCancelledJob] = useState<string | null>(null);
+  const hasJob = job !== null;
+
+  // A retry of the same game is a new job, so its Cancel starts enabled.
+  useEffect(() => {
+    if (!hasJob) setCancelledJob(null);
+  }, [hasJob]);
 
   if (!job) return null;
 

@@ -237,6 +237,8 @@ export const handleClassicsLaunchError = (
     if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
   } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
     showErrorToast(t("recompilation_already_running_toast"));
+  } else if (code === "PS4_PKG_JOB_RUNNING") {
+    showErrorToast(t("ps4_pkg_busy"));
   } else if (code === "PS4_PKG_NEEDS_EXTRACTION") {
     const game = getPs4PkgGameFromLaunchError(error);
     if (game) requestPs4PkgExtraction(game);
@@ -248,7 +250,8 @@ export const handleClassicsLaunchError = (
     code !== "EMULATOR_ALREADY_RUNNING" &&
     code !== "PKG_INSTALLING" &&
     code !== "RECOMPILATION_ALREADY_RUNNING" &&
-    code !== "PS4_PKG_NEEDS_EXTRACTION"
+    code !== "PS4_PKG_NEEDS_EXTRACTION" &&
+    code !== "PS4_PKG_JOB_RUNNING"
   );
 };
 
@@ -425,6 +428,7 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "RECOMPILATION_ALREADY_RUNNING",
   "RECOMPILATION_LAUNCH_FAILED",
   "PS4_PKG_NEEDS_EXTRACTION",
+  "PS4_PKG_JOB_RUNNING",
 ] as const;
 
 const getRecompilationFromLaunchError = (error: unknown) => {

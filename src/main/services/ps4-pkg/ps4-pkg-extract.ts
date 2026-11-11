@@ -26,6 +26,8 @@ const PFSC_MAGIC = 0x43534650;
 const PFSC_SCAN_START = 0x20000;
 const PFSC_SCAN_STEP = 0x10000;
 const PFS_MAGIC = 20130315n;
+const MIN_PFSC_BLOCK_SIZE = 0x1000;
+const MAX_PFSC_BLOCK_SIZE = 0x100000;
 const PFS_MODE_SIGNED = 0x1;
 const PFS_MODE_64BIT = 0x2;
 const INODE_HEADER_SIZE = 0x64;
@@ -127,6 +129,12 @@ class InnerImage {
   ) {
     const header = outer.read(pfscOffset, 0x30);
     this.blockSize = Number(header.readBigUInt64LE(0x10));
+    if (
+      this.blockSize < MIN_PFSC_BLOCK_SIZE ||
+      this.blockSize > MAX_PFSC_BLOCK_SIZE
+    ) {
+      throw new Ps4PkgError("unsupported_pkg", "Unexpected PFS block size");
+    }
     const tableOffset = Number(header.readBigUInt64LE(0x18));
     const dataLength = Number(header.readBigUInt64LE(0x28));
     const blockCount = Math.ceil(dataLength / this.blockSize);
@@ -145,11 +153,18 @@ class InnerImage {
       throw new Ps4PkgError("unsupported_pkg", `Missing PFS block ${index}`);
     }
 
+    if (end < start || end - start > this.blockSize) {
+      throw new Ps4PkgError("unsupported_pkg", `Bad PFS block ${index}`);
+    }
     const stored = this.outer.read(this.pfscOffset + start, end - start);
     let block: Buffer;
     if (stored.length === this.blockSize) block = stored;
     else if (stored.length === 0) block = Buffer.alloc(this.blockSize);
-    else block = zlib.inflateSync(stored);
+    else block = zlib.inflateSync(stored, { maxOutputLength: this.blockSize });
+    // A short block would leave the rest of the output uninitialized.
+    if (block.length !== this.blockSize) {
+      throw new Ps4PkgError("unsupported_pkg", `Bad PFS block ${index}`);
+    }
 
     this.cachedIndex = index;
     this.cachedBlock = block;

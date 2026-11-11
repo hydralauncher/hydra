@@ -65,7 +65,17 @@ export class Ps4PkgError extends Error {
   }
 }
 
+/** Reads a range of the PKG, refusing ranges past its end before allocating. */
 export const readExactly = (fd: number, position: number, length: number) => {
+  if (
+    !Number.isSafeInteger(position) ||
+    !Number.isSafeInteger(length) ||
+    position < 0 ||
+    length < 0 ||
+    position + length > fs.fstatSync(fd).size
+  ) {
+    throw new Ps4PkgError("unsupported_pkg", "PKG range is out of the file");
+  }
   const buffer = Buffer.alloc(length);
   let read = 0;
   while (read < length) {
@@ -91,9 +101,15 @@ const kindFromCategory = (category: string | null): Ps4PkgKind => {
   return "other";
 };
 
+// Real PKGs have a few dozen entries; a header claiming more is malformed.
+const MAX_PKG_ENTRIES = 4096;
+
 const readEntries = (fd: number, header: Buffer): Ps4PkgEntry[] => {
   const count = header.readUInt32BE(0x10);
   const tableOffset = header.readUInt32BE(0x18);
+  if (count > MAX_PKG_ENTRIES) {
+    throw new Ps4PkgError("unsupported_pkg", "PKG has too many entries");
+  }
   const table = readExactly(fd, tableOffset, count * ENTRY_SIZE);
 
   const entries = Array.from({ length: count }, (_, index) => {

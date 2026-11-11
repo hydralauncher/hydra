@@ -18,6 +18,8 @@ export const PS4_PKG_FAILURE_REASONS: Record<string, Ps4PkgFailure> = {
   cancelled: "cancelled",
 };
 
+const PROGRESS_EVENT_INTERVAL_MS = 200;
+
 let running: { objectId: string; controller: AbortController } | null = null;
 
 export const toPs4PkgFailure = (error: unknown): Ps4PkgFailure => {
@@ -38,6 +40,10 @@ export const formatPs4Version = (version: string | null | undefined) => {
 };
 
 export const isPs4PkgJobRunning = () => running !== null;
+
+/** The game files are being written, so the game must not start. */
+export const isPs4PkgJobRunningFor = (objectId: string) =>
+  running?.objectId === objectId;
 
 /** Runs one PKG job at a time and tells every window how it goes. */
 export const runPs4PkgJob = async (
@@ -62,7 +68,13 @@ export const runPs4PkgJob = async (
   let lastSent = 0;
   const onProgress = (progress: number) => {
     const now = Date.now();
-    if (progress > 0 && progress < 1 && now - lastSent < 200) return;
+    if (
+      progress > 0 &&
+      progress < 1 &&
+      now - lastSent < PROGRESS_EVENT_INTERVAL_MS
+    ) {
+      return;
+    }
     lastSent = now;
     sendJob({ ...base, phase: "progress", progress });
   };

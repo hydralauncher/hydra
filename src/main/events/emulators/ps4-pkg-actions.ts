@@ -23,7 +23,10 @@ import {
   type Ps4PkgInfo,
 } from "@main/services/ps4-pkg";
 import { getNextClassicsDiscLabel } from "@shared";
-import { getRecompilationGameFolder } from "../recompilation/recompilation-rom";
+import {
+  getRecompilationGameFolder,
+  listRecompilationGameFolders,
+} from "../recompilation/recompilation-rom";
 import { registerEvent } from "../register-event";
 import {
   cancelPs4PkgJob,
@@ -54,13 +57,21 @@ const getPs4Game = async (shop: GameShop, objectId: string) => {
 /** The extracted game folders linked to a PS4 game: shadPS4 discs and ports. */
 const getGameFolders = async (shop: GameShop, objectId: string) => {
   const game = await getPs4Game(shop, objectId);
-  if (!game) return [];
+  const candidates: (string | null)[] = [];
+  for (const disc of game?.discs ?? []) {
+    candidates.push(
+      disc.recompilationSlug
+        ? await getRecompilationGameFolder(objectId, disc.recompilationSlug)
+        : toGameFolder(disc.path)
+    );
+  }
+  // A port's game is found through the port too, in or out of the library.
+  if (shop === "launchbox") {
+    candidates.push(...(await listRecompilationGameFolders(objectId)));
+  }
 
   const folders = new Map<string, string>();
-  for (const disc of game.discs ?? []) {
-    const folder = disc.recompilationSlug
-      ? await getRecompilationGameFolder(objectId, disc.recompilationSlug)
-      : toGameFolder(disc.path);
+  for (const folder of candidates) {
     if (!folder || !isGameFolder(folder)) continue;
     const key = path.resolve(folder).toLowerCase();
     if (!folders.has(key)) folders.set(key, folder);

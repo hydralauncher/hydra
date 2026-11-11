@@ -20,7 +20,7 @@ import { Button } from "@renderer/components/button/button";
 import { ConfirmationModal } from "@renderer/components/confirmation-modal/confirmation-modal";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
-import { useToast } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
 import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import { CloudSaveWidget } from "../game-details/cloud-save-v2";
 import {
@@ -58,6 +58,11 @@ export function RecompilationHero({
   onDownloadRom,
 }: Readonly<RecompilationHeroProps>) {
   const { t } = useTranslation("recompilation");
+  // The game files are being written while a PS4 PKG is extracted or applied.
+  const isPs4PkgJobRunning = useAppSelector((state) => {
+    const job = state.ps4PkgJob.job;
+    return job !== null && job.objectId === objectId;
+  });
   const { showErrorToast } = useToast();
   const [isUninstallOpen, setIsUninstallOpen] = useState(false);
 
@@ -101,7 +106,9 @@ export function RecompilationHero({
   const runPlay = async () => {
     const played = await install.play();
     if (played === "already_running") showErrorToast(t("already_running"));
-    else if (!played) showErrorToast(t("play_failed"));
+    if (played === "pkg_job_running") {
+      showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
+    } else if (!played) showErrorToast(t("play_failed"));
   };
 
   const runClose = async () => {
@@ -187,7 +194,9 @@ export function RecompilationHero({
           <Button
             theme={hasUpdate ? "outline" : "primary"}
             onClick={runPlay}
-            disabled={install.isLaunching || install.isPreparing}
+            disabled={
+              install.isLaunching || install.isPreparing || isPs4PkgJobRunning
+            }
           >
             <PlayIcon />
             {install.isPreparing ? t("prepare_title") : t("play")}

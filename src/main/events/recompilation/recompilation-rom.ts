@@ -493,6 +493,9 @@ export const extractRecompilationRomPkg = async (
 
   const info = await readPs4PkgInfo(rawPath);
   const gameDirectory = await getChosenGameFolder(ref.slug, meta);
+  // Checked again right before starting: another job may have begun while
+  // the PKG was being read.
+  if (isPs4PkgJobRunning()) return { ok: false, reason: "rom_pkg_busy" };
   void runPs4PkgJob(
     "launchbox",
     ref.objectId,
@@ -959,4 +962,23 @@ export const getRecompilationGameFolder = async (
   if (!meta || !isFolderRom(meta)) return null;
   const state = await getRecompilationRomState({ objectId, slug });
   return state?.romPath ? toGameFolder(state.romPath) : null;
+};
+
+/**
+ * Game folders of the PS4 ports installed for this game. Each port records
+ * its game in the install marker, so this works when the game is not in the
+ * library.
+ */
+export const listRecompilationGameFolders = async (objectId: string) => {
+  const folders: string[] = [];
+  for (const slug of Object.keys(ROM_META)) {
+    const meta = getRecompilationRomMeta(slug);
+    if (!meta || !isFolderRom(meta)) continue;
+    const installDirectory = await getRecompilationInstallDirectory(slug);
+    const marker = await readInstallMarker(installDirectory).catch(() => null);
+    if (marker?.objectId !== objectId) continue;
+    const folder = await getRecompilationGameFolder(objectId, slug);
+    if (folder) folders.push(folder);
+  }
+  return folders;
 };

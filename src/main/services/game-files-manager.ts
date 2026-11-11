@@ -65,6 +65,36 @@ const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
 
 const PS4_PKG_SEARCH_DEPTH = 3;
 
+/** The folder an earlier run extracted a game PKG to, next to that PKG. */
+const findExtractedPs4Game = (
+  directory: string,
+  titleId: string,
+  depth = 0
+): string | undefined => {
+  const candidate = path.join(directory, titleId);
+  if (
+    fs.existsSync(path.join(candidate, "eboot.bin")) &&
+    fs.existsSync(path.join(candidate, "sce_sys", "param.sfo"))
+  ) {
+    return candidate;
+  }
+  if (depth >= PS4_PKG_SEARCH_DEPTH) return undefined;
+  const entries =
+    fs.existsSync(directory) && fs.statSync(directory).isDirectory()
+      ? fs.readdirSync(directory, { withFileTypes: true })
+      : [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const found = findExtractedPs4Game(
+      path.join(directory, entry.name),
+      titleId,
+      depth + 1
+    );
+    if (found) return found;
+  }
+  return undefined;
+};
+
 const findPs4Pkgs = async (directory: string, depth = 0): Promise<string[]> => {
   const entries = await fs.promises.readdir(directory, { withFileTypes: true });
   const found: string[] = [];
@@ -513,10 +543,15 @@ export class GameFilesManager {
     }[] = [];
 
     for (const pkgPath of pkgPaths) {
-      const info = await readPs4PkgInfo(pkgPath);
-      if (info.kind !== "game" && info.kind !== "patch") {
+      const info = await readPs4PkgInfo(pkgPath).catch(() => null);
+      if (
+        !info ||
+        info.isDeltaPatch ||
+        (info.kind !== "game" && info.kind !== "patch")
+      ) {
         logger.info(
-          `[GameFilesManager] Keeping PS4 ${info.kind} PKG as is: ${pkgPath}`
+          `[GameFilesManager] Keeping PS4 PKG as is: ${pkgPath}`,
+          info ? { kind: info.kind, isDeltaPatch: info.isDeltaPatch } : null
         );
         continue;
       }
@@ -551,21 +586,48 @@ export class GameFilesManager {
 
       const totalSize = pkgs.reduce((sum, pkg) => sum + pkg.size, 0) || 1;
       const gameDirectories = new Map<string, string>();
+      // A PKG the download keeps (setting, or a torrent still seeding) stays.
+      const deletePkg =
+        (await this.shouldDeleteArchives(download)) && !download.shouldSeed;
+      const searchRoot = fs.statSync(sourcePath).isDirectory()
+        ? sourcePath
+        : path.dirname(sourcePath);
       let doneSize = 0;
       this.updateExtractionProgress(0, true);
 
       for (const pkg of pkgs) {
         currentPkg = pkg.pkgPath;
-        const { gameDirectory } = await installPs4Pkg({
-          pkgPath: pkg.pkgPath,
-          gameDirectory: gameDirectories.get(pkg.titleId),
-          deletePkg: true,
-          onProgress: (fraction) =>
-            this.updateExtractionProgress(
-              (doneSize + fraction * pkg.size) / totalSize
-            ),
-        });
-        gameDirectories.set(pkg.titleId, gameDirectory);
+        const install = () =>
+          installPs4Pkg({
+            pkgPath: pkg.pkgPath,
+            gameDirectory:
+              gameDirectories.get(pkg.titleId) ??
+              findExtractedPs4Game(searchRoot, pkg.titleId),
+            deletePkg,
+            onProgress: (fraction) =>
+              this.updateExtractionProgress(
+                (doneSize + fraction * pkg.size) / totalSize
+              ),
+          });
+
+        if (pkg.kind === "game") {
+          gameDirectories.set(pkg.titleId, (await install()).gameDirectory);
+        } else {
+          // An update that does not fit (wrong game, not newer) is kept, and
+          // the game it came with still finishes extracting.
+          await install().catch((error) => {
+            if (
+              error instanceof Ps4PkgError &&
+              error.code === "keys_unavailable"
+            ) {
+              throw error;
+            }
+            logger.warn(
+              `[GameFilesManager] Skipped PS4 update PKG ${pkg.pkgPath}`,
+              error
+            );
+          });
+        }
         doneSize += pkg.size;
         this.updateExtractionProgress(doneSize / totalSize, true);
       }

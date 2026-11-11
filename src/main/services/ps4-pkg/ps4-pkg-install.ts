@@ -98,8 +98,10 @@ export const assertPs4UpdateFits = async (
  * Workers that split the files of a PKG. Decrypting is CPU bound: on the
  * Crash Team Racing PKG (14 GB) 4 workers took 96 s against 247 s for one.
  */
+const MAX_EXTRACTION_WORKERS = 4;
+
 const workerCount = () =>
-  Math.max(1, Math.min(4, os.availableParallelism() - 1));
+  Math.max(1, Math.min(MAX_EXTRACTION_WORKERS, os.availableParallelism() - 1));
 
 const runWorkers = async (
   pkgPath: string,
@@ -190,14 +192,20 @@ const runWorkers = async (
 };
 
 /** Moves every file of `source` over `target`, replacing what is there. */
-const moveInto = async (source: string, target: string) => {
+/** Moves every file of `source` over `target`, replacing what is there. */
+const moveInto = async (
+  source: string,
+  target: string,
+  last?: string
+): Promise<void> => {
   await fs.promises.mkdir(target, { recursive: true });
   const entries = await fs.promises.readdir(source, { withFileTypes: true });
   for (const entry of entries) {
     const from = path.join(source, entry.name);
     const to = path.join(target, entry.name);
+    if (from === last) continue;
     if (entry.isDirectory()) {
-      await moveInto(from, to);
+      await moveInto(from, to, last);
     } else {
       await fs.promises.rename(from, to);
     }
@@ -207,6 +215,8 @@ const moveInto = async (source: string, target: string) => {
 /**
  * An update is extracted next to the game first and only then moved over it,
  * so cancelling or failing during the extraction leaves the game as it was.
+ * The version file moves last: if moving stops halfway, the game still reads
+ * as the old version and applying the update again finishes it.
  */
 const installUpdate = async (
   pkgPath: string,
@@ -222,30 +232,72 @@ const installUpdate = async (
 
   try {
     await runWorkers(pkgPath, staging, onProgress, signal);
-    await moveInto(staging, gameDirectory);
+    const stagedParam = path.join(staging, PARAM_SFO);
+    await moveInto(staging, gameDirectory, stagedParam);
+    if (fs.existsSync(stagedParam)) {
+      await fs.promises.rename(
+        stagedParam,
+        path.join(gameDirectory, PARAM_SFO)
+      );
+    }
   } finally {
     await fs.promises.rm(staging, { recursive: true, force: true });
   }
 };
 
+const hasPs4Title = async (directory: string, titleId: string) =>
+  hasGameFiles(directory) &&
+  sameTitleId(await readPs4FolderParam(directory, "TITLE_ID"), titleId);
+
+/**
+ * A game is extracted next to its target and swapped in at the end, so an
+ * existing folder (maybe already updated) is never left half overwritten.
+ * A folder that already has this game is kept as it is, and a folder with
+ * anything else is never replaced.
+ */
 const installGame = async (
   pkgPath: string,
+  info: Ps4PkgInfo,
   target: string,
   onProgress?: (fraction: number) => void,
   signal?: AbortSignal
 ) => {
-  const createdTarget = !fs.existsSync(target);
+  if (await hasPs4Title(target, info.titleId)) return;
+  if (fs.existsSync(target)) {
+    throw new Ps4PkgError(
+      "failed",
+      `${target} already exists and is not ${info.titleId}`
+    );
+  }
+
+  const staging = path.join(
+    path.dirname(target),
+    `.${path.basename(target)}.hydra-install`
+  );
+  await fs.promises.rm(staging, { recursive: true, force: true });
   try {
-    await runWorkers(pkgPath, target, onProgress, signal);
-  } catch (error) {
-    if (createdTarget) {
-      await fs.promises.rm(target, { recursive: true, force: true });
-    }
-    throw error;
+    await runWorkers(pkgPath, staging, onProgress, signal);
+    await fs.promises.rename(staging, target);
+  } finally {
+    await fs.promises.rm(staging, { recursive: true, force: true });
   }
 };
 
-export const installPs4Pkg = async ({
+// Two PKGs written at once could land in the same game folder (a download
+// finishing while an update is applied), so installs run one at a time.
+let installQueue: Promise<unknown> = Promise.resolve();
+
+const runInQueue = <T>(task: () => Promise<T>): Promise<T> => {
+  const result = installQueue.then(task, task);
+  installQueue = result.catch(() => undefined);
+  return result;
+};
+
+export const installPs4Pkg = (
+  options: Ps4PkgInstallOptions
+): Promise<Ps4PkgInstallResult> => runInQueue(() => installNow(options));
+
+const installNow = async ({
   pkgPath,
   gameDirectory,
   onProgress,
@@ -262,7 +314,7 @@ export const installPs4Pkg = async ({
 
   if (info.kind === "game") {
     target = besidePkg;
-    await installGame(pkgPath, target, onProgress, signal);
+    await installGame(pkgPath, info, target, onProgress, signal);
   } else if (info.kind === "patch") {
     target = gameDirectory ?? besidePkg;
     await assertPs4UpdateFits(info, target);
