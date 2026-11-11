@@ -25,7 +25,7 @@ import { DownloadsSettingsSection } from "./downloads";
 import { EmulationSettingsSection } from "./emulation";
 import {
   isRetroArchEmulationDeepLink,
-  isRpcs3EmulationDeepLink,
+  getEmulatorDetailDeepLinkSystem,
 } from "./emulation/navigation";
 import { GeneralSettingsSection } from "./general";
 import { IntegrationsSettingsSection } from "./integrations";
@@ -335,7 +335,7 @@ export default function Settings() {
         };
       case "emulation":
         return isRetroArchEmulationDeepLink(search) ||
-          isRpcs3EmulationDeepLink(search)
+          getEmulatorDetailDeepLinkSystem(search)
           ? null
           : {
               type: "item",

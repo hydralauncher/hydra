@@ -33,6 +33,7 @@ import {
 } from "./pages/library/library-category";
 
 export {
+  getDiscRegion,
   getRegionsFromSkus,
   getSkuRegion,
   getSkuRegionFromSaveIdentity,

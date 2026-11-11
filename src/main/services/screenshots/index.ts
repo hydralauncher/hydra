@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { setTimeout as delay } from "node:timers/promises";
 import { shell } from "electron";
 import { gamesSublevel } from "@main/level";
 import { resolveScreenshotPreferences } from "@shared";
@@ -60,6 +61,8 @@ export { LocalScreenshotStore } from "./local-screenshot-store";
 export { screenshotUploadWorker } from "./screenshot-upload-worker";
 export { stopWaylandFocusWatch } from "./wayland-focus";
 
+const GAME_HELPERS_WARMUP_TIMEOUT_MS = 5_000;
+
 let initialized = false;
 
 const broadcastLocalScreenshots = (screenshots: LocalScreenshot[]) => {
@@ -115,14 +118,14 @@ export const onScreenshotGameStarted = async (gameKey: string) => {
     if (!(await isScreenshotCaptureAvailable())) return;
     if (!isTrackedGameKeyRunning(gameKey)) return;
 
-    ScreenshotFeedback.prepare();
+    void ScreenshotFeedback.prepare();
     void ScreenshotFeedback.prepareToast().catch((error) => {
       logger.error("Failed to prepare the screenshot toast", error);
     });
     if (isWaylandCaptureBackend()) {
       startWaylandFocusWatch();
     } else if (process.platform === "win32" || process.platform === "linux") {
-      ScreenshotFrameWorker.prepare();
+      void ScreenshotFrameWorker.prepare();
       NativeAddon.prepareWindowsDesktopCapture();
     }
   } catch (error) {
@@ -130,10 +133,31 @@ export const onScreenshotGameStarted = async (gameKey: string) => {
   }
 };
 
+export const holdGameHelpersBeforeLaunch = async () => {
+  if (process.platform !== "win32") return;
+
+  const warmups: Promise<unknown>[] = [
+    ScreenshotFrameWorker.hold(),
+    ScreenshotFeedback.prepareToast(),
+  ];
+  if (await isScreenshotCaptureAvailable().catch(() => false)) {
+    warmups.push(ScreenshotFeedback.prepare());
+  }
+
+  await Promise.race([
+    Promise.allSettled(warmups),
+    delay(GAME_HELPERS_WARMUP_TIMEOUT_MS, undefined, { ref: false }),
+  ]);
+};
+
+export const releaseGameHelpersIfIdle = () => {
+  if (!hasTrackedGamesRunning()) releaseRunningGameResources();
+};
+
 export const onScreenshotGameClosed = (gameKey: string) => {
   clearScreenshotGameSession(gameKey);
   forgetForegroundGame(gameKey);
-  if (!hasTrackedGamesRunning()) releaseRunningGameResources();
+  releaseGameHelpersIfIdle();
 };
 
 export const applyScreenshotsEnabledPreference = async (

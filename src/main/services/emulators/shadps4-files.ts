@@ -15,7 +15,7 @@ import path from "node:path";
 import {
   findManagedEmulatorExecutable,
   type ManagedExecutableBinary,
-} from "./find-managed-emulator-executable";
+} from "./find-managed-emulator-executable.js";
 
 export const SHADPS4_CORE_DIRECTORY = "core";
 
@@ -39,7 +39,7 @@ interface Shadps4VersionRecord {
   executableSize: number;
 }
 
-const defaultUserDir = (): string => {
+export const shadps4DefaultUserDir = (): string => {
   if (process.platform === "win32") {
     const appData =
       process.env["APPDATA"] || path.join(homedir(), "AppData", "Roaming");
@@ -51,39 +51,86 @@ const defaultUserDir = (): string => {
   return path.join(dataHome, "shadPS4");
 };
 
+export const shadps4PortableUserDir = (executablePath: string): string =>
+  path.join(path.dirname(executablePath), PORTABLE_USER_DIR);
+
 export const resolveShadps4UserDir = (
   executablePath: string | null
 ): string => {
   if (executablePath) {
-    const portableDir = path.join(
-      path.dirname(executablePath),
-      PORTABLE_USER_DIR
-    );
+    const portableDir = shadps4PortableUserDir(executablePath);
     if (existsSync(portableDir)) return portableDir;
   }
-  return defaultUserDir();
+  return shadps4DefaultUserDir();
 };
 
-export const readShadps4ConfiguredDirectory = async (
-  executablePath: string | null,
-  key: "sys_modules_dir" | "home_dir"
-): Promise<string | null> => {
+const readShadps4GeneralConfig = async (
+  executablePath: string | null
+): Promise<Record<string, unknown> | null> => {
   try {
     const config = JSON.parse(
       await fs.readFile(
         path.join(resolveShadps4UserDir(executablePath), "config.json"),
         "utf8"
       )
-    ) as { General?: Record<string, unknown> };
-    const configured = config.General?.[key];
-    if (typeof configured !== "string" || !configured.trim()) return null;
-
-    return executablePath
-      ? path.resolve(path.dirname(executablePath), configured)
-      : configured;
+    ) as { General?: Record<string, unknown> | null };
+    return config.General ?? null;
   } catch {
     return null;
   }
+};
+
+export const readShadps4ConfiguredDirectory = async (
+  executablePath: string | null,
+  key: "sys_modules_dir" | "home_dir"
+): Promise<string | null> => {
+  const configured = (await readShadps4GeneralConfig(executablePath))?.[key];
+  if (typeof configured !== "string" || !configured.trim()) return null;
+
+  return executablePath
+    ? path.resolve(path.dirname(executablePath), configured)
+    : configured;
+};
+
+const readEnabledInstallDir = (entry: unknown): string | null => {
+  const { path: directory, enabled } = (entry ?? {}) as {
+    path?: unknown;
+    enabled?: unknown;
+  };
+  if (enabled === false || typeof directory !== "string") return null;
+  return directory.trim() ? directory : null;
+};
+
+const isCoveredBy = (
+  directory: string,
+  other: string,
+  otherComesFirst: boolean
+): boolean => {
+  const relative = path.relative(other, directory);
+  if (relative === "") return otherComesFirst;
+  return relative.split(path.sep)[0] !== ".." && !path.isAbsolute(relative);
+};
+
+export const readShadps4InstallDirs = async (
+  executablePath: string | null
+): Promise<string[]> => {
+  const entries = (await readShadps4GeneralConfig(executablePath))
+    ?.install_dirs;
+  if (!Array.isArray(entries)) return [];
+
+  const baseDirectory = executablePath ? path.dirname(executablePath) : "";
+  const directories = entries
+    .map(readEnabledInstallDir)
+    .filter((directory): directory is string => directory !== null)
+    .map((directory) => path.resolve(baseDirectory, directory))
+    .filter((directory) => existsSync(directory));
+
+  return directories.filter(
+    (directory, index) =>
+      !directories.some((other, otherIndex) =>
+        isCoveredBy(directory, other, otherIndex < index)
+      )
+  );
 };
 
 const TROPHY_KEY_RE = /^[0-9a-f]{32}$/i;

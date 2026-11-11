@@ -285,6 +285,7 @@ export function App() {
           "install-retroarch": 7120,
           "install-ppsspp": 7328,
           "install-dolphin": 7281,
+          "install-shadps4": 0,
           "wii-saves": 7406,
           "retroachievements-emulators": 6692,
           "downloading-metadata": 7773,
@@ -450,14 +451,20 @@ export function App() {
             matched: payload.matched,
             unmatched: payload.unmatched,
             unmatchedFiles: payload.unmatchedFiles,
+            unsupportedPackages: payload.unsupportedPackages,
           },
         })
       );
+      if (payload.type === "done" && payload.unsupportedPackages > 0) {
+        showWarningToast(
+          t("ps4_pkg_not_supported", { count: payload.unsupportedPackages })
+        );
+      }
       updateLibrary();
     });
 
     return () => unsubscribe();
-  }, [dispatch, updateLibrary]);
+  }, [dispatch, updateLibrary, showWarningToast, t]);
 
   useEffect(() => {
     window.electron.getActiveRetroArchImport().then((snapshot) => {

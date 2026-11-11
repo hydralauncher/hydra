@@ -25,13 +25,14 @@ const applyAddDisc = async (
   platformHint: string | null | undefined
 ): Promise<void> => {
   if (discs.some((d) => d.path === addDisc.path)) return;
-  if (!addDisc.sku && !addDisc.isExecutable) {
-    const system = platformToSystem(platformHint);
-    if (system) {
-      addDisc.sku = await emulators.extractDiscSku(addDisc.path, system);
-    }
+  const system = addDisc.isExecutable ? null : platformToSystem(platformHint);
+  if (!system) {
+    discs.push(addDisc);
+    return;
   }
-  discs.push(addDisc);
+
+  addDisc.sku ||= await emulators.extractDiscSku(addDisc.path, system);
+  discs.push(await emulators.attachDiscRegion(addDisc, system));
 };
 
 const updateClassicsDisc = async (

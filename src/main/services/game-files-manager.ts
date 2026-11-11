@@ -595,23 +595,25 @@ export class GameFilesManager {
     const romPaths = await this.collectClassicsRomPaths(gameFolderPath, system);
 
     const discs = [...(game.discs ?? [])];
-    let added = 0;
-
-    for (const romPath of romPaths) {
-      if (discs.some((disc) => disc.path === romPath)) continue;
-
-      const sku = await emulators.extractDiscSku(romPath, system);
-
-      discs.push({
+    const newPaths = romPaths.filter(
+      (romPath) => !discs.some((disc) => disc.path === romPath)
+    );
+    const scannedDiscs: ClassicsDisc[] = [];
+    for (const romPath of newPaths) {
+      scannedDiscs.push({
         path: romPath,
-        label: getNextClassicsDiscLabel(discs),
+        label: "",
         fileName: path.basename(romPath),
-        sku,
+        sku: await emulators.extractDiscSku(romPath, system),
       });
-      added += 1;
+    }
+    const newDiscs = await emulators.attachDiscRegions(scannedDiscs, system);
+
+    for (const disc of newDiscs) {
+      discs.push({ ...disc, label: getNextClassicsDiscLabel(discs) });
     }
 
-    await this.persistLinkedDiscs(game, discs, added, "disc(s)");
+    await this.persistLinkedDiscs(game, discs, newDiscs.length, "disc(s)");
   }
 
   async autoLinkClassicsDiscs(): Promise<void> {

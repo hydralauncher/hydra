@@ -43,7 +43,7 @@ interface DuckStationSouvenirConfigBackup {
 }
 
 export interface EmulatorSouvenirSession {
-  kind: "retroarch" | "ppsspp" | "dolphin";
+  kind: "retroarch" | "ppsspp" | "dolphin" | "rpcs3";
   launchArguments: string[];
   logPath: string | null;
   logOffset: number | null;
