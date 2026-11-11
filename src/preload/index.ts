@@ -34,6 +34,9 @@ import type {
   EmulatorInstallProgress,
   RecompilationInstallProgress,
   RecompilationPrepareProgress,
+  RecompilationRomPkgProgress,
+  Ps4PkgAccept,
+  Ps4PkgJobEvent,
   RecompilationRef,
   RecompilationRomSource,
   RetroArchCoreName,
@@ -661,6 +664,40 @@ contextBridge.exposeInMainWorld("electron", {
   ) => ipcRenderer.invoke("setRecompilationRom", ref, choice),
   checkRecompilationRom: (ref: RecompilationRef, path: string) =>
     ipcRenderer.invoke("checkRecompilationRom", ref, path),
+  extractRecompilationRomPkg: (ref: RecompilationRef, pkgPath: string) =>
+    ipcRenderer.invoke("extractRecompilationRomPkg", ref, pkgPath),
+  cancelRecompilationRomPkg: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("cancelRecompilationRomPkg", ref),
+  onRecompilationRomPkgProgress: (
+    cb: (payload: RecompilationRomPkgProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationRomPkgProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-rom-pkg-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-rom-pkg-progress", listener);
+  },
+  hasPs4GameFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasPs4GameFolder", shop, objectId),
+  checkPs4Pkg: (
+    shop: GameShop,
+    objectId: string,
+    pkgPath: string,
+    accept: Ps4PkgAccept
+  ) => ipcRenderer.invoke("checkPs4Pkg", shop, objectId, pkgPath, accept),
+  applyPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
+    ipcRenderer.invoke("applyPs4Update", shop, objectId, pkgPath),
+  extractPs4GamePkg: (
+    shop: GameShop,
+    objectId: string,
+    pkgPath?: string | null
+  ) => ipcRenderer.invoke("extractPs4GamePkg", shop, objectId, pkgPath),
+  cancelPs4PkgJob: () => ipcRenderer.invoke("cancelPs4PkgJob"),
+  onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => {
+    const listener = (_event: unknown, payload: Ps4PkgJobEvent) => cb(payload);
+    ipcRenderer.on("on-ps4-pkg-job", listener);
+    return () => ipcRenderer.removeListener("on-ps4-pkg-job", listener);
+  },
   prepareRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("prepareRecompilation", ref),
   onRecompilationPrepareProgress: (

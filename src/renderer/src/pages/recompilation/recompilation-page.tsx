@@ -220,6 +220,7 @@ export default function RecompilationPage() {
     >
       <div className="recompilation-page">
         <RecompilationHero
+          objectId={objectId}
           details={details}
           areReleasesLoaded={areReleasesLoaded}
           game={game}

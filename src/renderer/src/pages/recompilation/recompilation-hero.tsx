@@ -21,6 +21,7 @@ import { ConfirmationModal } from "@renderer/components/confirmation-modal/confi
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
 import { useToast } from "@renderer/hooks";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import { CloudSaveWidget } from "../game-details/cloud-save-v2";
 import {
   getInstallErrorKey,
@@ -32,6 +33,7 @@ import "@renderer/components/setup-modal/setup-modal.scss";
 import "../game-details/hero.scss";
 
 interface RecompilationHeroProps {
+  objectId: string;
   details: RecompilationDetails;
   game: LibraryGame | null;
   installAsset: RecompilationReleaseAsset | null;
@@ -44,6 +46,7 @@ interface RecompilationHeroProps {
 }
 
 export function RecompilationHero({
+  objectId,
   details,
   game,
   installAsset,
@@ -68,6 +71,11 @@ export function RecompilationHero({
   const handlesRom = rom.state?.handlesRom === true;
   const needsRomChoice =
     handlesRom && !rom.state?.romPath && !rom.state?.isReady;
+  const canApplyPs4Update =
+    rom.state?.isFolder === true && Boolean(rom.state.romPath);
+  const ps4Update = usePs4PkgPicker("launchbox", objectId, "update", () => {
+    void rom.refresh();
+  });
 
   const showsNoFileNote =
     areReleasesLoaded &&
@@ -195,6 +203,19 @@ export function RecompilationHero({
                     label: t("change_rom"),
                     onClick: onOpenInstall,
                     disabled: install.isRunning || install.isPreparing,
+                  },
+                ]
+              : []),
+            ...(canApplyPs4Update
+              ? [
+                  {
+                    icon: <SyncIcon />,
+                    label: t("apply_ps4_update", { ns: "game_details" }),
+                    onClick: () => void ps4Update.pick(),
+                    disabled:
+                      install.isRunning ||
+                      install.isPreparing ||
+                      ps4Update.isBusy,
                   },
                 ]
               : []),

@@ -320,6 +320,20 @@
     "bat_tracking_warning": "Não conseguimos rastrear o tempo de jogo se um .bat for selecionado. Adicione o .exe do jogo para que possamos rastreá-lo",
     "game_executable": "Executável do jogo",
     "open_folder": "Abrir pasta",
+    "apply_ps4_update": "Aplicar atualização",
+    "ps4_update_versions": "Versão {{from}} → {{to}}",
+    "ps4_update_done": "Atualização {{version}} aplicada",
+    "ps4_update_not_update": "Este PKG não é uma atualização.",
+    "ps4_update_no_game_folder": "Não encontramos a pasta do jogo.",
+    "ps4_update_other_game": "Esta atualização é de outro jogo.",
+    "ps4_update_not_newer": "O jogo já está nessa versão ou numa mais nova.",
+    "ps4_update_no_space": "Não há espaço suficiente para aplicar esta atualização.",
+    "ps4_pkg_unsupported": "Este PKG não é um jogo nem uma atualização.",
+    "ps4_pkg_busy": "Espere o PKG atual terminar.",
+    "ps4_pkg_failed": "Não foi possível usar este PKG. Tente de novo.",
+    "ps4_pkg_extract_title": "Extrair o jogo",
+    "ps4_pkg_extract_description": "Antes de jogar, é preciso extrair o jogo. Isso pode levar alguns minutos.",
+    "ps4_pkg_extract_confirm": "Extrair",
     "open_download_location": "Ver arquivos baixados",
     "pin_game": "Fixar jogo",
     "unpin_game": "Desfixar jogo",
@@ -1100,7 +1114,8 @@
     "epic_not_enough_space": "Não há espaço em disco suficiente para esta seleção.",
     "epic_selection_invalid": "A seleção mudou. Abra as opções de download novamente e tente outra vez.",
     "epic_retry": "Tentar novamente",
-    "review_played_with": "Jogou com {{name}}"
+    "review_played_with": "Jogou com {{name}}",
+    "ps4_pkg_keys_unavailable": "Conecte-se à internet para extrair um PKG pela primeira vez."
   },
   "activation": {
     "title": "Ativação",
@@ -1175,7 +1190,8 @@
     "installed_game_not_found_title": "Não foi possível encontrar o jogo instalado",
     "installed_game_not_found_description": "Selecione o executável do jogo para concluir a configuração.",
     "installer_launch_failed": "Não foi possível iniciar o instalador",
-    "installing": "Instalando…"
+    "installing": "Instalando…",
+    "extraction_pkg_keys_unavailable_description": "Conecte-se à internet para extrair um PKG pela primeira vez."
   },
   "settings": {
     "rpcs3_config_title": "Pasta de configuração do RPCS3",
@@ -3624,6 +3640,12 @@
     "rom_wrong_format": "Escolha o arquivo da ROM: {{extensions}}.",
     "rom_not_found": "Não encontramos esse arquivo de ROM. Escolha de novo.",
     "rom_other_game": "Este eboot.bin é de outro jogo. Escolha o de {{name}}.",
+    "rom_pkg_other_game": "Este PKG é de outro jogo. Escolha o de {{name}}.",
+    "rom_pkg_wrong_format": "Este PKG não é de jogo nem de atualização de PS4.",
+    "rom_update_needs_game": "Este PKG é uma atualização. Escolha primeiro o jogo {{name}}.",
+    "rom_pkg_no_space": "Não há espaço suficiente para extrair este PKG.",
+    "rom_pkg_not_newer": "O jogo já está nessa versão ou numa mais nova.",
+    "rom_pkg_failed": "Não foi possível extrair este PKG. Tente de novo.",
     "rom_version_warning": "Essa ROM não é a versão que o {{name}} aceita. Ele pode não abrir.",
     "rom_save_failed": "Não foi possível salvar a ROM. Tente de novo.",
     "rom_extracting": "ROM · extraindo",
@@ -3643,6 +3665,7 @@
     "tip_body": "Escolha uma versão recompilada pela comunidade e instale direto pelo Hydra, sem baixar nem configurar emulador.",
     "tip_no_emulator": "Sem emulador",
     "tip_quick_install": "Instalação em minutos",
-    "tip_got_it": "Legal!"
+    "tip_got_it": "Legal!",
+    "rom_pkg_keys_unavailable": "Conecte-se à internet para extrair um PKG pela primeira vez."
   }
 }

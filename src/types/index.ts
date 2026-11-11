@@ -1171,5 +1171,6 @@ export * from "./recompilation.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }
-  | { reason: "file-not-found" };
+  | { reason: "file-not-found" }
+  | { reason: "pkg-keys-unavailable" };
 export type { SystemPowerAction } from "./system-power";

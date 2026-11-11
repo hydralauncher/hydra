@@ -10,6 +10,7 @@ import { extractDolphinGameId } from "./dolphin-disc-reader";
 import { normalize } from "./sku-normalize";
 import { parseParamSfo, parseParamSfoValue } from "./param-sfo";
 import { readVerifiedPs3DirectoryTitleId } from "./verified-ps3-directory-title-id";
+import { readPs4PkgInfo } from "../ps4-pkg/ps4-pkg-info";
 import { readVerifiedPs3PkgTitleId } from "./verified-ps3-pkg-title-id";
 import { extractTitleIdFromIso } from "./verified-ps3-iso-title-id";
 
@@ -271,6 +272,16 @@ const extractPs3TitleId = async (
   }
 };
 
+/** Only a PS4 game PKG counts as a disc; updates and add-ons do not. */
+const extractPs4PkgTitleId = async (
+  pkgPath: string
+): Promise<string | null> => {
+  const info = await readPs4PkgInfo(pkgPath).catch(() => null);
+  return info?.kind === "game" && !info.isDeltaPatch
+    ? normalize(info.titleId)
+    : null;
+};
+
 /** Cloud Save must use metadata from the media, never a filename guess. */
 export const extractVerifiedPs3TitleId = async (
   primaryPath: string
@@ -405,8 +416,11 @@ export const extractDiscSku = async (
     case "ps2":
       return extractPs12Sku(primaryPath);
     case "ps3":
-    case "ps4":
       return extractPs3TitleId(primaryPath);
+    case "ps4":
+      return primaryPath.toLowerCase().endsWith(".pkg")
+        ? extractPs4PkgTitleId(primaryPath)
+        : extractPs3TitleId(primaryPath);
     case "psp":
       return extractPspDiscId(primaryPath);
     case "dolphin":
