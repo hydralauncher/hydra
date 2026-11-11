@@ -11,12 +11,10 @@
 
 .library-sortable-game {
   position: absolute;
+  top: 0;
+  left: 0;
   min-width: 0;
-  transition:
-    left 0.24s cubic-bezier(0.2, 0, 0, 1),
-    top 0.24s cubic-bezier(0.2, 0, 0, 1),
-    width 0.2s cubic-bezier(0.2, 0, 0, 1),
-    height 0.2s cubic-bezier(0.2, 0, 0, 1);
+  transition: transform 0.24s cubic-bezier(0.2, 0, 0, 1);
 
   &--enabled img {
     -webkit-user-drag: none;
@@ -52,6 +50,10 @@
 
   &--resizing {
     z-index: 1;
+    transition:
+      transform 0.24s cubic-bezier(0.2, 0, 0, 1),
+      width 0.2s cubic-bezier(0.2, 0, 0, 1),
+      height 0.2s cubic-bezier(0.2, 0, 0, 1);
   }
 
   &__edge {

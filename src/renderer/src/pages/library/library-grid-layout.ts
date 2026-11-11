@@ -181,8 +181,6 @@ export const getLibraryPlacementBox = (
   height: placement.rows * cellHeight + (placement.rows - 1) * gap,
 });
 
-const SLOT_DEAD_ZONE_RATIO = 0.1;
-
 export const findLibraryGridKeyAt = (
   layout: LibraryGridLayout,
   metrics: LibraryGridMetrics,
@@ -193,18 +191,5 @@ export const findLibraryGridKeyAt = (
   const row = Math.floor(y / (metrics.cellHeight + metrics.gap));
   if (column < 0 || column >= layout.columnCount || row < 0) return null;
 
-  const key = layout.keyByCell.get(row * layout.columnCount + column);
-  const placement = key ? layout.placementByKey.get(key) : undefined;
-  if (!key || !placement) return null;
-
-  const box = getLibraryPlacementBox(placement, metrics);
-  const insetX = box.width * SLOT_DEAD_ZONE_RATIO;
-  const insetY = box.height * SLOT_DEAD_ZONE_RATIO;
-  const isInside =
-    x >= box.left + insetX &&
-    x <= box.left + box.width - insetX &&
-    y >= box.top + insetY &&
-    y <= box.top + box.height - insetY;
-
-  return isInside ? key : null;
+  return layout.keyByCell.get(row * layout.columnCount + column) ?? null;
 };

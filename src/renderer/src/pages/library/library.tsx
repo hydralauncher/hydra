@@ -815,18 +815,8 @@ export default function Library() {
       () => gamesScrollRef.current
     );
 
-    const findHoveredKey = (clientX: number, clientY: number) => {
-      const grid = gridRef.current;
-      if (!grid) return null;
-      const rect = grid.getBoundingClientRect();
-      const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
-      return findLibraryGridKeyAt(
-        layout,
-        metrics,
-        clientX - rect.left,
-        clientY - rect.top
-      );
-    };
+    let pointer: { clientX: number; clientY: number } | null = null;
+    let activeSourceKey: string | null = null;
 
     const previewMoveOnto = (sourceKey: string, targetKey: string) => {
       const {
@@ -856,6 +846,43 @@ export default function Library() {
       return true;
     };
 
+    const updateHoveredSlot = () => {
+      const grid = gridRef.current;
+      if (!pointer || !activeSourceKey || !grid) return;
+
+      const rect = grid.getBoundingClientRect();
+      const point = {
+        x: pointer.clientX - rect.left,
+        y: pointer.clientY - rect.top,
+      };
+      if (
+        lastMovePoint &&
+        Math.hypot(point.x - lastMovePoint.x, point.y - lastMovePoint.y) <
+          DRAG_MOVE_MIN_DISTANCE
+      ) {
+        return;
+      }
+
+      const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
+      const hoveredKey = findLibraryGridKeyAt(
+        layout,
+        metrics,
+        point.x,
+        point.y
+      );
+      if (
+        hoveredKey &&
+        hoveredKey !== activeSourceKey &&
+        previewMoveOnto(activeSourceKey, hoveredKey)
+      ) {
+        lastMovePoint = point;
+      }
+    };
+
+    scrollElement.addEventListener("scroll", updateHoveredSlot, {
+      passive: true,
+    });
+
     return combine(
       dropTargetForElements({
         element: scrollElement,
@@ -868,6 +895,8 @@ export default function Library() {
           if (!isLibraryGameDragData(source.data)) return;
           removeOverlay();
           lastMovePoint = null;
+          activeSourceKey = source.data.orderKey;
+          pointer = location.current.input;
           overlay = createLibraryDragOverlay(
             source.element,
             location.current.input
@@ -877,30 +906,15 @@ export default function Library() {
             order: dragStateRef.current.customOrder,
           });
         },
-        onDrag: ({ source, location }) => {
-          const { clientX, clientY } = location.current.input;
+        onDrag: ({ location }) => {
+          pointer = location.current.input;
           overlay?.move(location.current.input);
-          autoscroll.update(clientY);
-
-          if (!isLibraryGameDragData(source.data)) return;
-          if (
-            lastMovePoint &&
-            Math.hypot(clientX - lastMovePoint.x, clientY - lastMovePoint.y) <
-              DRAG_MOVE_MIN_DISTANCE
-          ) {
-            return;
-          }
-
-          const hoveredKey = findHoveredKey(clientX, clientY);
-          if (
-            hoveredKey &&
-            hoveredKey !== source.data.orderKey &&
-            previewMoveOnto(source.data.orderKey, hoveredKey)
-          ) {
-            lastMovePoint = { x: clientX, y: clientY };
-          }
+          autoscroll.update(location.current.input.clientY);
+          updateHoveredSlot();
         },
         onDrop: ({ source, location }) => {
+          activeSourceKey = null;
+          pointer = null;
           autoscroll.stop();
           const overlayRect = removeOverlay();
           const { dragPreview: preview } = dragStateRef.current;
@@ -923,6 +937,7 @@ export default function Library() {
         },
       }),
       () => {
+        scrollElement.removeEventListener("scroll", updateHoveredSlot);
         autoscroll.stop();
         removeOverlay();
         setDragPreview(null);
@@ -1221,7 +1236,11 @@ export default function Library() {
                     orderKey={placement.key}
                     enabled={isCustomOrder}
                     isDragSource={dragPreview?.sourceKey === placement.key}
-                    style={box}
+                    style={{
+                      transform: `translate3d(${box.left}px, ${box.top}px, 0)`,
+                      width: box.width,
+                      height: box.height,
+                    }}
                     size={placement}
                     maxColumns={columnsCount}
                     metrics={gridMetrics}
