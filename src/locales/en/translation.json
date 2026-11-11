@@ -2545,6 +2545,7 @@
     "sort_most_played": "Most played",
     "sort_achievements": "Achievements",
     "sort_installed_first": "Installed first",
+    "sort_custom": "Custom",
     "rename_collection": "Rename collection",
     "renaming_collection": "Renaming...",
     "rename_collection_description": "Choose a new name for this collection.",

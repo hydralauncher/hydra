@@ -1,0 +1,56 @@
+@use "../../scss/globals.scss";
+
+.library-sortable-game {
+  position: relative;
+  min-width: 0;
+
+  &--enabled img {
+    -webkit-user-drag: none;
+  }
+
+  &--dragging {
+    opacity: globals.$disabled-opacity;
+  }
+
+  &--drop-horizontal-before::after,
+  &--drop-horizontal-after::after,
+  &--drop-vertical-before::after,
+  &--drop-vertical-after::after {
+    content: "";
+    position: absolute;
+    background-color: globals.$brand-teal;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  &--drop-horizontal-before::after,
+  &--drop-horizontal-after::after {
+    top: 0;
+    bottom: 0;
+    width: 4px;
+  }
+
+  &--drop-horizontal-before::after {
+    left: -10px;
+  }
+
+  &--drop-horizontal-after::after {
+    right: -10px;
+  }
+
+  &--drop-vertical-before::after,
+  &--drop-vertical-after::after {
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+
+  &--drop-vertical-before::after {
+    top: -10px;
+  }
+
+  &--drop-vertical-after::after {
+    bottom: -10px;
+  }
+}

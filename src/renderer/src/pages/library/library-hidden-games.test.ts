@@ -200,6 +200,22 @@ async function renderLibrary(
     "./category-filter": { CategoryFilter: () => null },
     "./library-filters-menu": { LibraryFiltersMenu: () => null },
     "./library-games-skeleton": { LibraryGamesSkeleton: () => null },
+    "@atlaskit/pragmatic-drag-and-drop/element/adapter": {
+      monitorForElements: () => noop,
+    },
+    "./library-custom-order": {
+      getLibraryGameOrderKey: (game: TestGame) =>
+        `${game.shop}:${game.objectId}`,
+      moveLibraryGameInCustomOrder: (order: string[]) => order,
+      readLibraryCustomOrder: () => [],
+      sortLibraryGamesByCustomOrder: (games: TestGame[]) => games,
+      writeLibraryCustomOrder: noop,
+    },
+    "./library-sortable-game": {
+      LibrarySortableGame: ({ children }: { children: React.ReactNode }) =>
+        children,
+      isLibraryGameDragData: () => false,
+    },
     "./library-category": {
       categoryShowsPlatforms: () => false,
       categoryShowsSources: () => false,

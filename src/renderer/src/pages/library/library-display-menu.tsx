@@ -22,7 +22,8 @@ export type SortOption =
   | "most_played"
   | "achievements"
   | "installed_first"
-  | "title_desc";
+  | "title_desc"
+  | "custom";
 
 export type ViewMode = "grid" | "compact" | "large";
 
@@ -50,6 +51,7 @@ export function LibraryDisplayMenu({
     { value: "achievements", label: t("sort_achievements") },
     { value: "installed_first", label: t("sort_installed_first") },
     { value: "title_desc", label: t("sort_title_desc") },
+    { value: "custom", label: t("sort_custom") },
   ];
 
   const viewOptions: {

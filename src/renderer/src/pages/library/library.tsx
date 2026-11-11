@@ -8,6 +8,7 @@ import {
   useRef,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
   useLibrary,
   useAppDispatch,
@@ -54,6 +55,17 @@ import {
 import { CategoryFilter, LibraryCategory } from "./category-filter";
 import { LibraryFiltersMenu } from "./library-filters-menu";
 import { LibraryGamesSkeleton } from "./library-games-skeleton";
+import {
+  getLibraryGameOrderKey,
+  moveLibraryGameInCustomOrder,
+  readLibraryCustomOrder,
+  sortLibraryGamesByCustomOrder,
+  writeLibraryCustomOrder,
+} from "./library-custom-order";
+import {
+  LibrarySortableGame,
+  isLibraryGameDragData,
+} from "./library-sortable-game";
 import {
   categoryShowsPlatforms,
   categoryShowsSources,
@@ -113,6 +125,7 @@ const SORT_OPTIONS: SortOption[] = [
   "achievements",
   "installed_first",
   "title_desc",
+  "custom",
 ];
 
 export default function Library() {
@@ -190,6 +203,9 @@ export default function Library() {
 
     return "title_asc";
   });
+  const [customOrder, setCustomOrder] = useState<string[]>(() =>
+    readLibraryCustomOrder(localStorage)
+  );
   const [gameContextMenu, setGameContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -367,11 +383,6 @@ export default function Library() {
     localStorage.setItem("library-view-mode", mode);
   }, []);
 
-  const handleSortChange = useCallback((nextSortBy: SortOption) => {
-    setSortBy(nextSortBy);
-    localStorage.setItem("library-sort-by", nextSortBy);
-  }, []);
-
   useEffect(() => {
     dispatch(setHeaderTitle(t("library")));
 
@@ -504,9 +515,36 @@ export default function Library() {
     () => groupLibraryGames(hiddenGames, runningGameId ? [runningGameId] : []),
     [hiddenGames, runningGameId]
   );
+  const orderLibraryGames = useCallback(
+    (games: LibraryGame[]) =>
+      sortBy === "custom"
+        ? sortLibraryGamesByCustomOrder(games, customOrder, (unplaced) =>
+            sortLibraryGames(unplaced, "title_asc")
+          )
+        : sortLibraryGames(games, sortBy),
+    [sortBy, customOrder]
+  );
   const sortedLibrary = useMemo(
-    () => sortLibraryGames(groupedLibrary, sortBy),
-    [groupedLibrary, sortBy]
+    () => orderLibraryGames(groupedLibrary),
+    [groupedLibrary, orderLibraryGames]
+  );
+  const sortedHiddenGames = useMemo(
+    () => orderLibraryGames(groupedHiddenGames),
+    [groupedHiddenGames, orderLibraryGames]
+  );
+
+  const handleSortChange = useCallback(
+    (nextSortBy: SortOption) => {
+      if (nextSortBy === "custom" && customOrder.length === 0) {
+        const seededOrder = sortedLibrary.map(getLibraryGameOrderKey);
+        setCustomOrder(seededOrder);
+        writeLibraryCustomOrder(localStorage, seededOrder);
+      }
+
+      setSortBy(nextSortBy);
+      localStorage.setItem("library-sort-by", nextSortBy);
+    },
+    [customOrder, sortedLibrary]
   );
 
   const {
@@ -537,7 +575,7 @@ export default function Library() {
     let filtered =
       selectedCollectionId === HIDDEN_COLLECTION_ID
         ? userDetails
-          ? sortLibraryGames(groupedHiddenGames, sortBy)
+          ? sortedHiddenGames
           : []
         : sortedLibrary;
 
@@ -585,9 +623,8 @@ export default function Library() {
     });
   }, [
     sortedLibrary,
-    groupedHiddenGames,
+    sortedHiddenGames,
     userDetails,
-    sortBy,
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
@@ -653,6 +690,49 @@ export default function Library() {
     () => getColumnsCount(containerWidth, viewMode),
     [containerWidth, viewMode]
   );
+
+  const isCustomOrder = sortBy === "custom";
+  const customOrderDropState = {
+    customOrder,
+    displayedGames:
+      selectedCollectionId === HIDDEN_COLLECTION_ID
+        ? sortedHiddenGames
+        : sortedLibrary,
+  };
+  const customOrderDropRef = useRef(customOrderDropState);
+  customOrderDropRef.current = customOrderDropState;
+
+  useEffect(() => {
+    if (!isCustomOrder) return;
+
+    return monitorForElements({
+      canMonitor: ({ source }) => isLibraryGameDragData(source.data),
+      onDrop: ({ source, location }) => {
+        const target = location.current.dropTargets[0]?.data;
+        if (
+          !target ||
+          !isLibraryGameDragData(source.data) ||
+          !isLibraryGameDragData(target) ||
+          !target.edge
+        ) {
+          return;
+        }
+
+        const { customOrder: currentOrder, displayedGames } =
+          customOrderDropRef.current;
+        const nextOrder = moveLibraryGameInCustomOrder(
+          currentOrder,
+          displayedGames,
+          source.data.orderKey,
+          target.orderKey,
+          target.edge
+        );
+
+        setCustomOrder(nextOrder);
+        writeLibraryCustomOrder(localStorage, nextOrder);
+      },
+    });
+  }, [isCustomOrder]);
 
   const rows = useMemo(() => {
     const result: LibraryGame[][] = [];
@@ -949,21 +1029,26 @@ export default function Library() {
                     gap: `${GAP}px`,
                   }}
                 >
-                  {rows[virtualRow.index].map((game) =>
-                    viewMode === "large" ? (
-                      <LibraryGameCardLarge
-                        key={`${game.shop}-${game.objectId}`}
-                        game={game}
-                        onContextMenu={handleOpenContextMenu}
-                      />
-                    ) : (
-                      <LibraryGameCard
-                        key={`${game.shop}-${game.objectId}`}
-                        game={game}
-                        onContextMenu={handleOpenContextMenu}
-                      />
-                    )
-                  )}
+                  {rows[virtualRow.index].map((game) => (
+                    <LibrarySortableGame
+                      key={`${game.shop}-${game.objectId}`}
+                      orderKey={getLibraryGameOrderKey(game)}
+                      enabled={isCustomOrder}
+                      axis={columnsCount === 1 ? "vertical" : "horizontal"}
+                    >
+                      {viewMode === "large" ? (
+                        <LibraryGameCardLarge
+                          game={game}
+                          onContextMenu={handleOpenContextMenu}
+                        />
+                      ) : (
+                        <LibraryGameCard
+                          game={game}
+                          onContextMenu={handleOpenContextMenu}
+                        />
+                      )}
+                    </LibrarySortableGame>
+                  ))}
                 </div>
               ))}
             </div>
