@@ -227,7 +227,8 @@ async function renderLibrary(
     },
     "./library-grid-layout": {
       DEFAULT_LIBRARY_CARD_SIZE: { columns: 1, rows: 1 },
-      findLibraryGridKeyAt: () => null,
+      findLibraryGridCellAt: () => null,
+      planLibraryGridMove: () => null,
       getLibraryCardSize: () => ({ columns: 1, rows: 1 }),
       getLibraryPlacementBox: () => ({ left: 0, top: 0, width: 1, height: 1 }),
       packLibraryGrid: (

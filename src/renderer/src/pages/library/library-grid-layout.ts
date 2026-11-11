@@ -181,15 +181,103 @@ export const getLibraryPlacementBox = (
   height: placement.rows * cellHeight + (placement.rows - 1) * gap,
 });
 
-export const findLibraryGridKeyAt = (
+export interface LibraryGridCell {
+  row: number;
+  column: number;
+}
+
+export const findLibraryGridCellAt = (
   layout: LibraryGridLayout,
   metrics: LibraryGridMetrics,
   x: number,
   y: number
-): string | null => {
+): LibraryGridCell | null => {
   const column = Math.floor(x / (metrics.cellWidth + metrics.gap));
   const row = Math.floor(y / (metrics.cellHeight + metrics.gap));
   if (column < 0 || column >= layout.columnCount || row < 0) return null;
+  return { row, column };
+};
 
-  return layout.keyByCell.get(row * layout.columnCount + column) ?? null;
+export interface LibraryGridMove {
+  anchorKey: string;
+  edge: "before" | "after";
+}
+
+const MOVE_SEARCH_RADIUS = 4;
+
+const coversCell = (placement: LibraryGridPlacement, cell: LibraryGridCell) =>
+  cell.row >= placement.row &&
+  cell.row < placement.row + placement.rows &&
+  cell.column >= placement.column &&
+  cell.column < placement.column + placement.columns;
+
+const countMovedPlacements = (
+  previous: LibraryGridLayout,
+  next: LibraryGridLayout,
+  ignoredKey: string
+) => {
+  let moved = 0;
+  for (const placement of next.placements) {
+    if (placement.key === ignoredKey) continue;
+    const before = previous.placementByKey.get(placement.key);
+    if (
+      !before ||
+      before.row !== placement.row ||
+      before.column !== placement.column
+    ) {
+      moved++;
+    }
+  }
+  return moved;
+};
+
+export const planLibraryGridMove = (
+  layout: LibraryGridLayout,
+  sourceKey: string,
+  cell: LibraryGridCell
+): LibraryGridMove | null => {
+  const hoveredKey = layout.keyByCell.get(
+    cell.row * layout.columnCount + cell.column
+  );
+  const source = layout.placementByKey.get(sourceKey);
+  if (!hoveredKey || hoveredKey === sourceKey || !source) return null;
+
+  const rest = layout.placements.filter(
+    (placement) => placement.key !== sourceKey
+  );
+  const targetIndex = rest.findIndex(
+    (placement) => placement.key === hoveredKey
+  );
+  if (targetIndex === -1) return null;
+
+  let best: { index: number; moved: number; distance: number } | null = null;
+  const lastIndex = Math.min(rest.length, targetIndex + MOVE_SEARCH_RADIUS + 1);
+
+  for (
+    let index = Math.max(0, targetIndex - MOVE_SEARCH_RADIUS);
+    index <= lastIndex;
+    index++
+  ) {
+    const candidate = packLibraryGrid(
+      [...rest.slice(0, index), source, ...rest.slice(index)],
+      layout.columnCount
+    );
+    const placement = candidate.placementByKey.get(sourceKey);
+    if (!placement || !coversCell(placement, cell)) continue;
+
+    const moved = countMovedPlacements(layout, candidate, sourceKey);
+    const distance = Math.abs(index - targetIndex);
+    if (
+      !best ||
+      moved < best.moved ||
+      (moved === best.moved && distance < best.distance)
+    ) {
+      best = { index, moved, distance };
+    }
+  }
+
+  if (!best) return null;
+  return best.index < rest.length
+    ? { anchorKey: rest[best.index].key, edge: "before" }
+    : { anchorKey: rest[rest.length - 1].key, edge: "after" };
 };

@@ -77,15 +77,18 @@ import {
 } from "./library-drag-overlay";
 import {
   DEFAULT_LIBRARY_CARD_SIZE,
-  findLibraryGridKeyAt,
+  findLibraryGridCellAt,
   getLibraryCardSize,
   getLibraryPlacementBox,
   packLibraryGrid,
+  planLibraryGridMove,
   readLibraryCardSizes,
   setLibraryCardSize,
   writeLibraryCardSizes,
   type LibraryCardSize,
+  type LibraryGridLayout,
   type LibraryGridMetrics,
+  type LibraryGridMove,
 } from "./library-grid-layout";
 import { createLibraryDragAutoscroll } from "./library-drag-autoscroll";
 import {
@@ -821,32 +824,29 @@ export default function Library() {
     let pointer: { clientX: number; clientY: number } | null = null;
     let activeSourceKey: string | null = null;
 
-    const previewMoveOnto = (sourceKey: string, targetKey: string) => {
+    let lastPlannedCell: {
+      layout: LibraryGridLayout;
+      row: number;
+      column: number;
+    } | null = null;
+
+    const applyPreviewMove = (sourceKey: string, move: LibraryGridMove) => {
       const {
         customOrder: savedOrder,
         dragPreview: preview,
         displayedGames,
       } = dragStateRef.current;
-      const currentOrder = preview?.order ?? savedOrder;
-      const sourceIndex = displayedGames.findIndex(
-        (game) => getLibraryGameOrderKey(game) === sourceKey
-      );
-      const targetIndex = displayedGames.findIndex(
-        (game) => getLibraryGameOrderKey(game) === targetKey
-      );
-      if (sourceIndex === -1 || targetIndex === -1) return false;
 
       setDragPreview({
         sourceKey,
         order: moveLibraryGameInCustomOrder(
-          currentOrder,
+          preview?.order ?? savedOrder,
           displayedGames,
           sourceKey,
-          targetKey,
-          sourceIndex < targetIndex ? "after" : "before"
+          move.anchorKey,
+          move.edge
         ),
       });
-      return true;
     };
 
     const updateHoveredSlot = () => {
@@ -867,19 +867,22 @@ export default function Library() {
       }
 
       const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
-      const hoveredKey = findLibraryGridKeyAt(
-        layout,
-        metrics,
-        point.x,
-        point.y
-      );
+      const cell = findLibraryGridCellAt(layout, metrics, point.x, point.y);
+      if (!cell) return;
       if (
-        hoveredKey &&
-        hoveredKey !== activeSourceKey &&
-        previewMoveOnto(activeSourceKey, hoveredKey)
+        lastPlannedCell?.layout === layout &&
+        lastPlannedCell.row === cell.row &&
+        lastPlannedCell.column === cell.column
       ) {
-        lastMovePoint = point;
+        return;
       }
+      lastPlannedCell = { layout, ...cell };
+
+      const move = planLibraryGridMove(layout, activeSourceKey, cell);
+      if (!move) return;
+
+      applyPreviewMove(activeSourceKey, move);
+      lastMovePoint = point;
     };
 
     scrollElement.addEventListener("scroll", updateHoveredSlot, {
@@ -898,6 +901,7 @@ export default function Library() {
           if (!isLibraryGameDragData(source.data)) return;
           removeOverlay();
           lastMovePoint = null;
+          lastPlannedCell = null;
           activeSourceKey = source.data.orderKey;
           pointer = location.current.input;
           overlay = createLibraryDragOverlay(
