@@ -2,11 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { LibraryGame } from "@types";
-import {
-  applyLibraryCollectionOrder,
-  getLibraryCollectionOrderPositions,
-  pickLibraryCollectionPositions,
-} from "@shared";
+import { pickLibraryCollectionPositions } from "@shared";
 
 export interface LibraryState {
   value: LibraryGame[];
@@ -91,30 +87,6 @@ export const librarySlice = createSlice({
         }
       }
     },
-    setCollectionGameOrder: (
-      state,
-      action: PayloadAction<{
-        collectionId: string;
-        games: { shop: LibraryGame["shop"]; objectId: string }[];
-      }>
-    ) => {
-      const positions = getLibraryCollectionOrderPositions(
-        action.payload.games
-      );
-
-      for (const library of [state.value, state.downloadLibrary]) {
-        for (const game of library) {
-          const collectionPositions = applyLibraryCollectionOrder(
-            game,
-            action.payload.collectionId,
-            positions
-          );
-          if (collectionPositions) {
-            game.collectionPositions = collectionPositions;
-          }
-        }
-      }
-    },
   },
 });
 
@@ -126,7 +98,6 @@ export const {
   clearNewDownloadOptions,
   setLibrarySearchQuery,
   setGameCollectionIds,
-  setCollectionGameOrder,
 } = librarySlice.actions;
 
 export const selectIsLibraryLoading = (state: { library: LibraryState }) =>

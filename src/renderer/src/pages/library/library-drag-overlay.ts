@@ -1,3 +1,8 @@
+const SETTLE_DURATION_MS = 240;
+const SETTLE_FROM_ROTATION_DEG = 3;
+const SETTLE_FROM_SCALE = 1.05;
+const SETTLE_EASING = "cubic-bezier(0.2, 0, 0, 1)";
+
 interface PointerPosition {
   clientX: number;
   clientY: number;
@@ -68,10 +73,10 @@ export const settleLibraryCard = (element: HTMLElement, fromRect: DOMRect) => {
       {
         opacity: 1,
         filter: "none",
-        transform: `translate(${deltaX}px, ${deltaY}px) rotate(3deg) scale(1.05)`,
+        transform: `translate(${deltaX}px, ${deltaY}px) rotate(${SETTLE_FROM_ROTATION_DEG}deg) scale(${SETTLE_FROM_SCALE})`,
       },
       { opacity: 1, filter: "none", transform: "none" },
     ],
-    { duration: 240, easing: "cubic-bezier(0.2, 0, 0, 1)" }
+    { duration: SETTLE_DURATION_MS, easing: SETTLE_EASING }
   );
 };

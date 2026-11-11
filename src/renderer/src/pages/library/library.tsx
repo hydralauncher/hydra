@@ -24,7 +24,6 @@ import {
 import {
   selectGroupedLibrary,
   selectIsLibraryLoading,
-  setCollectionGameOrder,
   setHeaderTitle,
 } from "@renderer/features";
 import {
@@ -36,13 +35,7 @@ import {
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
-import {
-  AuthPage,
-  applyLibraryCollectionOrder,
-  getLibraryCollectionOrderPositions,
-  groupLibraryGames,
-  removeDiacritics,
-} from "@shared";
+import { AuthPage, groupLibraryGames, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import {
   Button,
@@ -246,7 +239,11 @@ export default function Library() {
     order: string[];
     restingIndex: ReadonlyMap<string, number>;
   } | null>(null);
-  const orderSavesRef = useRef({ pending: 0, failed: false });
+  const orderSavesRef = useRef({ pending: 0 });
+  const [pendingCollectionOrder, setPendingCollectionOrder] = useState<{
+    collectionId: string;
+    order: string[];
+  } | null>(null);
   const [showResetCustomOrderModal, setShowResetCustomOrderModal] =
     useState(false);
   const [gameContextMenu, setGameContextMenu] = useState<{
@@ -574,25 +571,45 @@ export default function Library() {
         : [],
     [library, hiddenGames, orderCollectionId]
   );
-  const collectionOrder = useMemo(
-    () =>
-      orderCollectionId
-        ? buildLibraryCollectionOrder(
-            collectionGames,
-            orderCollectionId,
-            (unplaced) =>
-              sortLibraryGamesByCustomOrder(unplaced, customOrder, (rest) =>
-                sortLibraryGames(rest, "title_asc")
-              )
-          )
-        : null,
-    [collectionGames, orderCollectionId, customOrder]
-  );
+  const activePendingCollectionOrder =
+    pendingCollectionOrder &&
+    pendingCollectionOrder.collectionId === orderCollectionId
+      ? pendingCollectionOrder.order
+      : null;
+  const collectionOrder = useMemo(() => {
+    if (!orderCollectionId) return null;
+
+    const sortUnplaced = (unplaced: LibraryGame[]) =>
+      sortLibraryGamesByCustomOrder(unplaced, customOrder, (rest) =>
+        sortLibraryGames(rest, "title_asc")
+      );
+
+    return activePendingCollectionOrder
+      ? sortLibraryGamesByCustomOrder(
+          collectionGames,
+          activePendingCollectionOrder,
+          sortUnplaced
+        ).map(getLibraryGameOrderKey)
+      : buildLibraryCollectionOrder(
+          collectionGames,
+          orderCollectionId,
+          sortUnplaced
+        );
+  }, [
+    collectionGames,
+    orderCollectionId,
+    customOrder,
+    activePendingCollectionOrder,
+  ]);
   const savedOrder = collectionOrder ?? customOrder;
   const effectiveOrder = dragPreview?.order ?? savedOrder;
-  const canResetOrder = orderCollectionId
-    ? hasLibraryCollectionOrder(collectionGames, orderCollectionId)
-    : customOrder.length > 0;
+  const canResetOrder = (() => {
+    if (!orderCollectionId) return customOrder.length > 0;
+    if (activePendingCollectionOrder) {
+      return activePendingCollectionOrder.length > 0;
+    }
+    return hasLibraryCollectionOrder(collectionGames, orderCollectionId);
+  })();
 
   const orderLibraryGames = useCallback(
     (games: LibraryGame[]) =>
@@ -615,7 +632,9 @@ export default function Library() {
   const handleSortChange = useCallback(
     (nextSortBy: SortOption) => {
       if (nextSortBy === "custom" && customOrder.length === 0) {
-        const seededOrder = sortedLibrary.map(getLibraryGameOrderKey);
+        const seededOrder = [...sortedLibrary, ...sortedHiddenGames].map(
+          getLibraryGameOrderKey
+        );
         setCustomOrder(seededOrder);
         writeLibraryCustomOrder(localStorage, seededOrder);
       }
@@ -623,43 +642,33 @@ export default function Library() {
       setSortBy(nextSortBy);
       localStorage.setItem("library-sort-by", nextSortBy);
     },
-    [customOrder, sortedLibrary]
+    [customOrder, sortedLibrary, sortedHiddenGames]
   );
 
   const commitCollectionOrder = useCallback(
     (collectionId: string, games: Pick<LibraryGame, "shop" | "objectId">[]) => {
-      const positions = getLibraryCollectionOrderPositions(games);
-      dispatch(setCollectionGameOrder({ collectionId, games }));
-      setHiddenGamesState((state) => ({
-        ...state,
-        games: state.games.map((game) => {
-          const collectionPositions = applyLibraryCollectionOrder(
-            game,
-            collectionId,
-            positions
-          );
-          return collectionPositions ? { ...game, collectionPositions } : game;
-        }),
-      }));
+      setPendingCollectionOrder({
+        collectionId,
+        order: games.map(getLibraryGameOrderKey),
+      });
 
       const saves = orderSavesRef.current;
       saves.pending += 1;
       window.electron
         .setCollectionGameOrder(collectionId, games)
-        .catch(() => {
-          saves.failed = true;
-          showErrorToast(t("custom_order_save_failed"));
-        })
+        .catch(() => showErrorToast(t("custom_order_save_failed")))
         .finally(() => {
           saves.pending -= 1;
-          if (saves.pending > 0 || !saves.failed) return;
+          if (saves.pending > 0) return;
 
-          saves.failed = false;
-          void updateLibrary();
-          void updateHiddenGames();
+          void Promise.all([updateLibrary(), updateHiddenGames()]).finally(
+            () => {
+              if (saves.pending === 0) setPendingCollectionOrder(null);
+            }
+          );
         });
     },
-    [dispatch, showErrorToast, t, updateLibrary, updateHiddenGames]
+    [showErrorToast, t, updateLibrary, updateHiddenGames]
   );
 
   const commitOrder = useCallback(
