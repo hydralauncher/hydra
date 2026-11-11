@@ -689,13 +689,14 @@ declare global {
               type: "done" | "cancelled";
               requestId: string;
               system: EmulatorSystem;
+              unsupportedPackages: number;
               fileCount: number;
               sizeBytes: number;
               matched: number;
               unmatched: number;
               unmatchedFiles: {
                 name: string;
-                reason: "wrong_platform" | "unmatched";
+                reason: "wrong_platform" | "unmatched" | "unsupported_package";
               }[];
             }
           | {
@@ -757,7 +758,7 @@ declare global {
       folderPath: string,
       scanSubfolders: boolean,
       language?: string
-    ) => Promise<EmulatorConfig>;
+    ) => Promise<{ config: EmulatorConfig; unsupportedPackages: number }>;
     registerRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
@@ -776,7 +777,7 @@ declare global {
     rescanEmulator: (
       system: EmulatorSystem,
       language?: string
-    ) => Promise<EmulatorConfig>;
+    ) => Promise<{ config: EmulatorConfig; unsupportedPackages: number }>;
     checkShadps4TrophyKey: (
       executablePath: string | null
     ) => Promise<{ installed: boolean; path: string }>;

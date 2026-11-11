@@ -469,7 +469,8 @@
       color: globals.$subtle-color;
     }
 
-    &--wrong_platform {
+    &--wrong_platform,
+    &--unsupported_package {
       color: globals.$classics-washed;
     }
   }
