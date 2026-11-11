@@ -201,7 +201,12 @@ async function renderLibrary(
     "./library-filters-menu": { LibraryFiltersMenu: () => null },
     "./library-games-skeleton": { LibraryGamesSkeleton: () => null },
     "@atlaskit/pragmatic-drag-and-drop/element/adapter": {
+      dropTargetForElements: () => noop,
       monitorForElements: () => noop,
+    },
+    "@atlaskit/pragmatic-drag-and-drop/combine": { combine: () => noop },
+    "./library-drag-autoscroll": {
+      createLibraryDragAutoscroll: () => ({ update: noop, stop: noop }),
     },
     "./library-custom-order": {
       getLibraryGameOrderKey: (game: TestGame) =>
@@ -215,7 +220,12 @@ async function renderLibrary(
       LibrarySortableGame: ({ children }: { children: React.ReactNode }) =>
         children,
       isLibraryGameDragData: () => false,
+      findLibraryGameKeyAtPoint: () => null,
     },
+    "./use-library-reorder-animation": {
+      useLibraryReorderAnimation: () => noop,
+    },
+    "./library-drag-overlay": { createLibraryDragOverlay: noop },
     "./library-category": {
       categoryShowsPlatforms: () => false,
       categoryShowsSources: () => false,

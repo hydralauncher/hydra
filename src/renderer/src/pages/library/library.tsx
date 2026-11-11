@@ -8,7 +8,11 @@ import {
   useRef,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import {
+  dropTargetForElements,
+  monitorForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
   useLibrary,
   useAppDispatch,
@@ -64,8 +68,15 @@ import {
 } from "./library-custom-order";
 import {
   LibrarySortableGame,
+  findLibraryGameKeyAtPoint,
   isLibraryGameDragData,
 } from "./library-sortable-game";
+import { useLibraryReorderAnimation } from "./use-library-reorder-animation";
+import {
+  createLibraryDragOverlay,
+  type LibraryDragOverlay,
+} from "./library-drag-overlay";
+import { createLibraryDragAutoscroll } from "./library-drag-autoscroll";
 import {
   categoryShowsPlatforms,
   categoryShowsSources,
@@ -91,6 +102,7 @@ const EMPTY_HIDDEN_GAMES: LibraryGame[] = [];
 const GAP = 16;
 const LARGE_CARD_ESTIMATED_HEIGHT = 300;
 const FALLBACK_ITEM_WIDTH = 150;
+const LIBRARY_GRID_DROP_TYPE = "library-grid";
 
 const COLUMN_BREAKPOINTS = [3000, 2600, 2000, 1300, 900] as const;
 const COLUMNS: Record<"grid" | "compact", readonly number[]> = {
@@ -206,6 +218,11 @@ export default function Library() {
   const [customOrder, setCustomOrder] = useState<string[]>(() =>
     readLibraryCustomOrder(localStorage)
   );
+  const [dragPreview, setDragPreview] = useState<{
+    sourceKey: string;
+    order: string[];
+  } | null>(null);
+  const effectiveCustomOrder = dragPreview?.order ?? customOrder;
   const [gameContextMenu, setGameContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -518,11 +535,13 @@ export default function Library() {
   const orderLibraryGames = useCallback(
     (games: LibraryGame[]) =>
       sortBy === "custom"
-        ? sortLibraryGamesByCustomOrder(games, customOrder, (unplaced) =>
-            sortLibraryGames(unplaced, "title_asc")
+        ? sortLibraryGamesByCustomOrder(
+            games,
+            effectiveCustomOrder,
+            (unplaced) => sortLibraryGames(unplaced, "title_asc")
           )
         : sortLibraryGames(games, sortBy),
-    [sortBy, customOrder]
+    [sortBy, effectiveCustomOrder]
   );
   const sortedLibrary = useMemo(
     () => orderLibraryGames(groupedLibrary),
@@ -692,47 +711,125 @@ export default function Library() {
   );
 
   const isCustomOrder = sortBy === "custom";
-  const customOrderDropState = {
+  const dragStateRef = useRef({
     customOrder,
+    dragPreview,
+    displayedGames: sortedLibrary,
+  });
+  dragStateRef.current = {
+    customOrder,
+    dragPreview,
     displayedGames:
       selectedCollectionId === HIDDEN_COLLECTION_ID
         ? sortedHiddenGames
         : sortedLibrary,
   };
-  const customOrderDropRef = useRef(customOrderDropState);
-  customOrderDropRef.current = customOrderDropState;
+  const captureBeforeReorder = useLibraryReorderAnimation(gamesScrollRef);
 
   useEffect(() => {
-    if (!isCustomOrder) return;
+    const scrollElement = gamesScrollRef.current;
+    if (!isCustomOrder || !scrollElement) return;
 
-    return monitorForElements({
-      canMonitor: ({ source }) => isLibraryGameDragData(source.data),
-      onDrop: ({ source, location }) => {
-        const target = location.current.dropTargets[0]?.data;
-        if (
-          !target ||
-          !isLibraryGameDragData(source.data) ||
-          !isLibraryGameDragData(target) ||
-          !target.edge
-        ) {
-          return;
-        }
+    let overlay: LibraryDragOverlay | null = null;
+    const removeOverlay = () => {
+      const rect = overlay?.getRect() ?? null;
+      overlay?.remove();
+      overlay = null;
+      return rect;
+    };
+    const autoscroll = createLibraryDragAutoscroll(
+      () => gamesScrollRef.current
+    );
 
-        const { customOrder: currentOrder, displayedGames } =
-          customOrderDropRef.current;
-        const nextOrder = moveLibraryGameInCustomOrder(
-          currentOrder,
-          displayedGames,
-          source.data.orderKey,
-          target.orderKey,
-          target.edge
-        );
+    const previewMoveOnto = (sourceKey: string, targetKey: string) => {
+      const {
+        customOrder: savedOrder,
+        dragPreview: preview,
+        displayedGames,
+      } = dragStateRef.current;
+      const currentOrder = preview?.order ?? savedOrder;
+      const sourceIndex = displayedGames.findIndex(
+        (game) => getLibraryGameOrderKey(game) === sourceKey
+      );
+      const targetIndex = displayedGames.findIndex(
+        (game) => getLibraryGameOrderKey(game) === targetKey
+      );
+      if (sourceIndex === -1 || targetIndex === -1) return;
 
-        setCustomOrder(nextOrder);
-        writeLibraryCustomOrder(localStorage, nextOrder);
-      },
-    });
-  }, [isCustomOrder]);
+      const nextOrder = moveLibraryGameInCustomOrder(
+        currentOrder,
+        displayedGames,
+        sourceKey,
+        targetKey,
+        sourceIndex < targetIndex ? "after" : "before"
+      );
+
+      captureBeforeReorder();
+      setDragPreview({ sourceKey, order: nextOrder });
+    };
+
+    return combine(
+      dropTargetForElements({
+        element: scrollElement,
+        canDrop: ({ source }) => isLibraryGameDragData(source.data),
+        getData: () => ({ type: LIBRARY_GRID_DROP_TYPE }),
+      }),
+      monitorForElements({
+        canMonitor: ({ source }) => isLibraryGameDragData(source.data),
+        onDragStart: ({ source, location }) => {
+          if (!isLibraryGameDragData(source.data)) return;
+          removeOverlay();
+          overlay = createLibraryDragOverlay(
+            source.element,
+            location.current.input
+          );
+          setDragPreview({
+            sourceKey: source.data.orderKey,
+            order: dragStateRef.current.customOrder,
+          });
+        },
+        onDrag: ({ source, location }) => {
+          const { clientX, clientY } = location.current.input;
+          overlay?.move(location.current.input);
+          autoscroll.update(clientY);
+
+          if (!isLibraryGameDragData(source.data)) return;
+          const hoveredKey = findLibraryGameKeyAtPoint(
+            scrollElement,
+            clientX,
+            clientY
+          );
+          if (hoveredKey && hoveredKey !== source.data.orderKey) {
+            previewMoveOnto(source.data.orderKey, hoveredKey);
+          }
+        },
+        onDrop: ({ source, location }) => {
+          autoscroll.stop();
+          const overlayRect = removeOverlay();
+          const { dragPreview: preview } = dragStateRef.current;
+          const isInsideGrid = location.current.dropTargets.length > 0;
+
+          if (isLibraryGameDragData(source.data) && overlayRect) {
+            captureBeforeReorder({
+              key: source.data.orderKey,
+              fromRect: overlayRect,
+            });
+          }
+
+          if (preview && isInsideGrid) {
+            setCustomOrder(preview.order);
+            writeLibraryCustomOrder(localStorage, preview.order);
+          }
+          setDragPreview(null);
+        },
+      }),
+      () => {
+        autoscroll.stop();
+        removeOverlay();
+        setDragPreview(null);
+      }
+    );
+  }, [isCustomOrder, captureBeforeReorder]);
 
   const rows = useMemo(() => {
     const result: LibraryGame[][] = [];
@@ -1034,7 +1131,9 @@ export default function Library() {
                       key={`${game.shop}-${game.objectId}`}
                       orderKey={getLibraryGameOrderKey(game)}
                       enabled={isCustomOrder}
-                      axis={columnsCount === 1 ? "vertical" : "horizontal"}
+                      isDragSource={
+                        dragPreview?.sourceKey === getLibraryGameOrderKey(game)
+                      }
                     >
                       {viewMode === "large" ? (
                         <LibraryGameCardLarge

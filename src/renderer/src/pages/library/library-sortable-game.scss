@@ -1,5 +1,14 @@
 @use "../../scss/globals.scss";
 
+@keyframes library-sortable-game-lift {
+  from {
+    transform: rotate(0deg) scale(1);
+    box-shadow:
+      0 0 0 0 rgba(255, 255, 255, 0),
+      0 8px 10px -2px rgba(0, 0, 0, 0.5);
+  }
+}
+
 .library-sortable-game {
   position: relative;
   min-width: 0;
@@ -8,49 +17,56 @@
     -webkit-user-drag: none;
   }
 
-  &--dragging {
-    opacity: globals.$disabled-opacity;
+  > * {
+    transition:
+      opacity ease 0.2s,
+      transform ease 0.2s,
+      filter ease 0.2s;
   }
 
-  &--drop-horizontal-before::after,
-  &--drop-horizontal-after::after,
-  &--drop-vertical-before::after,
-  &--drop-vertical-after::after {
+  &--drag-source > * {
+    opacity: 0.2;
+    transform: scale(0.94);
+    filter: grayscale(1);
+  }
+
+  &--drag-source::after {
     content: "";
     position: absolute;
-    background-color: globals.$brand-teal;
-    border-radius: 2px;
+    inset: 0;
+    border: 2px dashed rgba(255, 255, 255, 0.35);
+    border-radius: 8px;
     pointer-events: none;
-    z-index: 1;
   }
 
-  &--drop-horizontal-before::after,
-  &--drop-horizontal-after::after {
+  &__overlay {
+    position: fixed;
     top: 0;
-    bottom: 0;
-    width: 4px;
-  }
-
-  &--drop-horizontal-before::after {
-    left: -10px;
-  }
-
-  &--drop-horizontal-after::after {
-    right: -10px;
-  }
-
-  &--drop-vertical-before::after,
-  &--drop-vertical-after::after {
     left: 0;
-    right: 0;
-    height: 4px;
+    z-index: globals.$toast-z-index;
+    pointer-events: none;
+    will-change: transform;
   }
 
-  &--drop-vertical-before::after {
-    top: -10px;
+  &__overlay-card {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    transform: rotate(3deg) scale(1.05);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.5),
+      0 20px 40px rgba(0, 0, 0, 0.6);
+    animation: library-sortable-game-lift 0.18s ease-out;
   }
 
-  &--drop-vertical-after::after {
-    bottom: -10px;
+  @media (prefers-reduced-motion: reduce) {
+    > * {
+      transition: none;
+    }
+
+    &__overlay-card {
+      animation: none;
+    }
   }
 }
