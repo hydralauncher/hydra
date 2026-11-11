@@ -10,6 +10,8 @@ import type { GameShop } from "@types";
 
 type CollectionOrderGame = { shop: GameShop; objectId: string };
 
+const ORDER_SAVE_TIMEOUT_MS = 30_000;
+
 let pendingOrderSave: Promise<unknown> = Promise.resolve();
 
 const saveCollectionGameOrder = async (
@@ -22,7 +24,8 @@ const saveCollectionGameOrder = async (
       games: games
         .filter((game) => game.shop !== "custom")
         .map(({ shop, objectId }) => ({ shop, objectId })),
-    }
+    },
+    { timeout: ORDER_SAVE_TIMEOUT_MS }
   );
 
   const positions = getLibraryCollectionOrderPositions(games);
