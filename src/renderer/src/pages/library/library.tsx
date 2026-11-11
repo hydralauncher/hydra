@@ -232,8 +232,11 @@ export default function Library() {
     return "title_asc";
   });
   const [customOrder, setCustomOrder] = useState<string[]>(() =>
-    readLibraryCustomOrder(localStorage)
+    readLibraryCustomOrder(localStorage, accountId)
   );
+  useEffect(() => {
+    setCustomOrder(readLibraryCustomOrder(localStorage, accountId));
+  }, [accountId]);
   const [dragPreview, setDragPreview] = useState<{
     sourceKey: string;
     order: string[];
@@ -629,20 +632,33 @@ export default function Library() {
     [groupedHiddenGames, orderLibraryGames]
   );
 
+  const saveCustomOrder = useCallback(
+    (order: string[]) => {
+      const knownKeys = new Set(
+        [...library, ...hiddenGames].map(getLibraryGameOrderKey)
+      );
+      const nextOrder = hiddenGamesLoadFailed
+        ? order
+        : order.filter((key) => knownKeys.has(key));
+
+      setCustomOrder(nextOrder);
+      writeLibraryCustomOrder(localStorage, accountId, nextOrder);
+    },
+    [library, hiddenGames, hiddenGamesLoadFailed, accountId]
+  );
+
   const handleSortChange = useCallback(
     (nextSortBy: SortOption) => {
       if (nextSortBy === "custom" && customOrder.length === 0) {
-        const seededOrder = [...sortedLibrary, ...sortedHiddenGames].map(
-          getLibraryGameOrderKey
+        saveCustomOrder(
+          [...sortedLibrary, ...sortedHiddenGames].map(getLibraryGameOrderKey)
         );
-        setCustomOrder(seededOrder);
-        writeLibraryCustomOrder(localStorage, seededOrder);
       }
 
       setSortBy(nextSortBy);
       localStorage.setItem("library-sort-by", nextSortBy);
     },
-    [customOrder, sortedLibrary, sortedHiddenGames]
+    [customOrder, sortedLibrary, sortedHiddenGames, saveCustomOrder]
   );
 
   const commitCollectionOrder = useCallback(
@@ -674,8 +690,7 @@ export default function Library() {
   const commitOrder = useCallback(
     (order: string[]) => {
       if (!orderCollectionId) {
-        setCustomOrder(order);
-        writeLibraryCustomOrder(localStorage, order);
+        saveCustomOrder(order);
         return;
       }
 
@@ -703,6 +718,7 @@ export default function Library() {
     },
     [
       orderCollectionId,
+      saveCustomOrder,
       commitCollectionOrder,
       collectionGames,
       collectionOrder,
@@ -720,8 +736,8 @@ export default function Library() {
     }
 
     setCustomOrder([]);
-    writeLibraryCustomOrder(localStorage, []);
-  }, [orderCollectionId, commitCollectionOrder]);
+    writeLibraryCustomOrder(localStorage, accountId, []);
+  }, [orderCollectionId, commitCollectionOrder, accountId]);
 
   const {
     platforms: uniquePlatforms,

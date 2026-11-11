@@ -18,11 +18,17 @@ const getGameOrderKeys = (game: OrderableLibraryGame): string[] => [
   ...(game.members ?? []).map(getLibraryGameOrderKey),
 ];
 
+const getLibraryCustomOrderStorageKey = (accountId: string | null) =>
+  accountId
+    ? `${LIBRARY_CUSTOM_ORDER_STORAGE_KEY}:${accountId}`
+    : LIBRARY_CUSTOM_ORDER_STORAGE_KEY;
+
 export const readLibraryCustomOrder = (
-  storage: Pick<Storage, "getItem">
+  storage: Pick<Storage, "getItem">,
+  accountId: string | null
 ): string[] => {
   try {
-    const saved = storage.getItem(LIBRARY_CUSTOM_ORDER_STORAGE_KEY);
+    const saved = storage.getItem(getLibraryCustomOrderStorageKey(accountId));
     if (!saved) return [];
 
     const parsed: unknown = JSON.parse(saved);
@@ -36,9 +42,13 @@ export const readLibraryCustomOrder = (
 
 export const writeLibraryCustomOrder = (
   storage: Pick<Storage, "setItem">,
+  accountId: string | null,
   order: readonly string[]
 ) => {
-  storage.setItem(LIBRARY_CUSTOM_ORDER_STORAGE_KEY, JSON.stringify(order));
+  storage.setItem(
+    getLibraryCustomOrderStorageKey(accountId),
+    JSON.stringify(order)
+  );
 };
 
 const indexOrder = (order: readonly string[]) => {

@@ -1,4 +1,4 @@
-import { updateGameRecord } from "@main/services/game-record-updater";
+import { libraryWriteQueue } from "@main/services/library-sync/library-write-queue";
 import { registerEvent } from "../register-event";
 import { gamesSublevel } from "@main/level";
 import { HydraApi, logger } from "@main/services";
@@ -29,22 +29,33 @@ const saveCollectionGameOrder = async (
   );
 
   const positions = getLibraryCollectionOrderPositions(games);
-  const storedGames = await gamesSublevel.iterator().all();
 
-  const updates = storedGames.flatMap(([key, game]) => {
-    const collectionPositions = applyLibraryCollectionOrder(
-      game,
-      collectionId,
-      positions
-    );
-    const hasChanged =
-      collectionPositions &&
-      collectionPositions[collectionId] !==
-        game.collectionPositions?.[collectionId];
-    return hasChanged ? [updateGameRecord(key, { collectionPositions })] : [];
+  await libraryWriteQueue.run(async () => {
+    const storedGames = await gamesSublevel.iterator().all();
+    const updates = storedGames.flatMap(([key, game]) => {
+      const collectionPositions = applyLibraryCollectionOrder(
+        game,
+        collectionId,
+        positions
+      );
+      const hasChanged =
+        !game.isDeleted &&
+        collectionPositions &&
+        collectionPositions[collectionId] !==
+          game.collectionPositions?.[collectionId];
+      return hasChanged
+        ? [
+            {
+              type: "put" as const,
+              key,
+              value: { ...game, collectionPositions },
+            },
+          ]
+        : [];
+    });
+
+    if (updates.length) await gamesSublevel.batch(updates);
   });
-
-  await Promise.all(updates);
 };
 
 const setCollectionGameOrder = async (
