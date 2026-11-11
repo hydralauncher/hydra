@@ -17,7 +17,7 @@ import {
   resolveRpcs3NpCommIds,
 } from "./rpcs3-trophies";
 
-const CATALOGUE_RETRY_INTERVAL_MS = 30_000;
+export const RPCS3_CATALOGUE_RETRY_INTERVAL_MS = 30_000;
 const nextCatalogueFetchAt = new Map<string, number>();
 
 export interface Rpcs3TrophySources {
@@ -52,7 +52,10 @@ const resolveCatalogueNpCommIds = async (game: Game): Promise<string[]> => {
   if (catalogue.length) {
     nextCatalogueFetchAt.delete(gameKey);
   } else {
-    nextCatalogueFetchAt.set(gameKey, Date.now() + CATALOGUE_RETRY_INTERVAL_MS);
+    nextCatalogueFetchAt.set(
+      gameKey,
+      Date.now() + RPCS3_CATALOGUE_RETRY_INTERVAL_MS
+    );
   }
 
   return npCommIdsFromAchievementIcons(catalogue);

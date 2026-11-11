@@ -28,9 +28,14 @@ import {
   findShadps4CorePid,
   readShadps4VersionAfterSession,
 } from "./shadps4-files";
-import { startShadps4TrophyWatcher } from "./shadps4-trophy-watcher";
-import { startRpcs3TrophyWatcher } from "./rpcs3-trophy-watcher";
-import type { EmulatorTrophyWatcher } from "./emulator-trophy-watcher";
+import {
+  startShadps4TrophyWatcher,
+  type Shadps4TrophyWatcher,
+} from "./shadps4-trophy-watcher";
+import {
+  startRpcs3TrophyWatcher,
+  type Rpcs3TrophyWatcher,
+} from "./rpcs3-trophy-watcher";
 import { launchedGamePids } from "../launched-game-pids";
 import { NativeAddon } from "../native-addon";
 import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
@@ -66,7 +71,7 @@ export interface EmulatorSession {
   corePid: number | null;
   coreWatch: ReturnType<typeof setInterval> | null;
   relaunchWatch: ReturnType<typeof setInterval> | null;
-  trophyWatcher: EmulatorTrophyWatcher | null;
+  trophyWatcher: Shadps4TrophyWatcher | Rpcs3TrophyWatcher | null;
 }
 
 export const emulatorSessions = new Map<string, EmulatorSession>();
@@ -182,7 +187,7 @@ const startTrophyWatcher = (
   gameKey: string,
   executablePath: string,
   discPath: string | undefined
-): EmulatorTrophyWatcher | null => {
+): Shadps4TrophyWatcher | Rpcs3TrophyWatcher | null => {
   if (!discPath) return null;
   if (system === "ps4") {
     return startShadps4TrophyWatcher({ gameKey, executablePath, discPath });

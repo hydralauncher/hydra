@@ -15,7 +15,12 @@ import {
 import { registerEvent } from "../register-event";
 import { collectGameAchievementFiles } from "@main/services/achievements/collect-game-achievement-files";
 import fs from "fs";
-import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
+import {
+  achievementsLogger,
+  emulators,
+  HydraApi,
+  WindowManager,
+} from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
@@ -178,6 +183,12 @@ const resetGameAchievements = (
 ) => {
   const context = HydraApi.getAuthContext();
   if (!context) return Promise.reject(new AchievementSyncCancelledError());
+  if (
+    emulators.emulatorSessions.get(levelKeys.game(shop, objectId))?.system ===
+    "ps3"
+  ) {
+    return Promise.reject(new Error("reset_achievements_game_running"));
+  }
   UnlockedAchievementsCache.invalidate(shop, objectId);
   return achievementSyncCoordinator.resetGame(
     levelKeys.game(shop, objectId),

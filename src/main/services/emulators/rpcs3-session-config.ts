@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import YAML from "yaml";
 
 import { resolveRpcs3ConfigRootStatus } from "../cloud-save/rpcs3-config-root.js";
@@ -102,7 +102,7 @@ const readCustomConfig = async (
 
 export interface Rpcs3SessionConfig {
   launchArguments: string[];
-  cleanupFilePaths: string[];
+  sessionDirectory: string;
 }
 
 export const createRpcs3SessionConfig = async (
@@ -129,14 +129,19 @@ export const createRpcs3SessionConfig = async (
   const sessionConfig = buildRpcs3SessionConfig(globalConfig, customConfig);
   if (!sessionConfig) return null;
 
-  const sessionConfigPath = path.join(
-    configDirectory,
-    `hydra-session-${randomUUID()}.yml`
+  const sessionDirectory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "hydra-rpcs3-session-")
   );
-  await fs.writeFile(sessionConfigPath, sessionConfig, "utf8");
+  const sessionConfigPath = path.join(sessionDirectory, "config.yml");
+  try {
+    await fs.writeFile(sessionConfigPath, sessionConfig, "utf8");
+  } catch (error) {
+    await fs.rm(sessionDirectory, { recursive: true, force: true });
+    throw error;
+  }
 
   return {
     launchArguments: ["--config", sessionConfigPath],
-    cleanupFilePaths: [sessionConfigPath],
+    sessionDirectory,
   };
 };
