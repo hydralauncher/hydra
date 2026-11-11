@@ -10,6 +10,10 @@ import {
   parseTrophyIdTimeLines,
   parseTrophyJsonLines,
   parseTrophyLogLines,
+  removeTrophiesFromBitmask,
+  removeTrophiesFromIdLines,
+  removeTrophiesFromIdTimeLines,
+  removeTrophiesFromJsonLines,
   stripTrophyLogLines,
   withHydraPlatinum,
   type RecompilationTrophySource,
@@ -186,5 +190,45 @@ describe("trophy reset", () => {
     assert.deepEqual(source.resetFiles?.win32, [
       "<base>/user/trophy/NPWR05818_00/unlocked.txt",
     ]);
+  });
+});
+
+describe("removing trophies after a reset with the port open", () => {
+  it("clears only those bits", () => {
+    const data = Buffer.from([
+      0b0010_0001,
+      0b0000_0001,
+      0,
+      0,
+      ...new Array(12).fill(0),
+    ]);
+    const kept = removeTrophiesFromBitmask(data, ["0", "8"]);
+    assert.deepEqual(names(parseTrophyBitmask(kept, NOW)), ["5"]);
+    assert.equal(kept.length, data.length);
+  });
+
+  it("drops only those id/time lines", () => {
+    const kept = removeTrophiesFromIdTimeLines("5 100\n12 200\n7 300\n", [
+      "12",
+    ]);
+    assert.deepEqual(names(parseTrophyIdTimeLines(kept)), ["5", "7"]);
+  });
+
+  it("drops only those JSON events, repeats included", () => {
+    const line = (id: number) =>
+      JSON.stringify({ trophy_id: id, unlocked_at: "2026-11-10T06:30:00Z" });
+    const kept = removeTrophiesFromJsonLines(
+      [line(3), line(4), line(3), ""].join("\n"),
+      ["3"]
+    );
+    assert.deepEqual(names(parseTrophyJsonLines(kept)), ["4"]);
+  });
+
+  it("drops only those ids and keeps comments", () => {
+    const kept = removeTrophiesFromIdLines(
+      "# the trophies unlocked here\n7\n9\n",
+      ["7"]
+    );
+    assert.equal(kept, "# the trophies unlocked here\n9\n");
   });
 });

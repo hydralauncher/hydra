@@ -134,3 +134,69 @@ export const withHydraPlatinum = (
   );
   return [...unlocks, { name: PLATINUM_TROPHY, unlockTime }];
 };
+
+const toIdSet = (ids: Iterable<string>) =>
+  new Set([...ids].map((id) => id.trim().toUpperCase()));
+
+/** The bitmask with these trophies cleared; its length is kept. */
+export const removeTrophiesFromBitmask = (
+  data: Buffer,
+  ids: Iterable<string>
+) => {
+  const output = Buffer.from(data);
+  for (const id of toIdSet(ids)) {
+    const bit = Number(id);
+    if (!Number.isInteger(bit) || bit < 0 || bit >= BITMASK_BYTES * 8) {
+      continue;
+    }
+    output[bit >> 3] &= ~(1 << (bit & 7));
+  }
+  return output;
+};
+
+/** "<id> <unix time>" lines without these trophies. */
+export const removeTrophiesFromIdTimeLines = (
+  contents: string,
+  ids: Iterable<string>
+) => {
+  const remove = toIdSet(ids);
+  return contents
+    .split("\n")
+    .filter((line) => {
+      const match = ID_TIME_LINE.exec(line);
+      return !match || !remove.has(match[1]);
+    })
+    .join("\n");
+};
+
+/** JSON lines without the events of these trophies. */
+export const removeTrophiesFromJsonLines = (
+  contents: string,
+  ids: Iterable<string>
+) => {
+  const remove = toIdSet(ids);
+  return contents
+    .split("\n")
+    .filter((line) => {
+      if (!line.trim()) return true;
+      try {
+        const event = JSON.parse(line) as { trophy_id?: unknown };
+        return !remove.has(String(event.trophy_id).toUpperCase());
+      } catch {
+        return true;
+      }
+    })
+    .join("\n");
+};
+
+/** One-id-per-line lists (bbport's unlocked.txt) without these trophies. */
+export const removeTrophiesFromIdLines = (
+  contents: string,
+  ids: Iterable<string>
+) => {
+  const remove = toIdSet(ids);
+  return contents
+    .split("\n")
+    .filter((line) => !remove.has(line.trim().toUpperCase()))
+    .join("\n");
+};

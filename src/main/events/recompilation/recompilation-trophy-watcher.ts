@@ -21,6 +21,10 @@ import {
   parseTrophyIdTimeLines,
   parseTrophyJsonLines,
   parseTrophyLogLines,
+  removeTrophiesFromBitmask,
+  removeTrophiesFromIdLines,
+  removeTrophiesFromIdTimeLines,
+  removeTrophiesFromJsonLines,
   stripTrophyLogLines,
   withHydraPlatinum,
   type RecompilationTrophySource,
@@ -43,9 +47,8 @@ const createLogReader = (history: string[]) => {
   let identity: number | null = null;
   let offset = 0;
   let hasReadHistory = false;
-  // After a reset, what the log already has is skipped: the port may still be
-  // writing to it, so the Hydra does not rewrite it.
-  let skipExisting = false;
+  // Bumped by a reset, so a read that started before it remembers nothing.
+  let generation = 0;
   // Where the log was when the reset happened; its trophy lines up to there
   // are taken out once the port closes, or the next session would read them
   // back from the rotated log.
@@ -58,18 +61,27 @@ const createLogReader = (history: string[]) => {
     }
   };
 
-  const forget = () => {
+  // The port may still be writing to the log, so the Hydra does not rewrite
+  // it: it reads on from where the log stood at the reset.
+  const forget = async (file: string | null) => {
+    generation += 1;
     seen.clear();
     hasReadHistory = true;
-    skipExisting = true;
+    const stats = file ? await fs.stat(file).catch(() => null) : null;
+    if (stats) {
+      identity = stats.ino;
+      offset = stats.size;
+      resetOffset = stats.size;
+    }
   };
 
   const read = async (file: string): Promise<UnlockedAchievement[] | null> => {
+    const startedAt = generation;
     if (!hasReadHistory) {
       hasReadHistory = true;
       for (const rotated of history) {
         const contents = await readText(rotated);
-        if (contents) remember(contents);
+        if (contents && generation === startedAt) remember(contents);
       }
     }
 
@@ -81,19 +93,16 @@ const createLogReader = (history: string[]) => {
         identity = stats.ino;
         offset = 0;
       }
-      if (skipExisting) {
-        skipExisting = false;
-        offset = stats.size;
-        resetOffset = stats.size;
-      }
 
-      const length = stats.size - offset;
+      const from = offset;
+      const length = stats.size - from;
       if (length > 0) {
         const buffer = Buffer.alloc(length);
-        await handle.read(buffer, 0, length, offset);
+        await handle.read(buffer, 0, length, from);
+        if (generation !== startedAt) return null;
         const end = buffer.lastIndexOf("\n") + 1;
         remember(buffer.subarray(0, end).toString("utf8"));
-        offset += end;
+        offset = from + end;
       }
     } finally {
       await handle.close();
@@ -122,7 +131,7 @@ const createLogReader = (history: string[]) => {
 
 interface TrophyReader {
   read: (file: string) => Promise<UnlockedAchievement[] | null>;
-  forget?: () => void;
+  forget?: (file: string | null) => Promise<void>;
   /** Runs once the port closed and the last read is done. */
   afterSession?: (file: string) => Promise<void>;
 }
@@ -182,6 +191,53 @@ export const resolveRecompilationTrophyFiles = async (slug: string) => {
   };
 };
 
+type TrophyFiles = NonNullable<
+  Awaited<ReturnType<typeof resolveRecompilationTrophyFiles>>
+>;
+
+const rewriteText = async (
+  file: string,
+  change: (contents: string) => string
+) => {
+  const contents = await readText(file);
+  if (contents === null) return;
+  const changed = change(contents);
+  if (changed !== contents) await fs.writeFile(file, changed);
+};
+
+/**
+ * Takes the trophies of a reset out of the port's files once the port closed,
+ * keeping the ones earned after it. The log kind is handled by its reader.
+ */
+const removeResetTrophies = async (files: TrophyFiles, ids: string[]) => {
+  switch (files.source.kind) {
+    case "bitmask": {
+      const data = await fs.readFile(files.file).catch(() => null);
+      if (data) {
+        await fs.writeFile(files.file, removeTrophiesFromBitmask(data, ids));
+      }
+      break;
+    }
+    case "id-time-lines":
+      await rewriteText(files.file, (contents) =>
+        removeTrophiesFromIdTimeLines(contents, ids)
+      );
+      break;
+    case "jsonl":
+      await rewriteText(files.file, (contents) =>
+        removeTrophiesFromJsonLines(contents, ids)
+      );
+      break;
+    case "log":
+      break;
+  }
+  for (const file of files.resetFiles) {
+    await rewriteText(file, (contents) =>
+      removeTrophiesFromIdLines(contents, ids)
+    );
+  }
+};
+
 export const startRecompilationTrophyWatcher = (
   ref: RecompilationRef,
   gameKey: string
@@ -205,7 +261,10 @@ export const startRecompilationTrophyWatcher = (
       reader ??= createReader(source, files.resolvePath);
       return reader.read(file);
     },
-    onForget: () => reader?.forget?.(),
+    onForget: async (file) => {
+      if (files) reader ??= createReader(source, files.resolvePath);
+      await reader?.forget?.(file);
+    },
     completeUnlocks: (unlocks, catalogue, game) => {
       const names = catalogue.map((achievement) => achievement.name);
       const known = keepCatalogueTrophies(unlocks, names);
@@ -218,20 +277,30 @@ export const startRecompilationTrophyWatcher = (
     },
   });
 
+  const resetIds = new Set<string>();
+
   return {
-    ...watcher,
+    forget: async () => {
+      const ids = await watcher.forget();
+      for (const id of ids) resetIds.add(id);
+      return ids;
+    },
     finish: async () => {
       await watcher.finish();
-      if (files) {
-        await reader
-          ?.afterSession?.(files.file)
-          .catch((error) =>
-            achievementsLogger.error(
-              `Failed to clean the ${ref.slug} log after a reset`,
-              error
-            )
-          );
-      }
+      const resolved = files;
+      if (!resolved) return;
+      const cleanUp = async () => {
+        await reader?.afterSession?.(resolved.file);
+        if (resetIds.size > 0) {
+          await removeResetTrophies(resolved, [...resetIds]);
+        }
+      };
+      await cleanUp().catch((error) =>
+        achievementsLogger.error(
+          `Failed to clean the ${ref.slug} trophies after a reset`,
+          error
+        )
+      );
     },
   };
 };

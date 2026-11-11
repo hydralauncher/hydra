@@ -30,6 +30,16 @@ const resetPortTrophies = async (slug: string, isRunning: boolean) => {
   const files = await resolveRecompilationTrophyFiles(slug);
   if (!files) return;
 
+  // An open port keeps its trophies in memory and may hold its files, so they
+  // are left alone: the watcher ignores what they have now, and takes those
+  // trophies out once the port closes. Only rotated logs are not in use.
+  if (isRunning) {
+    if (files.source.kind === "log") {
+      for (const rotated of files.history) await stripLog(rotated);
+    }
+    return;
+  }
+
   switch (files.source.kind) {
     case "bitmask":
       // An empty bitmask instead of no file: it is a newer local change, so a
@@ -43,9 +53,7 @@ const resetPortTrophies = async (slug: string, isRunning: boolean) => {
       await fs.rm(files.file, { force: true });
       break;
     case "log":
-      // The port writes to its current log while it runs; the watcher skips
-      // what is there instead.
-      if (!isRunning) await stripLog(files.file);
+      await stripLog(files.file);
       for (const rotated of files.history) await stripLog(rotated);
       break;
   }
@@ -66,6 +74,15 @@ export const resetRecompilationTrophies = async (game: Game) => {
   );
   if (running) slugs.add(running.slug);
 
+  // First, while the files still hold the old trophies, the running port's
+  // watcher marks them as reset.
+  await forgetRunningRecompilationTrophies(game.objectId).catch((error) =>
+    achievementsLogger.error(
+      "Failed to reset the running port's trophies",
+      error
+    )
+  );
+
   for (const slug of slugs) {
     try {
       await resetPortTrophies(slug, running?.slug === slug);
@@ -73,6 +90,4 @@ export const resetRecompilationTrophies = async (game: Game) => {
       achievementsLogger.error(`Failed to reset ${slug} trophies`, error);
     }
   }
-
-  forgetRunningRecompilationTrophies(game.objectId);
 };

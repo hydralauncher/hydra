@@ -15,10 +15,12 @@ const CATALOGUE_RETRY_INTERVAL_MS = 30_000;
 export interface TrophyFileWatcher {
   finish: () => Promise<void>;
   /**
-   * Drops what was read so far, after the achievements were reset: what is in
-   * the trophy file from now on counts as new.
+   * After the achievements were reset while the game runs: what the trophy
+   * file has now is ignored for the rest of the session (the game may write
+   * it back from memory), and only trophies earned from here on count.
+   * Resolves with the ignored trophy names.
    */
-  forget: () => void;
+  forget: () => Promise<string[]>;
 }
 
 export interface StartTrophyFileWatcherOptions {
@@ -32,8 +34,8 @@ export interface StartTrophyFileWatcherOptions {
     game: Game
   ) => UnlockedAchievement[];
   onFirstChange?: (game: Game) => void;
-  /** Clears what `readUnlocks` keeps between reads. */
-  onForget?: () => void;
+  /** Clears what `readUnlocks` keeps between reads, at the reset. */
+  onForget?: (file: string | null) => Promise<void>;
   skipSouvenirCapture?: boolean;
 }
 
@@ -62,6 +64,7 @@ export const startTrophyFileWatcher = ({
   let inFlightRead: Promise<void> | null = null;
   // Bumped by forget(), so a read that started before it changes nothing.
   let generation = 0;
+  let ignored = new Set<string>();
 
   const readTrophies = async (isFinalRead: boolean) => {
     if (!HydraApi.isLoggedIn()) return;
@@ -88,6 +91,9 @@ export const startTrophyFileWatcher = ({
 
     let unlockedTrophies = await readUnlocks(trophyFile);
     if (!unlockedTrophies || isStale()) return;
+    unlockedTrophies = unlockedTrophies.filter(
+      (unlock) => !ignored.has(unlock.name.toUpperCase())
+    );
 
     if (unlockedTrophies.length > 0) {
       if (!isFinalRead && Date.now() < nextCatalogueAttemptAt) return;
@@ -142,11 +148,21 @@ export const startTrophyFileWatcher = ({
   timer.unref?.();
 
   return {
-    forget: () => {
+    forget: async () => {
       generation += 1;
+      await inFlightRead;
+      trophyFile ??= await resolveFile();
+      await onForget?.(trophyFile);
+      const current = trophyFile
+        ? await readUnlocks(trophyFile).catch(() => null)
+        : null;
+      ignored = new Set([
+        ...ignored,
+        ...(current ?? []).map((unlock) => unlock.name.toUpperCase()),
+      ]);
       lastModifiedAt = -1;
       hasImportedExistingUnlocks = true;
-      onForget?.();
+      return [...ignored];
     },
     finish: async () => {
       clearInterval(timer);

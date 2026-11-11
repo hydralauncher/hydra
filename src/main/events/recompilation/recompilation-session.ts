@@ -299,6 +299,9 @@ export const startRecompilationSession = async (
   sessions.set(portKey, session);
   setEmulatorGameRunning(portKey);
   setRecompilationGameRunning(portKey, baseKey, ref.slug);
+  // Started before the wait for the library, so a port that exits right away
+  // still has its trophies read when the session finishes.
+  session.trophyWatcher = startRecompilationTrophyWatcher(ref, baseKey);
 
   const finish = () => {
     if (sessions.get(portKey) !== session) return;
@@ -316,7 +319,6 @@ export const startRecompilationSession = async (
   await session.baseGameReady;
   if (sessions.get(portKey) !== session) return;
 
-  session.trophyWatcher = startRecompilationTrophyWatcher(ref, baseKey);
   void sendPresencePing(baseKey);
   session.heartbeat = setInterval(() => {
     void sendPresencePing(baseKey);
@@ -332,10 +334,12 @@ export const findRunningRecompilation = (objectId: string) =>
     ?.ref ?? null;
 
 /** After a reset, the running port of the game stops counting old trophies. */
-export const forgetRunningRecompilationTrophies = (objectId: string) => {
-  for (const session of sessions.values()) {
-    if (session.ref.objectId === objectId) session.trophyWatcher?.forget();
-  }
+export const forgetRunningRecompilationTrophies = async (objectId: string) => {
+  await Promise.all(
+    [...sessions.values()]
+      .filter((session) => session.ref.objectId === objectId)
+      .map((session) => session.trophyWatcher?.forget())
+  );
 };
 
 const signalProcessGroup = (pid: number, signal: NodeJS.Signals) => {
@@ -408,6 +412,11 @@ export const saveRecompilationPlaytimeOnQuit = async () => {
   await Promise.all(
     Array.from(sessions.values(), async (session) => {
       const deltaMs = endSession(session);
+      // The last trophy read, and the clean-up after a reset, also run when
+      // the Hydra quits with the port open.
+      await session.trophyWatcher?.finish().catch((error) => {
+        logger.error("Failed to finish the port trophy watcher", error);
+      });
       const baseKey = baseKeyOf(session.ref);
       const game = await gamesSublevel.get(baseKey);
       if (!game) return;
