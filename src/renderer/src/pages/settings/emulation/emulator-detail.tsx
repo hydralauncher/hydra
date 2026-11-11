@@ -27,7 +27,8 @@ import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
 import { LocalEmulatorSavesSection } from "./local-emulator-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
-import { Rpcs3ConfigRootSection } from "./rpcs3-config-root-section";
+import { EmulatorSaveLocationSection } from "./emulator-save-location-section";
+import { getEmulatorSaveLocation } from "./emulator-save-location";
 import { formatRelativeShort } from "./relative-time";
 import {
   availableEmulatorTabs,
@@ -87,6 +88,7 @@ export function EmulatorDetail({
   const hasEmulatorSaves = supportsEmulatorSaves(config.system);
   const supportsBios = hasMemoryCards;
   const supportsFirmware = config.system === "ps3" || config.system === "ps4";
+  const saveLocation = getEmulatorSaveLocation(config.system);
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
     readStoredTab(config.system)
@@ -372,9 +374,10 @@ export function EmulatorDetail({
             onBrowse={handleBrowseExecutable}
           />
 
-          {config.system === "ps3" && (
-            <Rpcs3ConfigRootSection
+          {saveLocation && (
+            <EmulatorSaveLocationSection
               config={config}
+              location={saveLocation}
               disabled={busy}
               onChange={onChange}
             />

@@ -1,7 +1,7 @@
-import type { Rpcs3ConfigRootStatus } from "@types";
+import type { EmulatorSaveLocationStatus } from "@types";
 
-export const getRpcs3ConfigRootChoices = (
-  status: Rpcs3ConfigRootStatus | null
+export const getEmulatorSaveLocationChoices = (
+  status: EmulatorSaveLocationStatus | null
 ) => {
   const selectedRoot = status?.selectedRoot ?? status?.resolvedRoot ?? "";
   const candidates = status?.candidates ?? [];
