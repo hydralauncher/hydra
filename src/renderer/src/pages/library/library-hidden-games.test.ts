@@ -136,6 +136,7 @@ async function renderLibrary(
     "@renderer/hooks": {
       useLibrary: () => ({ library, updateLibrary }),
       useUserDetails: () => ({ userDetails }),
+      useToast: () => ({ showErrorToast: noop }),
       useAppDispatch: () => noop,
       useAppSelector: (select: (state: unknown) => unknown) =>
         select({
@@ -152,6 +153,7 @@ async function renderLibrary(
     "@renderer/features": {
       selectIsLibraryLoading: () => false,
       selectGroupedLibrary: () => library,
+      setCollectionGameOrder: noop,
       setHeaderTitle: noop,
     },
     "@primer/octicons-react": Object.fromEntries(
@@ -216,6 +218,13 @@ async function renderLibrary(
       readLibraryCustomOrder: () => [],
       sortLibraryGamesByCustomOrder: (games: TestGame[]) => games,
       writeLibraryCustomOrder: noop,
+    },
+    "./library-collection-order": {
+      buildLibraryCollectionOrder: () => [],
+      expandLibraryCollectionOrder: () => [],
+      getLibraryCollectionGames: () => [],
+      hasLibraryCollectionOrder: () => false,
+      isSameLibraryOrder: () => true,
     },
     "./library-sortable-game": {
       LibrarySortableGame: ({ children }: { children: React.ReactNode }) =>

@@ -2550,6 +2550,8 @@
     "reset_custom_order_title": "Reset custom order?",
     "reset_custom_order_description": "Your games will go back to alphabetical order. This can't be undone.",
     "reset_custom_order_confirm": "Reset",
+    "reset_collection_order_description": "Games in this collection will go back to your library order. This can't be undone.",
+    "custom_order_save_failed": "Couldn't save the new order",
     "rename_collection": "Rename collection",
     "renaming_collection": "Renaming...",
     "rename_collection_description": "Choose a new name for this collection.",

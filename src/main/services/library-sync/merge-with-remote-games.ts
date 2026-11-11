@@ -42,6 +42,7 @@ import {
 import {
   mergeLocalAndRemotePlayTime,
   mergeLibraryCatalogueMetadata,
+  pickLibraryCollectionPositions,
   preserveEpicDefaultArtwork,
 } from "@shared";
 import { mergePersistedAchievementTotals } from "../achievements/achievement-memory-store";
@@ -54,6 +55,7 @@ type ProfileGame = {
   createdAt?: string | null;
   collectionIds?: string[];
   collectionId?: string | null;
+  collectionPositions?: Record<string, number>;
   lastTimePlayed: Date | null;
   playTimeInMilliseconds: number;
   playTimeInSeconds?: number;
@@ -361,11 +363,17 @@ const buildMergedGame = (
   const collectionIds = hasRemoteCollectionField
     ? getCollectionIds(remoteGame)
     : getCollectionIds(localGame);
+  const collectionPositions = pickLibraryCollectionPositions(
+    Object.hasOwn(remoteGame, "collectionPositions")
+      ? remoteGame.collectionPositions
+      : localGame?.collectionPositions,
+    collectionIds
+  );
   const remoteAddedToLibraryAt = remoteGame.createdAt
     ? new Date(remoteGame.createdAt)
     : null;
 
-  return localGame
+  const mergedGame = localGame
     ? mergeExistingGame(
         localGame,
         remoteGame,
@@ -374,6 +382,8 @@ const buildMergedGame = (
         canReconcileCustomArtwork
       )
     : createLocalGame(remoteGame, collectionIds, remoteAddedToLibraryAt);
+
+  return { ...mergedGame, collectionPositions };
 };
 
 const mergeRemoteGamesChunk = async (

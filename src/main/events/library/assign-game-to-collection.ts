@@ -3,6 +3,7 @@ import { registerEvent } from "../register-event";
 import { createGame } from "@main/services/library-sync";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { HydraApi, logger } from "@main/services";
+import { pickLibraryCollectionPositions } from "@shared";
 import type { GameShop } from "@types";
 
 const isGameNotFoundError = (error: unknown) => {
@@ -48,6 +49,10 @@ const assignGameToCollection = async (
 
     await updateGameRecord(gameKey, {
       collectionIds,
+      collectionPositions: pickLibraryCollectionPositions(
+        game.collectionPositions,
+        collectionIds
+      ),
     });
   } catch (error) {
     logger.error("Failed to assign game to collection", error);

@@ -1,6 +1,7 @@
 import type { Game, GameShop, LibraryCatalogueMetadata } from "@types";
 import { mergeLocalAndRemotePlayTime } from "../../../shared/playtime.js";
 import { mergeLibraryCatalogueMetadata } from "../../../shared/library-catalogue.js";
+import { pickLibraryCollectionPositions } from "../../../shared/library-group-actions.js";
 import { resolveLibraryIsDeleted } from "./resolve-library-source.js";
 
 export interface ImportedProfileGame extends LibraryCatalogueMetadata {
@@ -24,6 +25,7 @@ export interface ImportedProfileGame extends LibraryCatalogueMetadata {
   isFavorite?: boolean;
   isPinned?: boolean;
   collectionIds?: string[];
+  collectionPositions?: Record<string, number>;
 }
 
 const parseDate = (value: Date | string | null | undefined): Date | null => {
@@ -76,4 +78,10 @@ export const mergeImportedProfileGame = (
   favorite: remoteGame.isFavorite ?? localGame.favorite,
   isPinned: remoteGame.isPinned ?? localGame.isPinned,
   collectionIds: remoteGame.collectionIds ?? localGame.collectionIds,
+  collectionPositions: pickLibraryCollectionPositions(
+    Object.hasOwn(remoteGame, "collectionPositions")
+      ? remoteGame.collectionPositions
+      : localGame.collectionPositions,
+    remoteGame.collectionIds ?? localGame.collectionIds ?? []
+  ),
 });

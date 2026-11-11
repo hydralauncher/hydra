@@ -2311,6 +2311,8 @@
     "reset_custom_order_title": "¿Restablecer el orden personalizado?",
     "reset_custom_order_description": "Tus juegos volverán al orden alfabético. Esta acción no se puede deshacer.",
     "reset_custom_order_confirm": "Restablecer",
+    "reset_collection_order_description": "Los juegos de esta colección volverán al orden de tu biblioteca. Esta acción no se puede deshacer.",
+    "custom_order_save_failed": "No se pudo guardar el nuevo orden",
     "sort_most_played": "Mas jugados",
     "sort_achievements": "Logros",
     "sort_title_asc": "Título (A-Z)",

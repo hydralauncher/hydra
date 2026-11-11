@@ -18,11 +18,13 @@ import {
   useAppDispatch,
   useAppSelector,
   useGameCollections,
+  useToast,
   useUserDetails,
 } from "@renderer/hooks";
 import {
   selectGroupedLibrary,
   selectIsLibraryLoading,
+  setCollectionGameOrder,
   setHeaderTitle,
 } from "@renderer/features";
 import {
@@ -67,6 +69,13 @@ import {
   sortLibraryGamesByCustomOrder,
   writeLibraryCustomOrder,
 } from "./library-custom-order";
+import {
+  buildLibraryCollectionOrder,
+  expandLibraryCollectionOrder,
+  getLibraryCollectionGames,
+  hasLibraryCollectionOrder,
+  isSameLibraryOrder,
+} from "./library-collection-order";
 import {
   LibrarySortableGame,
   isLibraryGameDragData,
@@ -149,6 +158,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
+  const { showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
   const accountId = userDetails?.id ?? null;
   const activeAccountIdRef = useRef(accountId);
@@ -229,7 +239,6 @@ export default function Library() {
     sourceKey: string;
     order: string[];
   } | null>(null);
-  const effectiveCustomOrder = dragPreview?.order ?? customOrder;
   const [showResetCustomOrderModal, setShowResetCustomOrderModal] =
     useState(false);
   const [gameContextMenu, setGameContextMenu] = useState<{
@@ -541,16 +550,50 @@ export default function Library() {
     () => groupLibraryGames(hiddenGames, runningGameId ? [runningGameId] : []),
     [hiddenGames, runningGameId]
   );
+  const orderCollectionId =
+    selectedCollectionId &&
+    selectedCollectionId !== FAVORITES_COLLECTION_ID &&
+    selectedCollectionId !== HIDDEN_COLLECTION_ID
+      ? selectedCollectionId
+      : null;
+  const collectionGames = useMemo(
+    () =>
+      orderCollectionId
+        ? getLibraryCollectionGames(
+            [...library, ...hiddenGames],
+            orderCollectionId
+          )
+        : [],
+    [library, hiddenGames, orderCollectionId]
+  );
+  const collectionOrder = useMemo(
+    () =>
+      orderCollectionId
+        ? buildLibraryCollectionOrder(
+            collectionGames,
+            orderCollectionId,
+            (unplaced) =>
+              sortLibraryGamesByCustomOrder(unplaced, customOrder, (rest) =>
+                sortLibraryGames(rest, "title_asc")
+              )
+          )
+        : null,
+    [collectionGames, orderCollectionId, customOrder]
+  );
+  const savedOrder = collectionOrder ?? customOrder;
+  const effectiveOrder = dragPreview?.order ?? savedOrder;
+  const canResetOrder = orderCollectionId
+    ? hasLibraryCollectionOrder(collectionGames, orderCollectionId)
+    : customOrder.length > 0;
+
   const orderLibraryGames = useCallback(
     (games: LibraryGame[]) =>
       sortBy === "custom"
-        ? sortLibraryGamesByCustomOrder(
-            games,
-            effectiveCustomOrder,
-            (unplaced) => sortLibraryGames(unplaced, "title_asc")
+        ? sortLibraryGamesByCustomOrder(games, effectiveOrder, (unplaced) =>
+            sortLibraryGames(unplaced, "title_asc")
           )
         : sortLibraryGames(games, sortBy),
-    [sortBy, effectiveCustomOrder]
+    [sortBy, effectiveOrder]
   );
   const sortedLibrary = useMemo(
     () => orderLibraryGames(groupedLibrary),
@@ -575,11 +618,56 @@ export default function Library() {
     [customOrder, sortedLibrary]
   );
 
+  const commitCollectionOrder = useCallback(
+    (collectionId: string, games: Pick<LibraryGame, "shop" | "objectId">[]) => {
+      dispatch(setCollectionGameOrder({ collectionId, games }));
+      window.electron
+        .setCollectionGameOrder(collectionId, games)
+        .catch(() => showErrorToast(t("custom_order_save_failed")))
+        .finally(() => {
+          void updateLibrary();
+          void updateHiddenGames();
+        });
+    },
+    [dispatch, showErrorToast, t, updateLibrary, updateHiddenGames]
+  );
+
+  const commitOrder = useCallback(
+    (order: string[]) => {
+      if (!orderCollectionId) {
+        setCustomOrder(order);
+        writeLibraryCustomOrder(localStorage, order);
+        return;
+      }
+
+      commitCollectionOrder(
+        orderCollectionId,
+        expandLibraryCollectionOrder(order, collectionGames, [
+          ...groupedLibrary,
+          ...groupedHiddenGames,
+        ])
+      );
+    },
+    [
+      orderCollectionId,
+      commitCollectionOrder,
+      collectionGames,
+      groupedLibrary,
+      groupedHiddenGames,
+    ]
+  );
+
   const handleResetCustomOrder = useCallback(() => {
+    setShowResetCustomOrderModal(false);
+
+    if (orderCollectionId) {
+      commitCollectionOrder(orderCollectionId, []);
+      return;
+    }
+
     setCustomOrder([]);
     writeLibraryCustomOrder(localStorage, []);
-    setShowResetCustomOrderModal(false);
-  }, []);
+  }, [orderCollectionId, commitCollectionOrder]);
 
   const {
     platforms: uniquePlatforms,
@@ -764,14 +852,16 @@ export default function Library() {
   );
 
   const dragStateRef = useRef({
-    customOrder,
+    savedOrder,
+    commitOrder,
     dragPreview,
     displayedGames: sortedLibrary,
     gridLayout,
     gridMetrics,
   });
   dragStateRef.current = {
-    customOrder,
+    savedOrder,
+    commitOrder,
     dragPreview,
     displayedGames:
       selectedCollectionId === HIDDEN_COLLECTION_ID
@@ -802,7 +892,7 @@ export default function Library() {
 
     const previewMoveOnto = (sourceKey: string, targetKey: string) => {
       const {
-        customOrder: savedOrder,
+        savedOrder: committedOrder,
         dragPreview: preview,
         displayedGames,
       } = dragStateRef.current;
@@ -817,7 +907,7 @@ export default function Library() {
       setDragPreview({
         sourceKey,
         order: moveLibraryGameInCustomOrder(
-          preview?.order ?? savedOrder,
+          preview?.order ?? committedOrder,
           displayedGames,
           sourceKey,
           targetKey,
@@ -884,7 +974,7 @@ export default function Library() {
           );
           setDragPreview({
             sourceKey: source.data.orderKey,
-            order: dragStateRef.current.customOrder,
+            order: dragStateRef.current.savedOrder,
           });
         },
         onDrag: ({ location }) => {
@@ -898,12 +988,19 @@ export default function Library() {
           pointer = null;
           autoscroll.stop();
           const overlayRect = removeOverlay();
-          const { dragPreview: preview } = dragStateRef.current;
+          const {
+            dragPreview: preview,
+            savedOrder: committedOrder,
+            commitOrder: commit,
+          } = dragStateRef.current;
           const isInsideGrid = location.current.dropTargets.length > 0;
 
-          if (preview && isInsideGrid) {
-            setCustomOrder(preview.order);
-            writeLibraryCustomOrder(localStorage, preview.order);
+          if (
+            preview &&
+            isInsideGrid &&
+            !isSameLibraryOrder(preview.order, committedOrder)
+          ) {
+            commit(preview.order);
 
             if (isLibraryGameDragData(source.data) && overlayRect) {
               pendingSettleRef.current = {
@@ -944,8 +1041,8 @@ export default function Library() {
   );
 
   const committedOrderIndex = useMemo(
-    () => new Map(customOrder.map((key, index) => [key, index])),
-    [customOrder]
+    () => new Map(savedOrder.map((key, index) => [key, index])),
+    [savedOrder]
   );
   const renderedPlacements = dragPreview
     ? [...visiblePlacements].sort(
@@ -1067,7 +1164,7 @@ export default function Library() {
                 onSortChange={handleSortChange}
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
-                canResetCustomOrder={customOrder.length > 0}
+                canResetCustomOrder={canResetOrder}
                 onResetCustomOrder={() => setShowResetCustomOrderModal(true)}
               />
             )}
@@ -1272,7 +1369,11 @@ export default function Library() {
       <ConfirmationModal
         visible={showResetCustomOrderModal}
         title={t("reset_custom_order_title")}
-        descriptionText={t("reset_custom_order_description")}
+        descriptionText={
+          orderCollectionId
+            ? t("reset_collection_order_description")
+            : t("reset_custom_order_description")
+        }
         confirmButtonLabel={t("reset_custom_order_confirm")}
         cancelButtonLabel={t("cancel", { ns: "sidebar" })}
         confirmButtonTheme="danger"

@@ -10,6 +10,88 @@ export function getLibraryCollectionIds(
   return game?.collectionId ? [game.collectionId] : [];
 }
 
+export type LibraryCollectionPositions = Record<string, number>;
+
+interface CollectionOrderGame {
+  shop: GameShop;
+  objectId: string;
+}
+
+const getCollectionOrderKey = (game: CollectionOrderGame) =>
+  `${game.shop}:${game.objectId}`;
+
+export function pickLibraryCollectionPositions(
+  positions: unknown,
+  collectionIds: readonly string[]
+): LibraryCollectionPositions {
+  if (
+    typeof positions !== "object" ||
+    positions === null ||
+    Array.isArray(positions)
+  ) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(positions).filter(
+      ([collectionId, position]) =>
+        collectionIds.includes(collectionId) &&
+        typeof position === "number" &&
+        Number.isFinite(position)
+    )
+  );
+}
+
+export function getLibraryCollectionOrderPositions(
+  games: readonly CollectionOrderGame[]
+): Map<string, number> {
+  const positions = new Map<string, number>();
+  const localOnlyKeys: string[] = [];
+  let syncedIndex = -1;
+
+  const placeLocalOnlyGames = () => {
+    localOnlyKeys.forEach((key, index) =>
+      positions.set(key, syncedIndex + (index + 1) / (localOnlyKeys.length + 1))
+    );
+    localOnlyKeys.length = 0;
+  };
+
+  for (const game of games) {
+    const key = getCollectionOrderKey(game);
+    if (positions.has(key) || localOnlyKeys.includes(key)) continue;
+
+    if (game.shop === "custom") {
+      localOnlyKeys.push(key);
+      continue;
+    }
+
+    placeLocalOnlyGames();
+    syncedIndex += 1;
+    positions.set(key, syncedIndex);
+  }
+  placeLocalOnlyGames();
+
+  return positions;
+}
+
+export function applyLibraryCollectionOrder(
+  game: CollectionOrderGame & {
+    collectionIds?: string[] | null;
+    collectionId?: string | null;
+    collectionPositions?: LibraryCollectionPositions;
+  },
+  collectionId: string,
+  positions: ReadonlyMap<string, number>
+): LibraryCollectionPositions | null {
+  if (!getLibraryCollectionIds(game).includes(collectionId)) return null;
+
+  const next = { ...game.collectionPositions };
+  delete next[collectionId];
+  const position = positions.get(getCollectionOrderKey(game));
+  if (position !== undefined) next[collectionId] = position;
+  return next;
+}
+
 export function getLibraryGroupCollectionAssignments<
   T extends {
     shop: GameShop;
