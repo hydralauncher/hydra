@@ -34,14 +34,24 @@ const FLAT_BLOCK_MARKER = -1;
 const DIRENT_DIRECTORY = 3;
 
 export interface Ps4PkgExtractProgress {
+  /** Bytes written by this shard, out of the bytes this shard writes. */
   writtenBytes: number;
   totalBytes: number;
+  /** Bytes of every file in the PKG. */
+  pkgBytes: number;
+}
+
+export interface Ps4PkgExtractShard {
+  index: number;
+  count: number;
 }
 
 export interface Ps4PkgExtractOptions {
   pkgPath: string;
   outputDirectory: string;
   onProgress?: (progress: Ps4PkgExtractProgress) => void;
+  /** Extracts only one share of the files, so several workers can split a PKG. */
+  shard?: Ps4PkgExtractShard;
 }
 
 interface Inode {
@@ -371,10 +381,27 @@ export const listPs4PkgFiles = (fd: number, info: Ps4PkgInfo) => {
   return { dk3, tree, ...tree.files() };
 };
 
+/** Splits the files by size the same way in every worker. */
+const pickShard = (files: PfsFile[], shard: Ps4PkgExtractShard) => {
+  if (shard.count <= 1) return files;
+  const loads = new Array<number>(shard.count).fill(0);
+  const picked: PfsFile[] = [];
+  const bySize = files
+    .map((file, order) => ({ file, order }))
+    .sort((a, b) => b.file.inode.size - a.file.inode.size || a.order - b.order);
+  for (const { file } of bySize) {
+    const lightest = loads.indexOf(Math.min(...loads));
+    loads[lightest] += file.inode.size;
+    if (lightest === shard.index) picked.push(file);
+  }
+  return picked;
+};
+
 export const extractPs4Pkg = ({
   pkgPath,
   outputDirectory,
   onProgress,
+  shard = { index: 0, count: 1 },
 }: Ps4PkgExtractOptions) => {
   const fd = fs.openSync(pkgPath, "r");
   try {
@@ -387,26 +414,33 @@ export const extractPs4Pkg = ({
     }
 
     const { dk3, tree, files, directories } = listPs4PkgFiles(fd, info);
-    const totalBytes = files.reduce((sum, file) => sum + file.inode.size, 0);
+    const pkgBytes = files.reduce((sum, file) => sum + file.inode.size, 0);
+    const shardFiles = pickShard(files, shard);
+    const totalBytes = shardFiles.reduce(
+      (sum, file) => sum + file.inode.size,
+      0
+    );
     let writtenBytes = 0;
-    onProgress?.({ writtenBytes, totalBytes });
+    onProgress?.({ writtenBytes, totalBytes, pkgBytes });
 
     fs.mkdirSync(outputDirectory, { recursive: true });
-    writeSystemEntries(fd, info, dk3, path.join(outputDirectory, "sce_sys"));
+    if (shard.index === 0) {
+      writeSystemEntries(fd, info, dk3, path.join(outputDirectory, "sce_sys"));
+    }
     for (const directory of directories) {
       fs.mkdirSync(path.join(outputDirectory, directory), { recursive: true });
     }
 
-    for (const file of files) {
+    for (const file of shardFiles) {
       const target = path.join(outputDirectory, file.relativePath);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       tree.copyFile(file, target, (count) => {
         writtenBytes += count;
-        onProgress?.({ writtenBytes, totalBytes });
+        onProgress?.({ writtenBytes, totalBytes, pkgBytes });
       });
     }
 
-    return { info, totalBytes, fileCount: files.length };
+    return { info, totalBytes, fileCount: shardFiles.length };
   } finally {
     fs.closeSync(fd);
   }

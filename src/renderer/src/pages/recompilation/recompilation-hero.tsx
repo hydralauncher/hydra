@@ -21,7 +21,7 @@ import { ConfirmationModal } from "@renderer/components/confirmation-modal/confi
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
 import { useToast } from "@renderer/hooks";
-import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job-modal/ps4-pkg-job-modal";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import { CloudSaveWidget } from "../game-details/cloud-save-v2";
 import {
   getInstallErrorKey,

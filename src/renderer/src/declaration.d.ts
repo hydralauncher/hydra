@@ -848,7 +848,7 @@ declare global {
     extractPs4GamePkg: (
       shop: GameShop,
       objectId: string,
-      pkgPath: string
+      pkgPath?: string | null
     ) => Promise<Ps4PkgResult>;
     cancelPs4PkgJob: () => Promise<void>;
     onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => () => void;

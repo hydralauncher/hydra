@@ -53,7 +53,7 @@ import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import type { GameCollection } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
-import { usePs4PkgPicker } from "../ps4-pkg-job-modal/ps4-pkg-job-modal";
+import { usePs4PkgPicker } from "../ps4-pkg-job/ps4-pkg-job-host";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: GameContextMenuGame;

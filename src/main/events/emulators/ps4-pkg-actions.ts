@@ -14,6 +14,7 @@ import type {
 import { gamesSublevel, levelKeys } from "@main/level";
 import { platformToSystem } from "@main/helpers";
 import { logger, WindowManager } from "@main/services";
+import { publishExtractionCompleteNotification } from "@main/services/notifications";
 import { normalize } from "@main/services/emulators/sku-normalize";
 import {
   assertPs4UpdateFits,
@@ -293,20 +294,32 @@ const linkExtractedDisc = async (
   });
 };
 
-/** Extracts a PS4 game PKG next to it and links the folder as the game's disc. */
-export const extractPs4GamePkg = (
+/** The PKG disc the game would play: the selected one, else the first. */
+const getSelectedPkgDisc = async (shop: GameShop, objectId: string) => {
+  const game = await getPs4Game(shop, objectId);
+  const selected = game?.selectedDiscPath ?? game?.discs?.[0]?.path ?? null;
+  return selected && isPs4PkgPath(selected) ? selected : null;
+};
+
+/**
+ * Extracts a PS4 game PKG next to it and links the folder as the game's disc.
+ * Without a path it extracts the PKG disc the game would play.
+ */
+export const extractPs4GamePkg = async (
   shop: GameShop,
   objectId: string,
-  pkgPath: string,
-  launchAfter = false
-) =>
-  runJob(shop, objectId, "extract", {}, async (signal, onProgress) => {
-    const info = await readUsablePkg(pkgPath);
+  pkgPath?: string | null
+): Promise<Ps4PkgResult> => {
+  const source = pkgPath ?? (await getSelectedPkgDisc(shop, objectId));
+  if (!source) return { ok: false, reason: "unsupported" };
+
+  return runJob(shop, objectId, "extract", {}, async (signal, onProgress) => {
+    const info = await readUsablePkg(source);
     if (!info || info.kind !== "game") {
       throw new Ps4PkgError("unsupported_pkg", "Not a game PKG");
     }
 
-    const folder = path.join(path.dirname(pkgPath), info.titleId);
+    const folder = path.join(path.dirname(source), info.titleId);
     const folderTitleId = isGameFolder(folder)
       ? await readPs4FolderParam(folder, "TITLE_ID")
       : null;
@@ -315,22 +328,17 @@ export const extractPs4GamePkg = (
 
     if (!alreadyExtracted) {
       onProgress(0);
-      await installPs4Pkg({ pkgPath, signal, onProgress });
+      await installPs4Pkg({ pkgPath: source, signal, onProgress });
     }
     onProgress(1);
 
-    await linkExtractedDisc(shop, objectId, pkgPath, folder, info.titleId);
+    await linkExtractedDisc(shop, objectId, source, folder, info.titleId);
 
-    if (launchAfter) {
-      const { openClassicsGame } = await import(
-        "@main/helpers/open-classics-game"
-      );
-      void openClassicsGame(shop, objectId, folder).catch((error) =>
-        logger.error("Failed to launch the extracted PS4 game", error)
-      );
-    }
+    const game = await getPs4Game(shop, objectId);
+    if (game) void publishExtractionCompleteNotification(game);
     return { version: formatVersion(info.appVersion) };
   });
+};
 
 export const cancelPs4PkgJob = () => running?.controller.abort();
 
@@ -367,7 +375,7 @@ registerEvent(
     _event: Electron.IpcMainInvokeEvent,
     shop: GameShop,
     objectId: string,
-    pkgPath: string
+    pkgPath?: string | null
   ) => extractPs4GamePkg(shop, objectId, pkgPath)
 );
 

@@ -29,7 +29,7 @@ import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
-import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job-modal/ps4-pkg-job-modal";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import {
   getSkuRegion,
   getSkuRegionFlag,

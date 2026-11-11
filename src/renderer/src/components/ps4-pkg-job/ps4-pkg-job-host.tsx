@@ -1,19 +1,14 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type {
-  GameShop,
-  Ps4PkgAccept,
-  Ps4PkgFailure,
-  Ps4PkgJobEvent,
-} from "@types";
-import { Button } from "../button/button";
-import { Modal } from "../modal/modal";
-import { InstallProgressBar } from "../setup-modal/install-progress-bar";
-import { useToast } from "@renderer/hooks";
-
-import "@renderer/components/setup-modal/setup-modal.scss";
-import "./ps4-pkg-job-modal.scss";
+import type { GameShop, Ps4PkgAccept, Ps4PkgFailure } from "@types";
+import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
+import { useAppDispatch, useToast } from "@renderer/hooks";
+import { setPs4PkgJob } from "@renderer/features";
+import {
+  PS4_PKG_EXTRACT_REQUEST_EVENT,
+  type Ps4PkgExtractRequest,
+} from "./ps4-pkg-extract-request";
 
 export const ps4PkgErrorKey = (reason?: Ps4PkgFailure) => {
   switch (reason) {
@@ -37,31 +32,34 @@ export const ps4PkgErrorKey = (reason?: Ps4PkgFailure) => {
 };
 
 /**
- * Shows every PS4 PKG job the main process runs (applying an update,
- * extracting a game), wherever it was started from. Mounted once in the app.
+ * Follows the PS4 PKG job the main process runs (extracting a game, applying
+ * an update) into the store, where Downloads, the sidebar and the game page
+ * show it. Also asks before extracting a PKG disc on Play. Mounted once.
  */
-export function Ps4PkgJobModal() {
+export function Ps4PkgJobHost() {
   const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
-  const [job, setJob] = useState<Ps4PkgJobEvent | null>(null);
-  const [cancelling, setCancelling] = useState(false);
+  const dispatch = useAppDispatch();
+  const [extractRequest, setExtractRequest] =
+    useState<Ps4PkgExtractRequest | null>(null);
+
+  useEffect(() => {
+    const onRequest = (event: Event) =>
+      setExtractRequest((event as CustomEvent<Ps4PkgExtractRequest>).detail);
+    window.addEventListener(PS4_PKG_EXTRACT_REQUEST_EVENT, onRequest);
+    return () =>
+      window.removeEventListener(PS4_PKG_EXTRACT_REQUEST_EVENT, onRequest);
+  }, []);
 
   useEffect(
     () =>
       window.electron.onPs4PkgJob((event) => {
-        if (event.phase === "start") {
-          setCancelling(false);
-          setJob(event);
-          return;
-        }
-        if (event.phase === "progress") {
-          setJob((current) =>
-            current ? { ...current, progress: event.progress } : event
-          );
+        if (event.phase === "start" || event.phase === "progress") {
+          dispatch(setPs4PkgJob(event));
           return;
         }
 
-        setJob(null);
+        dispatch(setPs4PkgJob(null));
         if (event.phase === "done" && event.mode === "update") {
           showSuccessToast(
             t("ps4_update_done", { version: event.version ?? "" })
@@ -70,51 +68,33 @@ export function Ps4PkgJobModal() {
           showErrorToast(t(ps4PkgErrorKey(event.reason)));
         }
       }),
-    [showSuccessToast, showErrorToast, t]
+    [dispatch, showSuccessToast, showErrorToast, t]
   );
 
-  const cancel = () => {
-    setCancelling(true);
-    void window.electron.cancelPs4PkgJob();
+  const closeRequest = () => setExtractRequest(null);
+
+  const extract = async () => {
+    if (!extractRequest) return;
+    closeRequest();
+    const result = await window.electron
+      .extractPs4GamePkg(extractRequest.shop, extractRequest.objectId)
+      .catch(() => null);
+    // Failures while extracting arrive as job events; these come before it.
+    if (result?.reason === "busy" || result?.reason === "unsupported") {
+      showErrorToast(t(ps4PkgErrorKey(result.reason)));
+    }
   };
 
-  const percent = Math.round((job?.progress ?? 0) * 100);
-  const isUpdate = job?.mode === "update";
-  let status = job?.title ?? "";
-  if (isUpdate) {
-    status =
-      job?.currentVersion && job.version
-        ? t("ps4_update_versions", {
-            from: job.currentVersion,
-            to: job.version,
-          })
-        : t("ps4_update_applying");
-  }
-
   return (
-    <Modal
-      visible={job !== null}
-      title={isUpdate ? t("apply_ps4_update") : t("ps4_pkg_extracting")}
-      onClose={cancel}
-      clickOutsideToClose={false}
-    >
-      <div className="ps4-pkg-job-modal">
-        <div className="ps4-pkg-job-modal__status">
-          <span>{status}</span>
-          <span>{percent}%</span>
-        </div>
-
-        <InstallProgressBar
-          progress={{ phase: "downloading", loaded: percent, total: 100 }}
-        />
-
-        <div className="ps4-pkg-job-modal__actions">
-          <Button theme="outline" onClick={cancel} disabled={cancelling}>
-            {t("cancel")}
-          </Button>
-        </div>
-      </div>
-    </Modal>
+    <ConfirmationModal
+      visible={extractRequest !== null}
+      title={t("ps4_pkg_extract_title")}
+      descriptionText={t("ps4_pkg_extract_description")}
+      confirmButtonLabel={t("ps4_pkg_extract_confirm")}
+      cancelButtonLabel={t("cancel")}
+      onConfirm={() => void extract()}
+      onClose={closeRequest}
+    />
   );
 }
 

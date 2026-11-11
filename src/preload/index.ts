@@ -687,8 +687,11 @@ contextBridge.exposeInMainWorld("electron", {
   ) => ipcRenderer.invoke("checkPs4Pkg", shop, objectId, pkgPath, accept),
   applyPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
     ipcRenderer.invoke("applyPs4Update", shop, objectId, pkgPath),
-  extractPs4GamePkg: (shop: GameShop, objectId: string, pkgPath: string) =>
-    ipcRenderer.invoke("extractPs4GamePkg", shop, objectId, pkgPath),
+  extractPs4GamePkg: (
+    shop: GameShop,
+    objectId: string,
+    pkgPath?: string | null
+  ) => ipcRenderer.invoke("extractPs4GamePkg", shop, objectId, pkgPath),
   cancelPs4PkgJob: () => ipcRenderer.invoke("cancelPs4PkgJob"),
   onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => {
     const listener = (_event: unknown, payload: Ps4PkgJobEvent) => cb(payload);

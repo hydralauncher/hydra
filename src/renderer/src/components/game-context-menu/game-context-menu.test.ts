@@ -353,7 +353,7 @@ async function fixture(
         return null;
       },
     },
-    "../ps4-pkg-job-modal/ps4-pkg-job-modal": {
+    "../ps4-pkg-job/ps4-pkg-job-host": {
       usePs4PkgPicker: () => ({ pick: async () => {}, isBusy: false }),
     },
   });

@@ -364,17 +364,17 @@ export const openClassicsGame = async (
   const resolvedDiscPath =
     discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
 
-  // A PS4 PKG found in the ROM folder is extracted on the first play.
+  // A PS4 PKG found in the ROM folder has to be extracted before it plays;
+  // the renderer asks first and then extracts it.
   if (
     system === "ps4" &&
     resolvedDiscPath?.toLowerCase().endsWith(".pkg") &&
     existsSync(resolvedDiscPath)
   ) {
-    const { extractPs4GamePkg } = await import(
-      "@main/events/emulators/ps4-pkg-actions"
+    throw Object.assign(
+      new Error(`PS4_PKG_NEEDS_EXTRACTION: ${shop}/${objectId}`),
+      { code: "PS4_PKG_NEEDS_EXTRACTION" }
     );
-    void extractPs4GamePkg(shop, objectId, resolvedDiscPath, true);
-    return;
   }
 
   if (

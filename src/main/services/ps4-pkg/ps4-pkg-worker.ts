@@ -2,7 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { parentPort, workerData } from "node:worker_threads";
 
-import { extractPs4Pkg } from "./ps4-pkg-extract";
+import { createRequire } from "node:module";
+
+import {
+  setNativeSectorDecryptor,
+  type NativeSectorDecryptor,
+} from "./ps4-pkg-crypto";
+import { extractPs4Pkg, type Ps4PkgExtractShard } from "./ps4-pkg-extract";
 import { Ps4PkgError } from "./ps4-pkg-info";
 
 const PROGRESS_INTERVAL_MS = 250;
@@ -10,7 +16,24 @@ const PROGRESS_INTERVAL_MS = 250;
 interface Ps4PkgWorkerData {
   pkgPath: string;
   outputDirectory: string;
+  shard: Ps4PkgExtractShard;
+  nativeAddonPath: string | null;
 }
+
+/** Decrypting natively is what makes the extraction run at disk speed. */
+const loadNativeDecryptor = (addonPath: string | null) => {
+  if (!addonPath) return;
+  try {
+    const addon = createRequire(import.meta.url)(addonPath) as {
+      decryptPs4PkgSectors?: NativeSectorDecryptor;
+    };
+    if (addon.decryptPs4PkgSectors) {
+      setNativeSectorDecryptor(addon.decryptPs4PkgSectors);
+    }
+  } catch {
+    // An older addon without the function: the JavaScript fallback runs.
+  }
+};
 
 const findExistingPath = (target: string) => {
   let current = target;
@@ -29,7 +52,9 @@ const hasFreeSpace = (target: string, bytes: number) => {
   return Number(stats.bavail) * Number(stats.bsize) >= bytes;
 };
 
-const { pkgPath, outputDirectory } = workerData as Ps4PkgWorkerData;
+const { pkgPath, outputDirectory, shard, nativeAddonPath } =
+  workerData as Ps4PkgWorkerData;
+loadNativeDecryptor(nativeAddonPath);
 let lastProgressAt = 0;
 let checkedSpace = false;
 
@@ -37,10 +62,12 @@ try {
   extractPs4Pkg({
     pkgPath,
     outputDirectory,
-    onProgress: ({ writtenBytes, totalBytes }) => {
+    shard,
+    onProgress: ({ writtenBytes, totalBytes, pkgBytes }) => {
       if (!checkedSpace) {
         checkedSpace = true;
-        if (!hasFreeSpace(outputDirectory, totalBytes)) {
+        // Only the first worker checks, against the whole PKG.
+        if (shard.index === 0 && !hasFreeSpace(outputDirectory, pkgBytes)) {
           throw new Ps4PkgError("no_space", "Not enough disk space");
         }
       }
@@ -53,7 +80,12 @@ try {
         return;
       }
       lastProgressAt = now;
-      parentPort?.postMessage({ type: "progress", writtenBytes, totalBytes });
+      parentPort?.postMessage({
+        type: "progress",
+        writtenBytes,
+        totalBytes,
+        pkgBytes,
+      });
     },
   });
   parentPort?.postMessage({ type: "done" });

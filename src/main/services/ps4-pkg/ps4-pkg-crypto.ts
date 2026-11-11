@@ -82,6 +82,23 @@ export const decryptEkpfs = (
     aesCbcDecrypt(entryCipherKey(imageKeyEntry, dk3), imageKey)
   ).subarray(0, 32);
 
+/** Native AES-128-XTS from hydra-native; decrypts the sectors in place. */
+export type NativeSectorDecryptor = (
+  tweakKey: Buffer,
+  dataKey: Buffer,
+  data: Buffer,
+  firstSector: number
+) => void;
+
+let nativeDecryptor: NativeSectorDecryptor | null = null;
+
+export const setNativeSectorDecryptor = (
+  decryptor: NativeSectorDecryptor | null
+) => {
+  nativeDecryptor = decryptor;
+};
+
+/** Returns a function that decrypts whole sectors; it may reuse `data`. */
 export const createSectorDecryptor = (ekpfs: Buffer, seed: Buffer) => {
   const index = Buffer.alloc(4);
   index.writeUInt32LE(1);
@@ -90,47 +107,78 @@ export const createSectorDecryptor = (ekpfs: Buffer, seed: Buffer) => {
     .update(index)
     .update(seed)
     .digest();
-  // XTS on top of ECB: Electron's BoringSSL has no aes-128-xts.
+
+  if (nativeDecryptor) {
+    const decrypt = nativeDecryptor;
+    const tweakKey = Buffer.from(digest.subarray(0, 16));
+    const dataKey = Buffer.from(digest.subarray(16, 32));
+    return (data: Buffer, firstSector: number) => {
+      decrypt(tweakKey, dataKey, data, firstSector);
+      return data;
+    };
+  }
+
+  // Without the addon: XTS on top of ECB, since Electron's BoringSSL has no
+  // aes-128-xts.
   const tweakCipher = crypto
     .createCipheriv("aes-128-ecb", digest.subarray(0, 16), null)
     .setAutoPadding(false);
   const dataDecipher = crypto
     .createDecipheriv("aes-128-ecb", digest.subarray(16, 32), null)
     .setAutoPadding(false);
-  const sectorNumber = Buffer.alloc(16);
-  const tweaks = Buffer.alloc(XTS_SECTOR_SIZE);
+  const wordsPerSector = XTS_SECTOR_SIZE / 4;
 
-  const fillTweaks = (sector: number) => {
-    sectorNumber.writeBigUInt64LE(BigInt(sector));
-    tweakCipher.update(sectorNumber).copy(tweaks, 0);
-    for (let block = 16; block < XTS_SECTOR_SIZE; block += 16) {
-      const carry = tweaks[block - 1] >> 7;
-      for (let byte = 15; byte > 0; byte--) {
-        tweaks[block + byte] =
-          ((tweaks[block - 16 + byte] << 1) |
-            (tweaks[block - 16 + byte - 1] >> 7)) &
-          0xff;
-      }
-      tweaks[block] = ((tweaks[block - 16] << 1) & 0xff) ^ (carry ? 0x87 : 0);
-    }
+  /** Copies into a fresh array, so the 32-bit view is aligned. */
+  const toWords = (bytes: Uint8Array) => {
+    const copy = new Uint8Array(bytes);
+    return new Uint32Array(copy.buffer, 0, copy.length / 4);
   };
 
-  const xorTweaks = (target: Buffer, offset: number) => {
-    for (let index = 0; index < XTS_SECTOR_SIZE; index++) {
-      target[offset + index] ^= tweaks[index];
+  // The extraction speed is set by this decryption, so the tweaks are built
+  // and applied 32 bits at a time and each read is a single AES call.
+  const buildTweaks = (sectors: number, firstSector: number) => {
+    const numbers = Buffer.alloc(sectors * 16);
+    for (let sector = 0; sector < sectors; sector++) {
+      numbers.writeBigUInt64LE(BigInt(firstSector + sector), sector * 16);
+    }
+    const first = toWords(tweakCipher.update(numbers));
+    const tweaks = new Uint32Array(sectors * wordsPerSector);
+    let word = 0;
+    for (let sector = 0; sector < sectors; sector++) {
+      let a = first[sector * 4];
+      let b = first[sector * 4 + 1];
+      let c = first[sector * 4 + 2];
+      let d = first[sector * 4 + 3];
+      for (let block = 0; block < wordsPerSector / 4; block++) {
+        tweaks[word++] = a;
+        tweaks[word++] = b;
+        tweaks[word++] = c;
+        tweaks[word++] = d;
+        // Multiplies the tweak by x in GF(2^128), little-endian.
+        const carry = d >>> 31;
+        d = (d << 1) | (c >>> 31);
+        c = (c << 1) | (b >>> 31);
+        b = (b << 1) | (a >>> 31);
+        a = (a << 1) ^ (carry ? 0x87 : 0);
+      }
+    }
+    return tweaks;
+  };
+
+  const xorWords = (target: Uint32Array, tweaks: Uint32Array) => {
+    for (let index = 0; index < target.length; index++) {
+      target[index] ^= tweaks[index];
     }
   };
 
   return (data: Buffer, firstSector: number) => {
-    const output = Buffer.from(data);
-    for (let offset = 0; offset < output.length; offset += XTS_SECTOR_SIZE) {
-      fillTweaks(firstSector + offset / XTS_SECTOR_SIZE);
-      xorTweaks(output, offset);
-      dataDecipher
-        .update(output.subarray(offset, offset + XTS_SECTOR_SIZE))
-        .copy(output, offset);
-      xorTweaks(output, offset);
-    }
-    return output;
+    const tweaks = buildTweaks(data.length / XTS_SECTOR_SIZE, firstSector);
+    const cipher = toWords(data);
+    xorWords(cipher, tweaks);
+    const plain = toWords(
+      dataDecipher.update(new Uint8Array(cipher.buffer, 0, data.length))
+    );
+    xorWords(plain, tweaks);
+    return Buffer.from(plain.buffer, 0, data.length);
   };
 };
