@@ -41,11 +41,21 @@ function getDriveRoot(letter: string): string {
   return `${letter}:${DRIVE_SEPARATOR}`;
 }
 
+interface StatfsResult {
+  blocks: number;
+  bsize: number;
+  bavail: number;
+}
+
+type FsWithStatfs = { statfs?: (path: string) => Promise<StatfsResult> };
+
 async function getDriveInfo(root: string): Promise<DriveInfo | null> {
-  if (typeof (fs as any).statfs !== "function") return null;
+  const fsWithStatfs = fs as unknown as FsWithStatfs;
+
+  if (typeof fsWithStatfs.statfs !== "function") return null;
 
   try {
-    const stats = await (fs as any).statfs(root);
+    const stats = await fsWithStatfs.statfs(root);
     const total = stats.blocks * stats.bsize;
     const free = stats.bavail * stats.bsize;
 

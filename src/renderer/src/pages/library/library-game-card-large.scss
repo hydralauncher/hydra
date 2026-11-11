@@ -214,8 +214,9 @@
 
   &__top-right {
     display: flex;
-    align-items: flex-start;
-    gap: calc(globals.$spacing-unit);
+    align-items: center;
+    gap: 8px;
+    height: 28px;
     margin-left: auto;
   }
 
@@ -236,6 +237,33 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     font-size: globals.$small-font-size;
     font-weight: 500;
+  }
+
+  &__missing-badge {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: globals.$warning-color;
+    border: 1px solid rgba(globals.$warning-color, 0.45);
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    height: 28px;
+    box-sizing: border-box;
+    line-height: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  &__missing-icon {
+    flex-shrink: 0;
+  }
+
+  &__missing-text {
+    white-space: nowrap;
   }
 
   &__installed-icon {
@@ -293,14 +321,6 @@
     color: globals.$warning-color;
   }
 
-  &__top-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 28px;
-    margin-left: auto;
-  }
-
   &__classics-badges {
     display: flex;
     align-items: center;
@@ -344,6 +364,7 @@
     align-items: center;
     justify-content: space-between;
   }
+
   &__achievements-gap {
     display: flex;
     align-items: center;

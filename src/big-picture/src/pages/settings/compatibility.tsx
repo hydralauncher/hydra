@@ -432,6 +432,7 @@ export function CompatibilitySettingsSection({
     form.defaultProtonPath,
     gamemodeAvailable,
     handleInstallCommonRedist,
+    handleOpenExternalLink,
     installingCommonRedist,
     mangohudAvailable,
     protonOptions,

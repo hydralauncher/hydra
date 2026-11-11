@@ -6,6 +6,7 @@ import path from "node:path";
 import fs from "node:fs";
 
 import type { Download, Game, LibraryGame } from "@types";
+import { canDiscardDownload } from "../../../types";
 import { registerEvent } from "../register-event";
 import {
   downloadsSublevel,
@@ -16,6 +17,8 @@ import {
   levelKeys,
 } from "@main/level";
 import { composeAssetsWithArtwork } from "@shared";
+import { clearFinishedDownload } from "@main/helpers/download-game-helper";
+import { isPathDeleted } from "@main/helpers/is-path-deleted";
 import { HydraApi } from "@main/services/hydra-api";
 import { belongsToLibraryCollection } from "@main/services/library-sync/game-visibility";
 import {
@@ -88,6 +91,89 @@ const resolveInstallerSize = (
   return null;
 };
 
+// Reports whether the executable is missing instead of clearing it from the
+// database. A missing file whose parent folder still exists is reported as
+// "missing" (e.g. an antivirus quarantine, or an updater swapping the binary
+// during a library refresh), so the UI can show the game as not installed and
+// offer a "locate" action. The stored `executablePath` is always preserved.
+const resolveExecutable = async (key: string, game: Game) => {
+  const { executablePath } = game;
+
+  // Epic-managed installs are reconciled by the Epic flow (installed.json and
+  // epicInstallation). Clearing only the executable here would leave an
+  // installation without an executable, so leave them alone.
+  if (game.epicInstallation) {
+    return {
+      executablePath,
+      executablePathUpdatedAt: game.executablePathUpdatedAt,
+      automaticCloudSync: game.automaticCloudSync,
+      installedSizeInBytes: game.installedSizeInBytes,
+      executableMissing: false,
+    };
+  }
+
+  if (!executablePath || !(await isPathDeleted(executablePath))) {
+    return {
+      executablePath,
+      executablePathUpdatedAt: game.executablePathUpdatedAt,
+      automaticCloudSync: game.automaticCloudSync,
+      installedSizeInBytes: game.installedSizeInBytes,
+      executableMissing: false,
+    };
+  }
+
+  // Fetch the latest record to avoid reporting a stale path if the user just
+  // selected a new executable while we were checking.
+  const latestGame = await gamesSublevel.get(key).catch(() => undefined);
+  const effectiveExecutablePath = latestGame?.executablePath ?? executablePath;
+
+  // Re-evaluate against the latest path: the user may have already pointed the
+  // game at a new executable. Nothing is written to the database here.
+  const executableMissing =
+    !!effectiveExecutablePath && (await isPathDeleted(effectiveExecutablePath));
+
+  return {
+    executablePath: effectiveExecutablePath,
+    executablePathUpdatedAt:
+      latestGame?.executablePathUpdatedAt ?? game.executablePathUpdatedAt,
+    automaticCloudSync:
+      latestGame?.automaticCloudSync ?? game.automaticCloudSync,
+    installedSizeInBytes:
+      latestGame?.installedSizeInBytes ?? game.installedSizeInBytes,
+    executableMissing,
+  };
+};
+
+// Drops a finished download whose folder was deleted outside Hydra.
+const resolveActiveDownload = async (
+  key: string,
+  game: Game,
+  download: Download | undefined
+) => {
+  if (
+    !download?.folderName ||
+    !canDiscardDownload(download) ||
+    !(await isPathDeleted(
+      path.join(download.downloadPath, download.folderName)
+    ))
+  ) {
+    return download;
+  }
+
+  // Fetch the latest record to avoid a race condition.
+  const latestDownload = await downloadsSublevel
+    .get(key)
+    .catch(() => undefined);
+  if (latestDownload?.folderName !== download.folderName) {
+    return latestDownload ?? download;
+  }
+
+  clearFinishedDownload(game.shop, game.objectId).catch((error) =>
+    logger.error(`Failed to clear missing download folder for ${key}`, error)
+  );
+  return undefined;
+};
+
 const getLibrary = async (
   collection: "visible" | "hidden" | "all" = "visible"
 ): Promise<LibraryGame[]> => {
@@ -133,6 +219,8 @@ const getLibrary = async (
       );
       const achievementCount = await resolveLibraryAchievementCount(game);
       const installerSizeInBytes = resolveInstallerSize(key, game, download);
+      const executable = await resolveExecutable(key, game);
+      const activeDownload = await resolveActiveDownload(key, game, download);
 
       if (
         game.shop === "launchbox" &&
@@ -146,9 +234,9 @@ const getLibrary = async (
       }
 
       // Verify installed folder still exists, clear if deleted externally
-      let installedSizeInBytes = game.installedSizeInBytes;
-      if (installedSizeInBytes && game.executablePath) {
-        const executableDir = path.dirname(game.executablePath);
+      let installedSizeInBytes = executable.installedSizeInBytes;
+      if (installedSizeInBytes && executable.executablePath) {
+        const executableDir = path.dirname(executable.executablePath);
 
         if (!fs.existsSync(executableDir)) {
           installedSizeInBytes = null;
@@ -169,7 +257,11 @@ const getLibrary = async (
         ...game,
         installerSizeInBytes,
         installedSizeInBytes,
-        download: download ?? null,
+        executablePath: executable.executablePath,
+        executablePathUpdatedAt: executable.executablePathUpdatedAt,
+        automaticCloudSync: executable.automaticCloudSync,
+        executableMissing: executable.executableMissing,
+        download: activeDownload ?? null,
         // Spread composed assets last to ensure all image URLs are properly set
         ...composedAssets,
         shop: game.shop,

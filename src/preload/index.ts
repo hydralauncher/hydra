@@ -2570,10 +2570,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("cancelGameTransfer", shop, objectId),
 
   // Add these to the electron object in contextBridge.exposeInMainWorld
-  on: (channel: string, listener: (...args: any[]) => void) => {
+  on: (channel: string, listener: (...args: unknown[]) => void) => {
     ipcRenderer.on(channel, listener);
   },
-  off: (channel: string, listener: (...args: any[]) => void) => {
+  off: (channel: string, listener: (...args: unknown[]) => void) => {
     ipcRenderer.off(channel, listener);
   },
   getAvailableDrives: () => ipcRenderer.invoke("getAvailableDrives"),

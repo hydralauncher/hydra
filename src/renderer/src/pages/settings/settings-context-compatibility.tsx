@@ -137,6 +137,9 @@ export function SettingsContextCompatibility() {
         setDefaultWinePrefixBasePath("");
         setDefaultWinePrefixPath(userPreferences?.defaultWinePrefixPath ?? "");
       });
+    // Intentionally runs once on mount; later preference changes are handled
+    // by the effect above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

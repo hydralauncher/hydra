@@ -26,6 +26,7 @@ import { useTranslation } from "react-i18next";
 import {
   ClockIcon,
   AlertFillIcon,
+  AlertIcon,
   ImageIcon,
   CheckCircleFillIcon,
 } from "@primer/octicons-react";
@@ -79,10 +80,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
   const hasPickedCover = Boolean(game.selectedArtworkTypes?.includes("grid"));
 
   const candidates = [
-    { url: game.customCoverImageUrl, isChosenCover: true }, // Level 0
-    { url: game.coverImageUrl, isChosenCover: hasPickedCover }, // Level 1
-    { url: game.libraryImageUrl, isChosenCover: false }, // Level 2
-    { url: game.iconUrl, isChosenCover: false }, // Level 3
+    { url: game.customCoverImageUrl, isChosenCover: true },
+    { url: game.coverImageUrl, isChosenCover: hasPickedCover },
+    { url: game.libraryImageUrl, isChosenCover: false },
+    { url: game.iconUrl, isChosenCover: false },
   ].filter(({ url }) => url && url.trim() !== "");
 
   const sources = candidates.map(({ url }) => url);
@@ -156,7 +157,10 @@ export const LibraryGameCard = memo(function LibraryGameCard({
 
   const showPlatformBadge =
     !hideClassicsBadges && Boolean(classicsPlatformLabel);
-  const showReadyBadge = !hideReadySizeBadges && isInstalled;
+  const showMissingBadge =
+    !hideReadySizeBadges && Boolean(game.executableMissing);
+  const showReadyBadge =
+    !hideReadySizeBadges && isInstalled && !game.executableMissing;
 
   const handleImageError = () => {
     if (catalogueImage.markFailed()) return;
@@ -294,7 +298,8 @@ export const LibraryGameCard = memo(function LibraryGameCard({
           {(showSteamLibraryBadge ||
             showEpicLibraryBadge ||
             showPlatformBadge ||
-            showReadyBadge) && (
+            showReadyBadge ||
+            showMissingBadge) && (
             <div className="library-game-card__top-right">
               {(showSteamLibraryBadge || showEpicLibraryBadge) && (
                 <div className="library-game-card__import-badges">
@@ -314,6 +319,21 @@ export const LibraryGameCard = memo(function LibraryGameCard({
                 <div className="library-game-card__classics-badges">
                   <span className="library-game-card__platform-badge">
                     {classicsPlatformLabel}
+                  </span>
+                </div>
+              )}
+
+              {showMissingBadge && (
+                <div
+                  className="library-game-card__missing-badge"
+                  title={t("not_installed_tooltip")}
+                >
+                  <AlertIcon
+                    size={11}
+                    className="library-game-card__missing-icon"
+                  />
+                  <span className="library-game-card__missing-text">
+                    {t("not_installed")}
                   </span>
                 </div>
               )}

@@ -136,7 +136,9 @@ export function GameOptionsModal({
   } = useContext(gameDetailsContext);
 
   const [transferProgress, setTransferProgress] = useState(0);
-  const [drives, setDrives] = useState<any[]>([]);
+  const [drives, setDrives] = useState<
+    Awaited<ReturnType<typeof globalThis.window.electron.getAvailableDrives>>
+  >([]);
   const [transferSpeed, setTransferSpeed] = useState(0);
   const [transferETA, setTransferETA] = useState(0);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -418,7 +420,7 @@ export function GameOptionsModal({
       shop: string,
       oid: string,
       progress: number,
-      details?: any
+      details?: { speed: number; eta: number }
     ) => {
       if (shop === game.shop && oid === game.objectId) {
         setTransferProgress(progress);
@@ -428,15 +430,9 @@ export function GameOptionsModal({
         }
       }
     };
-    (globalThis.window.electron as any).on(
-      "on-game-transfer-progress",
-      onProgress
-    );
+    globalThis.window.electron.on("on-game-transfer-progress", onProgress);
     return () =>
-      (globalThis.window.electron as any).off(
-        "on-game-transfer-progress",
-        onProgress
-      );
+      globalThis.window.electron.off("on-game-transfer-progress", onProgress);
   }, [game]);
 
   const debounceUpdateLaunchOptions = useRef(
@@ -1241,78 +1237,43 @@ export function GameOptionsModal({
     [game.objectId, game.shop, showErrorToast, t, updateGame]
   );
 
-  const baseGeneralSettingsProps = useMemo(
-    () => ({
-      game,
-      gameTitle,
-      launchOptions,
-      updatingGameTitle,
-      creatingSteamShortcut,
-      shouldShowCreateStartMenuShortcut,
-      shouldShowWinePrefixConfiguration,
-      loadingSaveFolder,
-      saveFolderPath,
-      steamShortcutExists,
-      onChangeExecutableLocation: handleChangeExecutableLocation,
-      onClearExecutablePath: handleClearExecutablePath,
-      onOpenGameExecutablePath: handleOpenGameExecutablePath,
-      onOpenSaveFolder: handleOpenSaveFolder,
-      onCreateShortcut: handleCreateShortcut,
-      onCreateSteamShortcut: () => setShowSteamShortcutModal(true),
-      onDeleteSteamShortcut: handleDeleteSteamShortcut,
-      onChangeGameTitle: handleChangeGameTitle,
-      onBlurGameTitle: handleBlurGameTitle,
-      onResetGameTitle: handleResetGameTitle,
-      onChangeLaunchOptions: handleChangeLaunchOptions,
-      onClearLaunchOptions: handleClearLaunchOptions,
-      onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
-      isNonSteamExecutable,
-      isTransferring,
-      transferProgress,
-      drives,
-      onStartTransfer: handleStartTransfer,
-      onCancelDriveSelection: () => {},
-      transferSpeed,
-      transferETA,
-      showCancelConfirm,
-      onShowCancelConfirm: () => setShowCancelConfirm(true),
-      onHideCancelConfirm: () => setShowCancelConfirm(false),
-      onConfirmCancelTransfer: handleCancelTransfer,
-    }),
-    [
-      game,
-      gameTitle,
-      launchOptions,
-      updatingGameTitle,
-      creatingSteamShortcut,
-      shouldShowCreateStartMenuShortcut,
-      shouldShowWinePrefixConfiguration,
-      loadingSaveFolder,
-      saveFolderPath,
-      steamShortcutExists,
-      handleChangeExecutableLocation,
-      handleClearExecutablePath,
-      handleOpenGameExecutablePath,
-      handleOpenSaveFolder,
-      handleCreateShortcut,
-      handleDeleteSteamShortcut,
-      handleChangeGameTitle,
-      handleBlurGameTitle,
-      handleResetGameTitle,
-      handleChangeLaunchOptions,
-      handleClearLaunchOptions,
-      handleToggleHydraPlaytimeEnabled,
-      isNonSteamExecutable,
-      isTransferring,
-      transferProgress,
-      drives,
-      handleStartTransfer,
-      transferSpeed,
-      transferETA,
-      showCancelConfirm,
-      handleCancelTransfer,
-    ]
-  );
+  const baseGeneralSettingsProps = {
+    game,
+    gameTitle,
+    launchOptions,
+    updatingGameTitle,
+    creatingSteamShortcut,
+    shouldShowCreateStartMenuShortcut,
+    shouldShowWinePrefixConfiguration,
+    loadingSaveFolder,
+    saveFolderPath,
+    steamShortcutExists,
+    onChangeExecutableLocation: handleChangeExecutableLocation,
+    onClearExecutablePath: handleClearExecutablePath,
+    onOpenGameExecutablePath: handleOpenGameExecutablePath,
+    onOpenSaveFolder: handleOpenSaveFolder,
+    onCreateShortcut: handleCreateShortcut,
+    onCreateSteamShortcut: () => setShowSteamShortcutModal(true),
+    onDeleteSteamShortcut: handleDeleteSteamShortcut,
+    onChangeGameTitle: handleChangeGameTitle,
+    onBlurGameTitle: handleBlurGameTitle,
+    onResetGameTitle: handleResetGameTitle,
+    onChangeLaunchOptions: handleChangeLaunchOptions,
+    onClearLaunchOptions: handleClearLaunchOptions,
+    onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
+    isNonSteamExecutable,
+    isTransferring,
+    transferProgress,
+    drives,
+    onStartTransfer: handleStartTransfer,
+    onCancelDriveSelection: () => {},
+    transferSpeed,
+    transferETA,
+    showCancelConfirm,
+    onShowCancelConfirm: () => setShowCancelConfirm(true),
+    onHideCancelConfirm: () => setShowCancelConfirm(false),
+    onConfirmCancelTransfer: handleCancelTransfer,
+  };
 
   return (
     <>

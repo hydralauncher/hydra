@@ -229,7 +229,12 @@ export function DownloadsSourcesSection({
     } finally {
       setIsSyncing(false);
     }
-  }, [refreshDownloadSources, showErrorToast, showSuccessToast]);
+  }, [
+    formatDateTime,
+    refreshDownloadSources,
+    showErrorToast,
+    showSuccessToast,
+  ]);
 
   const handleRemoveSource = useCallback(
     async (downloadSourceId: string) => {
@@ -345,7 +350,6 @@ export function DownloadsSourcesSection({
       setIsRemoving(false);
     }
   }, [
-    downloadSources.length,
     downloadSources,
     formatNumber,
     refreshDownloadSources,

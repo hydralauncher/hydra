@@ -1,5 +1,25 @@
 @use "../../../scss/globals.scss";
 
+.hero-panel-actions__missing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-panel-actions__missing-text {
+  white-space: nowrap;
+}
+
 .hero-panel-actions {
   &__epic-actions {
     display: flex;

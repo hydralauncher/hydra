@@ -53,7 +53,7 @@ export function GameReviews({
   onUserReviewedChange,
   recompilationSlug,
 }: Readonly<GameReviewsProps>) {
-  const { t, i18n } = useTranslation("game_details");
+  const { t } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
 
   const [reviews, setReviews] = useState<GameReview[]>([]);
@@ -191,14 +191,7 @@ export function GameReviews({
         }
       }
     },
-    [
-      objectId,
-      shop,
-      reviewsPage,
-      reviewsSortBy,
-      i18n.language,
-      recompilationSlug,
-    ]
+    [objectId, shop, reviewsPage, reviewsSortBy, recompilationSlug]
   );
 
   const handleVoteReview = async (
