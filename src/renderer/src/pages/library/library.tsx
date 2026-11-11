@@ -243,10 +243,9 @@ export default function Library() {
     restingIndex: ReadonlyMap<string, number>;
   } | null>(null);
   const orderSavesRef = useRef({ pending: 0 });
-  const [pendingCollectionOrder, setPendingCollectionOrder] = useState<{
-    collectionId: string;
-    order: string[];
-  } | null>(null);
+  const [pendingCollectionOrders, setPendingCollectionOrders] = useState<
+    Record<string, string[]>
+  >({});
   const [showResetCustomOrderModal, setShowResetCustomOrderModal] =
     useState(false);
   const [gameContextMenu, setGameContextMenu] = useState<{
@@ -574,11 +573,9 @@ export default function Library() {
         : [],
     [library, hiddenGames, orderCollectionId]
   );
-  const activePendingCollectionOrder =
-    pendingCollectionOrder &&
-    pendingCollectionOrder.collectionId === orderCollectionId
-      ? pendingCollectionOrder.order
-      : null;
+  const activePendingCollectionOrder = orderCollectionId
+    ? (pendingCollectionOrders[orderCollectionId] ?? null)
+    : null;
   const collectionOrder = useMemo(() => {
     if (!orderCollectionId) return null;
 
@@ -637,14 +634,23 @@ export default function Library() {
       const knownKeys = new Set(
         [...library, ...hiddenGames].map(getLibraryGameOrderKey)
       );
-      const nextOrder = hiddenGamesLoadFailed
-        ? order
-        : order.filter((key) => knownKeys.has(key));
+      const hasCurrentHiddenGames =
+        !accountId ||
+        (hiddenGamesState.ownerId === accountId && !hiddenGamesLoadFailed);
+      const nextOrder = hasCurrentHiddenGames
+        ? order.filter((key) => knownKeys.has(key))
+        : order;
 
       setCustomOrder(nextOrder);
       writeLibraryCustomOrder(localStorage, accountId, nextOrder);
     },
-    [library, hiddenGames, hiddenGamesLoadFailed, accountId]
+    [
+      library,
+      hiddenGames,
+      hiddenGamesState.ownerId,
+      hiddenGamesLoadFailed,
+      accountId,
+    ]
   );
 
   const handleSortChange = useCallback(
@@ -663,10 +669,10 @@ export default function Library() {
 
   const commitCollectionOrder = useCallback(
     (collectionId: string, games: Pick<LibraryGame, "shop" | "objectId">[]) => {
-      setPendingCollectionOrder({
-        collectionId,
-        order: games.map(getLibraryGameOrderKey),
-      });
+      setPendingCollectionOrders((orders) => ({
+        ...orders,
+        [collectionId]: games.map(getLibraryGameOrderKey),
+      }));
 
       const saves = orderSavesRef.current;
       saves.pending += 1;
@@ -679,7 +685,7 @@ export default function Library() {
 
           void Promise.all([updateLibrary(), updateHiddenGames()]).finally(
             () => {
-              if (saves.pending === 0) setPendingCollectionOrder(null);
+              if (saves.pending === 0) setPendingCollectionOrders({});
             }
           );
         });
