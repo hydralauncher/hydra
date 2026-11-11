@@ -1306,6 +1306,10 @@ it("resets transfer state when navigating to another game and tracks speed/ETA f
   assert.equal(state.details.transferSpeed, 46.9);
   assert.equal(state.details.transferETA, 536);
 
+  await state.navigateTo("steam", "123", "Farming Simulator 25 (Reloaded)");
+  assert.equal(state.details.isTransferring, true);
+  assert.equal(state.details.transferProgress, 0.29);
+
   await state.navigateTo("steam", "456", "The Last of Us Part I");
   assert.equal(state.details.isTransferring, false);
   assert.equal(state.details.transferProgress, 0);

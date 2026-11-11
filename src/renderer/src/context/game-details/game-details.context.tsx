@@ -363,17 +363,7 @@ export function GameDetailsContextProvider({
       }
     };
 
-    const onTransferCancelled = (
-      _: unknown,
-      transferShop: string,
-      transferObjectId: string
-    ) => {
-      if (transferShop === activeShop && transferObjectId === activeObjectId) {
-        resetTransferState();
-      }
-    };
-
-    const onTransferError = (
+    const onTransferReset = (
       _: unknown,
       transferShop: string,
       transferObjectId: string
@@ -385,14 +375,14 @@ export function GameDetailsContextProvider({
 
     window.electron.on("on-game-transfer-progress", onTransferProgress);
     window.electron.on("on-game-transfer-complete", onTransferComplete);
-    window.electron.on("on-game-transfer-cancelled", onTransferCancelled);
-    window.electron.on("on-game-transfer-error", onTransferError);
+    window.electron.on("on-game-transfer-cancelled", onTransferReset);
+    window.electron.on("on-game-transfer-error", onTransferReset);
 
     return () => {
       window.electron.off("on-game-transfer-progress", onTransferProgress);
       window.electron.off("on-game-transfer-complete", onTransferComplete);
-      window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
-      window.electron.off("on-game-transfer-error", onTransferError);
+      window.electron.off("on-game-transfer-cancelled", onTransferReset);
+      window.electron.off("on-game-transfer-error", onTransferReset);
     };
   }, [
     game,
@@ -403,6 +393,10 @@ export function GameDetailsContextProvider({
   ]);
 
   useEffect(() => {
+    resetTransferState();
+  }, [shop, objectId, resetTransferState]);
+
+  useEffect(() => {
     gameRequestId.current += 1;
     setShopDetails(null);
     setGame(null);
@@ -410,7 +404,6 @@ export function GameDetailsContextProvider({
     setIsGameRunning(false);
     setAchievements(null);
     setGameOptionsInitialCategory("general");
-    resetTransferState();
     if (syncHeaderTitle) dispatch(setHeaderTitle(gameTitle));
     refreshGameDetails().catch(() => {});
   }, [
@@ -420,7 +413,6 @@ export function GameDetailsContextProvider({
     syncHeaderTitle,
     dispatch,
     refreshGameDetails,
-    resetTransferState,
   ]);
 
   useEffect(() => {

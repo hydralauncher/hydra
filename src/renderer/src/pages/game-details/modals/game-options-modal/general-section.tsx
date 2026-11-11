@@ -1005,7 +1005,7 @@ export function GeneralSettingsSection({
       )}
 
       {/* Transfer Progress */}
-      {showTransferSection && game.executablePath && isTransferring && (
+      {showTransferSection && isTransferring && (
         <div className="game-options-modal__section">
           <div className="game-options-modal__header">
             <h2>{t("transfer_game")}</h2>
