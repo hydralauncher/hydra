@@ -10,7 +10,9 @@ import { createRpcs3SessionConfig } from "./rpcs3-session-config";
 import { logger } from "../logger";
 import { HydraApi } from "../hydra-api";
 import { db, levelKeys } from "@main/level";
-import type { UserPreferences } from "@types";
+import type { Game, UserPreferences } from "@types";
+import { rpcs3TitleIdsForGame } from "../cloud-save/rpcs3-title-ids";
+import { extractVerifiedPs3TitleId } from "./extract-disc-sku";
 import {
   isEmulatorAchievementTrackingActive,
   needsEmulatorOverlayVisibility,
@@ -39,7 +41,23 @@ const shouldKeepRpcs3Borderless = async () => {
   );
 };
 
-const createRpcs3Session = async (titleId: string | null) => {
+const resolveRpcs3TitleIds = async (
+  game: Game | undefined,
+  bootTarget: string | undefined
+): Promise<string[]> => {
+  const bootTitleId = bootTarget
+    ? await extractVerifiedPs3TitleId(bootTarget).catch(() => null)
+    : null;
+  return [
+    ...(bootTitleId ? [bootTitleId] : []),
+    ...(game ? rpcs3TitleIdsForGame(game) : []),
+  ];
+};
+
+const createRpcs3Session = async (
+  game: Game | undefined,
+  bootTarget: string | undefined
+) => {
   try {
     if (!(await shouldKeepRpcs3Borderless())) return null;
 
@@ -47,7 +65,7 @@ const createRpcs3Session = async (titleId: string | null) => {
     const sessionConfig = await createRpcs3SessionConfig(
       config.executablePath,
       config.rpcs3ConfigRoot,
-      titleId
+      await resolveRpcs3TitleIds(game, bootTarget)
     );
     if (!sessionConfig) return null;
 
@@ -68,9 +86,9 @@ const createRpcs3Session = async (titleId: string | null) => {
 export const prepareEmulatorSouvenirs = async (
   system: EmulatorSessionSystem,
   executablePath: string | null,
-  titleId: string | null = null
+  { game, bootTarget }: { game?: Game; bootTarget?: string } = {}
 ) => {
-  if (system === "ps3") return createRpcs3Session(titleId);
+  if (system === "ps3") return createRpcs3Session(game, bootTarget);
 
   await syncRetroAchievementsEmulatorCredentials(
     getCredentialEmulatorForSystem(system)

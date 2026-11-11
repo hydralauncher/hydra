@@ -6,55 +6,68 @@ import YAML from "yaml";
 import { resolveRpcs3ConfigRootStatus } from "../cloud-save/rpcs3-config-root.js";
 import { normalizeRpcs3TitleId } from "../cloud-save/rpcs3-title-ids.js";
 
-const VIDEO_SECTION = "Video";
-const VULKAN_SECTION = "Vulkan";
-const EXCLUSIVE_FULLSCREEN_KEY = "Exclusive Fullscreen Mode";
+const EXCLUSIVE_FULLSCREEN_PATH = [
+  "Video",
+  "Vulkan",
+  "Exclusive Fullscreen Mode",
+];
 const EXCLUSIVE_FULLSCREEN_DISABLED = "Disable";
 
-type YamlRecord = Record<string, unknown>;
-
-const isRecord = (value: unknown): value is YamlRecord =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const readYamlRecord = async (
-  filePath: string
-): Promise<YamlRecord | null | undefined> => {
-  const contents = await fs.readFile(filePath, "utf8").catch(() => null);
-  if (contents === null) return undefined;
-
-  try {
-    const parsed: unknown = YAML.parse(contents);
-    if (parsed === null) return {};
-    return isRecord(parsed) ? parsed : null;
-  } catch {
+const parseRpcs3Config = (contents: string): YAML.Document | null => {
+  const document = YAML.parseDocument(contents, { schema: "failsafe" });
+  if (document.errors.length > 0) return null;
+  if (document.contents !== null && !YAML.isMap(document.contents)) {
     return null;
   }
+  return document;
 };
 
-const readExclusiveFullscreenMode = (config: YamlRecord | undefined) => {
-  const video = config?.[VIDEO_SECTION];
-  const vulkan = isRecord(video) ? video[VULKAN_SECTION] : undefined;
-  const mode = isRecord(vulkan) ? vulkan[EXCLUSIVE_FULLSCREEN_KEY] : undefined;
-  return typeof mode === "string" ? mode : undefined;
+const applyConfigNode = (
+  document: YAML.Document,
+  keyPath: unknown[],
+  node: unknown
+) => {
+  const target = keyPath.length
+    ? document.getIn(keyPath, true)
+    : document.contents;
+
+  if (YAML.isMap(node) && YAML.isMap(target)) {
+    for (const pair of node.items) {
+      const key = YAML.isScalar(pair.key) ? pair.key.value : pair.key;
+      applyConfigNode(document, [...keyPath, key], pair.value);
+    }
+    return;
+  }
+
+  document.setIn(keyPath, YAML.isNode(node) ? node.clone() : node);
 };
 
-export const disableRpcs3ExclusiveFullscreen = (
-  config: YamlRecord
-): YamlRecord => {
-  const video = isRecord(config[VIDEO_SECTION]) ? config[VIDEO_SECTION] : {};
-  const vulkan = isRecord(video[VULKAN_SECTION]) ? video[VULKAN_SECTION] : {};
+export const buildRpcs3SessionConfig = (
+  globalConfig: string | null,
+  customConfig: string | null
+): string | null => {
+  const sources = [globalConfig, customConfig].map((contents) =>
+    contents === null ? undefined : parseRpcs3Config(contents)
+  );
+  if (sources.includes(null)) return null;
 
-  return {
-    ...config,
-    [VIDEO_SECTION]: {
-      ...video,
-      [VULKAN_SECTION]: {
-        ...vulkan,
-        [EXCLUSIVE_FULLSCREEN_KEY]: EXCLUSIVE_FULLSCREEN_DISABLED,
-      },
-    },
-  };
+  const merged = new YAML.Document({}, { schema: "failsafe" });
+  for (const source of sources) {
+    if (source?.contents) applyConfigNode(merged, [], source.contents);
+  }
+
+  if (
+    merged.getIn(EXCLUSIVE_FULLSCREEN_PATH) === EXCLUSIVE_FULLSCREEN_DISABLED
+  ) {
+    return null;
+  }
+
+  merged.setIn(EXCLUSIVE_FULLSCREEN_PATH, EXCLUSIVE_FULLSCREEN_DISABLED);
+  return merged.toString();
 };
+
+const readOptionalFile = (filePath: string) =>
+  fs.readFile(filePath, "utf8").catch(() => null);
 
 const resolveRpcs3ConfigDirectory = async (configRoot: string) => {
   const nested = path.join(configRoot, "config");
@@ -65,6 +78,28 @@ const resolveRpcs3ConfigDirectory = async (configRoot: string) => {
   return hasNestedConfig ? nested : configRoot;
 };
 
+const readCustomConfig = async (
+  configDirectory: string,
+  titleIds: string[]
+): Promise<string | null> => {
+  const normalizedTitleIds = [
+    ...new Set(
+      titleIds
+        .map(normalizeRpcs3TitleId)
+        .filter((titleId): titleId is string => titleId !== null)
+    ),
+  ];
+
+  const customConfigs = await Promise.all(
+    normalizedTitleIds.map((titleId) =>
+      readOptionalFile(
+        path.join(configDirectory, "custom_configs", `config_${titleId}.yml`)
+      )
+    )
+  );
+  return customConfigs.find((contents) => contents !== null) ?? null;
+};
+
 export interface Rpcs3SessionConfig {
   launchArguments: string[];
   cleanupFilePaths: string[];
@@ -73,7 +108,7 @@ export interface Rpcs3SessionConfig {
 export const createRpcs3SessionConfig = async (
   executablePath: string | null,
   selectedRoot: string | null | undefined,
-  titleId: string | null | undefined
+  titleIds: string[]
 ): Promise<Rpcs3SessionConfig | null> => {
   if (process.platform !== "win32") return null;
 
@@ -86,35 +121,19 @@ export const createRpcs3SessionConfig = async (
   const configDirectory = await resolveRpcs3ConfigDirectory(
     location.configRoot
   );
-  const globalConfig = await readYamlRecord(
-    path.join(configDirectory, "config.yml")
-  );
-  const normalizedTitleId = normalizeRpcs3TitleId(titleId);
-  const customConfig = normalizedTitleId
-    ? await readYamlRecord(
-        path.join(
-          configDirectory,
-          "custom_configs",
-          `config_${normalizedTitleId}.yml`
-        )
-      )
-    : undefined;
-  if (globalConfig === null || customConfig === null) return null;
+  const [globalConfig, customConfig] = await Promise.all([
+    readOptionalFile(path.join(configDirectory, "config.yml")),
+    readCustomConfig(configDirectory, titleIds),
+  ]);
 
-  const effectiveMode =
-    readExclusiveFullscreenMode(customConfig) ??
-    readExclusiveFullscreenMode(globalConfig);
-  if (effectiveMode === EXCLUSIVE_FULLSCREEN_DISABLED) return null;
+  const sessionConfig = buildRpcs3SessionConfig(globalConfig, customConfig);
+  if (!sessionConfig) return null;
 
   const sessionConfigPath = path.join(
     configDirectory,
     `hydra-session-${randomUUID()}.yml`
   );
-  await fs.writeFile(
-    sessionConfigPath,
-    YAML.stringify(disableRpcs3ExclusiveFullscreen(customConfig ?? {})),
-    "utf8"
-  );
+  await fs.writeFile(sessionConfigPath, sessionConfig, "utf8");
 
   return {
     launchArguments: ["--config", sessionConfigPath],
