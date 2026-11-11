@@ -41,6 +41,8 @@ export interface GameDetailsContext {
   lastDownloadedOption: GameRepack | null;
   isTransferring: boolean;
   transferProgress: number;
+  transferSpeed: number;
+  transferETA: number;
   selectGameExecutable: () => Promise<string | null>;
   updateGame: () => Promise<void>;
   refreshGameDetails: () => Promise<void>;

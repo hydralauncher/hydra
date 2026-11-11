@@ -58,6 +58,8 @@ export const gameDetailsContext = createContext<GameDetailsContext>({
   lastDownloadedOption: null,
   isTransferring: false,
   transferProgress: 0,
+  transferSpeed: 0,
+  transferETA: 0,
   selectGameExecutable: async () => null,
   updateGame: async () => {},
   refreshGameDetails: async () => {},
@@ -100,6 +102,15 @@ export function GameDetailsContextProvider({
   const achievementUpdateCountRef = useRef(0);
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferProgress, setTransferProgress] = useState(0);
+  const [transferSpeed, setTransferSpeed] = useState(0);
+  const [transferETA, setTransferETA] = useState(0);
+
+  const resetTransferState = useCallback(() => {
+    setIsTransferring(false);
+    setTransferProgress(0);
+    setTransferSpeed(0);
+    setTransferETA(0);
+  }, []);
 
   const [stats, setStats] = useState<GameStats | null>(null);
 
@@ -319,41 +330,56 @@ export function GameDetailsContextProvider({
 
   // Listen for transfer events
   useEffect(() => {
+    const activeShop = game?.shop ?? operationalShop;
+    const activeObjectId = game?.objectId ?? operationalObjectId;
+
     const onTransferProgress = (
       _: unknown,
-      shop: string,
-      objectId: string,
-      progress: number
+      transferShop: string,
+      transferObjectId: string,
+      progress: number,
+      details?: {
+        speed?: number;
+        eta?: number;
+      }
     ) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(progress >= 0 && progress < 1);
-        setTransferProgress(progress);
+      if (transferShop === activeShop && transferObjectId === activeObjectId) {
+        const active = progress >= 0 && progress < 1;
+        setIsTransferring(active);
+        setTransferProgress(active ? progress : 0);
+        setTransferSpeed(active ? (details?.speed ?? 0) : 0);
+        setTransferETA(active ? (details?.eta ?? 0) : 0);
       }
     };
 
-    const onTransferComplete = (_: unknown, shop: string, objectId: string) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
+    const onTransferComplete = (
+      _: unknown,
+      transferShop: string,
+      transferObjectId: string
+    ) => {
+      if (transferShop === activeShop && transferObjectId === activeObjectId) {
+        resetTransferState();
         updateGame();
       }
     };
 
     const onTransferCancelled = (
       _: unknown,
-      shop: string,
-      objectId: string
+      transferShop: string,
+      transferObjectId: string
     ) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
+      if (transferShop === activeShop && transferObjectId === activeObjectId) {
+        resetTransferState();
       }
     };
 
-    const onTransferError = (_: unknown, shop: string, objectId: string) => {
-      if (shop === game?.shop && objectId === game?.objectId) {
-        setIsTransferring(false);
-        setTransferProgress(0);
+    const onTransferError = (
+      _: unknown,
+      transferShop: string,
+      transferObjectId: string
+    ) => {
+      if (transferShop === activeShop && transferObjectId === activeObjectId) {
+        resetTransferState();
       }
     };
 
@@ -368,7 +394,13 @@ export function GameDetailsContextProvider({
       window.electron.off("on-game-transfer-cancelled", onTransferCancelled);
       window.electron.off("on-game-transfer-error", onTransferError);
     };
-  }, [game]);
+  }, [
+    game,
+    operationalShop,
+    operationalObjectId,
+    resetTransferState,
+    updateGame,
+  ]);
 
   useEffect(() => {
     gameRequestId.current += 1;
@@ -378,6 +410,7 @@ export function GameDetailsContextProvider({
     setIsGameRunning(false);
     setAchievements(null);
     setGameOptionsInitialCategory("general");
+    resetTransferState();
     if (syncHeaderTitle) dispatch(setHeaderTitle(gameTitle));
     refreshGameDetails().catch(() => {});
   }, [
@@ -387,6 +420,7 @@ export function GameDetailsContextProvider({
     syncHeaderTitle,
     dispatch,
     refreshGameDetails,
+    resetTransferState,
   ]);
 
   useEffect(() => {
@@ -627,8 +661,7 @@ export function GameDetailsContextProvider({
       .catch((error) => {
         console.error("Failed to cancel game transfer:", error);
       });
-    setIsTransferring(false);
-    setTransferProgress(0);
+    resetTransferState();
   };
 
   return (
@@ -656,6 +689,8 @@ export function GameDetailsContextProvider({
         lastDownloadedOption: null,
         isTransferring,
         transferProgress,
+        transferSpeed,
+        transferETA,
         setHasNSFWContentBlocked,
         selectGameExecutable,
         updateGame,

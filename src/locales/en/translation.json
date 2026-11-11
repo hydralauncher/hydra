@@ -991,6 +991,7 @@
     "edit_game_modal_button": "Customize game assets",
     "game_details": "Game Details",
     "transferring": "Transferring...",
+    "transferring_progress": "Transferring {{progress}}%",
     "view_progress": "View progress",
     "transfer_game": "Transfer Game",
     "transfer_game_description": "Move {{game}} to a new drive or folder.",

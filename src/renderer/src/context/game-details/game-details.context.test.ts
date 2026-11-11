@@ -120,6 +120,10 @@ async function fixture(
   const calls: [string, ...unknown[]][] = [];
   const unsubscribe = () => {};
   const libraryBatchListeners = new Set<() => void>();
+  const electronListeners = new Map<
+    string,
+    Set<(...args: unknown[]) => void>
+  >();
   const achievementListeners = new Map<
     string,
     (rows: UserAchievement[]) => void
@@ -200,8 +204,14 @@ async function fixture(
       libraryBatchListeners.add(listener);
       return () => libraryBatchListeners.delete(listener);
     },
-    on: unsubscribe,
-    off: unsubscribe,
+    on: (channel: string, listener: (...args: unknown[]) => void) => {
+      const listeners = electronListeners.get(channel) ?? new Set();
+      listeners.add(listener);
+      electronListeners.set(channel, listeners);
+    },
+    off: (channel: string, listener: (...args: unknown[]) => void) => {
+      electronListeners.get(channel)?.delete(listener);
+    },
     hydraApi: { get: async () => [] },
   };
   Object.assign(dom.window, { electron: bridge });
@@ -284,15 +294,22 @@ async function fixture(
       else Reflect.deleteProperty(globalThis, key);
     }
   });
+  let currentProps: {
+    shop: GameShop;
+    objectId: string;
+    gameTitle: string;
+  } = {
+    shop: "steam",
+    objectId: "123",
+    gameTitle: "Steam title",
+  };
   const render = () =>
     React.act(async () => {
       root.render(
         React.createElement(
           Provider,
           {
-            shop: "steam",
-            objectId: "123",
-            gameTitle: "Steam title",
+            ...currentProps,
             lockAchievementIdentity,
           },
           React.createElement(Probe)
@@ -303,6 +320,17 @@ async function fixture(
   return {
     calls,
     bridge,
+    async navigateTo(shop: GameShop, objectId: string, gameTitle: string) {
+      currentProps = { shop, objectId, gameTitle };
+      await render();
+    },
+    async emitElectronEvent(channel: string, ...args: unknown[]) {
+      await React.act(async () => {
+        for (const listener of electronListeners.get(channel) ?? []) {
+          listener(undefined, ...args);
+        }
+      });
+    },
     async updateLibrary(
       updatedGames: LibraryGame[],
       updatedLastPacket: DownloadProgress | null = lastPacket
@@ -1244,4 +1272,72 @@ it("handles a failed transfer cancellation for the operational copy", async (t) 
   Reflect.deleteProperty(state.bridge, "cancelGameTransfer");
   await React.act(async () => state.details.cancelTransfer());
   assert.equal(reported.length, 1);
+});
+
+it("resets transfer state when navigating to another game and tracks speed/ETA for the active game", async (t) => {
+  const sourceGame = {
+    id: "steam:123",
+    shop: "steam",
+    objectId: "123",
+    title: "Farming Simulator 25",
+    executablePath: "fs25.exe",
+    isDeleted: false,
+  } as LibraryGame;
+  const otherGame = {
+    id: "steam:456",
+    shop: "steam",
+    objectId: "456",
+    title: "The Last of Us Part I",
+    executablePath: null,
+    isDeleted: false,
+  } as LibraryGame;
+
+  const state = await fixture(t, [sourceGame, otherGame]);
+
+  await state.emitElectronEvent(
+    "on-game-transfer-progress",
+    "steam",
+    "123",
+    0.29,
+    { speed: 46.9, eta: 536 }
+  );
+  assert.equal(state.details.isTransferring, true);
+  assert.equal(state.details.transferProgress, 0.29);
+  assert.equal(state.details.transferSpeed, 46.9);
+  assert.equal(state.details.transferETA, 536);
+
+  await state.navigateTo("steam", "456", "The Last of Us Part I");
+  assert.equal(state.details.isTransferring, false);
+  assert.equal(state.details.transferProgress, 0);
+  assert.equal(state.details.transferSpeed, 0);
+  assert.equal(state.details.transferETA, 0);
+
+  await state.emitElectronEvent(
+    "on-game-transfer-progress",
+    "steam",
+    "123",
+    0.31,
+    { speed: 48.2, eta: 500 }
+  );
+  assert.equal(state.details.isTransferring, false);
+  assert.equal(state.details.transferProgress, 0);
+
+  await state.navigateTo("steam", "123", "Farming Simulator 25");
+  await state.emitElectronEvent(
+    "on-game-transfer-progress",
+    "steam",
+    "123",
+    0.32,
+    { speed: 49.0, eta: 480 }
+  );
+  assert.equal(state.details.isTransferring, true);
+  assert.equal(state.details.transferProgress, 0.32);
+  assert.equal(state.details.transferSpeed, 49.0);
+  assert.equal(state.details.transferETA, 480);
+
+  await state.emitElectronEvent("on-game-transfer-complete", "steam", "123");
+  assert.equal(state.details.isTransferring, false);
+  assert.equal(state.details.transferProgress, 0);
+  assert.equal(state.details.transferSpeed, 0);
+  assert.equal(state.details.transferETA, 0);
 });
