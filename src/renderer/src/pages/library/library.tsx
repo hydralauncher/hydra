@@ -730,6 +730,9 @@ export default function Library() {
 
   const isCustomOrder = sortBy === "custom";
   const gridRef = useRef<HTMLDivElement>(null);
+  const pendingSettleRef = useRef<{ key: string; fromRect: DOMRect } | null>(
+    null
+  );
 
   const gridMetrics = useMemo<LibraryGridMetrics>(() => {
     const availableWidth =
@@ -924,13 +927,11 @@ export default function Library() {
             setCustomOrder(preview.order);
             writeLibraryCustomOrder(localStorage, preview.order);
 
-            const element = isLibraryGameDragData(source.data)
-              ? scrollElement.querySelector<HTMLElement>(
-                  `[data-library-order-key="${CSS.escape(source.data.orderKey)}"]`
-                )
-              : null;
-            if (element && overlayRect) {
-              settleLibraryCard(element, overlayRect);
+            if (isLibraryGameDragData(source.data) && overlayRect) {
+              pendingSettleRef.current = {
+                key: source.data.orderKey,
+                fromRect: overlayRect,
+              };
             }
           }
           setDragPreview(null);
@@ -964,6 +965,29 @@ export default function Library() {
       placement.row <= lastVisibleRow &&
       placement.row + placement.rows > firstVisibleRow
   );
+
+  const committedOrderIndex = useMemo(
+    () => new Map(customOrder.map((key, index) => [key, index])),
+    [customOrder]
+  );
+  const renderedPlacements = dragPreview
+    ? [...visiblePlacements].sort(
+        (a, b) =>
+          (committedOrderIndex.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+          (committedOrderIndex.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+      )
+    : visiblePlacements;
+
+  useLayoutEffect(() => {
+    const settle = pendingSettleRef.current;
+    if (!settle || dragPreview) return;
+    pendingSettleRef.current = null;
+
+    const element = gridRef.current?.querySelector<HTMLElement>(
+      `[data-library-order-key="${CSS.escape(settle.key)}"]`
+    );
+    if (element) settleLibraryCard(element, settle.fromRect);
+  }, [dragPreview]);
 
   useEffect(() => {
     gamesScrollRef.current?.scrollTo({ top: 0 });
@@ -1220,7 +1244,7 @@ export default function Library() {
                 marginRight: GAP,
               }}
             >
-              {visiblePlacements.map((placement) => {
+              {renderedPlacements.map((placement) => {
                 const game = gamesByKey.get(placement.key);
                 if (!game) return null;
 
