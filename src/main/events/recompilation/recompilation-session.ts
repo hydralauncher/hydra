@@ -22,6 +22,7 @@ import {
   setRecompilationGameRunning,
 } from "@main/services/game-running-state";
 import { HydraApi } from "@main/services/hydra-api";
+import { NativeAddon } from "@main/services/native-addon";
 import { createGame, trackGamePlaytime } from "@main/services/library-sync";
 import { getHydraPlaytimeRevision } from "@main/services/library-sync/library-write-queue";
 import { persistGamePlaytime } from "@main/services/process-watcher";
@@ -29,17 +30,20 @@ import { logger } from "@main/services/logger";
 import { WindowManager } from "@main/services/window-manager";
 import type { TrophyFileWatcher } from "@main/services/emulators/trophy-file-watcher";
 import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
+import { getRecompilationInstallDirectory } from "./recompilation-paths";
 import { startRecompilationTrophyWatcher } from "./recompilation-trophy-watcher";
 
 const SHOP = "launchbox";
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
 const CLOSE_GRACE_PERIOD_MS = 10_000;
+const PORT_PROCESS_POLL_INTERVAL_MS = 2_000;
 
 interface RecompilationSession {
   ref: RecompilationRef;
   child: ChildProcess;
   startedAt: number;
   heartbeat: ReturnType<typeof setInterval> | null;
+  portProcessWatch: ReturnType<typeof setInterval> | null;
   baseGameReady: Promise<void>;
   trophyWatcher: TrophyFileWatcher | null;
 }
@@ -203,6 +207,7 @@ const endSession = (session: RecompilationSession) => {
   const portKey = portKeyOf(session.ref);
   sessions.delete(portKey);
   if (session.heartbeat) clearInterval(session.heartbeat);
+  if (session.portProcessWatch) clearInterval(session.portProcessWatch);
   deleteEmulatorGameRunning(portKey);
   deleteRecompilationGameRunning(portKey);
   return Math.max(0, performance.now() - session.startedAt);
@@ -226,6 +231,48 @@ const finishSession = async (session: RecompilationSession) => {
   await backup;
 };
 
+const isInsideDirectory = (filePath: string, directory: string) => {
+  const relative = path.relative(directory, filePath);
+  return (
+    relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  );
+};
+
+/** Processes running from the port's install folder, such as its game. */
+const listPortProcessIds = async (slug: string) => {
+  const installDirectory = await getRecompilationInstallDirectory(slug).catch(
+    () => null
+  );
+  if (!installDirectory) return [];
+  const processes = await NativeAddon.listProcesses().catch(() => []);
+  return processes
+    .filter(({ exe }) => exe && isInsideDirectory(exe, installDirectory))
+    .map(({ pid }) => pid);
+};
+
+/**
+ * Some launchers start the game and exit (bbport with --play), so the session
+ * ends only once nothing runs from the port's folder.
+ */
+const followPortProcesses = async (
+  session: RecompilationSession,
+  finish: () => void
+) => {
+  const isCurrent = () => sessions.get(portKeyOf(session.ref)) === session;
+  if (!isCurrent()) return;
+  if ((await listPortProcessIds(session.ref.slug)).length === 0) {
+    finish();
+    return;
+  }
+  if (!isCurrent() || session.portProcessWatch) return;
+  session.portProcessWatch = setInterval(() => {
+    void listPortProcessIds(session.ref.slug).then((pids) => {
+      if (pids.length === 0 && isCurrent()) finish();
+    });
+  }, PORT_PROCESS_POLL_INTERVAL_MS);
+  session.portProcessWatch.unref?.();
+};
+
 export const startRecompilationSession = async (
   ref: RecompilationRef,
   child: ChildProcess
@@ -238,6 +285,7 @@ export const startRecompilationSession = async (
     child,
     startedAt: performance.now(),
     heartbeat: null,
+    portProcessWatch: null,
     trophyWatcher: null,
     baseGameReady: getOrAddBaseGame(ref)
       .then(() => undefined)
@@ -256,9 +304,14 @@ export const startRecompilationSession = async (
     if (sessions.get(portKey) !== session) return;
     void finishSession(session);
   };
-  child.once("exit", finish);
+  const finishAfterPortProcesses = () => {
+    void followPortProcesses(session, finish);
+  };
+  child.once("exit", finishAfterPortProcesses);
   child.once("error", finish);
-  if (child.exitCode !== null || child.signalCode !== null) finish();
+  if (child.exitCode !== null || child.signalCode !== null) {
+    finishAfterPortProcesses();
+  }
 
   await session.baseGameReady;
   if (sessions.get(portKey) !== session) return;
@@ -315,9 +368,29 @@ const killWindowsProcessTree = (pid: number) => {
   return true;
 };
 
+/** After the launcher exited, the game left running has no parent to kill. */
+const closePortProcesses = async (slug: string) => {
+  for (const pid of await listPortProcessIds(slug)) {
+    if (process.platform === "win32") {
+      killWindowsProcessTree(pid);
+    } else {
+      try {
+        process.kill(pid, "SIGTERM");
+      } catch {
+        // It already exited.
+      }
+    }
+  }
+};
+
 export const closeRecompilation = (ref: RecompilationRef) => {
   const session = sessions.get(portKeyOf(ref));
   if (!session) return false;
+
+  if (session.child.exitCode !== null || session.child.signalCode !== null) {
+    void closePortProcesses(ref.slug);
+    return true;
+  }
 
   const { pid } = session.child;
   if (!pid) return session.child.kill();

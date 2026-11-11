@@ -344,7 +344,7 @@ export type UnmatchedReason = "wrong_platform" | "unmatched";
 
 export interface UnmatchedFile {
   name: string;
-  reason: UnmatchedReason;
+  reason: UnmatchedReason | "unsupported_package";
 }
 
 export type LaunchboxImportProgress = {
@@ -393,6 +393,7 @@ export interface LaunchboxImportResult {
   matched: number;
   unmatched: number;
   unmatchedFiles: UnmatchedFile[];
+  unsupportedPackages: number;
   cancelled: boolean;
 }
 
@@ -437,6 +438,7 @@ const cancelledResult = (
   matched,
   unmatched,
   unmatchedFiles,
+  unsupportedPackages: 0,
   cancelled: true,
 });
 
@@ -452,7 +454,7 @@ const scanFolders = async (
   folders: FolderInput[],
   signal: CancelSignal,
   onScan?: ScanReporter
-): Promise<ScannedGameInfo[]> => {
+): Promise<{ collected: ScannedGameInfo[]; unsupportedPackages: string[] }> => {
   const binary = emulators.KNOWN_BINARIES[system];
 
   const folderTotals: number[] = [];
@@ -474,6 +476,7 @@ const scanFolders = async (
 
   let scanBase = 0;
   let keptTotal = 0;
+  const unsupportedPackages: string[] = [];
   const collected: ScannedGameInfo[] = [];
 
   for (let fi = 0; fi < folders.length; fi++) {
@@ -499,12 +502,13 @@ const scanFolders = async (
 
     scanBase += folderTotals[fi] ?? partial.games.length;
     keptTotal += partial.games.length;
+    unsupportedPackages.push(...partial.unsupportedPackages);
     for (const game of partial.games) {
       collected.push({ folderPath: folder.path, ...game });
     }
   }
 
-  return collected;
+  return { collected, unsupportedPackages };
 };
 
 const resolveSkus = async (
@@ -741,8 +745,10 @@ const persistMatchedEntries = async (
 ) => {
   for (const entry of matchedEntries.values()) {
     if (signal.cancelled) break;
-    const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
-    const discs = buildDiscList(titleDiscs);
+    const discs = await emulators.attachDiscRegions(
+      buildDiscList(discsByTitle.get(entry.objectId) ?? []),
+      system
+    );
     const romSizeBytes = titleByFolder.get(entry.objectId)?.sizeBytes ?? null;
     await persistEntryLocally(
       entry,
@@ -822,7 +828,7 @@ export async function runLaunchboxImport(
     await ensureRomFolderRegistered(system, folder.path, folder.scanSubfolders);
   }
 
-  const collected = await scanFolders(
+  const { collected, unsupportedPackages } = await scanFolders(
     system,
     folders,
     signal,
@@ -985,7 +991,14 @@ export async function runLaunchboxImport(
     sizeBytes: totalSizeBytes,
     matched,
     unmatched,
-    unmatchedFiles,
+    unmatchedFiles: [
+      ...unmatchedFiles,
+      ...unsupportedPackages.map((packagePath) => ({
+        name: path.basename(packagePath),
+        reason: "unsupported_package" as const,
+      })),
+    ],
+    unsupportedPackages: unsupportedPackages.length,
     cancelled: signal.cancelled,
   };
 }
@@ -1056,6 +1069,7 @@ const importLaunchboxRoms = async (
         matched: result.matched,
         unmatched: result.unmatched,
         unmatchedFiles: result.unmatchedFiles,
+        unsupportedPackages: result.unsupportedPackages,
       });
     } catch (err) {
       WindowManager.sendToAppWindows(CLASSICS_IMPORT_PROGRESS_CHANNEL, {

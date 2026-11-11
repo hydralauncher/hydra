@@ -9,6 +9,7 @@ import {
   parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
   parseRpcs3SavestateRawPath,
+  parseShadps4SaveRawPath,
 } from "./emulator-provider-identity.js";
 
 export type EmulatorDestinationKind = "save" | "state";
@@ -27,7 +28,11 @@ export const emulatorDestinationKindForFile = (
     return null;
   }
   if (parseRpcs3SavestateRawPath(rawPath)) return "state";
-  if (parseRpcs3SaveRawPath(rawPath) || parseRpcs3GamedataRawPath(rawPath)) {
+  if (
+    parseRpcs3SaveRawPath(rawPath) ||
+    parseRpcs3GamedataRawPath(rawPath) ||
+    parseShadps4SaveRawPath(rawPath)
+  ) {
     return "save";
   }
   return null;

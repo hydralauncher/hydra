@@ -77,6 +77,7 @@ export class AchievementNotificationPresenter {
   private creatingHost = false;
   private watchdog: TimeoutHandle | null = null;
   private warmPosition: AchievementCustomNotificationPosition | null = null;
+  private warmHostWaiters: (() => void)[] = [];
   private shutdownRequested = false;
 
   constructor(
@@ -167,15 +168,28 @@ export class AchievementNotificationPresenter {
     this.present();
   }
 
-  public keepWarm(position: AchievementCustomNotificationPosition): void {
-    if (this.shutdownRequested) return;
+  public keepWarm(
+    position: AchievementCustomNotificationPosition
+  ): Promise<void> {
+    if (this.shutdownRequested) return Promise.resolve();
     this.warmPosition = position;
     this.ensureHost();
+    if (!this.creatingHost && this.stage !== "loading") {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => this.warmHostWaiters.push(resolve));
+  }
+
+  private settleWarmHostWaiters(): void {
+    const waiters = this.warmHostWaiters;
+    this.warmHostWaiters = [];
+    for (const resolve of waiters) resolve();
   }
 
   public releaseWarm(): void {
     if (!this.warmPosition) return;
     this.warmPosition = null;
+    this.settleWarmHostWaiters();
     if (!this.activeItem && !this.queue.length && this.stage === "ready") {
       this.destroyHost();
     }
@@ -241,6 +255,7 @@ export class AchievementNotificationPresenter {
     if (this.stage !== "loading") return;
     this.clearWatchdog();
     this.stage = "ready";
+    this.settleWarmHostWaiters();
     this.processNext();
   }
 
@@ -316,6 +331,7 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
     this.destroyCurrentHost();
     this.stage = "idle";
+    this.settleWarmHostWaiters();
   }
 
   public shutdown(): void {
@@ -453,6 +469,7 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
     this.destroyCurrentHost();
     this.stage = "idle";
+    this.settleWarmHostWaiters();
 
     const fallbacks = new Map<
       FallbackReference,
@@ -494,6 +511,7 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
     this.destroyCurrentHost();
     this.stage = "idle";
+    this.settleWarmHostWaiters();
     this.dependencies.log("Achievement notification window destroyed");
   }
 

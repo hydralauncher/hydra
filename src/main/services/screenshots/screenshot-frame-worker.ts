@@ -33,6 +33,7 @@ interface WorkerWindow {
 
 let worker: WorkerWindow | null = null;
 let isPrepared = false;
+let isHeld = false;
 let recycleTimer: ReturnType<typeof setTimeout> | null = null;
 let queue: Promise<unknown> = Promise.resolve();
 
@@ -81,6 +82,7 @@ const getWorker = () => {
 
 const scheduleRecycle = () => {
   clearRecycleTimer();
+  if (isHeld) return;
   recycleTimer = setTimeout(() => {
     recycleTimer = null;
     destroyWorker();
@@ -249,13 +251,24 @@ const grabFrame = async (
 };
 
 export class ScreenshotFrameWorker {
-  public static prepare() {
+  public static prepare(): Promise<void> {
     isPrepared = true;
-    void getWorker().ready.catch(() => undefined);
+    return getWorker().ready.catch(() => undefined);
+  }
+
+  public static hold(): Promise<void> {
+    isHeld = true;
+    clearRecycleTimer();
+    return this.prepare();
+  }
+
+  public static isHeld() {
+    return isHeld;
   }
 
   public static release() {
     isPrepared = false;
+    isHeld = false;
     clearRecycleTimer();
     destroyWorker();
   }

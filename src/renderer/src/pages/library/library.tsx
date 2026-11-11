@@ -786,27 +786,39 @@ export default function Library() {
               />
             )}
 
-            {isScanSupported && (
+            {isScanSupported ? (
+              <>
+                <Button
+                  theme="outline"
+                  className="library__action library__action--icon"
+                  onClick={() => setShowAddGameModal(true)}
+                  aria-label={t("add_custom_game_tooltip", { ns: "sidebar" })}
+                  tooltip={t("add_custom_game_tooltip", { ns: "sidebar" })}
+                  tooltipPlace="bottom"
+                  tooltipInPortal
+                >
+                  <PlusIcon size={16} />
+                </Button>
+
+                <Button
+                  theme="primary"
+                  className={`library__action${isScanning ? " library__action--scanning" : ""}`}
+                  onClick={openScanModal}
+                >
+                  <SyncIcon size={16} />
+                  {t("scan_games", { ns: "header" })}
+                </Button>
+              </>
+            ) : (
               <Button
-                theme="outline"
-                className={`library__action library__action--icon${isScanning ? " library__action--scanning" : ""}`}
-                onClick={openScanModal}
-                aria-label={t("scan_games_tooltip", { ns: "header" })}
-                tooltip={t("scan_games_tooltip", { ns: "header" })}
-                tooltipPlace="bottom"
+                theme="primary"
+                className="library__action"
+                onClick={() => setShowAddGameModal(true)}
               >
-                <SyncIcon size={16} />
+                <PlusIcon size={16} />
+                {t("add_game", { ns: "header" })}
               </Button>
             )}
-
-            <Button
-              theme="primary"
-              className="library__action"
-              onClick={() => setShowAddGameModal(true)}
-            >
-              <PlusIcon size={16} />
-              {t("add_game", { ns: "header" })}
-            </Button>
           </div>
         </div>
       </div>
