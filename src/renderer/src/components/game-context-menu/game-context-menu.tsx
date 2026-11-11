@@ -53,7 +53,7 @@ import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import type { GameCollection } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
-import { usePs4UpdatePicker } from "./ps4-update-modal";
+import { usePs4PkgPicker } from "../ps4-pkg-job-modal/ps4-pkg-job-modal";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: GameContextMenuGame;
@@ -156,7 +156,7 @@ export function GameContextMenu({
     };
   }, [visible, game.shop, game.objectId]);
 
-  const ps4Update = usePs4UpdatePicker(game.shop, game.objectId, onClose);
+  const ps4Update = usePs4PkgPicker(game.shop, game.objectId, "update");
 
   const targetSource =
     group ??
@@ -483,8 +483,7 @@ export function GameContextMenu({
                 label: t("apply_ps4_update"),
                 icon: <SyncIcon size={16} />,
                 onClick: () => void ps4Update.pick(),
-                disabled: isDeleting || ps4Update.isApplying,
-                closeOnClick: false,
+                disabled: isDeleting || ps4Update.isBusy,
               },
             ]
           : []),
@@ -652,8 +651,6 @@ export function GameContextMenu({
           if (target) void handleSteamUninstall(target);
         }}
       />
-
-      {ps4Update.modal}
 
       <ConfirmationModal
         visible={rpcs3ConfirmPending !== null}

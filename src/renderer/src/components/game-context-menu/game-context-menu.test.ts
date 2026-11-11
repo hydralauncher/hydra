@@ -353,12 +353,8 @@ async function fixture(
         return null;
       },
     },
-    "./ps4-update-modal": {
-      usePs4UpdatePicker: () => ({
-        pick: async () => {},
-        isApplying: false,
-        modal: null,
-      }),
+    "../ps4-pkg-job-modal/ps4-pkg-job-modal": {
+      usePs4PkgPicker: () => ({ pick: async () => {}, isBusy: false }),
     },
   });
   const Menu = menuModule.GameContextMenu as React.ElementType;

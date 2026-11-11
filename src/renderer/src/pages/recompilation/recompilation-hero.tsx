@@ -21,7 +21,7 @@ import { ConfirmationModal } from "@renderer/components/confirmation-modal/confi
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
 import { useToast } from "@renderer/hooks";
-import { usePs4UpdatePicker } from "@renderer/components/game-context-menu/ps4-update-modal";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job-modal/ps4-pkg-job-modal";
 import { CloudSaveWidget } from "../game-details/cloud-save-v2";
 import {
   getInstallErrorKey,
@@ -73,7 +73,7 @@ export function RecompilationHero({
     handlesRom && !rom.state?.romPath && !rom.state?.isReady;
   const canApplyPs4Update =
     rom.state?.isFolder === true && Boolean(rom.state.romPath);
-  const ps4Update = usePs4UpdatePicker("launchbox", objectId, () => {
+  const ps4Update = usePs4PkgPicker("launchbox", objectId, "update", () => {
     void rom.refresh();
   });
 
@@ -215,7 +215,7 @@ export function RecompilationHero({
                     disabled:
                       install.isRunning ||
                       install.isPreparing ||
-                      ps4Update.isApplying,
+                      ps4Update.isBusy,
                   },
                 ]
               : []),
@@ -286,8 +286,6 @@ export function RecompilationHero({
           )}
         </div>
       </div>
-
-      {ps4Update.modal}
 
       <ConfirmationModal
         visible={isUninstallOpen}

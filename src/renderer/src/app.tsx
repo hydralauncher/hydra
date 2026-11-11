@@ -45,6 +45,7 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import { Ps4PkgJobModal } from "./components/ps4-pkg-job-modal/ps4-pkg-job-modal";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 import { LevelUpModal } from "./components/gamification";
@@ -796,6 +797,7 @@ export function App() {
       />
 
       <ClassicsScanModal />
+      <Ps4PkgJobModal />
       <RetroArchScanModal />
 
       <ScanGamesProvider>

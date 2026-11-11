@@ -64,9 +64,10 @@ import type {
   RecompilationInstallProgress,
   RecompilationPrepareProgress,
   RecompilationRomPkgProgress,
-  Ps4UpdateCheck,
-  Ps4UpdateProgress,
-  Ps4UpdateResult,
+  Ps4PkgAccept,
+  Ps4PkgCheck,
+  Ps4PkgJobEvent,
+  Ps4PkgResult,
   RecompilationInstallState,
   RecompilationRef,
   RecompilationRomSource,
@@ -833,20 +834,24 @@ declare global {
     ) => Promise<RecompilationActionResult>;
     cancelRecompilationRomPkg: (ref: RecompilationRef) => Promise<void>;
     hasPs4GameFolder: (shop: GameShop, objectId: string) => Promise<boolean>;
-    checkPs4Update: (
+    checkPs4Pkg: (
       shop: GameShop,
       objectId: string,
-      pkgPath: string
-    ) => Promise<Ps4UpdateCheck>;
+      pkgPath: string,
+      accept: Ps4PkgAccept
+    ) => Promise<Ps4PkgCheck>;
     applyPs4Update: (
       shop: GameShop,
       objectId: string,
       pkgPath: string
-    ) => Promise<Ps4UpdateResult>;
-    cancelPs4Update: () => Promise<void>;
-    onPs4UpdateProgress: (
-      cb: (payload: Ps4UpdateProgress) => void
-    ) => () => void;
+    ) => Promise<Ps4PkgResult>;
+    extractPs4GamePkg: (
+      shop: GameShop,
+      objectId: string,
+      pkgPath: string
+    ) => Promise<Ps4PkgResult>;
+    cancelPs4PkgJob: () => Promise<void>;
+    onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => () => void;
     onRecompilationRomPkgProgress: (
       cb: (payload: RecompilationRomPkgProgress) => void
     ) => () => void;

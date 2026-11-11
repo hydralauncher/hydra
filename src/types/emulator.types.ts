@@ -1,3 +1,5 @@
+import type { GameShop } from "./game.types";
+
 export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "ps4" | "psp" | "dolphin";
 
 export type EmulatorBinary =
@@ -286,8 +288,9 @@ export interface EmulatorInstallResult {
   reason?: string;
 }
 
-export type Ps4UpdateFailure =
+export type Ps4PkgFailure =
   | "not_update"
+  | "unsupported"
   | "no_game_folder"
   | "other_game"
   | "not_newer"
@@ -296,17 +299,34 @@ export type Ps4UpdateFailure =
   | "busy"
   | "failed";
 
-export type Ps4UpdateCheck =
-  | { ok: true; version: string | null; currentVersion: string | null }
-  | { ok: false; reason: Ps4UpdateFailure };
+/** "update" only takes update PKGs; "any" also takes the game PKG. */
+export type Ps4PkgAccept = "update" | "any";
 
-export interface Ps4UpdateResult {
+export type Ps4PkgJobMode = "update" | "extract";
+
+export type Ps4PkgCheck =
+  | {
+      ok: true;
+      mode: Ps4PkgJobMode;
+      version: string | null;
+      currentVersion: string | null;
+    }
+  | { ok: false; reason: Ps4PkgFailure };
+
+export interface Ps4PkgResult {
   ok: boolean;
-  reason?: Ps4UpdateFailure;
+  reason?: Ps4PkgFailure;
   version?: string | null;
 }
 
-export interface Ps4UpdateProgress {
+export interface Ps4PkgJobEvent {
+  shop: GameShop;
   objectId: string;
+  title: string;
+  mode: Ps4PkgJobMode;
+  phase: "start" | "progress" | "done" | "error" | "cancelled";
   progress: number;
+  version?: string | null;
+  currentVersion?: string | null;
+  reason?: Ps4PkgFailure;
 }

@@ -35,7 +35,8 @@ import type {
   RecompilationInstallProgress,
   RecompilationPrepareProgress,
   RecompilationRomPkgProgress,
-  Ps4UpdateProgress,
+  Ps4PkgAccept,
+  Ps4PkgJobEvent,
   RecompilationRef,
   RecompilationRomSource,
   RetroArchCoreName,
@@ -678,16 +679,21 @@ contextBridge.exposeInMainWorld("electron", {
   },
   hasPs4GameFolder: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("hasPs4GameFolder", shop, objectId),
-  checkPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
-    ipcRenderer.invoke("checkPs4Update", shop, objectId, pkgPath),
+  checkPs4Pkg: (
+    shop: GameShop,
+    objectId: string,
+    pkgPath: string,
+    accept: Ps4PkgAccept
+  ) => ipcRenderer.invoke("checkPs4Pkg", shop, objectId, pkgPath, accept),
   applyPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
     ipcRenderer.invoke("applyPs4Update", shop, objectId, pkgPath),
-  cancelPs4Update: () => ipcRenderer.invoke("cancelPs4Update"),
-  onPs4UpdateProgress: (cb: (payload: Ps4UpdateProgress) => void) => {
-    const listener = (_event: unknown, payload: Ps4UpdateProgress) =>
-      cb(payload);
-    ipcRenderer.on("on-ps4-update-progress", listener);
-    return () => ipcRenderer.removeListener("on-ps4-update-progress", listener);
+  extractPs4GamePkg: (shop: GameShop, objectId: string, pkgPath: string) =>
+    ipcRenderer.invoke("extractPs4GamePkg", shop, objectId, pkgPath),
+  cancelPs4PkgJob: () => ipcRenderer.invoke("cancelPs4PkgJob"),
+  onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => {
+    const listener = (_event: unknown, payload: Ps4PkgJobEvent) => cb(payload);
+    ipcRenderer.on("on-ps4-pkg-job", listener);
+    return () => ipcRenderer.removeListener("on-ps4-pkg-job", listener);
   },
   prepareRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("prepareRecompilation", ref),
