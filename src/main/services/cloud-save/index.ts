@@ -17,6 +17,7 @@ export * from "./create-remote-snapshot-from-local-state";
 export * from "./delete-game-cloud-save-data";
 export * from "./download-remote-snapshot-to-temp";
 export * from "./get-cloud-save-overview";
+export { getCloudSaveInsights } from "./save-insights";
 export * from "./get-cloud-save-v2-file-details";
 export * from "./list-remote-game-snapshots";
 export * from "./launch-guard";

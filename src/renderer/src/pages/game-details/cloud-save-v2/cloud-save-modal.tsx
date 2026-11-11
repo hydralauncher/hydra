@@ -17,6 +17,7 @@ import type {
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
   EmulatorDiscIdentityStatus,
+  GameShop,
 } from "@types";
 import { formatBytes, type DiscCloudSaveEmulatorProvider } from "@shared";
 import { Button, Modal } from "@renderer/components";
@@ -38,9 +39,23 @@ import {
   type CloudSavePanelAction,
   shouldShowCloudSaveEmptySnapshot,
 } from "./cloud-save-presentation";
+import { getSaveInsightsGame } from "./save-insights/save-insights-games";
+import { canShowSaveCard } from "./save-insights/save-insights-presentation";
+import {
+  SaveInsightCard,
+  SaveInsightConflict,
+} from "./save-insights/save-insights-view";
+import { useCloudSaveInsights } from "./save-insights/use-cloud-save-insights";
+
+export interface CloudSaveInsightsGame {
+  objectId: string;
+  shop: GameShop;
+  heroImageUrl: string | null;
+}
 
 export interface CloudSavePanelProps {
   active?: boolean;
+  saveInsightsGame?: CloudSaveInsightsGame | null;
   showLaunchConflictWarning: boolean;
   overview: CloudSaveOverview | null;
   isLoading: boolean;
@@ -223,6 +238,8 @@ function CloudSaveSyncAction({
 }
 
 export function CloudSavePanel({
+  active = true,
+  saveInsightsGame = null,
   showLaunchConflictWarning,
   overview,
   isLoading,
@@ -320,6 +337,38 @@ export function CloudSavePanel({
     hasExecutablePath &&
     emulatorConfigStatus === "ready";
   const panelMode = identityBlocked ? "disc-identity" : basePanelMode;
+  const { insights } = useCloudSaveInsights({
+    objectId: saveInsightsGame?.objectId ?? null,
+    shop: saveInsightsGame?.shop ?? null,
+    enabled: active && overview !== null && !isSyncing && !hasError,
+    refreshKey: overview
+      ? [
+          overview.state,
+          overview.activeRemoteSnapshot?.aggregateHash ?? "",
+          overview.localSnapshotSummary.updatedAt ?? "",
+          overview.localSnapshotSummary.totalSizeBytes,
+        ].join("|")
+      : "",
+  });
+  const insightsGame = saveInsightsGame
+    ? getSaveInsightsGame(saveInsightsGame.shop, saveInsightsGame.objectId)
+    : {};
+  const cardSummary = activeSnapshot
+    ? (insights?.remote ??
+      (overview?.state === "synced" ? (insights?.local ?? null) : null))
+    : null;
+  const showInsightsConflict =
+    overview?.state === "conflict" &&
+    !isSyncing &&
+    canShowSaveCard(insights?.local ?? null) &&
+    canShowSaveCard(insights?.remote ?? null) &&
+    (insights?.local?.slots.length ?? 0) > 0 &&
+    (insights?.remote?.slots.length ?? 0) > 0;
+  const showInsightsCard =
+    !showInsightsConflict &&
+    overview?.state !== "conflict" &&
+    activeSnapshot !== null &&
+    canShowSaveCard(cardSummary);
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -684,23 +733,68 @@ export function CloudSavePanel({
         <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />
       )}
 
-      {panelMode === "content" && (
-        <section className="cloud-save-v2__active-snapshot">
-          <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
-            {snapshotSummary}
+      {panelMode === "content" &&
+        showInsightsConflict &&
+        insights?.local &&
+        insights.remote && (
+          <section className="cloud-save-v2__active-snapshot">
+            <SaveInsightConflict
+              local={insights.local}
+              remote={insights.remote}
+              game={insightsGame}
+              heroImageUrl={saveInsightsGame?.heroImageUrl ?? null}
+              statusLabel={t(presentation.labelKey)}
+              isBusy={isLoading || isGameRunning}
+              onResolveConflict={(side) =>
+                onResolveConflict(
+                  side === "local" ? "keep-local" : "keep-remote"
+                )
+              }
+              onOpenFileBrowser={onOpenFileBrowser}
+            />
+          </section>
+        )}
 
-            <div
-              className={`cloud-save-v2__action-area ${
-                hasSnapshotSummary
-                  ? "cloud-save-v2__action-area--with-snapshot"
-                  : ""
-              }`}
-            >
-              {syncAction}
-            </div>
-          </article>
-        </section>
-      )}
+      {panelMode === "content" &&
+        showInsightsCard &&
+        cardSummary &&
+        activeSnapshot && (
+          <section className="cloud-save-v2__active-snapshot">
+            <SaveInsightCard
+              summary={cardSummary}
+              game={insightsGame}
+              heroImageUrl={saveInsightsGame?.heroImageUrl ?? null}
+              statusLabel={t(presentation.labelKey)}
+              statusTone={presentation.tone}
+              fileCount={activeSnapshot.fileCount}
+              totalSizeBytes={activeSnapshot.totalSizeBytes}
+              updatedAt={activeSnapshot.updatedAt}
+              isBusy={isLoading || isSyncing}
+              onOpenFileBrowser={onOpenFileBrowser}
+              action={syncAction}
+            />
+          </section>
+        )}
+
+      {panelMode === "content" &&
+        !showInsightsConflict &&
+        !showInsightsCard && (
+          <section className="cloud-save-v2__active-snapshot">
+            <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
+              {snapshotSummary}
+
+              <div
+                className={`cloud-save-v2__action-area ${
+                  hasSnapshotSummary
+                    ? "cloud-save-v2__action-area--with-snapshot"
+                    : ""
+                }`}
+              >
+                {syncAction}
+              </div>
+            </article>
+          </section>
+        )}
     </div>
   );
 }

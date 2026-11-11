@@ -37,7 +37,7 @@ import type {
 } from "@types";
 
 import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
-import { CloudSaveModal } from "./cloud-save-modal";
+import { CloudSaveModal, type CloudSaveInsightsGame } from "./cloud-save-modal";
 import {
   getCloudSaveSyncErrorKind,
   shouldSyncCloudSaveOnGamePage,
@@ -90,6 +90,7 @@ interface CloudSaveV2ContextValue {
   ) => Promise<void>;
   setAutomaticSyncEnabled: (enabled: boolean) => Promise<void>;
   requestConflictResolution: (resolution: CloudSaveConflictResolution) => void;
+  saveInsightsGame: CloudSaveInsightsGame;
 }
 
 const cloudSaveV2Context = createContext<CloudSaveV2ContextValue | null>(null);
@@ -1092,6 +1093,14 @@ export function CloudSaveV2Provider({
       showHydraCloudModal("backup");
     }
   }, [cloudSaveAccessAction, showHydraCloudModal]);
+  const heroImageUrl =
+    game?.libraryHeroImageUrl ??
+    detailsContext.shopDetails?.assets?.libraryHeroImageUrl ??
+    null;
+  const saveInsightsGame = useMemo<CloudSaveInsightsGame>(
+    () => ({ objectId, shop, heroImageUrl }),
+    [heroImageUrl, objectId, shop]
+  );
   const value = useMemo<CloudSaveV2ContextValue>(
     () => ({
       overview,
@@ -1120,8 +1129,10 @@ export function CloudSaveV2Provider({
       runCloudSaveOperation,
       setAutomaticSyncEnabled,
       requestConflictResolution: setPendingResolution,
+      saveInsightsGame,
     }),
     [
+      saveInsightsGame,
       canUseCloudSaves,
       errorMessageKey,
       hasError,
@@ -1172,6 +1183,7 @@ export function CloudSaveV2Provider({
 
       <CloudSaveModal
         visible={isModalVisible}
+        saveInsightsGame={saveInsightsGame}
         showLaunchConflictWarning={wasOpenedFromLaunchConflict}
         overview={overview}
         isLoading={isRefreshing}

@@ -1102,7 +1102,85 @@
     "epic_not_enough_space": "Não há espaço em disco suficiente para esta seleção.",
     "epic_selection_invalid": "A seleção mudou. Abra as opções de download novamente e tente outra vez.",
     "epic_retry": "Tentar novamente",
-    "review_played_with": "Jogou com {{name}}"
+    "review_played_with": "Jogou com {{name}}",
+    "save_insights_slot_manual": "Salvamento manual",
+    "save_insights_slot_auto": "Salvamento automático",
+    "save_insights_slot_quick": "Salvamento rápido",
+    "save_insights_slot_point_of_no_return": "Salvamento antes do ponto sem volta",
+    "save_insights_slot_end_game": "Salvamento pós-créditos",
+    "save_insights_slot_unknown": "Salvamento",
+    "save_insights_slots": "Salvamentos",
+    "save_insights_slot_tile": "Espaço {{number}}, {{name}}",
+    "save_insights_character_tile": "{{name}}, nível {{level}}",
+    "save_insights_level": "Nível {{level}}",
+    "save_insights_day": "Dia {{day}}",
+    "save_insights_in_game_day": "Dia no jogo",
+    "save_insights_last_mission": "Última missão",
+    "save_insights_playing_as": "Jogando como {{name}}",
+    "save_insights_new_game_plus": "Novo Jogo+ {{cycle}}",
+    "save_insights_game_version": "Versão do jogo {{version}}",
+    "save_insights_duration_hours": "{{hours}} h {{minutes}} min",
+    "save_insights_duration_minutes": "{{minutes}} min",
+    "save_insights_saves_count_one": "{{count}} salvamento",
+    "save_insights_saves_count_other": "{{count}} salvamentos",
+    "save_insights_achievements_count_one": "{{formatted}} conquista",
+    "save_insights_achievements_count_other": "{{formatted}} conquistas",
+    "save_insights_achievements_unlocked": "Desbloqueadas neste backup",
+    "save_insights_none": "Nenhum",
+    "save_insights_this_pc": "Este PC",
+    "save_insights_cloud": "Nuvem",
+    "save_insights_stat_playtime": "Tempo de jogo",
+    "save_insights_stat_level": "Nível",
+    "save_insights_stat_chapter": "Capítulo",
+    "save_insights_stat_in_game_day": "Dia",
+    "save_insights_stat_quest": "Última missão",
+    "save_insights_stat_quests_completed": "História principal",
+    "save_insights_stat_objective": "Objetivo",
+    "save_insights_stat_location": "Local",
+    "save_insights_stat_completion": "Conclusão",
+    "save_insights_stat_money": "Dinheiro",
+    "save_insights_stat_difficulty": "Dificuldade",
+    "save_insights_stat_new_game_plus": "Novo Jogo+",
+    "save_insights_stat_character_name": "Personagem",
+    "save_insights_stat_character_class": "Classe",
+    "save_insights_stat_reputation": "Reputação",
+    "save_insights_stat_collectibles": "Colecionáveis",
+    "save_insights_stat_deaths": "Mortes",
+    "save_insights_stat_content": "Expansão",
+    "save_insights_stat_game_version": "Versão do jogo",
+    "save_insights_stat_achievements": "Conquistas",
+    "save_insights_stat_hearts": "Corações",
+    "save_insights_unit_level": "nível",
+    "save_insights_unit_reputation": "reputação",
+    "save_insights_unit_collectibles": "colecionáveis",
+    "save_insights_unit_hearts": "corações",
+    "save_insights_unit_achievements": "conquistas",
+    "save_insights_unit_eddies": "eddies",
+    "save_insights_unit_street_cred": "street cred",
+    "save_insights_unit_runes": "runas",
+    "save_insights_unit_great_runes": "Grandes Runas",
+    "save_insights_unit_supplies": "suprimentos",
+    "save_insights_unit_pesetas": "pesetas",
+    "save_insights_unit_souls": "almas",
+    "save_insights_unit_strawberries": "morangos",
+    "save_insights_unit_crystal_hearts": "corações de cristal",
+    "save_insights_conflict_remote_ahead": "O salvamento na nuvem está mais adiantado",
+    "save_insights_conflict_local_ahead": "O salvamento deste PC está mais adiantado",
+    "save_insights_conflict_mixed": "Cada lado tem um progresso que o outro não tem",
+    "save_insights_conflict_mixed_characters": "Um único arquivo guarda todos os personagens.",
+    "save_insights_conflict_different_runs": "São jogatinas diferentes",
+    "save_insights_conflict_different_runs_description": "Manter uma substitui a outra.",
+    "save_insights_conflict_unknown": "Seus salvamentos mudaram nos dois lados",
+    "save_insights_conflict_same_run": "Mesma jogatina nos dois lados",
+    "save_insights_conflict_local_newer_but_behind": "Este PC tem o salvamento mais recente, mas com menos progresso.",
+    "save_insights_conflict_remote_newer_but_behind": "A nuvem tem o salvamento mais recente, mas com menos progresso.",
+    "save_insights_replaces_cloud": "Substitui os salvamentos na nuvem",
+    "save_insights_replaces_local": "Substitui os salvamentos deste PC",
+    "save_insights_replaces_play": "Substitui {{duration}} de jogo",
+    "save_insights_loses_play": "Perde {{duration}} de jogo",
+    "save_insights_removes_character": "Remove {{name}}",
+    "save_insights_character_loses_levels_one": "{{name}} perde {{count}} nível",
+    "save_insights_character_loses_levels_other": "{{name}} perde {{count}} níveis"
   },
   "activation": {
     "title": "Ativação",
@@ -3646,5 +3724,65 @@
     "tip_no_emulator": "Sem emulador",
     "tip_quick_install": "Instalação em minutos",
     "tip_got_it": "Legal!"
+  },
+  "save_labels": {
+    "007_first_light": {
+      "stat": {
+        "mission": "Missão"
+      }
+    },
+    "celeste": {
+      "stat": {
+        "chapters_cleared": "Capítulos concluídos",
+        "crystal_hearts": "Corações de cristal",
+        "strawberries": "Morangos"
+      }
+    },
+    "cyberpunk_2077": {
+      "stat": {
+        "eddies": "Eddies",
+        "lifepath": "Origem",
+        "main_jobs_done": "Trabalhos principais concluídos",
+        "street_cred": "Street Cred"
+      }
+    },
+    "dark_souls_3": {
+      "stat": {
+        "covenant": "Pacto",
+        "lords_of_cinder": "Lordes das Cinzas",
+        "souls": "Almas"
+      }
+    },
+    "elden_ring": {
+      "stat": {
+        "great_runes": "Grandes Runas",
+        "runes_held": "Runas"
+      }
+    },
+    "ghost_of_tsushima": {
+      "stat": {
+        "supplies": "Suprimentos"
+      }
+    },
+    "marvels_spider_man_2": {
+      "stat": {
+        "hero": "Herói"
+      }
+    },
+    "red_dead_redemption_2": {
+      "stat": {
+        "last_mission": "Última missão"
+      }
+    },
+    "resident_evil_4_2005": {
+      "stat": {
+        "pesetas": "Pesetas"
+      }
+    },
+    "the_last_of_us_part_1": {
+      "stat": {
+        "section": "Seção"
+      }
+    }
   }
 }

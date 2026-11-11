@@ -27,6 +27,14 @@ import type {
 
 import { logger } from "./logger";
 
+export interface NativeSaveInsightsFile {
+  rawPath: string;
+  relativePath: string;
+  path: string;
+  sizeBytes: number;
+  modifiedAtMs?: number;
+}
+
 type NativeProcessProfileImageResponse = {
   imagePath?: string;
   image_path?: string;
@@ -186,6 +194,11 @@ type HydraNativeModule = {
   buildLocalGameSnapshotPipeline: (
     input: BuildLocalGameSnapshotPipelineInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
+  summarizeSaveFiles?: (
+    shop: string,
+    objectId: string,
+    files: NativeSaveInsightsFile[]
+  ) => Promise<string | null>;
   buildLocalGameSnapshot: (
     input: BuildLocalGameSnapshotInput
   ) => Promise<NativeLocalGameSnapshotPipelineResult>;
@@ -687,6 +700,16 @@ export class NativeAddon {
     input: BuildLocalGameSnapshotPipelineInput
   ) {
     return this.load().buildLocalGameSnapshotPipeline(input);
+  }
+
+  public static async summarizeSaveFiles(
+    shop: string,
+    objectId: string,
+    files: NativeSaveInsightsFile[]
+  ) {
+    const summarize = this.load().summarizeSaveFiles;
+    if (!summarize) return null;
+    return summarize(shop, objectId, files);
   }
 
   public static buildLocalGameSnapshot(input: BuildLocalGameSnapshotInput) {

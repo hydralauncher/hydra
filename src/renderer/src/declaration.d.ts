@@ -97,6 +97,7 @@ import type {
   CloudSaveConflictResolution,
   RetroArchLocalBatteryCandidate,
   RetroArchLegacyBatteryCandidate,
+  CloudSaveInsights,
   CloudSaveOverview,
   CloudSaveV2FileDetails,
   AchievementSouvenirSyncCleanupResult,
@@ -193,6 +194,10 @@ declare global {
       objectId: string,
       shop: GameShop
     ) => Promise<CloudSaveOverview>;
+    getCloudSaveInsights: (
+      objectId: string,
+      shop: GameShop
+    ) => Promise<CloudSaveInsights>;
     getCloudSaveV2FileDetails: (
       objectId: string,
       shop: GameShop

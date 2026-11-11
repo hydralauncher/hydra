@@ -20,7 +20,8 @@ export const downloadRemoteSnapshotToTemp = async (
   snapshotId: string,
   snapshotVersion: number,
   requestedFiles?: RestoreManifestFile[],
-  onProgress?: (processedFiles: number, totalFiles: number) => void
+  onProgress?: (processedFiles: number, totalFiles: number) => void,
+  tempSnapshotId = `${snapshotId}-${snapshotVersion}`
 ): Promise<DownloadedRestoreFile[]> => {
   if (requestedFiles?.length === 0) return [];
   const files = validateRestoreDownloadUrls(
@@ -55,7 +56,6 @@ export const downloadRemoteSnapshotToTemp = async (
   }
 
   const tempRoot = SystemPath.getPath("temp");
-  const tempSnapshotId = `${snapshotId}-${snapshotVersion}`;
   const filesByBlob = new Map<string, RestoreDownloadUrlFile[]>();
   for (const file of selectedFiles) {
     const key = JSON.stringify([file.hash, file.sizeBytes]);
