@@ -554,6 +554,7 @@ export class GameFilesManager {
         const { gameDirectory } = await installPs4Pkg({
           pkgPath: pkg.pkgPath,
           gameDirectory: gameDirectories.get(pkg.titleId),
+          deletePkg: true,
           onProgress: (fraction) =>
             this.updateExtractionProgress(
               (doneSize + fraction * pkg.size) / totalSize

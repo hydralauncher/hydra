@@ -19,6 +19,7 @@ import { t } from "i18next";
 import { logger, SevenZip, WindowManager } from "@main/services";
 import { parseParamSfoValue } from "@main/services/emulators/param-sfo";
 import {
+  assertPs4UpdateFits,
   installPs4Pkg,
   isPs4PkgPath,
   Ps4PkgError,
@@ -437,8 +438,14 @@ const checkChosenPkg = async (
   if (meta.titleIds?.length && !meta.titleIds.includes(info.titleId)) {
     return { ok: false, reason: "rom_other_game" };
   }
-  if (info.kind === "patch" && !(await getChosenGameFolder(slug, meta))) {
-    return { ok: false, reason: "rom_update_needs_game" };
+  if (info.kind === "patch") {
+    const gameFolder = await getChosenGameFolder(slug, meta);
+    if (!gameFolder) return { ok: false, reason: "rom_update_needs_game" };
+    try {
+      await assertPs4UpdateFits(info, gameFolder);
+    } catch (error) {
+      return { ok: false, reason: toPkgFailureReason(error) };
+    }
   }
   return null;
 };
@@ -448,7 +455,15 @@ const pkgExtractions = new Map<string, AbortController>();
 const PKG_FAILURE_REASONS: Record<string, string> = {
   no_space: "rom_pkg_no_space",
   cancelled: "rom_pkg_cancelled",
+  missing_base_game: "rom_update_needs_game",
+  other_game: "rom_other_game",
+  not_newer: "rom_pkg_not_newer",
 };
+
+function toPkgFailureReason(error: unknown) {
+  const code = error instanceof Ps4PkgError ? error.code : "failed";
+  return PKG_FAILURE_REASONS[code] ?? "rom_pkg_failed";
+}
 
 /** Extracts a PS4 game or update PKG picked in the install modal. */
 export const extractRecompilationRomPkg = async (
@@ -489,8 +504,7 @@ export const extractRecompilationRomPkg = async (
     return { ok: true, romPath: gameDirectory };
   } catch (error) {
     logger.error("Failed to extract PS4 PKG for port", error);
-    const code = error instanceof Ps4PkgError ? error.code : "failed";
-    return { ok: false, reason: PKG_FAILURE_REASONS[code] ?? "rom_pkg_failed" };
+    return { ok: false, reason: toPkgFailureReason(error) };
   } finally {
     pkgExtractions.delete(ref.slug);
   }
@@ -934,4 +948,15 @@ export const markRecompilationRomLaunched = async (
   if (choice && !choice.launched) {
     await writeRomChoice(installDirectory, { ...choice, launched: true });
   }
+};
+
+/** The PS4 game folder a folder port uses, or null when it has none. */
+export const getRecompilationGameFolder = async (
+  objectId: string,
+  slug: string
+) => {
+  const meta = getRecompilationRomMeta(slug);
+  if (!meta || !isFolderRom(meta)) return null;
+  const state = await getRecompilationRomState({ objectId, slug });
+  return state?.romPath ? toGameFolder(state.romPath) : null;
 };

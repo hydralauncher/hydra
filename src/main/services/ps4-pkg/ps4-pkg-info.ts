@@ -27,6 +27,8 @@ export type Ps4PkgErrorCode =
   | "unsupported_pkg"
   | "no_space"
   | "missing_base_game"
+  | "other_game"
+  | "not_newer"
   | "cancelled"
   | "failed";
 

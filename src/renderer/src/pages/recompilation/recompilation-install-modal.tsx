@@ -401,6 +401,7 @@ function InstallModalContent({
       return t("rom_update_needs_game", { name: romName });
     }
     if (reason === "rom_pkg_no_space") return t("rom_pkg_no_space");
+    if (reason === "rom_pkg_not_newer") return t("rom_pkg_not_newer");
     if (reason === "rom_pkg_failed" || reason === "rom_pkg_busy") {
       return t("rom_pkg_failed");
     }

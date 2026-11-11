@@ -285,3 +285,28 @@ export interface EmulatorInstallResult {
   path?: string;
   reason?: string;
 }
+
+export type Ps4UpdateFailure =
+  | "not_update"
+  | "no_game_folder"
+  | "other_game"
+  | "not_newer"
+  | "no_space"
+  | "cancelled"
+  | "busy"
+  | "failed";
+
+export type Ps4UpdateCheck =
+  | { ok: true; version: string | null; currentVersion: string | null }
+  | { ok: false; reason: Ps4UpdateFailure };
+
+export interface Ps4UpdateResult {
+  ok: boolean;
+  reason?: Ps4UpdateFailure;
+  version?: string | null;
+}
+
+export interface Ps4UpdateProgress {
+  objectId: string;
+  progress: number;
+}

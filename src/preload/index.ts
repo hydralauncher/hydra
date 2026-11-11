@@ -35,6 +35,7 @@ import type {
   RecompilationInstallProgress,
   RecompilationPrepareProgress,
   RecompilationRomPkgProgress,
+  Ps4UpdateProgress,
   RecompilationRef,
   RecompilationRomSource,
   RetroArchCoreName,
@@ -674,6 +675,19 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-recompilation-rom-pkg-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-recompilation-rom-pkg-progress", listener);
+  },
+  hasPs4GameFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasPs4GameFolder", shop, objectId),
+  checkPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
+    ipcRenderer.invoke("checkPs4Update", shop, objectId, pkgPath),
+  applyPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
+    ipcRenderer.invoke("applyPs4Update", shop, objectId, pkgPath),
+  cancelPs4Update: () => ipcRenderer.invoke("cancelPs4Update"),
+  onPs4UpdateProgress: (cb: (payload: Ps4UpdateProgress) => void) => {
+    const listener = (_event: unknown, payload: Ps4UpdateProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-ps4-update-progress", listener);
+    return () => ipcRenderer.removeListener("on-ps4-update-progress", listener);
   },
   prepareRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("prepareRecompilation", ref),

@@ -353,6 +353,10 @@ async function fixture(
         return null;
       },
     },
+    "./ps4-update-modal": {
+      Ps4UpdateModal: stubComponent,
+      ps4UpdateErrorKey: () => "ps4_update_failed",
+    },
   });
   const Menu = menuModule.GameContextMenu as React.ElementType;
   const root = createRoot(dom.window.document.getElementById("root")!);
