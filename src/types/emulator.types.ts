@@ -2,6 +2,8 @@ import type { GameShop } from "./game.types";
 
 export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "ps4" | "psp" | "dolphin";
 
+export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
+
 export type EmulatorBinary =
   | "duckstation"
   | "pcsx2"
@@ -24,6 +26,7 @@ export interface EmulatorConfig {
   binary: EmulatorBinary;
   executablePath: string | null;
   rpcs3ConfigRoot?: string | null;
+  shadps4DataDir?: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
   biosPath: string | null;
@@ -80,6 +83,7 @@ export interface ClassicsDisc {
   label: string;
   fileName: string;
   sku?: string | null;
+  region?: SkuRegion | null;
   isExecutable?: boolean;
   recompilationSlug?: string;
   iconUrl?: string | null;

@@ -51,6 +51,17 @@ export const assertEmulatorDiscIdentity = async (
           ),
       };
     }
+    case "shadps4": {
+      const { assertShadps4DiscIdentity, assertShadps4SnapshotIdentity } =
+        await import("./shadps4-game-identity.js");
+      const savedataTitleIds = await assertShadps4DiscIdentity(game);
+      const allowed = new Set(savedataTitleIds);
+      return {
+        savedataTitleIds,
+        assertSnapshotFiles: (files, customPaths = []) =>
+          assertShadps4SnapshotIdentity(files, allowed, customPaths),
+      };
+    }
     case null:
       return null;
   }
@@ -66,6 +77,12 @@ export const getEmulatorDiscIdentityStatus = async (
       );
       return getRpcs3DiscIdentityStatus(game);
     }
+    case "shadps4": {
+      const { getShadps4DiscIdentityStatus } = await import(
+        "./shadps4-game-identity.js"
+      );
+      return getShadps4DiscIdentityStatus(game);
+    }
     case null:
       return null;
   }
@@ -80,6 +97,12 @@ export const getEmulatorSavedataTitleIds = async (
         "./rpcs3-savedata-title-ids.js"
       );
       return getRpcs3SavedataTitleIds(game);
+    }
+    case "shadps4": {
+      const { getShadps4SavedataTitleIds } = await import(
+        "./shadps4-save-layout.js"
+      );
+      return getShadps4SavedataTitleIds(game);
     }
     case null:
       return undefined;

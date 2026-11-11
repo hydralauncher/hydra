@@ -31,7 +31,7 @@ import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   isPs4GameFolder,
   platformToSystem,
@@ -99,7 +99,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       );
     }
 
-    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+    const region = disc ? getDiscRegion(disc) : null;
 
     if (!region) return <Disc3 size={18} className="disc-field__icon" />;
 
