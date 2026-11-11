@@ -1165,6 +1165,7 @@ export * from "./emulator.types";
 export * from "./retroarch.types";
 export * from "./artwork.types";
 export * from "./cloud-save.types";
+export * from "./save-insights.types";
 export * from "./souvenir.types";
 export * from "./screenshot.types";
 export * from "./recompilation.types";

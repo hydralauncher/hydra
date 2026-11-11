@@ -1097,6 +1097,7 @@ dependencies = [
  "globetter",
  "globset",
  "hatchzip-core",
+ "hydra-save-insights",
  "image",
  "indexmap",
  "known-folders",
@@ -1123,6 +1124,15 @@ dependencies = [
  "windows-sys 0.61.2",
  "x11rb",
  "zbus",
+]
+
+[[package]]
+name = "hydra-save-insights"
+version = "0.1.0"
+dependencies = [
+ "miniz_oxide",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

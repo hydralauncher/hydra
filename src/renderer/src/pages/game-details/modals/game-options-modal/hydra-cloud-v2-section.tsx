@@ -35,6 +35,7 @@ export function HydraCloudV2SettingsSection({
     runCloudSaveOperation,
     setAutomaticSyncEnabled,
     requestConflictResolution,
+    saveInsightsGame,
   } = useCloudSaveV2();
 
   return (
@@ -45,6 +46,7 @@ export function HydraCloudV2SettingsSection({
       </div>
 
       <CloudSavePanel
+        saveInsightsGame={saveInsightsGame}
         showLaunchConflictWarning={false}
         overview={overview}
         isLoading={isRefreshing}

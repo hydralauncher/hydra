@@ -60,6 +60,7 @@ import type {
   CloudSaveAutomaticSyncModeChangedEvent,
   CloudSaveAutomaticSyncEvent,
   CloudSaveConflictResolution,
+  CloudSaveInsights,
   CloudSaveOverview,
   RetroArchLocalBatteryCandidate,
   RetroArchLegacyBatteryCandidate,
@@ -206,6 +207,12 @@ contextBridge.exposeInMainWorld("electron", {
       objectId,
       shop
     ) as Promise<CloudSaveOverview>,
+  getCloudSaveInsights: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke(
+      "getCloudSaveInsights",
+      objectId,
+      shop
+    ) as Promise<CloudSaveInsights>,
   getCloudSaveV2FileDetails: (objectId: string, shop: GameShop) =>
     ipcRenderer.invoke(
       "getCloudSaveV2FileDetails",

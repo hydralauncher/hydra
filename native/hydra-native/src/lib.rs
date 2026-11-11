@@ -5,6 +5,7 @@ mod desktop_duplication;
 mod in_place_extraction;
 mod kde_focus;
 mod linux_process;
+mod save_insights;
 mod screenshot_input;
 mod torrent;
 mod window_bounds;
@@ -23,6 +24,7 @@ pub use cloud_save::restore::{
 };
 pub use cloud_save::save_scanner::scan_resolved_save_rules;
 pub use cloud_save::upload::upload_local_save_blob;
+pub use save_insights::summarize_save_files;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};

@@ -16,6 +16,7 @@ ludusavi/**
 /legendary/
 native/hydra-native/target/
 native/epic-prerequisite-runner/target/
+native/save-insights/target/
 binaries/epic-prerequisite-runner/
 
 # Sentry Config File
