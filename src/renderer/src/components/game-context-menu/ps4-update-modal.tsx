@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { GameShop, Ps4UpdateFailure } from "@types";
@@ -120,4 +120,65 @@ export function Ps4UpdateModal({
       </div>
     </Modal>
   );
+}
+
+/**
+ * Picks an update PKG, checks it and opens the progress modal. Render
+ * `modal` somewhere that stays mounted while the update runs.
+ */
+export function usePs4UpdatePicker(
+  shop: GameShop,
+  objectId: string,
+  onFinish?: () => void
+) {
+  const { t } = useTranslation("game_details");
+  const { showErrorToast } = useToast();
+  const [request, setRequest] = useState<Ps4UpdateRequest | null>(null);
+
+  const pick = async () => {
+    const { canceled, filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [{ name: "PKG", extensions: ["pkg"] }],
+    });
+    const pkgPath = filePaths?.[0];
+    if (canceled || !pkgPath) {
+      onFinish?.();
+      return;
+    }
+
+    const check = await window.electron
+      .checkPs4Update(shop, objectId, pkgPath)
+      .catch(() => null);
+    if (!check?.ok) {
+      showErrorToast(
+        t(ps4UpdateErrorKey(check?.ok === false ? check.reason : undefined))
+      );
+      onFinish?.();
+      return;
+    }
+
+    setRequest({
+      pkgPath,
+      version: check.version,
+      currentVersion: check.currentVersion,
+    });
+  };
+
+  const close = useCallback(() => {
+    setRequest(null);
+    onFinish?.();
+  }, [onFinish]);
+
+  return {
+    pick,
+    isApplying: request !== null,
+    modal: (
+      <Ps4UpdateModal
+        shop={shop}
+        objectId={objectId}
+        request={request}
+        onClose={close}
+      />
+    ),
+  };
 }

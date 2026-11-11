@@ -354,8 +354,11 @@ async function fixture(
       },
     },
     "./ps4-update-modal": {
-      Ps4UpdateModal: stubComponent,
-      ps4UpdateErrorKey: () => "ps4_update_failed",
+      usePs4UpdatePicker: () => ({
+        pick: async () => {},
+        isApplying: false,
+        modal: null,
+      }),
     },
   });
   const Menu = menuModule.GameContextMenu as React.ElementType;

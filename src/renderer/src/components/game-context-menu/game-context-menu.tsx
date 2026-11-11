@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   AuthPage,
@@ -53,11 +53,7 @@ import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import type { GameCollection } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
-import {
-  Ps4UpdateModal,
-  ps4UpdateErrorKey,
-  type Ps4UpdateRequest,
-} from "./ps4-update-modal";
+import { usePs4UpdatePicker } from "./ps4-update-modal";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: GameContextMenuGame;
@@ -106,8 +102,6 @@ export function GameContextMenu({
   const [isFavoritePending, setIsFavoritePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
   const [hasPs4GameFolder, setHasPs4GameFolder] = useState(false);
-  const [ps4UpdateRequest, setPs4UpdateRequest] =
-    useState<Ps4UpdateRequest | null>(null);
   const [visibility, setVisibility] = useState({
     isHiddenFromOthers: Boolean(preferenceGame.isHiddenFromOthers),
     isConcealed: Boolean(preferenceGame.isConcealed),
@@ -162,39 +156,7 @@ export function GameContextMenu({
     };
   }, [visible, game.shop, game.objectId]);
 
-  const handlePickPs4Update = async () => {
-    const { canceled, filePaths } = await window.electron.showOpenDialog({
-      properties: ["openFile"],
-      filters: [{ name: "PKG", extensions: ["pkg"] }],
-    });
-    const pkgPath = filePaths?.[0];
-    if (canceled || !pkgPath) {
-      onClose();
-      return;
-    }
-
-    const check = await window.electron
-      .checkPs4Update(game.shop, game.objectId, pkgPath)
-      .catch(() => null);
-    if (!check?.ok) {
-      showErrorToast(
-        t(ps4UpdateErrorKey(check?.ok === false ? check.reason : undefined))
-      );
-      onClose();
-      return;
-    }
-
-    setPs4UpdateRequest({
-      pkgPath,
-      version: check.version,
-      currentVersion: check.currentVersion,
-    });
-  };
-
-  const handlePs4UpdateClosed = useCallback(() => {
-    setPs4UpdateRequest(null);
-    onClose();
-  }, [onClose]);
+  const ps4Update = usePs4UpdatePicker(game.shop, game.objectId, onClose);
 
   const targetSource =
     group ??
@@ -520,8 +482,8 @@ export function GameContextMenu({
                 id: "apply-ps4-update",
                 label: t("apply_ps4_update"),
                 icon: <SyncIcon size={16} />,
-                onClick: () => void handlePickPs4Update(),
-                disabled: isDeleting || ps4UpdateRequest !== null,
+                onClick: () => void ps4Update.pick(),
+                disabled: isDeleting || ps4Update.isApplying,
                 closeOnClick: false,
               },
             ]
@@ -691,12 +653,7 @@ export function GameContextMenu({
         }}
       />
 
-      <Ps4UpdateModal
-        shop={game.shop}
-        objectId={game.objectId}
-        request={ps4UpdateRequest}
-        onClose={handlePs4UpdateClosed}
-      />
+      {ps4Update.modal}
 
       <ConfirmationModal
         visible={rpcs3ConfirmPending !== null}
