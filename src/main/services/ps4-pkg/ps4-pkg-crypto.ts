@@ -119,12 +119,13 @@ export const createSectorDecryptor = (ekpfs: Buffer, seed: Buffer) => {
   }
 
   // Without the addon: XTS on top of ECB, since Electron's BoringSSL has no
-  // aes-128-xts.
+  // aes-128-xts. ECB is only the block step here: the per-block tweaks below
+  // make it XTS, the mode the PKG format uses, and this only decrypts.
   const tweakCipher = crypto
-    .createCipheriv("aes-128-ecb", digest.subarray(0, 16), null)
+    .createCipheriv("aes-128-ecb", digest.subarray(0, 16), null) // NOSONAR
     .setAutoPadding(false);
   const dataDecipher = crypto
-    .createDecipheriv("aes-128-ecb", digest.subarray(16, 32), null)
+    .createDecipheriv("aes-128-ecb", digest.subarray(16, 32), null) // NOSONAR
     .setAutoPadding(false);
   const wordsPerSector = XTS_SECTOR_SIZE / 4;
 
