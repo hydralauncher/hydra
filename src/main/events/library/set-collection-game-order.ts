@@ -31,20 +31,20 @@ const saveCollectionGameOrder = async (
   const positions = getLibraryCollectionOrderPositions(games);
   const storedGames = await gamesSublevel.iterator().all();
 
-  for (const [key, game] of storedGames) {
+  const updates = storedGames.flatMap(([key, game]) => {
     const collectionPositions = applyLibraryCollectionOrder(
       game,
       collectionId,
       positions
     );
-    if (
+    const hasChanged =
       collectionPositions &&
       collectionPositions[collectionId] !==
-        game.collectionPositions?.[collectionId]
-    ) {
-      await updateGameRecord(key, { collectionPositions });
-    }
-  }
+        game.collectionPositions?.[collectionId];
+    return hasChanged ? [updateGameRecord(key, { collectionPositions })] : [];
+  });
+
+  await Promise.all(updates);
 };
 
 const setCollectionGameOrder = async (
