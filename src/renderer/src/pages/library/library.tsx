@@ -86,6 +86,7 @@ import {
   setLibraryCardSize,
   writeLibraryCardSizes,
   type LibraryCardSize,
+  type LibraryGridCell,
   type LibraryGridLayout,
   type LibraryGridMetrics,
   type LibraryGridMove,
@@ -824,11 +825,42 @@ export default function Library() {
     let pointer: { clientX: number; clientY: number } | null = null;
     let activeSourceKey: string | null = null;
 
+    let grabOffset: LibraryGridCell = { row: 0, column: 0 };
     let lastPlannedCell: {
       layout: LibraryGridLayout;
       row: number;
       column: number;
     } | null = null;
+
+    const getGrabOffset = (
+      sourceKey: string,
+      input: { clientX: number; clientY: number }
+    ): LibraryGridCell => {
+      const grid = gridRef.current;
+      const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
+      const placement = layout.placementByKey.get(sourceKey);
+      if (!grid || !placement) return { row: 0, column: 0 };
+
+      const rect = grid.getBoundingClientRect();
+      const cell = findLibraryGridCellAt(
+        layout,
+        metrics,
+        input.clientX - rect.left,
+        input.clientY - rect.top
+      );
+      if (!cell) return { row: 0, column: 0 };
+
+      return {
+        row: Math.min(
+          Math.max(cell.row - placement.row, 0),
+          placement.rows - 1
+        ),
+        column: Math.min(
+          Math.max(cell.column - placement.column, 0),
+          placement.columns - 1
+        ),
+      };
+    };
 
     const applyPreviewMove = (sourceKey: string, move: LibraryGridMove) => {
       const {
@@ -878,7 +910,12 @@ export default function Library() {
       }
       lastPlannedCell = { layout, ...cell };
 
-      const move = planLibraryGridMove(layout, activeSourceKey, cell);
+      const move = planLibraryGridMove(
+        layout,
+        activeSourceKey,
+        cell,
+        grabOffset
+      );
       if (!move) return;
 
       applyPreviewMove(activeSourceKey, move);
@@ -904,6 +941,7 @@ export default function Library() {
           lastPlannedCell = null;
           activeSourceKey = source.data.orderKey;
           pointer = location.current.input;
+          grabOffset = getGrabOffset(source.data.orderKey, pointer);
           overlay = createLibraryDragOverlay(
             source.element,
             location.current.input
