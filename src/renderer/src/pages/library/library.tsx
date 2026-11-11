@@ -68,14 +68,25 @@ import {
 } from "./library-custom-order";
 import {
   LibrarySortableGame,
-  findLibraryGameKeyAtPoint,
   isLibraryGameDragData,
 } from "./library-sortable-game";
-import { useLibraryReorderAnimation } from "./use-library-reorder-animation";
 import {
   createLibraryDragOverlay,
+  settleLibraryCard,
   type LibraryDragOverlay,
 } from "./library-drag-overlay";
+import {
+  DEFAULT_LIBRARY_CARD_SIZE,
+  findLibraryGridKeyAt,
+  getLibraryCardSize,
+  getLibraryPlacementBox,
+  packLibraryGrid,
+  readLibraryCardSizes,
+  setLibraryCardSize,
+  writeLibraryCardSizes,
+  type LibraryCardSize,
+  type LibraryGridMetrics,
+} from "./library-grid-layout";
 import { createLibraryDragAutoscroll } from "./library-drag-autoscroll";
 import {
   categoryShowsPlatforms,
@@ -103,6 +114,10 @@ const GAP = 16;
 const LARGE_CARD_ESTIMATED_HEIGHT = 300;
 const FALLBACK_ITEM_WIDTH = 150;
 const LIBRARY_GRID_DROP_TYPE = "library-grid";
+const DRAG_MOVE_MIN_DISTANCE = 12;
+const WIDE_CARD_MIN_COLUMNS = 3;
+const COVER_ASPECT_RATIO = 2 / 3;
+const COVER_ASPECT_TOLERANCE = 0.05;
 
 const COLUMN_BREAKPOINTS = [3000, 2600, 2000, 1300, 900] as const;
 const COLUMNS: Record<"grid" | "compact", readonly number[]> = {
@@ -223,6 +238,9 @@ export default function Library() {
     order: string[];
   } | null>(null);
   const effectiveCustomOrder = dragPreview?.order ?? customOrder;
+  const [cardSizes, setCardSizes] = useState(() =>
+    readLibraryCardSizes(localStorage)
+  );
   const [gameContextMenu, setGameContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -711,10 +729,64 @@ export default function Library() {
   );
 
   const isCustomOrder = sortBy === "custom";
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  const gridMetrics = useMemo<LibraryGridMetrics>(() => {
+    const availableWidth =
+      containerWidth > 0
+        ? containerWidth - GAP
+        : FALLBACK_ITEM_WIDTH * columnsCount;
+    const cellWidth =
+      (availableWidth - GAP * (columnsCount - 1)) / columnsCount;
+    const cellHeight =
+      viewMode === "large"
+        ? LARGE_CARD_ESTIMATED_HEIGHT
+        : Math.round((cellWidth * 3) / 2);
+    return { cellWidth, cellHeight, gap: GAP };
+  }, [containerWidth, columnsCount, viewMode]);
+  const estimatedRowHeight = gridMetrics.cellHeight + GAP;
+
+  const gamesByKey = useMemo(
+    () =>
+      new Map(
+        filteredLibrary.map((game) => [getLibraryGameOrderKey(game), game])
+      ),
+    [filteredLibrary]
+  );
+
+  const gridLayout = useMemo(
+    () =>
+      packLibraryGrid(
+        filteredLibrary.map((game) => ({
+          key: getLibraryGameOrderKey(game),
+          ...(isCustomOrder
+            ? getLibraryCardSize(cardSizes, game)
+            : DEFAULT_LIBRARY_CARD_SIZE),
+        })),
+        columnsCount
+      ),
+    [filteredLibrary, isCustomOrder, cardSizes, columnsCount]
+  );
+
+  useEffect(() => {
+    writeLibraryCardSizes(localStorage, cardSizes);
+  }, [cardSizes]);
+
+  const handleCardResize = useCallback(
+    (orderKey: string, size: LibraryCardSize) => {
+      const game = gamesByKey.get(orderKey);
+      if (!game) return;
+      setCardSizes((previous) => setLibraryCardSize(previous, game, size));
+    },
+    [gamesByKey]
+  );
+
   const dragStateRef = useRef({
     customOrder,
     dragPreview,
     displayedGames: sortedLibrary,
+    gridLayout,
+    gridMetrics,
   });
   dragStateRef.current = {
     customOrder,
@@ -723,14 +795,16 @@ export default function Library() {
       selectedCollectionId === HIDDEN_COLLECTION_ID
         ? sortedHiddenGames
         : sortedLibrary,
+    gridLayout,
+    gridMetrics,
   };
-  const captureBeforeReorder = useLibraryReorderAnimation(gamesScrollRef);
 
   useEffect(() => {
     const scrollElement = gamesScrollRef.current;
     if (!isCustomOrder || !scrollElement) return;
 
     let overlay: LibraryDragOverlay | null = null;
+    let lastMovePoint: { x: number; y: number } | null = null;
     const removeOverlay = () => {
       const rect = overlay?.getRect() ?? null;
       overlay?.remove();
@@ -740,6 +814,19 @@ export default function Library() {
     const autoscroll = createLibraryDragAutoscroll(
       () => gamesScrollRef.current
     );
+
+    const findHoveredKey = (clientX: number, clientY: number) => {
+      const grid = gridRef.current;
+      if (!grid) return null;
+      const rect = grid.getBoundingClientRect();
+      const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
+      return findLibraryGridKeyAt(
+        layout,
+        metrics,
+        clientX - rect.left,
+        clientY - rect.top
+      );
+    };
 
     const previewMoveOnto = (sourceKey: string, targetKey: string) => {
       const {
@@ -754,18 +841,19 @@ export default function Library() {
       const targetIndex = displayedGames.findIndex(
         (game) => getLibraryGameOrderKey(game) === targetKey
       );
-      if (sourceIndex === -1 || targetIndex === -1) return;
+      if (sourceIndex === -1 || targetIndex === -1) return false;
 
-      const nextOrder = moveLibraryGameInCustomOrder(
-        currentOrder,
-        displayedGames,
+      setDragPreview({
         sourceKey,
-        targetKey,
-        sourceIndex < targetIndex ? "after" : "before"
-      );
-
-      captureBeforeReorder();
-      setDragPreview({ sourceKey, order: nextOrder });
+        order: moveLibraryGameInCustomOrder(
+          currentOrder,
+          displayedGames,
+          sourceKey,
+          targetKey,
+          sourceIndex < targetIndex ? "after" : "before"
+        ),
+      });
+      return true;
     };
 
     return combine(
@@ -779,6 +867,7 @@ export default function Library() {
         onDragStart: ({ source, location }) => {
           if (!isLibraryGameDragData(source.data)) return;
           removeOverlay();
+          lastMovePoint = null;
           overlay = createLibraryDragOverlay(
             source.element,
             location.current.input
@@ -794,13 +883,21 @@ export default function Library() {
           autoscroll.update(clientY);
 
           if (!isLibraryGameDragData(source.data)) return;
-          const hoveredKey = findLibraryGameKeyAtPoint(
-            scrollElement,
-            clientX,
-            clientY
-          );
-          if (hoveredKey && hoveredKey !== source.data.orderKey) {
-            previewMoveOnto(source.data.orderKey, hoveredKey);
+          if (
+            lastMovePoint &&
+            Math.hypot(clientX - lastMovePoint.x, clientY - lastMovePoint.y) <
+              DRAG_MOVE_MIN_DISTANCE
+          ) {
+            return;
+          }
+
+          const hoveredKey = findHoveredKey(clientX, clientY);
+          if (
+            hoveredKey &&
+            hoveredKey !== source.data.orderKey &&
+            previewMoveOnto(source.data.orderKey, hoveredKey)
+          ) {
+            lastMovePoint = { x: clientX, y: clientY };
           }
         },
         onDrop: ({ source, location }) => {
@@ -809,16 +906,18 @@ export default function Library() {
           const { dragPreview: preview } = dragStateRef.current;
           const isInsideGrid = location.current.dropTargets.length > 0;
 
-          if (isLibraryGameDragData(source.data) && overlayRect) {
-            captureBeforeReorder({
-              key: source.data.orderKey,
-              fromRect: overlayRect,
-            });
-          }
-
           if (preview && isInsideGrid) {
             setCustomOrder(preview.order);
             writeLibraryCustomOrder(localStorage, preview.order);
+
+            const element = isLibraryGameDragData(source.data)
+              ? scrollElement.querySelector<HTMLElement>(
+                  `[data-library-order-key="${CSS.escape(source.data.orderKey)}"]`
+                )
+              : null;
+            if (element && overlayRect) {
+              settleLibraryCard(element, overlayRect);
+            }
           }
           setDragPreview(null);
         },
@@ -829,27 +928,10 @@ export default function Library() {
         setDragPreview(null);
       }
     );
-  }, [isCustomOrder, captureBeforeReorder]);
-
-  const rows = useMemo(() => {
-    const result: LibraryGame[][] = [];
-    for (let i = 0; i < filteredLibrary.length; i += columnsCount) {
-      result.push(filteredLibrary.slice(i, i + columnsCount));
-    }
-    return result;
-  }, [filteredLibrary, columnsCount]);
-
-  const estimatedRowHeight = useMemo(() => {
-    if (viewMode === "large") return LARGE_CARD_ESTIMATED_HEIGHT + GAP;
-    const itemWidth =
-      containerWidth > 0
-        ? (containerWidth - GAP * (columnsCount - 1)) / columnsCount
-        : FALLBACK_ITEM_WIDTH;
-    return Math.round((itemWidth * 3) / 2) + GAP;
-  }, [viewMode, containerWidth, columnsCount]);
+  }, [isCustomOrder]);
 
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: gridLayout.rowCount,
     getScrollElement: () => gamesScrollRef.current,
     estimateSize: () => estimatedRowHeight,
     overscan: 3,
@@ -858,6 +940,15 @@ export default function Library() {
   useEffect(() => {
     rowVirtualizer.measure();
   }, [rowVirtualizer, estimatedRowHeight]);
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const firstVisibleRow = virtualRows[0]?.index ?? 0;
+  const lastVisibleRow = virtualRows[virtualRows.length - 1]?.index ?? -1;
+  const visiblePlacements = gridLayout.placements.filter(
+    (placement) =>
+      placement.row <= lastVisibleRow &&
+      placement.row + placement.rows > firstVisibleRow
+  );
 
   useEffect(() => {
     gamesScrollRef.current?.scrollTo({ top: 0 });
@@ -1107,49 +1198,54 @@ export default function Library() {
           !shouldShowClassicsImporting &&
           !shouldShowNoResultsEmptyState && (
             <div
+              ref={gridRef}
               style={{
                 height: `${rowVirtualizer.getTotalSize()}px`,
                 position: "relative",
+                marginRight: GAP,
               }}
             >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: GAP,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
-                    gap: `${GAP}px`,
-                  }}
-                >
-                  {rows[virtualRow.index].map((game) => (
-                    <LibrarySortableGame
-                      key={`${game.shop}-${game.objectId}`}
-                      orderKey={getLibraryGameOrderKey(game)}
-                      enabled={isCustomOrder}
-                      isDragSource={
-                        dragPreview?.sourceKey === getLibraryGameOrderKey(game)
-                      }
-                    >
-                      {viewMode === "large" ? (
-                        <LibraryGameCardLarge
-                          game={game}
-                          onContextMenu={handleOpenContextMenu}
-                        />
-                      ) : (
-                        <LibraryGameCard
-                          game={game}
-                          onContextMenu={handleOpenContextMenu}
-                        />
-                      )}
-                    </LibrarySortableGame>
-                  ))}
-                </div>
-              ))}
+              {visiblePlacements.map((placement) => {
+                const game = gamesByKey.get(placement.key);
+                if (!game) return null;
+
+                const box = getLibraryPlacementBox(placement, gridMetrics);
+                const useWideCard =
+                  viewMode === "large" ||
+                  (placement.columns >= WIDE_CARD_MIN_COLUMNS &&
+                    box.width > box.height);
+
+                return (
+                  <LibrarySortableGame
+                    key={placement.key}
+                    orderKey={placement.key}
+                    enabled={isCustomOrder}
+                    isDragSource={dragPreview?.sourceKey === placement.key}
+                    style={box}
+                    size={placement}
+                    maxColumns={columnsCount}
+                    metrics={gridMetrics}
+                    onResize={handleCardResize}
+                  >
+                    {useWideCard ? (
+                      <LibraryGameCardLarge
+                        game={game}
+                        onContextMenu={handleOpenContextMenu}
+                      />
+                    ) : (
+                      <LibraryGameCard
+                        game={game}
+                        onContextMenu={handleOpenContextMenu}
+                        letterbox={
+                          Math.abs(
+                            box.width / box.height - COVER_ASPECT_RATIO
+                          ) > COVER_ASPECT_TOLERANCE
+                        }
+                      />
+                    )}
+                  </LibrarySortableGame>
+                );
+              })}
             </div>
           )}
       </div>

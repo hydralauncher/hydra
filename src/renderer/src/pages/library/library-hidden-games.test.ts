@@ -220,12 +220,34 @@ async function renderLibrary(
       LibrarySortableGame: ({ children }: { children: React.ReactNode }) =>
         children,
       isLibraryGameDragData: () => false,
-      findLibraryGameKeyAtPoint: () => null,
     },
-    "./use-library-reorder-animation": {
-      useLibraryReorderAnimation: () => noop,
+    "./library-drag-overlay": {
+      createLibraryDragOverlay: noop,
+      settleLibraryCard: noop,
     },
-    "./library-drag-overlay": { createLibraryDragOverlay: noop },
+    "./library-grid-layout": {
+      DEFAULT_LIBRARY_CARD_SIZE: { columns: 1, rows: 1 },
+      findLibraryGridKeyAt: () => null,
+      getLibraryCardSize: () => ({ columns: 1, rows: 1 }),
+      getLibraryPlacementBox: () => ({ left: 0, top: 0, width: 1, height: 1 }),
+      packLibraryGrid: (
+        items: { key: string; columns: number; rows: number }[],
+        columnCount: number
+      ) => ({
+        columnCount,
+        rowCount: items.length,
+        placements: items.map((item, index) => ({
+          ...item,
+          column: 0,
+          row: index,
+        })),
+        placementByKey: new Map(),
+        keyByCell: new Map(),
+      }),
+      readLibraryCardSizes: () => ({}),
+      setLibraryCardSize: (sizes: unknown) => sizes,
+      writeLibraryCardSizes: noop,
+    },
     "./library-category": {
       categoryShowsPlatforms: () => false,
       categoryShowsSources: () => false,

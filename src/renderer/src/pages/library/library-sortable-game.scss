@@ -10,32 +10,151 @@
 }
 
 .library-sortable-game {
-  position: relative;
+  position: absolute;
   min-width: 0;
+  transition:
+    left 0.24s cubic-bezier(0.2, 0, 0, 1),
+    top 0.24s cubic-bezier(0.2, 0, 0, 1),
+    width 0.2s cubic-bezier(0.2, 0, 0, 1),
+    height 0.2s cubic-bezier(0.2, 0, 0, 1);
 
   &--enabled img {
     -webkit-user-drag: none;
   }
 
-  > * {
+  > .library-game-card__wrapper,
+  > .library-game-card-large {
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
+  > :first-child {
     transition:
       opacity ease 0.2s,
       transform ease 0.2s,
       filter ease 0.2s;
   }
 
-  &--drag-source > * {
+  &--drag-source > :first-child {
     opacity: 0.2;
     transform: scale(0.94);
     filter: grayscale(1);
   }
 
-  &--drag-source::after {
+  &--drag-source::after,
+  &--resizing::after {
     content: "";
     position: absolute;
     inset: 0;
     border: 2px dashed rgba(255, 255, 255, 0.35);
     border-radius: 8px;
+    pointer-events: none;
+  }
+
+  &--resizing {
+    z-index: 1;
+  }
+
+  &__edge {
+    position: absolute;
+    z-index: 2;
+    padding: 0;
+    border: none;
+    background: none;
+
+    &::after {
+      content: "";
+      position: absolute;
+      border-radius: 2px;
+      background-color: globals.$muted-color;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+      opacity: 0;
+      transition: opacity ease 0.15s;
+      pointer-events: none;
+    }
+
+    &:hover::after,
+    &:focus-visible::after {
+      opacity: 1;
+    }
+
+    &--right {
+      top: 12px;
+      bottom: 12px;
+      right: -8px;
+      width: 12px;
+      cursor: ew-resize;
+
+      &::after {
+        top: 0;
+        bottom: 0;
+        left: 4px;
+        width: 3px;
+      }
+    }
+
+    &--bottom {
+      left: 12px;
+      right: 12px;
+      bottom: -8px;
+      height: 12px;
+      cursor: ns-resize;
+
+      &::after {
+        left: 0;
+        right: 0;
+        top: 4px;
+        height: 3px;
+      }
+    }
+
+    &--corner {
+      z-index: 3;
+      right: -8px;
+      bottom: -8px;
+      width: 18px;
+      height: 18px;
+      cursor: nwse-resize;
+
+      &::after {
+        right: 7px;
+        bottom: 7px;
+        width: 12px;
+        height: 12px;
+        background-color: transparent;
+        border-right: 3px solid globals.$muted-color;
+        border-bottom: 3px solid globals.$muted-color;
+        border-radius: 0 0 6px 0;
+        box-shadow: none;
+      }
+
+      &:focus-visible {
+        outline: none;
+      }
+    }
+  }
+
+  &--resizing &__edge::after {
+    opacity: 1;
+  }
+
+  &--drag-source &__edge {
+    display: none;
+  }
+
+  &__size-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    padding: 4px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.75);
+    color: globals.$muted-color;
+    font-size: 14px;
+    font-weight: 600;
     pointer-events: none;
   }
 
@@ -58,10 +177,18 @@
       0 0 0 1px rgba(255, 255, 255, 0.5),
       0 20px 40px rgba(0, 0, 0, 0.6);
     animation: library-sortable-game-lift 0.18s ease-out;
+
+    > .library-game-card__wrapper,
+    > .library-game-card-large {
+      height: 100%;
+      aspect-ratio: auto;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    > * {
+    transition: none;
+
+    > :first-child {
       transition: none;
     }
 

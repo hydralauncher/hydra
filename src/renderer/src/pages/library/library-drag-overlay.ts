@@ -52,3 +52,28 @@ export const createLibraryDragOverlay = (
     },
   };
 };
+
+export const settleLibraryCard = (element: HTMLElement, fromRect: DOMRect) => {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  const rect = element.getBoundingClientRect();
+  const deltaX = fromRect.left - rect.left;
+  const deltaY = fromRect.top - rect.top;
+
+  element.animate(
+    [
+      {
+        transform: `translate(${deltaX}px, ${deltaY}px) rotate(3deg) scale(1.05)`,
+      },
+      { transform: "none" },
+    ],
+    { duration: 240, easing: "cubic-bezier(0.2, 0, 0, 1)" }
+  );
+  element.firstElementChild?.animate(
+    [
+      { opacity: 1, filter: "none", transform: "none" },
+      { opacity: 1, filter: "none", transform: "none" },
+    ],
+    { duration: 240 }
+  );
+};
