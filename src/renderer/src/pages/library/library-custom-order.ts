@@ -128,8 +128,8 @@ export const moveLibraryGameInCustomOrder = (
     known.add(key);
   }
 
-  const sourceKeys = new Set(getGameOrderKeys(sourceGame));
-  const withoutSource = next.filter((key) => !sourceKeys.has(key));
+  const sourceKeys = [...new Set(getGameOrderKeys(sourceGame))];
+  const withoutSource = next.filter((key) => !sourceKeys.includes(key));
 
   const targetPosition = findGamePosition(
     targetGame,
@@ -140,7 +140,7 @@ export const moveLibraryGameInCustomOrder = (
   withoutSource.splice(
     edge === "before" ? targetPosition : targetPosition + 1,
     0,
-    sourceKey
+    ...sourceKeys
   );
 
   return withoutSource;
