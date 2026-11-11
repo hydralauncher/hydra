@@ -1345,3 +1345,45 @@ it("resets transfer state when navigating to another game and tracks speed/ETA f
   assert.equal(state.details.transferSpeed, 0);
   assert.equal(state.details.transferETA, 0);
 });
+
+it("resets transfer state when the operational copy changes for the same route identity", async (t) => {
+  const steam = {
+    ...epic,
+    id: "steam:123",
+    shop: "steam",
+    objectId: "123",
+    executablePath: "steam.exe",
+    hasActiveEpicImport: false,
+  } as LibraryGame;
+
+  const state = await fixture(t, [epic, steam], epic.id);
+  assert.equal(state.details.shop, "epic");
+  assert.equal(state.details.objectId, epic.objectId);
+
+  await state.emitElectronEvent(
+    "on-game-transfer-progress",
+    "epic",
+    epic.objectId,
+    0.45,
+    { speed: 30, eta: 120 }
+  );
+  assert.equal(state.details.isTransferring, true);
+  assert.equal(state.details.transferProgress, 0.45);
+
+  await state.setRunningGame(steam.id);
+
+  assert.equal(state.details.shop, "steam");
+  assert.equal(state.details.objectId, "123");
+  assert.equal(state.details.isTransferring, false);
+  assert.equal(state.details.transferProgress, 0);
+
+  await state.emitElectronEvent(
+    "on-game-transfer-progress",
+    "epic",
+    epic.objectId,
+    0.55,
+    { speed: 32, eta: 90 }
+  );
+  assert.equal(state.details.isTransferring, false);
+  assert.equal(state.details.transferProgress, 0);
+});

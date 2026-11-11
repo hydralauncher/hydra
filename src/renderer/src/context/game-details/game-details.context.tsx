@@ -330,8 +330,12 @@ export function GameDetailsContextProvider({
 
   // Listen for transfer events
   useEffect(() => {
-    const activeShop = game?.shop ?? operationalShop;
-    const activeObjectId = game?.objectId ?? operationalObjectId;
+    const isOperationalGame = (
+      transferShop: string,
+      transferObjectId: string
+    ) =>
+      transferShop === operationalShop &&
+      transferObjectId === operationalObjectId;
 
     const onTransferProgress = (
       _: unknown,
@@ -343,7 +347,7 @@ export function GameDetailsContextProvider({
         eta?: number;
       }
     ) => {
-      if (transferShop === activeShop && transferObjectId === activeObjectId) {
+      if (isOperationalGame(transferShop, transferObjectId)) {
         const active = progress >= 0 && progress < 1;
         setIsTransferring(active);
         setTransferProgress(active ? progress : 0);
@@ -357,7 +361,7 @@ export function GameDetailsContextProvider({
       transferShop: string,
       transferObjectId: string
     ) => {
-      if (transferShop === activeShop && transferObjectId === activeObjectId) {
+      if (isOperationalGame(transferShop, transferObjectId)) {
         resetTransferState();
         updateGame();
       }
@@ -368,7 +372,7 @@ export function GameDetailsContextProvider({
       transferShop: string,
       transferObjectId: string
     ) => {
-      if (transferShop === activeShop && transferObjectId === activeObjectId) {
+      if (isOperationalGame(transferShop, transferObjectId)) {
         resetTransferState();
       }
     };
@@ -384,17 +388,17 @@ export function GameDetailsContextProvider({
       window.electron.off("on-game-transfer-cancelled", onTransferReset);
       window.electron.off("on-game-transfer-error", onTransferReset);
     };
-  }, [
-    game,
-    operationalShop,
-    operationalObjectId,
-    resetTransferState,
-    updateGame,
-  ]);
+  }, [operationalShop, operationalObjectId, resetTransferState, updateGame]);
 
   useEffect(() => {
     resetTransferState();
-  }, [shop, objectId, resetTransferState]);
+  }, [
+    shop,
+    objectId,
+    operationalShop,
+    operationalObjectId,
+    resetTransferState,
+  ]);
 
   useEffect(() => {
     gameRequestId.current += 1;
