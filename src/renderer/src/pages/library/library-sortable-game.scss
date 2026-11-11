@@ -41,8 +41,7 @@
     filter: grayscale(1);
   }
 
-  &--drag-source::after,
-  &--resizing::after {
+  &--drag-source::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -132,10 +131,6 @@
         outline: none;
       }
     }
-  }
-
-  &--resizing &__edge::after {
-    opacity: 1;
   }
 
   &--drag-source &__edge {
