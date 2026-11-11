@@ -38,6 +38,7 @@ import { AuthPage, groupLibraryGames, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
 import {
   Button,
+  ConfirmationModal,
   CreateCollectionModal,
   GameContextMenu,
 } from "@renderer/components";
@@ -229,6 +230,8 @@ export default function Library() {
     order: string[];
   } | null>(null);
   const effectiveCustomOrder = dragPreview?.order ?? customOrder;
+  const [showResetCustomOrderModal, setShowResetCustomOrderModal] =
+    useState(false);
   const [gameContextMenu, setGameContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -571,6 +574,12 @@ export default function Library() {
     },
     [customOrder, sortedLibrary]
   );
+
+  const handleResetCustomOrder = useCallback(() => {
+    setCustomOrder([]);
+    writeLibraryCustomOrder(localStorage, []);
+    setShowResetCustomOrderModal(false);
+  }, []);
 
   const {
     platforms: uniquePlatforms,
@@ -1058,6 +1067,8 @@ export default function Library() {
                 onSortChange={handleSortChange}
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
+                canResetCustomOrder={customOrder.length > 0}
+                onResetCustomOrder={() => setShowResetCustomOrderModal(true)}
               />
             )}
 
@@ -1257,6 +1268,17 @@ export default function Library() {
           onCollectionContextMenu={openCollectionContextMenu}
         />
       )}
+
+      <ConfirmationModal
+        visible={showResetCustomOrderModal}
+        title={t("reset_custom_order_title")}
+        descriptionText={t("reset_custom_order_description")}
+        confirmButtonLabel={t("reset_custom_order_confirm")}
+        cancelButtonLabel={t("cancel", { ns: "sidebar" })}
+        confirmButtonTheme="danger"
+        onClose={() => setShowResetCustomOrderModal(false)}
+        onConfirm={handleResetCustomOrder}
+      />
 
       <CreateCollectionModal
         visible={showCreateCollectionModal}

@@ -6,6 +6,7 @@ import {
   RowsIcon,
   SortDescIcon,
   SquareIcon,
+  UndoIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useCloseOnLibraryScroll } from "./use-close-on-library-scroll";
@@ -32,6 +33,8 @@ interface LibraryDisplayMenuProps {
   onSortChange: (sortBy: SortOption) => void;
   viewMode: ViewMode;
   onViewModeChange: (viewMode: ViewMode) => void;
+  canResetCustomOrder: boolean;
+  onResetCustomOrder: () => void;
 }
 
 /** Sort order and card size, behind one button that names the current sort. */
@@ -40,6 +43,8 @@ export function LibraryDisplayMenu({
   onSortChange,
   viewMode,
   onViewModeChange,
+  canResetCustomOrder,
+  onResetCustomOrder,
 }: Readonly<LibraryDisplayMenuProps>) {
   const { t } = useTranslation("library");
   const [open, setOpen] = useCloseOnLibraryScroll();
@@ -123,6 +128,19 @@ export function LibraryDisplayMenu({
               </DropdownMenuPrimitive.RadioItem>
             ))}
           </DropdownMenuPrimitive.RadioGroup>
+
+          {sortBy === "custom" && (
+            <DropdownMenuPrimitive.Item
+              className="library-toolbar-menu__item library-toolbar-menu__item--muted"
+              disabled={!canResetCustomOrder}
+              onSelect={onResetCustomOrder}
+            >
+              <UndoIcon size={14} />
+              <span className="library-toolbar-menu__item-label">
+                {t("reset_custom_order")}
+              </span>
+            </DropdownMenuPrimitive.Item>
+          )}
 
           <DropdownMenuPrimitive.Separator className="library-toolbar-menu__separator" />
 

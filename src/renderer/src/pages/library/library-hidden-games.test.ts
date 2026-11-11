@@ -172,6 +172,7 @@ async function renderLibrary(
     },
     "@renderer/components": {
       Button: () => null,
+      ConfirmationModal: () => null,
       CreateCollectionModal: () => null,
       GameContextMenu: () => null,
     },
