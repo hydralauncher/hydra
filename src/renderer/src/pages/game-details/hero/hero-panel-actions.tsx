@@ -129,11 +129,10 @@ export function HeroPanelActions() {
 
   const { t } = useTranslation("game_details");
   // The game files are being written while a PS4 PKG is extracted or applied.
-  const isPs4PkgJobRunning = useAppSelector(
-    (state) =>
-      state.ps4PkgJob.job?.shop === shop &&
-      state.ps4PkgJob.job?.objectId === objectId
-  );
+  const isPs4PkgJobRunning = useAppSelector((state) => {
+    const job = state.ps4PkgJob.job;
+    return job !== null && job.shop === shop && job.objectId === objectId;
+  });
   const launchGeneration = useRef(0);
   const invalidateLaunch = useCallback(() => {
     launchGeneration.current++;
