@@ -4,3 +4,5 @@ import "./get-download-sources-since-value";
 import "./get-download-sources";
 import "./remove-download-source";
 import "./sync-download-sources";
+import "./export-download-sources";
+import "./import-download-sources";
