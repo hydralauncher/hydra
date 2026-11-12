@@ -67,6 +67,39 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  // General tab: sections split by a thin line, one heading size, and
+  // action buttons that share each row in one line of text.
+  &__panel--general {
+    > .game-options-modal__section + .game-options-modal__section,
+    > .game-options-modal__section + .game-options-modal__launch-options,
+    > .game-options-modal__launch-options + .game-options-modal__section {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: calc(globals.$spacing-unit * 2.5);
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .game-options-modal__header {
+      gap: calc(globals.$spacing-unit / 2);
+    }
+
+    .game-options-modal__header-description {
+      font-size: 13px;
+      color: rgba(globals.$body-color, 0.65);
+    }
+
+    .game-options-modal__row > button,
+    .disc-field__actions > button {
+      flex: 1 1 auto;
+      padding-left: calc(globals.$spacing-unit * 1.5);
+      padding-right: calc(globals.$spacing-unit * 1.5);
+      white-space: nowrap;
+    }
+  }
+
   &__panel-header {
     display: flex;
     flex-direction: column;
@@ -468,18 +501,6 @@ $disc-menu-transition-duration: 0.15s;
     display: flex;
     gap: globals.$spacing-unit;
     flex-wrap: wrap;
-
-    // Tighter than the default so the three actions fit in one line.
-    button {
-      padding-left: calc(globals.$spacing-unit * 1.5);
-      padding-right: calc(globals.$spacing-unit * 1.5);
-      white-space: nowrap;
-    }
-  }
-
-  // Kept apart from the everyday actions.
-  &__remove {
-    margin-left: auto;
   }
 }
 

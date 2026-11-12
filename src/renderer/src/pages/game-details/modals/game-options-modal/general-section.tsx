@@ -432,6 +432,14 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         </div>
 
+        {discs.length > 1 && (
+          <CheckboxField
+            label={t("dont_ask_disc_again")}
+            checked={Boolean(game.dontAskDiscSelection)}
+            onChange={(e) => void handleToggleDontAsk(e.target.checked)}
+          />
+        )}
+
         {(selectedDisc || hasPs4GameFolder) && (
           <div className="disc-field__actions">
             {selectedDisc && (
@@ -459,7 +467,6 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
               <Button
                 type="button"
                 theme="danger"
-                className="disc-field__remove"
                 onClick={() => void handleRemoveDisc(selectedDisc.path)}
               >
                 <X size={14} />
@@ -467,14 +474,6 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
               </Button>
             )}
           </div>
-        )}
-
-        {discs.length > 1 && (
-          <CheckboxField
-            label={t("dont_ask_disc_again")}
-            checked={Boolean(game.dontAskDiscSelection)}
-            onChange={(e) => void handleToggleDontAsk(e.target.checked)}
-          />
         )}
       </div>
 
@@ -712,7 +711,7 @@ export function GeneralSettingsSection({
           disabled={creatingSteamShortcut}
         >
           <SteamLogo />
-          {t("create_steam_shortcut")}
+          {t("steam_shortcut_short")}
         </Button>
       );
     }
