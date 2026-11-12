@@ -243,6 +243,7 @@ export interface UserPreferences {
   enableNewDownloadOptionsBadges?: boolean;
   createStartMenuShortcut?: boolean;
   bigPictureSoundsEnabled?: boolean;
+  bigPictureCustomThemeEnabled?: boolean;
   bigPictureVirtualKeyboardEnabled?: boolean;
   bigPictureDiagnosticsEnabled?: boolean;
   bigPictureDiagnosticsPosition?: BigPictureDiagnosticsPosition;
