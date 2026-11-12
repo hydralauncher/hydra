@@ -1133,7 +1133,8 @@
     "epic_selection_invalid": "A seleção mudou. Abra as opções de download novamente e tente outra vez.",
     "epic_retry": "Tentar novamente",
     "review_played_with": "Jogou com {{name}}",
-    "ps4_pkg_keys_unavailable": "Conecte-se à internet para extrair um PKG pela primeira vez."
+    "ps4_pkg_keys_unavailable": "Conecte-se à internet para extrair um PKG pela primeira vez.",
+    "ps4_update_game_running": "Feche o jogo antes de aplicar a atualização."
   },
   "activation": {
     "title": "Ativação",

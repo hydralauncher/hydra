@@ -1124,7 +1124,8 @@
     "epic_selection_invalid": "La selección cambió. Vuelve a abrir las opciones de descarga e inténtalo de nuevo.",
     "epic_retry": "Intentar de nuevo",
     "review_played_with": "Jugado con {{name}}",
-    "ps4_pkg_keys_unavailable": "Conéctate a internet para extraer un PKG por primera vez."
+    "ps4_pkg_keys_unavailable": "Conéctate a internet para extraer un PKG por primera vez.",
+    "ps4_update_game_running": "Cierra el juego antes de aplicar la actualización."
   },
   "activation": {
     "title": "Activar Hydra",

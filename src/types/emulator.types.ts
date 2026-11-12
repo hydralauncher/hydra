@@ -300,6 +300,7 @@ export type Ps4PkgFailure =
   | "not_newer"
   | "no_space"
   | "keys_unavailable"
+  | "game_running"
   | "cancelled"
   | "busy"
   | "failed";

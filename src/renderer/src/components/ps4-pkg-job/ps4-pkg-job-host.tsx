@@ -26,6 +26,8 @@ export const ps4PkgErrorKey = (reason?: Ps4PkgFailure) => {
       return "ps4_update_no_space";
     case "keys_unavailable":
       return "ps4_pkg_keys_unavailable";
+    case "game_running":
+      return "ps4_update_game_running";
     case "busy":
       return "ps4_pkg_busy";
     default:

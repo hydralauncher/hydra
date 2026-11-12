@@ -642,6 +642,24 @@ export class GameFilesManager {
             folderName: path.relative(current.downloadPath, extractedGame),
           });
         }
+      } else if (!deletePkg) {
+        // The download still points at the kept PKG, which the disc scan
+        // cannot use, so the extracted folders are linked as discs here.
+        const { linkExtractedDisc } = await import(
+          "@main/events/emulators/ps4-pkg-actions"
+        );
+        for (const [titleId, folder] of gameDirectories) {
+          const pkg = pkgs.find((candidate) => candidate.titleId === titleId);
+          if (pkg) {
+            await linkExtractedDisc(
+              this.shop,
+              this.objectId,
+              pkg.pkgPath,
+              folder,
+              titleId
+            );
+          }
+        }
       }
 
       return true;

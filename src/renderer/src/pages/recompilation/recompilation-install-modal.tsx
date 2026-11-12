@@ -380,6 +380,9 @@ function InstallModalContent({
     }
     if (reason === "rom_pkg_no_space") return t("rom_pkg_no_space");
     if (reason === "rom_pkg_not_newer") return t("rom_pkg_not_newer");
+    if (reason === "rom_game_running") {
+      return t("ps4_update_game_running", { ns: "game_details" });
+    }
     if (reason === "rom_pkg_keys_unavailable") {
       return t("rom_pkg_keys_unavailable");
     }

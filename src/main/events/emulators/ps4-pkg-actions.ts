@@ -107,6 +107,19 @@ const readUsablePkg = async (pkgPath: string) => {
   return info && !info.isDeltaPatch ? info : null;
 };
 
+/** Files of a running game are in use, so updates wait until it closes. */
+export const isPs4GameRunning = async (shop: GameShop, objectId: string) => {
+  const { emulatorSessions } = await import(
+    "@main/services/emulators/emulator-session-tracker"
+  );
+  if (emulatorSessions.has(levelKeys.game(shop, objectId))) return true;
+  if (shop !== "launchbox") return false;
+  const { findRunningRecompilation } = await import(
+    "../recompilation/recompilation-session"
+  );
+  return findRunningRecompilation(objectId) !== null;
+};
+
 export const checkPs4Pkg = async (
   shop: GameShop,
   objectId: string,
@@ -119,6 +132,9 @@ export const checkPs4Pkg = async (
   if (!info) return { ok: false, reason: wrongKind };
 
   if (info.kind === "patch") {
+    if (await isPs4GameRunning(shop, objectId)) {
+      return { ok: false, reason: "game_running" };
+    }
     const targets = await findUpdateTargets(shop, objectId, info);
     if (typeof targets === "string") return { ok: false, reason: targets };
     return {
@@ -157,6 +173,9 @@ export const applyPs4Update = async (
   const info = await readUsablePkg(pkgPath);
   if (!info || info.kind !== "patch")
     return { ok: false, reason: "not_update" };
+  if (await isPs4GameRunning(shop, objectId)) {
+    return { ok: false, reason: "game_running" };
+  }
   const targets = await findUpdateTargets(shop, objectId, info);
   if (typeof targets === "string") return { ok: false, reason: targets };
 
@@ -190,7 +209,7 @@ export const applyPs4Update = async (
 };
 
 /** Swaps the PKG disc for the extracted folder, or adds the folder as a disc. */
-const linkExtractedDisc = async (
+export const linkExtractedDisc = async (
   shop: GameShop,
   objectId: string,
   pkgPath: string,

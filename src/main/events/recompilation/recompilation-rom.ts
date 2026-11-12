@@ -492,6 +492,13 @@ export const extractRecompilationRomPkg = async (
   if (problem) return problem;
 
   const info = await readPs4PkgInfo(rawPath);
+  const { isPs4GameRunning } = await import("../emulators/ps4-pkg-actions");
+  if (
+    info.kind === "patch" &&
+    (await isPs4GameRunning("launchbox", ref.objectId))
+  ) {
+    return { ok: false, reason: "rom_game_running" };
+  }
   const gameDirectory = await getChosenGameFolder(ref.slug, meta);
   // Checked again right before starting: another job may have begun while
   // the PKG was being read.
