@@ -268,6 +268,7 @@
     "download_count": "Lejupielādes",
     "player_count": "Aktīvie spēlētāji",
     "download_error": "Šis lejupielādes variants nav pieejams",
+    "invalid_repack": "Izvēlētajam lejupielādētājam nav pieejamas lejupielādes saites.",
     "download": "Lejupielādēt",
     "download_on_steam": "Lejupielādēt no Steam",
     "executable_path_in_use": "Izpildāmais fails jau tiek izmantots \"{{game}}\"",

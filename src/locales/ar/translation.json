@@ -256,6 +256,7 @@
     "download_count": "التنزيلات",
     "player_count": "اللاعبون النشطون",
     "download_error": "خيار التنزيل هذا غير متاح",
+    "invalid_repack": "لا يتوفر رابط تنزيل لأداة التنزيل المحددة.",
     "download": "تنزيل",
     "download_on_steam": "تنزيل على Steam",
     "executable_path_in_use": "مسار التشغيل مستخدم بالفعل بواسطة \"{{game}}\"",

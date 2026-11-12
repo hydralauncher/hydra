@@ -258,6 +258,7 @@
     "download_count": "Nedladdningar",
     "player_count": "Aktiva spelare",
     "download_error": "Det här nedladdningsalternativet är inte tillgängligt",
+    "invalid_repack": "Ingen nedladdningslänk är tillgänglig för den valda nedladdaren.",
     "download": "Ladda ner",
     "download_on_steam": "Ladda ner på Steam",
     "executable_path_in_use": "Körbar fil används redan av \"{{game}}\"",

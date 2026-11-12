@@ -327,6 +327,7 @@
     "player_count": "Aktív játékosok",
     "rating_count": "Értékelés",
     "download_error": "Ez a letöltési opció nem elérhető",
+    "invalid_repack": "A kiválasztott letöltőhöz nem érhető el letöltési link.",
     "download": "Letöltés",
     "download_on_steam": "Letöltés Steamen",
     "executable_path_in_use": "Ez a futtatható fájl már használatban van a(z) \"{{game}}\" által",

@@ -255,6 +255,7 @@
     "download_count": "Allalaadimised",
     "player_count": "Aktiivsed mängijad",
     "download_error": "See allalaadimise valik pole saadaval",
+    "invalid_repack": "Valitud allalaadija jaoks pole allalaadimislinki saadaval.",
     "download": "Laadi alla",
     "download_on_steam": "Laadi alla Steamis",
     "executable_path_in_use": "Käivitusfail on juba kasutusel mängus \"{{game}}\"",
