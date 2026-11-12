@@ -424,21 +424,23 @@ const toChosenPath = (rawPath: unknown, meta: RecompilationRomMeta) =>
     : rawPath;
 
 const getChosenGameFolder = async (
-  slug: string,
+  ref: RecompilationRef,
   meta: RecompilationRomMeta
 ) => {
   const choice = await readRomChoice(
-    await getRecompilationInstallDirectory(slug)
+    await getRecompilationInstallDirectory(ref.slug)
   );
-  return choice?.source === "file" &&
-    choice.path &&
-    (await isGameFolder(choice.path, meta))
-    ? choice.path
-    : null;
+  const folder =
+    choice?.source === "library"
+      ? await getLibraryRomPath(ref.objectId, meta)
+      : choice?.source === "file"
+        ? choice.path
+        : null;
+  return folder && (await isGameFolder(folder, meta)) ? folder : null;
 };
 
 const checkChosenPkg = async (
-  slug: string,
+  ref: RecompilationRef,
   pkgPath: string,
   meta: RecompilationRomMeta
 ): Promise<RecompilationActionResult | null> => {
@@ -456,7 +458,7 @@ const checkChosenPkg = async (
     return { ok: false, reason: "rom_other_game" };
   }
   if (info.kind === "patch") {
-    const gameFolder = await getChosenGameFolder(slug, meta);
+    const gameFolder = await getChosenGameFolder(ref, meta);
     if (!gameFolder) return { ok: false, reason: "rom_update_needs_game" };
     try {
       await assertPs4UpdateFits(info, gameFolder);
@@ -500,7 +502,7 @@ export const extractRecompilationRomPkg = async (
   }
   if (isPs4PkgJobRunning()) return { ok: false, reason: "rom_pkg_busy" };
 
-  const problem = await checkChosenPkg(ref.slug, rawPath, meta);
+  const problem = await checkChosenPkg(ref, rawPath, meta);
   if (problem) return problem;
 
   const info = await readPs4PkgInfo(rawPath);
@@ -511,7 +513,7 @@ export const extractRecompilationRomPkg = async (
   ) {
     return { ok: false, reason: "rom_game_running" };
   }
-  const gameDirectory = await getChosenGameFolder(ref.slug, meta);
+  const gameDirectory = await getChosenGameFolder(ref, meta);
   // Checked again right before starting: another job may have begun while
   // the PKG was being read.
   if (isPs4PkgJobRunning()) return { ok: false, reason: "rom_pkg_busy" };
@@ -550,7 +552,10 @@ export const checkRecompilationRom = async (
     isFolderRom(meta) &&
     isPs4PkgPath(rawPath)
   ) {
-    return (await checkChosenPkg(ref.slug, rawPath, meta)) ?? { ok: true };
+    const problem = await checkChosenPkg(ref, rawPath, meta);
+    if (problem) return problem;
+    const info = await readPs4PkgInfo(rawPath).catch(() => null);
+    return { ok: true, isUpdate: info?.kind === "patch" };
   }
   const chosenPath = toChosenPath(rawPath, meta);
   const problem = await checkChosenRom("file", chosenPath, meta);

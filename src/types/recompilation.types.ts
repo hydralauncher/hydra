@@ -207,6 +207,7 @@ export interface RecompilationActionResult {
   reason?: string;
   warning?: string;
   requiredVersion?: string;
+  isUpdate?: boolean;
   /** Set when an update finished and the port started preparing again. */
   preparing?: boolean;
   /** The game folder a picked file resolves to, for the folder ports. */

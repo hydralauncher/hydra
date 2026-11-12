@@ -35,7 +35,13 @@ import "@renderer/components/setup-modal/setup-modal.scss";
 import { formatRecompilationVersion } from "./recompilation-version";
 import "./recompilation-install-modal.scss";
 
-type InstallStep = "location" | "rom" | "sources" | "prepare" | "done";
+type InstallStep =
+  | "location"
+  | "rom"
+  | "sources"
+  | "update"
+  | "prepare"
+  | "done";
 
 const PREPARE_STEP_KEYS: Record<string, string> = {
   "Disc image": "prepare_step_disc",
@@ -173,7 +179,7 @@ function InstallModalContent({
     return () => window.clearTimeout(timeout);
   }, [isStartingDownload]);
 
-  const { refresh: refreshRom } = rom;
+  const { refresh: refreshRom, choose: chooseRom } = rom;
   useEffect(() => {
     void refreshRom();
   }, [refreshRom]);
@@ -203,6 +209,7 @@ function InstallModalContent({
     }
   }, [romState?.source, romState?.romPath]);
   const [isSaving, setIsSaving] = useState(false);
+  const [requiredVersion, setRequiredVersion] = useState<string | null>(null);
 
   const handlesRom = romState?.handlesRom !== false;
   const needsPreparation = romState?.needsPreparation === true;
@@ -413,12 +420,8 @@ function InstallModalContent({
       return;
     }
     if (result.warning === "rom_update_required") {
-      showWarningToast(
-        t("rom_update_required", {
-          name: details.name,
-          version: result.requiredVersion,
-        })
-      );
+      setRequiredVersion(result.requiredVersion ?? null);
+      setStep("update");
       return;
     }
     if (result.warning === "rom_version") {
@@ -426,6 +429,56 @@ function InstallModalContent({
     }
     setStep(needsPreparation ? "prepare" : "done");
   };
+
+  const pickUpdatePkg = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [{ name: "PKG", extensions: ["pkg"] }],
+    });
+    const [pkgPath] = filePaths ?? [];
+    if (!pkgPath) return;
+    const check: RecompilationActionResult = await window.electron
+      .checkRecompilationRom(
+        { objectId: details.game.objectId, slug: details.slug },
+        pkgPath
+      )
+      .catch(() => ({ ok: false, reason: "rom_save_failed" }));
+    if (!check.ok) {
+      showErrorToast(romChoiceErrorMessage(check.reason, true));
+      return;
+    }
+    if (!check.isUpdate) {
+      showErrorToast(t("ps4_update_not_update", { ns: "game_details" }));
+      return;
+    }
+    await extractPkg(pkgPath);
+  };
+
+  const wasUpdating = useRef(false);
+  useEffect(() => {
+    if (step !== "update") return;
+    if (isRomDownloading) {
+      wasUpdating.current = true;
+      return;
+    }
+    if (!wasUpdating.current || !romState?.romPath) return;
+    wasUpdating.current = false;
+    void chooseRom(
+      romState.source === "library" ? "library" : "file",
+      romState.source === "library" ? undefined : romState.romPath
+    ).then((result) => {
+      if (result.ok && result.warning !== "rom_update_required") {
+        setStep(needsPreparation ? "prepare" : "done");
+      }
+    });
+  }, [
+    step,
+    isRomDownloading,
+    romState?.romPath,
+    romState?.source,
+    chooseRom,
+    needsPreparation,
+  ]);
 
   const isReadyToPrepare =
     isInstalled &&
@@ -572,6 +625,44 @@ function InstallModalContent({
             title={t("rom_choice_file")}
             info={isFolderRom ? folderRomChoices : extensionList}
             onClick={pickFile}
+          />
+        </div>
+      )}
+
+      {renderRomStatus()}
+      {renderPortStatus()}
+    </>
+  );
+
+  const renderUpdateStep = () => (
+    <>
+      <h3 className="setup-modal__body-title">{t("install_step_update")}</h3>
+      <p className="setup-modal__body-intro">
+        {t("rom_update_step_intro", {
+          name: details.name,
+          version: requiredVersion,
+        })}
+      </p>
+
+      {shownFile && (
+        <div className="recompilation-install__picked">
+          <span className="recompilation-install__choice-text">
+            <span className="recompilation-install__choice-title">
+              {fileName(shownFile)}
+            </span>
+            <span className="recompilation-install__choice-info">
+              {folderOf(shownFile)}
+            </span>
+          </span>
+        </div>
+      )}
+
+      {!isRomDownloading && (
+        <div className="recompilation-install__choices">
+          <ChoiceRow
+            title={t("rom_update_choose")}
+            info=".pkg"
+            onClick={pickUpdatePkg}
           />
         </div>
       )}
@@ -767,6 +858,7 @@ function InstallModalContent({
   const stepOrder: InstallStep[] = [
     ...(hasLocationStep ? (["location"] as const) : []),
     ...(handlesRom ? (["rom"] as const) : []),
+    ...(requiredVersion ? (["update"] as const) : []),
     ...(needsPreparation ? (["prepare"] as const) : []),
     "done",
   ];
@@ -778,6 +870,7 @@ function InstallModalContent({
         {step === "location" && renderLocationStep()}
         {step === "rom" && renderRomStep()}
         {step === "sources" && renderSourcesStep()}
+        {step === "update" && renderUpdateStep()}
         {step === "prepare" && renderPrepareStep()}
         {step === "done" && renderDoneStep()}
       </div>
@@ -785,7 +878,7 @@ function InstallModalContent({
       <SetupFooter
         currentStepIndex={stepIndex}
         totalSteps={stepOrder.length}
-        showBack={step === "sources"}
+        showBack={step === "sources" || step === "update"}
         showSkip={false}
         continueHidden={step !== "rom" && step !== "location"}
         continueDisabled={
