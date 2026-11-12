@@ -619,7 +619,7 @@ const launchRecompilation = async (
   const { applyPendingTrophyReset } = await import(
     "./recompilation-trophy-watcher"
   );
-  await applyPendingTrophyReset(ref.slug).catch((error) =>
+  await applyPendingTrophyReset(ref).catch((error) =>
     logger.error("Failed to apply a saved trophy reset", error)
   );
 

@@ -18,6 +18,7 @@ import {
   getShadps4SavedataTitleIds,
   isShadps4GameSaveFile,
   readShadps4DiscIds,
+  withShadps4OtherVersionIds,
 } from "./shadps4-save-layout.js";
 import { scanShadps4SaveRoot } from "./shadps4-save-scanner.js";
 import { resolveShadps4SavedataRestoreRule } from "./shadps4-savedata-restore.js";
@@ -151,9 +152,31 @@ describe("shadPS4 saves", () => {
       ).status.status,
       "unverified"
     );
-    assert.deepEqual(await getShadps4SavedataTitleIds(game([{ path: disc }])), [
-      "CUSA00207",
-    ]);
+    assert.deepEqual(
+      await getShadps4SavedataTitleIds(game([{ path: disc }]), async () => []),
+      ["CUSA00207"]
+    );
+  });
+
+  it("keeps the saves of the game's other versions", async () => {
+    const disc = path.join(root, "CUSA14876");
+    await fs.mkdir(path.join(disc, "sce_sys"), { recursive: true });
+    await fs.writeFile(
+      path.join(disc, "sce_sys", "param.sfo"),
+      paramSfo({ TITLE_ID: "CUSA14876" })
+    );
+    const versions = async () => ["CUSA-13795", "CUSA14876", "not-an-id"];
+
+    assert.deepEqual(
+      await getShadps4SavedataTitleIds(game([{ path: disc }]), versions),
+      ["CUSA13795", "CUSA14876"]
+    );
+    // Without a game set, there is nothing to sync.
+    assert.deepEqual(await getShadps4SavedataTitleIds(game([]), versions), []);
+    assert.deepEqual(
+      await withShadps4OtherVersionIds(game([]), [], versions),
+      []
+    );
   });
 
   it("accepts only this game's saves in a snapshot", () => {
@@ -372,7 +395,9 @@ describe("shadPS4 saves", () => {
       status: { status: "ready", path: null, titleId: null },
       saveTitleIds: ["CUSA00207"],
     });
-    assert.deepEqual(await getShadps4SavedataTitleIds(pcGame), ["CUSA00207"]);
+    assert.deepEqual(await getShadps4SavedataTitleIds(pcGame, async () => []), [
+      "CUSA00207",
+    ]);
   });
 
   it("accepts a save folder that is itself named savedata", () => {

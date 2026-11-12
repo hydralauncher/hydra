@@ -55,6 +55,9 @@
     border-radius: 12px;
     object-fit: cover;
     flex-shrink: 0;
+    // A light backdrop, so dark transparent icons stand out.
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   &__hero-text {

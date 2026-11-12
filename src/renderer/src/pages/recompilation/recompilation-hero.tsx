@@ -42,6 +42,7 @@ interface RecompilationHeroProps {
   rom: RecompilationRom;
   hasCloudSave: boolean;
   onOpenInstall: () => void;
+  onOpenUpdate: () => void;
   onDownloadRom: () => void;
 }
 
@@ -55,6 +56,7 @@ export function RecompilationHero({
   rom,
   hasCloudSave,
   onOpenInstall,
+  onOpenUpdate,
   onDownloadRom,
 }: Readonly<RecompilationHeroProps>) {
   const { t } = useTranslation("recompilation");
@@ -105,6 +107,7 @@ export function RecompilationHero({
 
   const runPlay = async () => {
     const played = await install.play();
+    if (played === "rom_update_required") onOpenUpdate();
     if (played === "already_running") showErrorToast(t("already_running"));
     if (played === "pkg_job_running") {
       showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
@@ -241,6 +244,7 @@ export function RecompilationHero({
             {
               icon: <TrashIcon />,
               label: t("uninstall"),
+              danger: true,
               onClick: () => setIsUninstallOpen(true),
               disabled: install.isRunning || install.isPreparing,
             },

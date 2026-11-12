@@ -36,6 +36,9 @@ export const launchRecompilationDisc = async (
   ) {
     return;
   }
+  if (result.reason === "rom_update_required") {
+    throw codedError("RECOMPILATION_NEEDS_UPDATE", objectId, slug);
+  }
   if (result.reason === "already_running") {
     throw codedError("RECOMPILATION_ALREADY_RUNNING", objectId, slug);
   }

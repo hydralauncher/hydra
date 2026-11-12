@@ -84,6 +84,7 @@ export interface Game extends LibraryCatalogueMetadata {
   remoteId: string | null;
   source?: "hydra" | "steam" | "epic";
   collectionIds?: string[];
+  collectionPositions?: Record<string, number>;
   isDeleted: boolean;
   winePrefixPath?: string | null;
   protonPath?: string | null;
