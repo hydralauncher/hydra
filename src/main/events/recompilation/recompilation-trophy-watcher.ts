@@ -15,14 +15,17 @@ import {
   resolveRecompilationPath,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
+import { getRecompilationChosenTitleId } from "./recompilation-rom";
 import {
   getTrophySourcePath,
   keepCatalogueTrophies,
   parseTrophyBitmask,
+  parseTrophyEarnedJson,
   parseTrophyIdTimeLines,
   parseTrophyJsonLines,
   parseTrophyLogLines,
   removeTrophiesFromBitmask,
+  removeTrophiesFromEarnedJson,
   removeTrophiesFromIdLines,
   removeTrophiesFromIdTimeLines,
   removeTrophiesFromJsonLines,
@@ -33,13 +36,19 @@ import {
 
 const TROPHY_SOURCES = recompilationMeta as Record<
   string,
-  { trophies?: RecompilationTrophySource } | undefined
+  | {
+      trophies?: RecompilationTrophySource;
+      rom?: { titleIds?: string[] } | null;
+    }
+  | undefined
 >;
 
 export const getTrophySource = (slug: string) =>
   (Object.hasOwn(TROPHY_SOURCES, slug)
     ? TROPHY_SOURCES[slug]?.trophies
     : undefined) ?? null;
+
+const TITLE_ID_TOKEN = "{titleId}";
 
 const readText = (file: string) => fs.readFile(file, "utf8").catch(() => null);
 
@@ -178,6 +187,13 @@ const createReader = (
           return data ? parseTrophyBitmask(data) : null;
         },
       };
+    case "earned-json":
+      return {
+        read: async (file) => {
+          const contents = await readText(file);
+          return contents === null ? null : parseTrophyEarnedJson(contents);
+        },
+      };
     case "id-time-lines":
       return {
         read: async (file) => {
@@ -198,16 +214,27 @@ const createReader = (
 };
 
 /** Where a port keeps its trophies on this machine, or null without a source. */
-export const resolveRecompilationTrophyFiles = async (slug: string) => {
-  const source = getTrophySource(slug);
+export const resolveRecompilationTrophyFiles = async (
+  ref: RecompilationRef,
+  titleIdOverride?: string
+) => {
+  const source = getTrophySource(ref.slug);
   const template = source && getTrophySourcePath(source, process.platform);
   if (!source || !template) return null;
 
   const baseDirectory = await getRecompilationBaseDirectory(
-    await getRecompilationInstallDirectory(slug)
+    await getRecompilationInstallDirectory(ref.slug)
   );
+  const needsTitleId = template.includes(TITLE_ID_TOKEN);
+  const titleId = needsTitleId
+    ? (titleIdOverride ?? (await getRecompilationChosenTitleId(ref)))
+    : null;
+  if (needsTitleId && !titleId) return null;
   const resolvePath = (value: string) =>
-    resolveRecompilationPath(value, baseDirectory);
+    resolveRecompilationPath(
+      titleId ? value.replaceAll(TITLE_ID_TOKEN, titleId) : value,
+      baseDirectory
+    );
   const platform = process.platform as keyof NonNullable<
     RecompilationTrophySource["resetFiles"]
   >;
@@ -219,6 +246,24 @@ export const resolveRecompilationTrophyFiles = async (slug: string) => {
     resetFiles: (source.resetFiles?.[platform] ?? []).map(resolvePath),
     resolvePath,
   };
+};
+
+export const resolveAllRecompilationTrophyFiles = async (
+  ref: RecompilationRef
+) => {
+  const source = getTrophySource(ref.slug);
+  const template = source && getTrophySourcePath(source, process.platform);
+  const titleIds = template?.includes(TITLE_ID_TOKEN)
+    ? (TROPHY_SOURCES[ref.slug]?.rom?.titleIds ?? [])
+    : [];
+  if (!titleIds.length) {
+    const files = await resolveRecompilationTrophyFiles(ref);
+    return files ? [files] : [];
+  }
+  const all = await Promise.all(
+    titleIds.map((titleId) => resolveRecompilationTrophyFiles(ref, titleId))
+  );
+  return all.filter((files) => files !== null);
 };
 
 type TrophyFiles = NonNullable<
@@ -258,6 +303,13 @@ const removeResetTrophies = async (files: TrophyFiles, ids: string[]) => {
         removeTrophiesFromJsonLines(contents, ids)
       );
       break;
+    case "earned-json":
+      for (const file of [files.file, `${files.file}.bak`]) {
+        await rewriteText(file, (contents) =>
+          removeTrophiesFromEarnedJson(contents, ids)
+        );
+      }
+      break;
     case "log":
       break;
   }
@@ -282,6 +334,7 @@ const PENDING_RESET_FILE = ".hydra-trophy-reset.json";
 interface PendingTrophyReset {
   ids: string[];
   log: LogResetMark | null;
+  file?: string;
 }
 
 const pendingResetPath = async (slug: string) =>
@@ -301,6 +354,7 @@ const savePendingTrophyReset = async (
     JSON.stringify({
       ids: [...new Set([...(previous?.ids ?? []), ...pending.ids])],
       log: pending.log ?? previous?.log ?? null,
+      file: pending.file ?? previous?.file,
     })
   );
 };
@@ -318,7 +372,11 @@ const readPendingTrophyReset = async (
   if (contents === null) return null;
   try {
     const pending = JSON.parse(contents) as PendingTrophyReset;
-    return { ids: pending.ids ?? [], log: pending.log ?? null };
+    return {
+      ids: pending.ids ?? [],
+      log: pending.log ?? null,
+      file: pending.file,
+    };
   } catch {
     await clearPendingTrophyReset(slug);
     return null;
@@ -330,15 +388,17 @@ const readPendingTrophyReset = async (
  * (a file still locked), it stays saved: the next session ignores those
  * trophies and tries again when the port closes.
  */
-export const applyPendingTrophyReset = async (slug: string) => {
-  const pending = await readPendingTrophyReset(slug);
+export const applyPendingTrophyReset = async (ref: RecompilationRef) => {
+  const pending = await readPendingTrophyReset(ref.slug);
   if (!pending) return;
-  const files = await resolveRecompilationTrophyFiles(slug);
+  const resolved = await resolveRecompilationTrophyFiles(ref);
+  const files =
+    resolved && pending.file ? { ...resolved, file: pending.file } : resolved;
   if (files) {
     await removeResetTrophies(files, pending.ids);
     if (pending.log) await stripLogBeforeMark(files.file, pending.log);
   }
-  await clearPendingTrophyReset(slug);
+  await clearPendingTrophyReset(ref.slug);
 };
 
 export const startRecompilationTrophyWatcher = (
@@ -356,7 +416,7 @@ export const startRecompilationTrophyWatcher = (
     label: ref.slug,
     skipSouvenirCapture: true,
     resolveFile: async () => {
-      files ??= await resolveRecompilationTrophyFiles(ref.slug);
+      files ??= await resolveRecompilationTrophyFiles(ref);
       return files?.file ?? null;
     },
     readUnlocks: (file) => {
@@ -413,6 +473,7 @@ export const startRecompilationTrophyWatcher = (
             savePendingTrophyReset(ref.slug, {
               ids: [...new Set([...resetIds, ...logIds])],
               log: logMark,
+              file: resolved.file,
             })
           );
       await work.catch((error) =>
