@@ -155,11 +155,13 @@ const readStoredPlatforms = (): string[] => {
 };
 
 const getContentWidth = (element: HTMLElement) => {
-  const style = getComputedStyle(element);
+  const style = window.getComputedStyle(element);
+  const scrollbarWidth = element.offsetWidth - element.clientWidth;
   return (
-    element.clientWidth -
-    Number.parseFloat(style.paddingLeft) -
-    Number.parseFloat(style.paddingRight)
+    element.getBoundingClientRect().width -
+    scrollbarWidth -
+    (Number.parseFloat(style.paddingLeft) || 0) -
+    (Number.parseFloat(style.paddingRight) || 0)
   );
 };
 
@@ -987,6 +989,7 @@ export default function Library() {
     let pointer: { clientX: number; clientY: number } | null = null;
     let activeSourceKey: string | null = null;
     let reorderEndTimeout: number | undefined;
+    let dragStartGames: LibraryGame[] = [];
 
     const previewMoveOnto = (sourceKey: string, targetKey: string) => {
       const {
@@ -1067,6 +1070,7 @@ export default function Library() {
           activeSourceKey = source.data.orderKey;
           window.clearTimeout(reorderEndTimeout);
           setIsReordering(true);
+          dragStartGames = dragStateRef.current.displayedGames;
           pointer = location.current.input;
           overlay = createLibraryDragOverlay(
             source.element,
@@ -1093,18 +1097,21 @@ export default function Library() {
           pointer = null;
           autoscroll.stop();
           const overlayRect = removeOverlay();
-          const {
-            dragPreview: preview,
-            savedOrder: committedOrder,
-            commitOrder: commit,
-          } = dragStateRef.current;
+          const { dragPreview: preview, commitOrder: commit } =
+            dragStateRef.current;
           const isInsideGrid = location.current.dropTargets.length > 0;
+          const hasMoved =
+            preview !== null &&
+            !isSameLibraryOrder(
+              sortLibraryGamesByCustomOrder(
+                dragStartGames,
+                preview.order,
+                (games) => sortLibraryGames(games, "title_asc")
+              ).map(getLibraryGameOrderKey),
+              dragStartGames.map(getLibraryGameOrderKey)
+            );
 
-          if (
-            preview &&
-            isInsideGrid &&
-            !isSameLibraryOrder(preview.order, committedOrder)
-          ) {
+          if (preview && isInsideGrid && hasMoved) {
             commit(preview.order);
 
             if (isLibraryGameDragData(source.data) && overlayRect) {
@@ -1146,9 +1153,9 @@ export default function Library() {
   const virtualRows = rowVirtualizer.getVirtualItems();
   const firstVisibleRow = virtualRows[0]?.index ?? 0;
   const lastVisibleRow = virtualRows[virtualRows.length - 1]?.index ?? -1;
-  const visiblePlacements = gridLayout.placements.filter(
-    (placement) =>
-      placement.row >= firstVisibleRow && placement.row <= lastVisibleRow
+  const visiblePlacements = gridLayout.placements.slice(
+    firstVisibleRow * gridLayout.columnCount,
+    (lastVisibleRow + 1) * gridLayout.columnCount
   );
 
   const renderedPlacements = dragPreview
