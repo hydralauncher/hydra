@@ -1,4 +1,4 @@
-const SETTLE_DURATION_MS = 240;
+export const SETTLE_DURATION_MS = 240;
 const SETTLE_FROM_ROTATION_DEG = 3;
 const SETTLE_FROM_SCALE = 1.05;
 const SETTLE_EASING = "cubic-bezier(0.2, 0, 0, 1)";

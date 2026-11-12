@@ -19,6 +19,7 @@ export const isLibraryGameDragData = (
 interface LibrarySortableGameProps {
   orderKey: string;
   enabled: boolean;
+  animated: boolean;
   isDragSource: boolean;
   style: CSSProperties;
   children: ReactNode;
@@ -27,6 +28,7 @@ interface LibrarySortableGameProps {
 export function LibrarySortableGame({
   orderKey,
   enabled,
+  animated,
   isDragSource,
   style,
   children,
@@ -55,6 +57,7 @@ export function LibrarySortableGame({
       style={style}
       className={cn("library-sortable-game", {
         "library-sortable-game--enabled": enabled,
+        "library-sortable-game--animated": enabled && animated,
         "library-sortable-game--drag-source": enabled && isDragSource,
       })}
     >

@@ -6,6 +6,7 @@ import {
   useState,
   useCallback,
   useRef,
+  useSyncExternalStore,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
@@ -76,12 +77,20 @@ import {
   isSameLibraryOrder,
 } from "./library-collection-order";
 import {
+  beginCollectionOrderSave,
+  clearSettledCollectionOrders,
+  finishCollectionOrderSave,
+  getCollectionOrderSaves,
+  subscribeCollectionOrderSaves,
+} from "./library-collection-order-saves";
+import {
   LibrarySortableGame,
   isLibraryGameDragData,
 } from "./library-sortable-game";
 import {
   createLibraryDragOverlay,
   settleLibraryCard,
+  SETTLE_DURATION_MS,
   type LibraryDragOverlay,
 } from "./library-drag-overlay";
 import {
@@ -242,10 +251,11 @@ export default function Library() {
     order: string[];
     restingIndex: ReadonlyMap<string, number>;
   } | null>(null);
-  const orderSavesRef = useRef({ pending: 0 });
-  const [pendingCollectionOrders, setPendingCollectionOrders] = useState<
-    Record<string, string[]>
-  >({});
+  const [isReordering, setIsReordering] = useState(false);
+  const collectionOrderSaves = useSyncExternalStore(
+    subscribeCollectionOrderSaves,
+    getCollectionOrderSaves
+  );
   const [showResetCustomOrderModal, setShowResetCustomOrderModal] =
     useState(false);
   const [gameContextMenu, setGameContextMenu] = useState<{
@@ -574,7 +584,7 @@ export default function Library() {
     [library, hiddenGames, orderCollectionId]
   );
   const activePendingCollectionOrder = orderCollectionId
-    ? (pendingCollectionOrders[orderCollectionId] ?? null)
+    ? (collectionOrderSaves.orders[orderCollectionId] ?? null)
     : null;
   const collectionOrder = useMemo(() => {
     if (!orderCollectionId) return null;
@@ -669,29 +679,25 @@ export default function Library() {
 
   const commitCollectionOrder = useCallback(
     (collectionId: string, games: Pick<LibraryGame, "shop" | "objectId">[]) => {
-      setPendingCollectionOrders((orders) => ({
-        ...orders,
-        [collectionId]: games.map(getLibraryGameOrderKey),
-      }));
-
-      const saves = orderSavesRef.current;
-      saves.pending += 1;
+      beginCollectionOrderSave(collectionId, games.map(getLibraryGameOrderKey));
       window.electron
         .setCollectionGameOrder(collectionId, games)
         .catch(() => showErrorToast(t("custom_order_save_failed")))
-        .finally(() => {
-          saves.pending -= 1;
-          if (saves.pending > 0) return;
-
-          void Promise.all([updateLibrary(), updateHiddenGames()]).finally(
-            () => {
-              if (saves.pending === 0) setPendingCollectionOrders({});
-            }
-          );
-        });
+        .finally(finishCollectionOrderSave);
     },
-    [showErrorToast, t, updateLibrary, updateHiddenGames]
+    [showErrorToast, t]
   );
+
+  const hasSettledCollectionOrders =
+    collectionOrderSaves.pending === 0 &&
+    Object.keys(collectionOrderSaves.orders).length > 0;
+  useEffect(() => {
+    if (!hasSettledCollectionOrders) return;
+
+    void Promise.allSettled([updateLibrary(), updateHiddenGames()]).then(
+      clearSettledCollectionOrders
+    );
+  }, [hasSettledCollectionOrders, updateLibrary, updateHiddenGames]);
 
   const commitOrder = useCallback(
     (order: string[]) => {
@@ -965,6 +971,7 @@ export default function Library() {
 
     let pointer: { clientX: number; clientY: number } | null = null;
     let activeSourceKey: string | null = null;
+    let reorderEndTimeout: number | undefined;
 
     const previewMoveOnto = (sourceKey: string, targetKey: string) => {
       const {
@@ -1043,6 +1050,8 @@ export default function Library() {
           removeOverlay();
           lastMovePoint = null;
           activeSourceKey = source.data.orderKey;
+          window.clearTimeout(reorderEndTimeout);
+          setIsReordering(true);
           pointer = location.current.input;
           overlay = createLibraryDragOverlay(
             source.element,
@@ -1091,13 +1100,19 @@ export default function Library() {
             }
           }
           setDragPreview(null);
+          reorderEndTimeout = window.setTimeout(
+            () => setIsReordering(false),
+            SETTLE_DURATION_MS
+          );
         },
       }),
       () => {
         scrollElement.removeEventListener("scroll", updateHoveredSlot);
         autoscroll.stop();
         removeOverlay();
+        window.clearTimeout(reorderEndTimeout);
         setDragPreview(null);
+        setIsReordering(false);
       }
     );
   }, [isCustomOrder]);
@@ -1408,6 +1423,7 @@ export default function Library() {
                     key={placement.key}
                     orderKey={placement.key}
                     enabled={isCustomOrder}
+                    animated={isReordering}
                     isDragSource={dragPreview?.sourceKey === placement.key}
                     style={{
                       transform: `translate3d(${box.left}px, ${box.top}px, 0)`,

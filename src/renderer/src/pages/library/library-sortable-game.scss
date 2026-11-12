@@ -15,7 +15,7 @@
   left: 0;
   min-width: 0;
 
-  &--enabled {
+  &--animated {
     transition: transform 0.24s cubic-bezier(0.2, 0, 0, 1);
   }
 
