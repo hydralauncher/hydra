@@ -241,6 +241,7 @@ export function RecompilationHero({
             {
               icon: <TrashIcon />,
               label: t("uninstall"),
+              danger: true,
               onClick: () => setIsUninstallOpen(true),
               disabled: install.isRunning || install.isPreparing,
             },

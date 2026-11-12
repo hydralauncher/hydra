@@ -323,6 +323,17 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  // Same colors as the warning in the change playtime modal it opens.
+  &__warning-button.button {
+    background-color: rgba(globals.$warning-color, 0.1);
+    border: 1px solid rgba(globals.$warning-color, 0.3);
+    color: globals.$warning-color;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(globals.$warning-color, 0.18);
+    }
+  }
+
   &__my-screenshots {
     display: flex;
     flex-direction: column;

@@ -107,7 +107,11 @@ export function DangerZoneSection({
           label={t("danger_playtime_label")}
           description={t("danger_playtime_description", { time: playTime })}
         >
-          <Button onClick={onOpenChangePlaytime} theme="outline">
+          <Button
+            onClick={onOpenChangePlaytime}
+            theme="outline"
+            className="game-options-modal__warning-button"
+          >
             {t("danger_change")}
           </Button>
         </DangerRow>
