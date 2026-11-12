@@ -154,6 +154,15 @@ const readStoredPlatforms = (): string[] => {
   }
 };
 
+const getContentWidth = (element: HTMLElement) => {
+  const style = getComputedStyle(element);
+  return (
+    element.clientWidth -
+    Number.parseFloat(style.paddingLeft) -
+    Number.parseFloat(style.paddingRight)
+  );
+};
+
 const SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
@@ -166,7 +175,7 @@ const SORT_OPTIONS: SortOption[] = [
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showSuccessToast } = useToast();
   const { userDetails } = useUserDetails();
   const accountId = userDetails?.id ?? null;
   const activeAccountIdRef = useRef(accountId);
@@ -337,7 +346,7 @@ export default function Library() {
     const el = gamesScrollRef.current;
     if (!el) return;
 
-    setContainerWidth(el.getBoundingClientRect().width);
+    setContainerWidth(getContentWidth(el));
 
     const ro = new ResizeObserver(([entry]) =>
       setContainerWidth(entry.contentRect.width)
@@ -663,26 +672,23 @@ export default function Library() {
     ]
   );
 
-  const handleSortChange = useCallback(
-    (nextSortBy: SortOption) => {
-      if (nextSortBy === "custom" && customOrder.length === 0) {
-        saveCustomOrder(
-          [...sortedLibrary, ...sortedHiddenGames].map(getLibraryGameOrderKey)
-        );
-      }
-
-      setSortBy(nextSortBy);
-      localStorage.setItem("library-sort-by", nextSortBy);
-    },
-    [customOrder, sortedLibrary, sortedHiddenGames, saveCustomOrder]
-  );
+  const handleSortChange = useCallback((nextSortBy: SortOption) => {
+    setSortBy(nextSortBy);
+    localStorage.setItem("library-sort-by", nextSortBy);
+  }, []);
 
   const commitCollectionOrder = useCallback(
     (collectionId: string, games: Pick<LibraryGame, "shop" | "objectId">[]) => {
       beginCollectionOrderSave(collectionId, games.map(getLibraryGameOrderKey));
-      window.electron
+      return window.electron
         .setCollectionGameOrder(collectionId, games)
-        .catch(() => showErrorToast(t("custom_order_save_failed")))
+        .then(
+          () => true,
+          () => {
+            showErrorToast(t("custom_order_save_failed"));
+            return false;
+          }
+        )
         .finally(finishCollectionOrderSave);
     },
     [showErrorToast, t]
@@ -743,13 +749,22 @@ export default function Library() {
     setShowResetCustomOrderModal(false);
 
     if (orderCollectionId) {
-      commitCollectionOrder(orderCollectionId, []);
+      void commitCollectionOrder(orderCollectionId, []).then((saved) => {
+        if (saved) showSuccessToast(t("custom_order_reset"));
+      });
       return;
     }
 
     setCustomOrder([]);
     writeLibraryCustomOrder(localStorage, accountId, []);
-  }, [orderCollectionId, commitCollectionOrder, accountId]);
+    showSuccessToast(t("custom_order_reset"));
+  }, [
+    orderCollectionId,
+    commitCollectionOrder,
+    accountId,
+    showSuccessToast,
+    t,
+  ]);
 
   const {
     platforms: uniquePlatforms,

@@ -2290,6 +2290,7 @@
     "reset_custom_order_confirm": "Сбросить",
     "reset_collection_order_description": "Игры в этой коллекции вернутся к порядку библиотеки. Это действие нельзя отменить.",
     "custom_order_save_failed": "Не удалось сохранить новый порядок",
+    "custom_order_reset": "Свой порядок сброшен",
     "rename_collection": "Переименовать коллекцию",
     "renaming_collection": "Переименование...",
     "rename_collection_description": "Выберите новое название для этой коллекции.",

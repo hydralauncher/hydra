@@ -2602,6 +2602,7 @@
     "reset_custom_order_confirm": "Redefinir",
     "reset_collection_order_description": "Os jogos desta coleção voltarão para a ordem da sua biblioteca. Essa ação não pode ser desfeita.",
     "custom_order_save_failed": "Não foi possível salvar a nova ordem",
+    "custom_order_reset": "Ordem personalizada redefinida",
     "rename_collection": "Renomear coleção",
     "renaming_collection": "Renomeando...",
     "rename_collection_description": "Escolha um novo nome para esta coleção.",
