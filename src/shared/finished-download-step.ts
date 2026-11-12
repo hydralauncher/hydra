@@ -1,5 +1,6 @@
 import type { Download, LibraryGame } from "@types";
 import { Downloader, FILE_EXTENSIONS_TO_EXTRACT } from "./constants.js";
+import { platformToSystem } from "./platform-to-system.js";
 
 export type FinishedDownloadStep =
   | "extracting"
@@ -31,6 +32,10 @@ export const isUnextractedArchive = (download: Download) => {
   );
 };
 
+const isUnextractedPs4Pkg = (game: LibraryGame, download: Download) =>
+  platformToSystem(game.platform) === "ps4" &&
+  !!download.folderName?.toLowerCase().endsWith(".pkg");
+
 export const getFinishedDownloadStep = (
   game: LibraryGame,
   hasInstaller: boolean
@@ -41,7 +46,8 @@ export const getFinishedDownloadStep = (
   if (download.extracting) return "extracting";
   if (game.executablePath) return "play";
   if (game.shop === "launchbox") {
-    return (game.discs?.length ?? 0) > 0 ? "play" : null;
+    if ((game.discs?.length ?? 0) > 0) return "play";
+    return isUnextractedPs4Pkg(game, download) ? "extract" : null;
   }
   if (isUnextractedArchive(download)) return "extract";
   if (download.installerRunning) return "installing";

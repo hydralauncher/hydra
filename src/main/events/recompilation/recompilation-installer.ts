@@ -166,6 +166,62 @@ const resolveExtractedRoot = async (stagingDirectory: string) => {
     : stagingDirectory;
 };
 
+const APPIMAGE_EXTRACT_TIMEOUT_MS = 10 * 60 * 1000;
+
+/**
+ * Some AppImages (Nix-built ones like bbport's) hold a compressed stream before
+ * the image that 7-Zip opens instead, and symlinks 7-Zip refuses. The
+ * AppImage's own extractor handles both; it lands in `squashfs-root`.
+ */
+const extractAppImageWithItself = (
+  appImagePath: string,
+  stagingDirectory: string
+) =>
+  new Promise<void>((resolve, reject) => {
+    const child = spawn(appImagePath, ["--appimage-extract"], {
+      cwd: stagingDirectory,
+      env: getPortEnv({}),
+      stdio: "ignore",
+      shell: false,
+    });
+    const timeout = setTimeout(() => {
+      child.kill("SIGKILL");
+      reject(new Error("--appimage-extract timed out"));
+    }, APPIMAGE_EXTRACT_TIMEOUT_MS);
+    child.once("error", (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+    child.once("exit", (code) => {
+      clearTimeout(timeout);
+      if (code === 0) resolve();
+      else reject(new Error(`--appimage-extract exited with ${code}`));
+    });
+  });
+
+const extractReleaseArchive = async (
+  archivePath: string,
+  assetName: string,
+  stagingDirectory: string
+) => {
+  try {
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: stagingDirectory,
+    });
+  } catch (error) {
+    const isAppImage = assetName.toLowerCase().endsWith(".appimage");
+    if (process.platform !== "linux" || !isAppImage) throw error;
+
+    logger.warn(`7-Zip could not open ${assetName}, using its own extractor`);
+    await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
+    await fs.promises.mkdir(stagingDirectory, { recursive: true });
+    // Only this user runs the downloaded AppImage, once, to unpack it.
+    await fs.promises.chmod(archivePath, 0o700);
+    await extractAppImageWithItself(archivePath, stagingDirectory);
+  }
+};
+
 const extractRelease = async (
   archivePath: string,
   assetName: string,
@@ -184,10 +240,7 @@ const extractRelease = async (
         path.join(stagingDirectory, path.basename(assetName))
       );
     } else {
-      await SevenZip.extractFile({
-        filePath: archivePath,
-        outputPath: stagingDirectory,
-      });
+      await extractReleaseArchive(archivePath, assetName, stagingDirectory);
     }
     await extractNestedArchives(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
@@ -534,6 +587,10 @@ const launchRecompilation = async (
   ) {
     return { ok: false, reason: "already_running" };
   }
+  const { isPs4PkgJobRunningFor } = await import("../emulators/ps4-pkg-job");
+  if (isPs4PkgJobRunningFor(ref.objectId)) {
+    return { ok: false, reason: "pkg_job_running" };
+  }
 
   let prepared = false;
   const launch = await prepareRecompilationRom(
@@ -559,6 +616,13 @@ const launchRecompilation = async (
   const consoleHider = shouldHideRecompilationConsole(ref.slug)
     ? startConsoleHider()
     : null;
+  const { applyPendingTrophyReset } = await import(
+    "./recompilation-trophy-watcher"
+  );
+  await applyPendingTrophyReset(ref.slug).catch((error) =>
+    logger.error("Failed to apply a saved trophy reset", error)
+  );
+
   const spawned = await spawnPort(executablePath, launch);
   if (spawned.ok && spawned.child.pid) {
     consoleHider?.stdin?.end(`${spawned.child.pid}\n`);

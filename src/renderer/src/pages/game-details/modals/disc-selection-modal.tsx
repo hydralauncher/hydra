@@ -7,7 +7,7 @@ import { Disc3 } from "lucide-react";
 import { getClassicsDiscLabel } from "@shared";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
@@ -49,14 +49,14 @@ export function DiscSelectionModal({
   const sortedDiscs = useMemo(() => {
     const regionOrder = new Map<string, number>();
     for (const disc of discs) {
-      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      const region = getDiscRegion(disc);
       if (region && !regionOrder.has(region)) {
         regionOrder.set(region, regionOrder.size);
       }
     }
 
     const rankOf = (disc: ClassicsDisc): number => {
-      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      const region = getDiscRegion(disc);
       if (!region) return Number.MAX_SAFE_INTEGER;
       return regionOrder.get(region) ?? Number.MAX_SAFE_INTEGER;
     };
@@ -145,7 +145,7 @@ export function DiscSelectionModal({
       <div className="disc-selection-modal__body">
         {sortedDiscs.map((disc) => {
           const isActive = selected === disc.path;
-          const region = disc.sku ? getSkuRegion(disc.sku) : null;
+          const region = getDiscRegion(disc);
           const regionName = region ? t(REGION_TRANSLATION_KEYS[region]) : null;
           return (
             <button

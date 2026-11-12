@@ -92,6 +92,11 @@
     gap: globals.$spacing-unit;
   }
 
+  &__hero-note {
+    font-size: globals.$small-font-size;
+    color: globals.$muted-color;
+  }
+
   &__hero-buttons {
     display: flex;
     align-items: center;

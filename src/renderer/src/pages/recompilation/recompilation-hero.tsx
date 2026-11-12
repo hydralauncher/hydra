@@ -20,7 +20,8 @@ import { Button } from "@renderer/components/button/button";
 import { ConfirmationModal } from "@renderer/components/confirmation-modal/confirmation-modal";
 import { DropdownMenu } from "@renderer/components/dropdown-menu/dropdown-menu";
 import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
-import { useToast } from "@renderer/hooks";
+import { useAppSelector, useToast } from "@renderer/hooks";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import { CloudSaveWidget } from "../game-details/cloud-save-v2";
 import {
   getInstallErrorKey,
@@ -32,9 +33,11 @@ import "@renderer/components/setup-modal/setup-modal.scss";
 import "../game-details/hero.scss";
 
 interface RecompilationHeroProps {
+  objectId: string;
   details: RecompilationDetails;
   game: LibraryGame | null;
   installAsset: RecompilationReleaseAsset | null;
+  areReleasesLoaded: boolean;
   install: RecompilationInstall;
   rom: RecompilationRom;
   hasCloudSave: boolean;
@@ -43,9 +46,11 @@ interface RecompilationHeroProps {
 }
 
 export function RecompilationHero({
+  objectId,
   details,
   game,
   installAsset,
+  areReleasesLoaded,
   install,
   rom,
   hasCloudSave,
@@ -53,6 +58,11 @@ export function RecompilationHero({
   onDownloadRom,
 }: Readonly<RecompilationHeroProps>) {
   const { t } = useTranslation("recompilation");
+  // The game files are being written while a PS4 PKG is extracted or applied.
+  const isPs4PkgJobRunning = useAppSelector((state) => {
+    const job = state.ps4PkgJob.job;
+    return job !== null && job.objectId === objectId;
+  });
   const { showErrorToast } = useToast();
   const [isUninstallOpen, setIsUninstallOpen] = useState(false);
 
@@ -66,6 +76,19 @@ export function RecompilationHero({
   const handlesRom = rom.state?.handlesRom === true;
   const needsRomChoice =
     handlesRom && !rom.state?.romPath && !rom.state?.isReady;
+  const canApplyPs4Update =
+    rom.state?.isFolder === true && Boolean(rom.state.romPath);
+  const ps4Update = usePs4PkgPicker("launchbox", objectId, "update", () => {
+    void rom.refresh();
+  });
+
+  const showsNoFileNote =
+    areReleasesLoaded &&
+    Boolean(state) &&
+    !isInstalled &&
+    !isDownloading &&
+    !isExtracting &&
+    !installAsset;
 
   const { prepareFailed } = install;
   useEffect(() => {
@@ -83,7 +106,9 @@ export function RecompilationHero({
   const runPlay = async () => {
     const played = await install.play();
     if (played === "already_running") showErrorToast(t("already_running"));
-    else if (!played) showErrorToast(t("play_failed"));
+    if (played === "pkg_job_running") {
+      showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
+    } else if (!played) showErrorToast(t("play_failed"));
   };
 
   const runClose = async () => {
@@ -169,7 +194,9 @@ export function RecompilationHero({
           <Button
             theme={hasUpdate ? "outline" : "primary"}
             onClick={runPlay}
-            disabled={install.isLaunching || install.isPreparing}
+            disabled={
+              install.isLaunching || install.isPreparing || isPs4PkgJobRunning
+            }
           >
             <PlayIcon />
             {install.isPreparing ? t("prepare_title") : t("play")}
@@ -185,6 +212,19 @@ export function RecompilationHero({
                     label: t("change_rom"),
                     onClick: onOpenInstall,
                     disabled: install.isRunning || install.isPreparing,
+                  },
+                ]
+              : []),
+            ...(canApplyPs4Update
+              ? [
+                  {
+                    icon: <SyncIcon />,
+                    label: t("apply_ps4_update", { ns: "game_details" }),
+                    onClick: () => void ps4Update.pick(),
+                    disabled:
+                      install.isRunning ||
+                      install.isPreparing ||
+                      ps4Update.isBusy,
                   },
                 ]
               : []),
@@ -248,6 +288,11 @@ export function RecompilationHero({
             {hasCloudSave && <CloudSaveWidget />}
             {renderPrimary()}
           </div>
+          {showsNoFileNote && (
+            <span className="recompilation-page__hero-note">
+              {t("no_file_for_this_pc")}
+            </span>
+          )}
         </div>
       </div>
 

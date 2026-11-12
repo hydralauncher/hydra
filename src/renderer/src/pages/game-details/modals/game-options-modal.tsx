@@ -1291,8 +1291,15 @@ export function GameOptionsModal({
       );
       await updateGame();
       showSuccessToast(t("reset_achievements_success"));
-    } catch {
-      showErrorToast(t("reset_achievements_error"));
+    } catch (error) {
+      showErrorToast(
+        t(
+          error instanceof Error &&
+            error.message.includes("reset_achievements_game_running")
+            ? "reset_achievements_game_running"
+            : "reset_achievements_error"
+        )
+      );
     } finally {
       setIsDeletingAchievements(false);
     }
