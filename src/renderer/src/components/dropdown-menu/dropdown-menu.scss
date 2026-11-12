@@ -60,6 +60,20 @@
     outline: none;
   }
 
+  // Red, like the context menu's destructive items. Kept after the
+  // hover and focus rules so it wins over them. The menu content renders
+  // in a portal, outside .dropdown-menu, so these rules don't nest under it.
+  &__item--danger,
+  &__item--danger:hover,
+  &__item--danger:focus {
+    color: globals.$error-color;
+  }
+
+  &__item--danger:hover,
+  &__item--danger:focus {
+    background-color: rgba(225, 29, 72, 0.18);
+  }
+
   &__item-icon {
     width: 16px;
     height: 16px;

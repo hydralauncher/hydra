@@ -160,6 +160,12 @@ $beacon-pulse-duration: 2.4s;
     background: rgba(255, 255, 255, 0.06);
   }
 
+  // A light backdrop, so dark transparent icons stand out.
+  &__icon {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
   &__text {
     display: flex;
     flex-direction: column;
