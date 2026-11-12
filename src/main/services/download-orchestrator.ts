@@ -297,7 +297,7 @@ export class DownloadOrchestrator {
       return null;
     // A repeated manual action must retain the downloader already owning this slot.
     if (DownloadManager.hasRunningDownload(getGameKey(download))) {
-      return download;
+      return this.markRunningDownloadActive(download, isCurrent);
     }
     if (!acceptedTicket) this.acceptedEpicActivations.delete(downloadId);
     const activeDownload: Download = {
@@ -400,6 +400,39 @@ export class DownloadOrchestrator {
     );
     detach?.(preparation);
     return activeDownload;
+  }
+
+  /**
+   * The downloader can own a slot whose record still reads paused: startup
+   * auto-resume starts it directly, and the torrent status poll only marks it
+   * active once metadata and file checks finish. Persist the running state so
+   * a resume in that window takes effect instead of silently doing nothing.
+   */
+  private static async markRunningDownloadActive(
+    download: Download,
+    isCurrent: () => boolean
+  ): Promise<Download | null> {
+    const current =
+      (await this.getDownload(download.shop, download.objectId)) ?? download;
+    if (!isCurrent()) return null;
+    // A runtime failure releases the slot before persisting its error, so a
+    // lost slot means that failure (or a pause) must keep the record.
+    if (!DownloadManager.hasRunningDownload(getGameKey(download))) return null;
+    // Completion may have landed while this action waited; never reopen it.
+    if (["complete", "seeding", "removed"].includes(current.status ?? ""))
+      return current;
+    const runningDownload: Download = {
+      ...current,
+      awaitingDebrid: false,
+      debridAutoResume: false,
+      debridQueueOnly: undefined,
+      debridQueuePosition: undefined,
+      debridPreparationDeadline: undefined,
+      status: "active",
+      queued: false,
+    };
+    await downloadsSublevel.put(getGameKey(download), runningDownload);
+    return runningDownload;
   }
 
   private static async restoreInterruptedDownload(download: Download | null) {
