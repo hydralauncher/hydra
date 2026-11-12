@@ -644,19 +644,6 @@ function InstallModalContent({
         })}
       </p>
 
-      {shownFile && (
-        <div className="recompilation-install__picked">
-          <span className="recompilation-install__choice-text">
-            <span className="recompilation-install__choice-title">
-              {fileName(shownFile)}
-            </span>
-            <span className="recompilation-install__choice-info">
-              {folderOf(shownFile)}
-            </span>
-          </span>
-        </div>
-      )}
-
       {!isRomDownloading && (
         <div className="recompilation-install__choices">
           <ChoiceRow
