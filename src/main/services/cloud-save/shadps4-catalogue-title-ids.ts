@@ -11,6 +11,10 @@ const normalizeAll = (ids: Iterable<unknown>) => [
   ),
 ];
 
+/** A game the catalogue had no title IDs for is not asked again for a while. */
+const EMPTY_LOOKUP_RETRY_MS = 10 * 60 * 1000;
+const emptyLookups = new Map<string, number>();
+
 /**
  * The title IDs of every version of the game (regions, editions), as the
  * catalogue lists them. Read from the shop details already cached, and asked
@@ -23,12 +27,24 @@ export const getShadps4CatalogueTitleIds = async (
     await readCachedCatalogueTitleIds(game).catch(() => [])
   );
   if (cached.length) return cached;
+
+  const key = `${game.shop}:${game.objectId}`;
+  const emptyAt = emptyLookups.get(key);
+  if (emptyAt !== undefined && Date.now() - emptyAt < EMPTY_LOOKUP_RETRY_MS) {
+    return [];
+  }
   try {
     const { getRpcs3CatalogueTitleIds } = await import(
       "./rpcs3-game-identity.js"
     );
-    return normalizeAll(await getRpcs3CatalogueTitleIds(game));
+    const ids = normalizeAll(await getRpcs3CatalogueTitleIds(game));
+    if (ids.length) {
+      emptyLookups.delete(key);
+      return ids;
+    }
   } catch {
-    return [];
+    // Remembered below, like an empty answer.
   }
+  emptyLookups.set(key, Date.now());
+  return [];
 };
