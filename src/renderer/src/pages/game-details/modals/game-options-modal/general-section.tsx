@@ -26,7 +26,14 @@ import { useToast } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
 import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
-import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
+import {
+  HardDrive,
+  X,
+  FolderOpen,
+  ChevronDown,
+  Disc3,
+  RefreshCw,
+} from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
@@ -57,6 +64,28 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   const ps4Pkg = usePs4PkgPicker(game.shop, game.objectId, "any", () => {
     void updateGame();
   });
+  const ps4Update = usePs4PkgPicker(game.shop, game.objectId, "update");
+  const isPkgBusy = ps4Pkg.isBusy || ps4Update.isBusy;
+  // An update needs a PS4 game folder: a disc's or an installed port's.
+  const [hasPs4GameFolder, setHasPs4GameFolder] = useState(false);
+  const discKey = discs.map((disc) => disc.path).join("|");
+
+  useEffect(() => {
+    if (system !== "ps4") {
+      setHasPs4GameFolder(false);
+      return;
+    }
+    let active = true;
+    void window.electron
+      .hasPs4GameFolder(game.shop, game.objectId)
+      .then((has) => {
+        if (active) setHasPs4GameFolder(has);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [system, game.shop, game.objectId, discKey]);
   const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
     null
   );
@@ -370,7 +399,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 type="button"
                 className="disc-field__option"
                 onClick={() => void handleAddDiscFile()}
-                disabled={ps4Pkg.isBusy}
+                disabled={isPkgBusy}
               >
                 <Disc3 size={16} className="disc-field__icon" />
                 <span className="disc-field__label">
@@ -403,24 +432,39 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         </div>
 
-        {selectedDisc && (
+        {(selectedDisc || hasPs4GameFolder) && (
           <div className="disc-field__actions">
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleOpenDiscLocation}
-            >
-              <FolderOpen size={14} />
-              {t("open_disc_location")}
-            </Button>
-            <Button
-              type="button"
-              theme="outline"
-              onClick={() => void handleRemoveDisc(selectedDisc.path)}
-            >
-              <X size={14} />
-              {t("remove_selected_disc")}
-            </Button>
+            {selectedDisc && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleOpenDiscLocation}
+              >
+                <FolderOpen size={14} />
+                {t("open_disc_location")}
+              </Button>
+            )}
+            {hasPs4GameFolder && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={() => void ps4Update.pick()}
+                disabled={isPkgBusy}
+              >
+                <RefreshCw size={14} />
+                {t("apply_ps4_update")}
+              </Button>
+            )}
+            {selectedDisc && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={() => void handleRemoveDisc(selectedDisc.path)}
+              >
+                <X size={14} />
+                {t("remove_selected_disc")}
+              </Button>
+            )}
           </div>
         )}
 
