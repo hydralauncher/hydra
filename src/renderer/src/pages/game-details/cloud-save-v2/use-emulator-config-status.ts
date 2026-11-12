@@ -16,6 +16,8 @@ const loadSaveLocationStatus = (
   switch (provider) {
     case "rpcs3":
       return window.electron.getRpcs3ConfigRootStatus();
+    case "shadps4":
+      return window.electron.getShadps4DataDirStatus();
   }
 };
 

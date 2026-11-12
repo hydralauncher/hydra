@@ -344,6 +344,12 @@ export class NativeAddon {
   private static worker: Worker | null = null;
   private static pendingResolvers: PendingResolver[] = [];
 
+  /** For worker threads that load the addon themselves. */
+  public static getAddonPath() {
+    const addonPath = this.resolveAddonPath();
+    return fs.existsSync(addonPath) ? addonPath : null;
+  }
+
   private static resolveAddonPath() {
     if (app.isPackaged) {
       return path.join(

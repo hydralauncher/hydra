@@ -290,5 +290,137 @@
       "prepareOnUpdate": true,
       "extensions": [".cue", ".chd"]
     }
+  },
+  "spartanport": {
+    "executable": {
+      "win32": "SpartanPort.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": {
+            "win32": "<base>/settings.json",
+            "linux": "<xdgData>/spartanport/settings.json"
+          },
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": ["CUSA01623", "CUSA01715"],
+      "extensions": []
+    },
+    "trophies": {
+      "kind": "bitmask",
+      "path": {
+        "win32": "<base>/user/trophies.dat",
+        "linux": "<xdgData>/spartanport/user/trophies.dat"
+      }
+    }
+  },
+  "bloodborne-pc": {
+    "executable": {
+      "win32": "Bloodborne.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": "<winAppData>/bbport-launcher/settings.json",
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": [
+        "CUSA00207",
+        "CUSA00208",
+        "CUSA00299",
+        "CUSA00900",
+        "CUSA01363",
+        "CUSA03014",
+        "CUSA03023",
+        "CUSA03173",
+        "CUSA03179"
+      ],
+      "extensions": []
+    },
+    "trophies": {
+      "kind": "id-time-lines",
+      "path": {
+        "win32": "<base>/user/trophies.log"
+      }
+    }
+  },
+  "shadowofthecolossus-pc": {
+    "executable": {
+      "win32": "SotC.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": "<base>/user/launcher_settings.json",
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": ["CUSA08034", "CUSA08809"],
+      "extensions": []
+    },
+    "trophies": {
+      "kind": "log",
+      "path": {
+        "win32": "<base>/user/last_run.log"
+      },
+      "history": [
+        "<base>/user/last_run.1.log",
+        "<base>/user/last_run.2.log",
+        "<base>/user/last_run.3.log",
+        "<base>/user/last_run.4.log"
+      ],
+      "grantPlatinum": true
+    }
+  },
+  "bbport": {
+    "executable": {
+      "win32": "Bloodborne.exe"
+    },
+    "rom": {
+      "path": {
+        "arg": ["--play"],
+        "config": {
+          "file": {
+            "win32": "<winAppData>/bbport-launcher/settings.json",
+            "linux": "<xdgConfig>/bbport-launcher/settings.json"
+          },
+          "key": ["game_dir"]
+        }
+      },
+      "folder": ["eboot.bin", "sce_sys/param.sfo"],
+      "titleIds": [
+        "CUSA00207",
+        "CUSA00208",
+        "CUSA00299",
+        "CUSA00900",
+        "CUSA01363",
+        "CUSA03014",
+        "CUSA03023",
+        "CUSA03173",
+        "CUSA03179"
+      ],
+      "appVersions": ["01.09"],
+      "extensions": []
+    },
+    "trophies": {
+      "kind": "jsonl",
+      "path": {
+        "win32": "<base>/user/trophies.jsonl",
+        "linux": "<xdgData>/bbport/user/trophies.jsonl"
+      },
+      "resetFiles": {
+        "win32": ["<base>/user/trophy/NPWR05818_00/unlocked.txt"],
+        "linux": ["<xdgData>/bbport/user/trophy/NPWR05818_00/unlocked.txt"]
+      }
+    }
   }
 }

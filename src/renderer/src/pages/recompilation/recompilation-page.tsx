@@ -49,6 +49,7 @@ export default function RecompilationPage() {
   const [details, setDetails] = useState<RecompilationDetails | null>(null);
   const [readme, setReadme] = useState<RecompilationReadme | null>(null);
   const [releases, setReleases] = useState<RecompilationRelease[]>([]);
+  const [areReleasesLoaded, setAreReleasesLoaded] = useState(false);
   const [game, setGame] = useState<LibraryGame | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<RecompilationTab>("about");
@@ -79,6 +80,7 @@ export default function RecompilationPage() {
     let cancelled = false;
     setDetails(null);
     setReleases([]);
+    setAreReleasesLoaded(false);
     setIsNotFound(false);
     setActiveTab("about");
 
@@ -93,7 +95,9 @@ export default function RecompilationPage() {
 
     getRecompilationReleases(objectId, slug)
       .then((data) => {
-        if (!cancelled) setReleases(data.releases ?? []);
+        if (cancelled) return;
+        setReleases(data.releases ?? []);
+        setAreReleasesLoaded(true);
       })
       .catch((error) => logger.error("Failed to load releases", error));
 
@@ -216,7 +220,9 @@ export default function RecompilationPage() {
     >
       <div className="recompilation-page">
         <RecompilationHero
+          objectId={objectId}
           details={details}
+          areReleasesLoaded={areReleasesLoaded}
           game={game}
           hasCloudSave={cloudSaveGame !== null}
           installAsset={installAsset}

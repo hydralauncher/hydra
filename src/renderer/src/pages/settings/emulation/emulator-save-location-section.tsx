@@ -4,31 +4,36 @@ import { FileDirectoryIcon } from "@primer/octicons-react";
 
 import { Button, SelectField } from "@renderer/components";
 import { useToast } from "@renderer/hooks";
-import type { EmulatorConfig, Rpcs3ConfigRootStatus } from "@types";
+import type { EmulatorConfig, EmulatorSaveLocationStatus } from "@types";
 
 import { EmulatorResourceRow } from "./emulator-resource-row";
-import { getRpcs3ConfigRootChoices } from "./rpcs3-config-root-choices";
+import type { EmulatorSaveLocation } from "./emulator-save-location";
+import { getEmulatorSaveLocationChoices } from "./emulator-save-location-choices";
 
 interface Props {
   config: EmulatorConfig;
+  location: EmulatorSaveLocation;
   disabled: boolean;
   onChange: (config: EmulatorConfig) => void;
 }
 
-export function Rpcs3ConfigRootSection({
+export function EmulatorSaveLocationSection({
   config,
+  location,
   disabled,
   onChange,
 }: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { showErrorToast } = useToast();
-  const [status, setStatus] = useState<Rpcs3ConfigRootStatus | null>(null);
+  const [status, setStatus] = useState<EmulatorSaveLocationStatus | null>(null);
   const [busy, setBusy] = useState(false);
+  const key = (suffix: string) => `${location.keyPrefix}_${suffix}`;
+  const selectedDir = location.selectedDir(config);
 
   useEffect(() => {
     let cancelled = false;
-    void window.electron
-      .getRpcs3ConfigRootStatus()
+    void location
+      .getStatus()
       .then((next) => {
         if (!cancelled) setStatus(next);
       })
@@ -38,19 +43,17 @@ export function Rpcs3ConfigRootSection({
     return () => {
       cancelled = true;
     };
-  }, [config.executablePath, config.rpcs3ConfigRoot]);
+  }, [config.executablePath, selectedDir, location]);
 
   const select = async (root: string) => {
     setBusy(true);
     try {
-      const next = await window.electron.setRpcs3ConfigRoot(root);
+      const next = await location.select(root);
       onChange(next);
-      setStatus(await window.electron.getRpcs3ConfigRootStatus());
+      setStatus(await location.getStatus());
     } catch {
-      showErrorToast(t("rpcs3_config_invalid_selection"));
-      setStatus(
-        await window.electron.getRpcs3ConfigRootStatus().catch(() => null)
-      );
+      showErrorToast(t(key("invalid_selection")));
+      setStatus(await location.getStatus().catch(() => null));
     } finally {
       setBusy(false);
     }
@@ -66,23 +69,17 @@ export function Rpcs3ConfigRootSection({
   };
 
   const state = status?.status ?? "not-configured";
-  const { selectedRoot, roots } = getRpcs3ConfigRootChoices(status);
+  const { selectedRoot, roots } = getEmulatorSaveLocationChoices(status);
   const controlsDisabled = disabled || busy || !config.executablePath;
 
   if (!status || (state === "ready" && roots.length <= 1)) return null;
 
   return (
     <EmulatorResourceRow
-      title={t("rpcs3_config_title")}
-      description={
-        state === "ready"
-          ? t("rpcs3_config_description")
-          : t(`rpcs3_config_${state}`)
-      }
+      title={t(key("title"))}
+      description={state === "ready" ? t(key("description")) : t(key(state))}
       detected={state === "ready"}
-      statusLabel={
-        state === "ready" ? t("rpcs3_config_ready") : t("not_detected")
-      }
+      statusLabel={state === "ready" ? t(key("ready")) : t("not_detected")}
       pathContent={
         <SelectField
           className="emulator-detail__config-root-select"
@@ -95,7 +92,7 @@ export function Rpcs3ConfigRootSection({
                   {
                     key: "empty",
                     value: "",
-                    label: t("rpcs3_config_no_folder"),
+                    label: t(key("no_folder")),
                   },
                 ]
               : []),
@@ -106,7 +103,7 @@ export function Rpcs3ConfigRootSection({
       actions={
         <Button theme="primary" onClick={browse} disabled={controlsDisabled}>
           <FileDirectoryIcon size={16} />
-          <span>{t("rpcs3_config_browse")}</span>
+          <span>{t(key("browse"))}</span>
         </Button>
       }
     />

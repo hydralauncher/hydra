@@ -70,6 +70,22 @@ describe("getFinishedDownloadStep", () => {
     assert.equal(getFinishedDownloadStep(withoutDiscs, false), null);
   });
 
+  it("asks to extract a PS4 PKG download that has no disc yet", () => {
+    const ps4Pkg = makeGame({ folderName: "Game.pkg" }, {
+      shop: "launchbox",
+      platform: "Sony Playstation 4",
+      discs: [],
+    } as Partial<LibraryGame>);
+    const ps3Pkg = makeGame({ folderName: "Game.pkg" }, {
+      shop: "launchbox",
+      platform: "Sony Playstation 3",
+      discs: [],
+    } as Partial<LibraryGame>);
+
+    assert.equal(getFinishedDownloadStep(ps4Pkg, false), "extract");
+    assert.equal(getFinishedDownloadStep(ps3Pkg, false), null);
+  });
+
   it("waits for extraction before anything else", () => {
     const game = makeGame(
       { extracting: true },

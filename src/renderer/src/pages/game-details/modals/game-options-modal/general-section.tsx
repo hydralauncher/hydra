@@ -29,8 +29,9 @@ import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
 import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   isPs4GameFolder,
   platformToSystem,
@@ -53,6 +54,9 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   );
 
   const { showErrorToast } = useToast();
+  const ps4Pkg = usePs4PkgPicker(game.shop, game.objectId, "any", () => {
+    void updateGame();
+  });
   const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
     null
   );
@@ -95,7 +99,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       );
     }
 
-    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+    const region = disc ? getDiscRegion(disc) : null;
 
     if (!region) return <Disc3 size={18} className="disc-field__icon" />;
 
@@ -193,6 +197,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const handleAddDiscFile = async () => {
     setIsAddMenuOpen(false);
+    if (system === "ps4") {
+      await ps4Pkg.pick();
+      return;
+    }
     const retroArchPlatform = platformToRetroArchPlatform(game.platform);
     let extensions = ["*"];
     if (retroArchPlatform) {
@@ -358,18 +366,17 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 isAddMenuOpen ? "disc-field__menu--open" : ""
               }`}
             >
-              {system !== "ps4" && (
-                <button
-                  type="button"
-                  className="disc-field__option"
-                  onClick={() => void handleAddDiscFile()}
-                >
-                  <Disc3 size={16} className="disc-field__icon" />
-                  <span className="disc-field__label">
-                    {t("add_disc_option")}
-                  </span>
-                </button>
-              )}
+              <button
+                type="button"
+                className="disc-field__option"
+                onClick={() => void handleAddDiscFile()}
+                disabled={ps4Pkg.isBusy}
+              >
+                <Disc3 size={16} className="disc-field__icon" />
+                <span className="disc-field__label">
+                  {t("add_disc_option")}
+                </span>
+              </button>
               <button
                 type="button"
                 className="disc-field__option"
