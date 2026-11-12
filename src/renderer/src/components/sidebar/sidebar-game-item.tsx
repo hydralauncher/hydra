@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import {
   ConfirmationModal,
   GameContextMenu,
+  QuickLaunchButton,
   SteamLibraryBadge,
   useGameActions,
 } from "..";
@@ -35,6 +36,7 @@ export const SidebarGameItem = memo(function SidebarGameItem({
   const { showWarningToast } = useToast();
   const {
     canPlay,
+    isGameRunning,
     handlePlayGame,
     rpcs3ConfirmPending,
     handleConfirmRpcs3Launch,
@@ -43,6 +45,7 @@ export const SidebarGameItem = memo(function SidebarGameItem({
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
+  const showQuickPlay = userPreferences?.showLibraryQuickPlayButton ?? true;
   const { openCollectionContextMenu } = useCollectionContextMenu();
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean;
@@ -178,6 +181,14 @@ export const SidebarGameItem = memo(function SidebarGameItem({
             <HeartFillIcon size={12} className="sidebar__game-favorite-icon" />
           )}
         </button>
+
+        {showQuickPlay && canPlay && (
+          <QuickLaunchButton
+            game={game}
+            variant="sidebar"
+            running={isGameRunning}
+          />
+        )}
       </li>
 
       <GameContextMenu

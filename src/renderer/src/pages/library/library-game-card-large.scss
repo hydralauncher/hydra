@@ -1,6 +1,11 @@
 @use "../../scss/globals.scss";
 
 .library-game-card-large {
+  &__container {
+    position: relative;
+    width: 100%;
+  }
+
   width: 100%;
   height: 300px;
   position: relative;
@@ -337,6 +342,7 @@
     gap: globals.$spacing-unit;
     flex: 1 1 auto;
     min-width: 0;
+    transition: transform ease 0.2s;
   }
 
   &__achievement-header {
@@ -403,4 +409,24 @@
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+}
+
+.library-game-card-large__container:hover .library-game-card-large {
+  transform: scale(1.01);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.library-game-card-large__container:hover .library-game-card-large::before {
+  opacity: 1;
+  transform: translateY(-20%);
+}
+
+.library-game-card-large__container:hover
+  .library-game-card-large__overlay--quick-play
+  .library-game-card-large__achievements,
+.library-game-card-large__container:focus-within
+  .library-game-card-large__overlay--quick-play
+  .library-game-card-large__achievements {
+  transform: translateY(-48px);
 }

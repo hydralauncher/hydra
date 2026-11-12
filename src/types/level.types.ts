@@ -264,6 +264,7 @@ export interface UserPreferences {
   hideEpicLibraryBadges?: boolean;
   hideLibraryAchievementProgress?: boolean;
   autoplayAnimatedArtwork?: boolean;
+  showLibraryQuickPlayButton?: boolean;
   persistFiltersAndSorting?: boolean;
   screenshotsEnabled?: boolean;
   screenshotsFolderPath?: string;
