@@ -21,7 +21,9 @@ export const rememberRpcs3CatalogueTitleIds = (
   );
 };
 
-const readCachedCatalogueTitleIds = async (game: Game): Promise<unknown[]> => {
+export const readCachedCatalogueTitleIds = async (
+  game: Game
+): Promise<unknown[]> => {
   const current = currentCatalogueIds.get(catalogueKey(game));
   if (current) return [...current];
   const { gamesShopCacheSublevel, levelKeys } = await import("@main/level");
