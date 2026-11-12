@@ -98,6 +98,7 @@ export const resolveRecompilationPath = (
       process.env.APPDATA ?? path.join(home, "AppData", "Roaming"),
     "<xdgData>":
       process.env.XDG_DATA_HOME || path.join(home, ".local", "share"),
+    "<xdgConfig>": process.env.XDG_CONFIG_HOME || path.join(home, ".config"),
     "{romName}": romName,
   };
   values["<appData>"] =
@@ -105,7 +106,7 @@ export const resolveRecompilationPath = (
 
   return path.normalize(
     template.replace(
-      /<base>|<home>|<winLocalAppData>|<winAppData>|<xdgData>|<appData>|\{romName\}/g,
+      /<base>|<home>|<winLocalAppData>|<winAppData>|<xdgData>|<xdgConfig>|<appData>|\{romName\}/g,
       (token) => values[token]
     )
   );

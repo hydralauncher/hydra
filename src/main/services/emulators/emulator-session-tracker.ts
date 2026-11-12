@@ -1,5 +1,4 @@
-import { execFile, type ChildProcess } from "node:child_process";
-import path from "node:path";
+import type { ChildProcess } from "node:child_process";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { EMULATOR_SYSTEMS } from "@shared";
@@ -11,6 +10,7 @@ import {
   setEmulatorGameRunning,
 } from "../game-running-state";
 import { logger } from "../logger";
+import { killWindowsProcessTree } from "@main/helpers/kill-windows-process-tree";
 import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import {
   startEmulatorSouvenirWatcher,
@@ -89,23 +89,6 @@ const listShadps4Processes = async () => {
 
 export const listShadps4ProcessIds = async (): Promise<number[]> =>
   (await listShadps4Processes()).map(({ pid }) => pid);
-
-const killWindowsProcessTree = (pid: number): void => {
-  const taskkillPath = path.win32.join(
-    process.env.SystemRoot || String.raw`C:\Windows`,
-    "System32",
-    "taskkill.exe"
-  );
-
-  execFile(
-    taskkillPath,
-    ["/PID", String(pid), "/T", "/F"],
-    { shell: false, windowsHide: true },
-    (error) => {
-      if (error) logger.warn("Failed to close shadPS4 process tree", error);
-    }
-  );
-};
 
 const isProcessAlive = (pid: number): boolean => {
   try {
@@ -319,7 +302,7 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   if (session.relaunchWatch && session.corePid) {
     killRelaunchedProcess(session.corePid);
   } else if (session.system === "ps4" && pid && process.platform === "win32") {
-    killWindowsProcessTree(pid);
+    killWindowsProcessTree(pid, "shadPS4");
     return true;
   }
 

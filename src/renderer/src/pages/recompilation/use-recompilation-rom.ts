@@ -27,6 +27,7 @@ export function useRecompilationRom(
   const [state, setState] = useState<RecompilationRomState | null>(null);
   const lastPacket = useAppSelector((store) => store.download.lastPacket);
   const library = useAppSelector((store) => store.library.value);
+  const pkgJob = useAppSelector((store) => store.ps4PkgJob.job);
 
   const gameId = `launchbox:${objectId}`;
   const download = library.find((game) => game.id === gameId)?.download;
@@ -34,7 +35,11 @@ export function useRecompilationRom(
     lastPacket?.gameId === gameId ? lastPacket.progress : null;
   let downloadPhase: RecompilationRom["downloadPhase"] = null;
   let downloadProgress: number | null = null;
-  if (download?.extracting === true) {
+  // A PKG for this game extracts like a downloaded ROM does.
+  if (pkgJob?.shop === "launchbox" && pkgJob.objectId === objectId) {
+    downloadPhase = "extracting";
+    downloadProgress = pkgJob.progress;
+  } else if (download?.extracting === true) {
     downloadPhase = "extracting";
     downloadProgress = download.extractionProgress ?? 0;
   } else if (packetProgress !== null || download?.status === "active") {

@@ -1,32 +1,40 @@
 import { FileDirectoryIcon } from "@primer/octicons-react";
-import type { EmulatorConfig, Rpcs3ConfigRootStatus } from "@types";
+import type { EmulatorConfig, EmulatorSaveLocationStatus } from "@types";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { getRpcs3ConfigRootChoices } from "@renderer/pages/settings/emulation/rpcs3-config-root-choices";
+import type { EmulatorSaveLocation } from "@renderer/pages/settings/emulation/emulator-save-location";
+import { getEmulatorSaveLocationChoices } from "@renderer/pages/settings/emulation/emulator-save-location-choices";
 import { Button, VerticalFocusGroup } from "../../../components";
 import { useBigPictureToast } from "../../../hooks";
-import { EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID } from "../settings-navigation";
+import { EMULATION_DETAIL_SAVE_LOCATION_BROWSE_BUTTON_ID } from "../settings-navigation";
 import { SETTINGS_TOAST_OPTIONS } from "./shared";
 
 interface Props {
   config: EmulatorConfig;
+  location: EmulatorSaveLocation;
   onChange: (config: EmulatorConfig) => void;
 }
 
-export function Rpcs3ConfigRootSection({ config, onChange }: Readonly<Props>) {
+export function EmulatorSaveLocationSection({
+  config,
+  location,
+  onChange,
+}: Readonly<Props>) {
   const { t } = useTranslation("settings");
   const { showErrorToast } = useBigPictureToast();
   const [status, setStatus] = useState<
-    Rpcs3ConfigRootStatus | "checking" | "error"
+    EmulatorSaveLocationStatus | "checking" | "error"
   >("checking");
   const [busy, setBusy] = useState(false);
+  const key = (suffix: string) => `${location.keyPrefix}_${suffix}`;
+  const selectedDir = location.selectedDir(config);
 
   useEffect(() => {
     let cancelled = false;
     setStatus("checking");
-    void window.electron
-      .getRpcs3ConfigRootStatus()
+    void location
+      .getStatus()
       .then((next) => {
         if (!cancelled) setStatus(next);
       })
@@ -36,24 +44,17 @@ export function Rpcs3ConfigRootSection({ config, onChange }: Readonly<Props>) {
     return () => {
       cancelled = true;
     };
-  }, [config.executablePath, config.rpcs3ConfigRoot]);
+  }, [config.executablePath, selectedDir, location]);
 
   const select = async (root: string) => {
     setBusy(true);
     try {
-      const next = await window.electron.setRpcs3ConfigRoot(root);
+      const next = await location.select(root);
       onChange(next);
-      setStatus(await window.electron.getRpcs3ConfigRootStatus());
+      setStatus(await location.getStatus());
     } catch {
-      showErrorToast(
-        t("rpcs3_config_invalid_selection"),
-        SETTINGS_TOAST_OPTIONS
-      );
-      setStatus(
-        await window.electron
-          .getRpcs3ConfigRootStatus()
-          .catch(() => "error" as const)
-      );
+      showErrorToast(t(key("invalid_selection")), SETTINGS_TOAST_OPTIONS);
+      setStatus(await location.getStatus().catch(() => "error" as const));
     } finally {
       setBusy(false);
     }
@@ -71,12 +72,12 @@ export function Rpcs3ConfigRootSection({ config, onChange }: Readonly<Props>) {
       if (!result.canceled && result.filePaths[0])
         await select(result.filePaths[0]);
     } catch {
-      showErrorToast(t("rpcs3_config_error"), SETTINGS_TOAST_OPTIONS);
+      showErrorToast(t(key("error")), SETTINGS_TOAST_OPTIONS);
     }
   };
 
   const rootStatus = typeof status === "object" ? status : null;
-  const { selectedRoot, roots } = getRpcs3ConfigRootChoices(rootStatus);
+  const { selectedRoot, roots } = getEmulatorSaveLocationChoices(rootStatus);
   const controlsDisabled = busy || !config.executablePath;
   const statusKey = config.executablePath
     ? typeof status === "object"
@@ -89,23 +90,23 @@ export function Rpcs3ConfigRootSection({ config, onChange }: Readonly<Props>) {
       <header className="emulator-detail__section-header">
         <div className="emulator-detail__section-text">
           <div className="emulator-detail__section-title-row">
-            <h3>{t("rpcs3_config_title")}</h3>
+            <h3>{t(key("title"))}</h3>
           </div>
-          <p>{t(`rpcs3_config_${statusKey}`)}</p>
+          <p>{t(key(statusKey))}</p>
         </div>
       </header>
 
       <VerticalFocusGroup
-        regionId="emulation-detail-rpcs3-config-roots"
-        className="emulator-detail__rpcs3-roots"
+        regionId="emulation-detail-save-location-roots"
+        className="emulator-detail__save-location-roots"
       >
         {roots.map((root, index) => (
           <div className="emulator-detail__row" key={root}>
-            <span className="emulator-detail__rpcs3-root-path" title={root}>
+            <span className="emulator-detail__save-location-path" title={root}>
               {root}
             </span>
             <Button
-              focusId={`emulation-detail-rpcs3-root-${index}`}
+              focusId={`emulation-detail-save-location-${index}`}
               variant="secondary"
               disabled={
                 controlsDisabled ||
@@ -113,22 +114,20 @@ export function Rpcs3ConfigRootSection({ config, onChange }: Readonly<Props>) {
               }
               onClick={() => void select(root)}
             >
-              {t(
-                root === selectedRoot && rootStatus?.status === "ready"
-                  ? "rpcs3_config_ready"
-                  : "select"
-              )}
+              {root === selectedRoot && rootStatus?.status === "ready"
+                ? t(key("ready"))
+                : t("select")}
             </Button>
           </div>
         ))}
         <Button
-          focusId={EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID}
+          focusId={EMULATION_DETAIL_SAVE_LOCATION_BROWSE_BUTTON_ID}
           variant="secondary"
           icon={<FileDirectoryIcon size={16} />}
           disabled={controlsDisabled}
           onClick={() => void browse()}
         >
-          {t("rpcs3_config_browse")}
+          {t(key("browse"))}
         </Button>
       </VerticalFocusGroup>
     </section>

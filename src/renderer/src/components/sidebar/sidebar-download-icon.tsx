@@ -75,9 +75,25 @@ export function SidebarDownloadIcon() {
   const { t } = useTranslation("sidebar");
 
   const lastPacket = useAppSelector((state) => state.download.lastPacket);
-  const extraction = useAppSelector((state) => state.download.extraction);
+  const downloadExtraction = useAppSelector(
+    (state) => state.download.extraction
+  );
+  const ps4PkgJob = useAppSelector((state) => state.ps4PkgJob.job);
   const downloads = useAppSelector((state) => state.library.downloadLibrary);
   const { layoutState } = useDownloadLayout();
+
+  // A PS4 PKG being extracted or applied shows like a download extracting.
+  const extraction = useMemo(
+    () =>
+      downloadExtraction ??
+      (ps4PkgJob
+        ? {
+            visibleId: `${ps4PkgJob.shop}:${ps4PkgJob.objectId}`,
+            progress: ps4PkgJob.progress,
+          }
+        : null),
+    [downloadExtraction, ps4PkgJob]
+  );
 
   const liveState = useMemo(
     () =>

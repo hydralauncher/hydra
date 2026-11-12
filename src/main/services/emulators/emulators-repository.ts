@@ -3,6 +3,7 @@ import { EMULATOR_SYSTEMS } from "@shared";
 import type { EmulatorConfig, EmulatorConfigMap, EmulatorSystem } from "@types";
 import { KNOWN_BINARIES, systemsForBinary } from "./known-binaries";
 import { clearRpcs3RootOnExecutableChange } from "./rpcs3-config-binding";
+import { clearShadps4DataDirOnExecutableChange } from "./shadps4-data-dir-binding";
 
 const emptyConfig = (system: EmulatorSystem): EmulatorConfig => ({
   system,
@@ -51,10 +52,13 @@ export const setEmulatorConfig = async (
   config: EmulatorConfig
 ): Promise<EmulatorConfig> => {
   const stored =
-    config.system === "ps3"
+    config.system === "ps3" || config.system === "ps4"
       ? await emulatorsSublevel.get(config.system)
       : undefined;
-  const next = clearRpcs3RootOnExecutableChange(stored, config);
+  const next = clearShadps4DataDirOnExecutableChange(
+    stored,
+    clearRpcs3RootOnExecutableChange(stored, config)
+  );
   await emulatorsSublevel.put(config.system, next);
 
   for (const sibling of systemsForBinary(config.binary)) {
