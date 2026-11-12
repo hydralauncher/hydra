@@ -32,6 +32,7 @@ import {
 } from "./reconcile-remote-artwork-selection";
 import type { CustomArtworkUrls } from "./reconcile-remote-artwork-selection";
 import {
+  keepNewerLocalCollectionOrders,
   mergeImportedProfileGame,
   type ImportedProfileGame,
 } from "./merge-imported-profile-game";
@@ -385,23 +386,6 @@ const buildMergedGame = (
     : createLocalGame(remoteGame, collectionIds, remoteAddedToLibraryAt);
 
   return { ...mergedGame, collectionPositions };
-};
-
-const keepNewerLocalCollectionOrders = (
-  merged: Game,
-  localGame: Game,
-  collectionOrderRevision: number
-) => {
-  const positions = { ...merged.collectionPositions };
-  for (const collectionId of getCollectionIds(merged)) {
-    if (getCollectionOrderRevision(collectionId) <= collectionOrderRevision)
-      continue;
-
-    const localPosition = localGame.collectionPositions?.[collectionId];
-    if (localPosition === undefined) delete positions[collectionId];
-    else positions[collectionId] = localPosition;
-  }
-  return positions;
 };
 
 const mergeRemoteGamesChunk = async (
@@ -808,6 +792,7 @@ export const mergeImportedProfileGames = async (
   objectIds: string[]
 ) => {
   const uniqueObjectIds = Array.from(new Set(objectIds));
+  const collectionOrderRevision = getCollectionOrderRevision();
 
   for (const objectIdChunk of chunk(
     uniqueObjectIds,
@@ -838,7 +823,7 @@ export const mergeImportedProfileGames = async (
       if (!localGame) continue;
       await gamesSublevel.put(
         gameKey,
-        mergeImportedProfileGame(localGame, remoteGame)
+        mergeImportedProfileGame(localGame, remoteGame, collectionOrderRevision)
       );
     }
   }

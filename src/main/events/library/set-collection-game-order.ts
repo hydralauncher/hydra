@@ -1,4 +1,5 @@
 import {
+  LibraryWriteQueue,
   libraryWriteQueue,
   markCollectionOrderChanged,
 } from "@main/services/library-sync/library-write-queue";
@@ -17,7 +18,7 @@ type AuthContext = ReturnType<typeof HydraApi.getAuthContext>;
 
 const ORDER_SAVE_TIMEOUT_MS = 30_000;
 
-let pendingOrderSave: Promise<unknown> = Promise.resolve();
+const orderSaveQueue = new LibraryWriteQueue();
 
 const getOrderKey = (game: CollectionOrderGame) =>
   `${game.shop}:${game.objectId}`;
@@ -125,13 +126,11 @@ const setCollectionGameOrder = async (
   games: CollectionOrderGame[]
 ) => {
   const authContext = HydraApi.getAuthContext();
-  const save = pendingOrderSave.then(() =>
-    saveCollectionGameOrder(collectionId, games, authContext)
-  );
-  pendingOrderSave = save.catch(() => undefined);
 
   try {
-    await save;
+    await orderSaveQueue.run(() =>
+      saveCollectionGameOrder(collectionId, games, authContext)
+    );
   } catch (error) {
     logger.error("Failed to set collection game order", error);
     throw new Error(`Failed to set collection game order: ${error}`);
