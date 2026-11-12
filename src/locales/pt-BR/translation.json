@@ -1056,6 +1056,7 @@
     "download_error_network_unreachable": "Não foi possível conectar ao servidor de download. Verifique sua conexão com a internet e tente novamente.",
     "download_error_network_certificate_rejected": "Não foi possível verificar a conexão com o servidor de download. Um antivírus ou proxy pode estar inspecionando o tráfego HTTPS.",
     "transferring": "Transferindo...",
+    "transferring_progress": "Transferindo {{progress}}%",
     "view_progress": "Ver progresso",
     "game_size": "Tamanho do jogo",
     "free_of": "livre de",

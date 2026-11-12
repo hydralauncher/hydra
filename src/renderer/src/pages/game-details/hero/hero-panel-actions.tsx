@@ -600,7 +600,7 @@ export function HeroPanelActions() {
             setShowGameOptionsModal(true);
           }}
         >
-          Transferring {percent}%
+          {t("transferring_progress", { progress: percent })}
         </Button>
       );
     }
