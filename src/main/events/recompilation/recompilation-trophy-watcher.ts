@@ -67,6 +67,19 @@ const stripLogBeforeMark = async (file: string, mark: LogResetMark) => {
   }
 };
 
+/** Trophy ids the log had before the reset mark, to ignore them later. */
+const logTrophyIdsBeforeMark = async (
+  file: string,
+  mark: LogResetMark | null
+) => {
+  if (!mark) return [];
+  const data = await fs.readFile(file).catch(() => null);
+  if (!data) return [];
+  return parseTrophyLogLines(
+    data.subarray(0, mark.offset).toString("utf8")
+  ).map(String);
+};
+
 const createLogReader = (history: string[]) => {
   const seen = new Map<string, number>();
   let identity: number | null = null;
@@ -298,24 +311,34 @@ export const clearPendingTrophyReset = async (slug: string) => {
 };
 
 /** Runs a clean-up saved when the Hydra quit with the port open. */
-export const applyPendingTrophyReset = async (slug: string) => {
-  const file = await pendingResetPath(slug);
-  const contents = await readText(file);
-  if (contents === null) return;
-  const files = await resolveRecompilationTrophyFiles(slug);
+const readPendingTrophyReset = async (
+  slug: string
+): Promise<PendingTrophyReset | null> => {
+  const contents = await readText(await pendingResetPath(slug));
+  if (contents === null) return null;
   try {
     const pending = JSON.parse(contents) as PendingTrophyReset;
-    if (files) {
-      await removeResetTrophies(files, pending.ids ?? []);
-      if (pending.log) await stripLogBeforeMark(files.file, pending.log);
-    }
-  } catch (error) {
-    achievementsLogger.error(
-      `Failed to apply the saved ${slug} trophy reset`,
-      error
-    );
+    return { ids: pending.ids ?? [], log: pending.log ?? null };
+  } catch {
+    await clearPendingTrophyReset(slug);
+    return null;
   }
-  await fs.rm(file, { force: true });
+};
+
+/**
+ * Runs a clean-up saved when the Hydra quit with the port open. If it fails
+ * (a file still locked), it stays saved: the next session ignores those
+ * trophies and tries again when the port closes.
+ */
+export const applyPendingTrophyReset = async (slug: string) => {
+  const pending = await readPendingTrophyReset(slug);
+  if (!pending) return;
+  const files = await resolveRecompilationTrophyFiles(slug);
+  if (files) {
+    await removeResetTrophies(files, pending.ids);
+    if (pending.log) await stripLogBeforeMark(files.file, pending.log);
+  }
+  await clearPendingTrophyReset(slug);
 };
 
 export const startRecompilationTrophyWatcher = (
@@ -358,8 +381,16 @@ export const startRecompilationTrophyWatcher = (
   });
 
   const resetIds = new Set<string>();
+  // A clean-up that could not run before this launch: its trophies are not
+  // imported, and the clean-up is tried again when the port closes.
+  void readPendingTrophyReset(ref.slug).then((pending) => {
+    if (!pending) return;
+    for (const id of pending.ids) resetIds.add(id);
+    watcher.ignore(pending.ids);
+  });
 
   return {
+    ignore: watcher.ignore,
     forget: async () => {
       const ids = await watcher.forget();
       for (const id of ids) resetIds.add(id);
@@ -373,13 +404,17 @@ export const startRecompilationTrophyWatcher = (
       if (resetIds.size === 0 && !logMark) return;
 
       const work = portClosed
-        ? removeResetTrophies(resolved, [...resetIds]).then(() =>
-            logMark ? stripLogBeforeMark(resolved.file, logMark) : undefined
-          )
-        : savePendingTrophyReset(ref.slug, {
-            ids: [...resetIds],
-            log: logMark,
-          });
+        ? removeResetTrophies(resolved, [...resetIds])
+            .then(() =>
+              logMark ? stripLogBeforeMark(resolved.file, logMark) : undefined
+            )
+            .then(() => clearPendingTrophyReset(ref.slug))
+        : logTrophyIdsBeforeMark(resolved.file, logMark).then((logIds) =>
+            savePendingTrophyReset(ref.slug, {
+              ids: [...new Set([...resetIds, ...logIds])],
+              log: logMark,
+            })
+          );
       await work.catch((error) =>
         achievementsLogger.error(
           `Failed to clean the ${ref.slug} trophies after a reset`,

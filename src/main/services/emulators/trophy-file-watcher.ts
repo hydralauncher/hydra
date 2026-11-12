@@ -21,6 +21,8 @@ export interface TrophyFileWatcher {
    * Resolves with the ignored trophy names.
    */
   forget: () => Promise<string[]>;
+  /** Trophies to leave out of every read, such as a reset not cleaned yet. */
+  ignore: (names: string[]) => void;
 }
 
 export interface StartTrophyFileWatcherOptions {
@@ -174,6 +176,12 @@ export const startTrophyFileWatcher = ({
   };
 
   return {
+    ignore: (names) => {
+      ignored = new Set([
+        ...ignored,
+        ...names.map((name) => name.toUpperCase()),
+      ]);
+    },
     forget: () => {
       generation += 1;
       return occupy(forgetNow(inFlightRead));
