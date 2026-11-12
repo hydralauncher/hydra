@@ -468,6 +468,18 @@ $disc-menu-transition-duration: 0.15s;
     display: flex;
     gap: globals.$spacing-unit;
     flex-wrap: wrap;
+
+    // Tighter than the default so the three actions fit in one line.
+    button {
+      padding-left: calc(globals.$spacing-unit * 1.5);
+      padding-right: calc(globals.$spacing-unit * 1.5);
+      white-space: nowrap;
+    }
+  }
+
+  // Kept apart from the everyday actions.
+  &__remove {
+    margin-left: auto;
   }
 }
 

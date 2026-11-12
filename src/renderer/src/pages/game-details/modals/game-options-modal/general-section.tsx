@@ -458,7 +458,8 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
             {selectedDisc && (
               <Button
                 type="button"
-                theme="outline"
+                theme="danger"
+                className="disc-field__remove"
                 onClick={() => void handleRemoveDisc(selectedDisc.path)}
               >
                 <X size={14} />
