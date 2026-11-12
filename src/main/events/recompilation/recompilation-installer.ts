@@ -587,6 +587,10 @@ const launchRecompilation = async (
   ) {
     return { ok: false, reason: "already_running" };
   }
+  const { isPs4PkgJobRunningFor } = await import("../emulators/ps4-pkg-job");
+  if (isPs4PkgJobRunningFor(ref.objectId)) {
+    return { ok: false, reason: "pkg_job_running" };
+  }
 
   let prepared = false;
   const launch = await prepareRecompilationRom(

@@ -94,7 +94,7 @@ const CHART_BACKGROUND_COLOR = "#1a1a1a";
 const COLOR_DISTANCE_THRESHOLD = 28;
 const FALLBACK_CHART_COLOR = "#fff";
 
-function pickChartColor(dominant?: string): string {
+export function pickChartColor(dominant?: string): string {
   if (!dominant || typeof dominant !== "string" || !dominant.startsWith("#")) {
     return FALLBACK_CHART_COLOR;
   }
@@ -278,7 +278,7 @@ function SpeedChart({
   );
 }
 
-interface HeroDownloadViewProps {
+export interface HeroDownloadViewProps {
   game: LibraryGame;
   isGameDownloading: boolean;
   isGameExtracting?: boolean;
@@ -294,6 +294,9 @@ interface HeroDownloadViewProps {
   pauseDownload: (shop: GameShop, objectId: string) => void;
   resumeDownload: (shop: GameShop, objectId: string) => void;
   onCancelClick: (shop: GameShop, objectId: string) => void;
+  /** Shown while extracting, for extractions that can be cancelled safely. */
+  onExtractionCancel?: () => void;
+  isExtractionCancelling?: boolean;
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
@@ -353,7 +356,7 @@ function HeroDownloadTime({
   );
 }
 
-function HeroDownloadView({
+export function HeroDownloadView({
   game,
   isGameDownloading,
   isGameExtracting = false,
@@ -369,6 +372,8 @@ function HeroDownloadView({
   pauseDownload,
   resumeDownload,
   onCancelClick,
+  onExtractionCancel,
+  isExtractionCancelling = false,
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
@@ -483,6 +488,19 @@ function HeroDownloadView({
                 />
               </div>
             </div>
+            {isGameExtracting && onExtractionCancel && (
+              <div className="download-group__hero-buttons">
+                <Button
+                  theme="outline"
+                  onClick={onExtractionCancel}
+                  disabled={isExtractionCancelling}
+                  className="download-group__glass-btn"
+                >
+                  <XCircleIcon size={14} />
+                  {t("cancel")}
+                </Button>
+              </div>
+            )}
             {!isGameExtracting && (
               <div className="download-group__hero-buttons">
                 {isGameDownloading ? (

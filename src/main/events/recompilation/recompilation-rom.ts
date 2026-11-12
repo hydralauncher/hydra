@@ -19,6 +19,13 @@ import { t } from "i18next";
 import { logger, SevenZip, WindowManager } from "@main/services";
 import { parseParamSfoValue } from "@main/services/emulators/param-sfo";
 import {
+  assertPs4UpdateFits,
+  installPs4Pkg,
+  isPs4PkgPath,
+  Ps4PkgError,
+  readPs4PkgInfo,
+} from "@main/services/ps4-pkg";
+import {
   getRecompilationBaseDirectory,
   getRecompilationInstallDirectory,
   parseRecompilationRef,
@@ -26,6 +33,11 @@ import {
   resolveRecompilationPath,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
+import {
+  formatPs4Version,
+  isPs4PkgJobRunning,
+  runPs4PkgJob,
+} from "../emulators/ps4-pkg-job";
 import { toZ64 } from "./n64-rom";
 import {
   isPreparedForVersion,
@@ -399,6 +411,120 @@ const toChosenPath = (rawPath: unknown, meta: RecompilationRomMeta) =>
     ? toGameFolder(rawPath)
     : rawPath;
 
+const getChosenGameFolder = async (
+  slug: string,
+  meta: RecompilationRomMeta
+) => {
+  const choice = await readRomChoice(
+    await getRecompilationInstallDirectory(slug)
+  );
+  return choice?.source === "file" &&
+    choice.path &&
+    (await isGameFolder(choice.path, meta))
+    ? choice.path
+    : null;
+};
+
+const checkChosenPkg = async (
+  slug: string,
+  pkgPath: string,
+  meta: RecompilationRomMeta
+): Promise<RecompilationActionResult | null> => {
+  if (!fs.existsSync(pkgPath)) return { ok: false, reason: "rom_not_found" };
+
+  const info = await readPs4PkgInfo(pkgPath).catch(() => null);
+  if (
+    !info ||
+    info.isDeltaPatch ||
+    (info.kind !== "game" && info.kind !== "patch")
+  ) {
+    return { ok: false, reason: "rom_wrong_format" };
+  }
+  if (meta.titleIds?.length && !meta.titleIds.includes(info.titleId)) {
+    return { ok: false, reason: "rom_other_game" };
+  }
+  if (info.kind === "patch") {
+    const gameFolder = await getChosenGameFolder(slug, meta);
+    if (!gameFolder) return { ok: false, reason: "rom_update_needs_game" };
+    try {
+      await assertPs4UpdateFits(info, gameFolder);
+    } catch (error) {
+      return { ok: false, reason: toPkgFailureReason(error) };
+    }
+  }
+  return null;
+};
+
+const PKG_FAILURE_REASONS: Record<string, string> = {
+  no_space: "rom_pkg_no_space",
+  cancelled: "rom_pkg_cancelled",
+  missing_base_game: "rom_update_needs_game",
+  other_game: "rom_other_game",
+  not_newer: "rom_pkg_not_newer",
+  keys_unavailable: "rom_pkg_keys_unavailable",
+};
+
+function toPkgFailureReason(error: unknown) {
+  const code = error instanceof Ps4PkgError ? error.code : "failed";
+  return PKG_FAILURE_REASONS[code] ?? "rom_pkg_failed";
+}
+
+/**
+ * Extracts a PS4 game or update PKG picked in the install modal. It runs as
+ * the shared PKG job, like any other extraction: it shows in Downloads, the
+ * modal can be closed, and the ROM is chosen for the port when it ends.
+ */
+export const extractRecompilationRomPkg = async (
+  rawRef: unknown,
+  rawPath: unknown
+): Promise<RecompilationActionResult> => {
+  const ref = parseRecompilationRef(rawRef);
+  const meta = ref ? getRecompilationRomMeta(ref.slug) : null;
+  if (!ref || !meta || !isFolderRom(meta)) {
+    return { ok: false, reason: "invalid_port" };
+  }
+  if (typeof rawPath !== "string" || !isPs4PkgPath(rawPath)) {
+    return { ok: false, reason: "rom_wrong_format" };
+  }
+  if (isPs4PkgJobRunning()) return { ok: false, reason: "rom_pkg_busy" };
+
+  const problem = await checkChosenPkg(ref.slug, rawPath, meta);
+  if (problem) return problem;
+
+  const info = await readPs4PkgInfo(rawPath);
+  const { isPs4GameRunning } = await import("../emulators/ps4-pkg-actions");
+  if (
+    info.kind === "patch" &&
+    (await isPs4GameRunning("launchbox", ref.objectId))
+  ) {
+    return { ok: false, reason: "rom_game_running" };
+  }
+  const gameDirectory = await getChosenGameFolder(ref.slug, meta);
+  // Checked again right before starting: another job may have begun while
+  // the PKG was being read.
+  if (isPs4PkgJobRunning()) return { ok: false, reason: "rom_pkg_busy" };
+  void runPs4PkgJob(
+    "launchbox",
+    ref.objectId,
+    info.kind === "patch" ? "update" : "extract",
+    {},
+    async (signal, onProgress) => {
+      const installed = await installPs4Pkg({
+        pkgPath: rawPath,
+        gameDirectory,
+        onProgress,
+        signal,
+      });
+      await setRecompilationRom(ref, {
+        source: "file",
+        path: installed.gameDirectory,
+      });
+      return { version: formatPs4Version(info.appVersion) };
+    }
+  );
+  return { ok: true };
+};
+
 /** Checks a file picked in the install modal without saving it. */
 export const checkRecompilationRom = async (
   rawRef: unknown,
@@ -406,7 +532,14 @@ export const checkRecompilationRom = async (
 ): Promise<RecompilationActionResult> => {
   const ref = parseRecompilationRef(rawRef);
   const meta = ref ? getRecompilationRomMeta(ref.slug) : null;
-  if (!meta) return { ok: false, reason: "invalid_port" };
+  if (!ref || !meta) return { ok: false, reason: "invalid_port" };
+  if (
+    typeof rawPath === "string" &&
+    isFolderRom(meta) &&
+    isPs4PkgPath(rawPath)
+  ) {
+    return (await checkChosenPkg(ref.slug, rawPath, meta)) ?? { ok: true };
+  }
   const problem = await checkChosenRom(
     "file",
     toChosenPath(rawPath, meta),
@@ -825,4 +958,34 @@ export const markRecompilationRomLaunched = async (
   if (choice && !choice.launched) {
     await writeRomChoice(installDirectory, { ...choice, launched: true });
   }
+};
+
+/** The PS4 game folder a folder port uses, or null when it has none. */
+export const getRecompilationGameFolder = async (
+  objectId: string,
+  slug: string
+) => {
+  const meta = getRecompilationRomMeta(slug);
+  if (!meta || !isFolderRom(meta)) return null;
+  const state = await getRecompilationRomState({ objectId, slug });
+  return state?.romPath ? toGameFolder(state.romPath) : null;
+};
+
+/**
+ * Game folders of the PS4 ports installed for this game. Each port records
+ * its game in the install marker, so this works when the game is not in the
+ * library.
+ */
+export const listRecompilationGameFolders = async (objectId: string) => {
+  const folders: string[] = [];
+  for (const slug of Object.keys(ROM_META)) {
+    const meta = getRecompilationRomMeta(slug);
+    if (!meta || !isFolderRom(meta)) continue;
+    const installDirectory = await getRecompilationInstallDirectory(slug);
+    const marker = await readInstallMarker(installDirectory).catch(() => null);
+    if (marker?.objectId !== objectId) continue;
+    const folder = await getRecompilationGameFolder(objectId, slug);
+    if (folder) folders.push(folder);
+  }
+  return folders;
 };
