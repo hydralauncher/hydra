@@ -44,6 +44,12 @@ import {
   platformToSystem,
 } from "@renderer/helpers";
 
+// Labels that don't fit their button end in "…"; the button's title shows
+// the full text on hover.
+function ButtonLabel({ children }: Readonly<{ children: ReactNode }>) {
+  return <span className="game-options-modal__button-label">{children}</span>;
+}
+
 interface ClassicsDiscSectionProps {
   game: LibraryGame;
 }
@@ -447,9 +453,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 type="button"
                 theme="outline"
                 onClick={handleOpenDiscLocation}
+                title={t("open_disc_location")}
               >
                 <FolderOpen size={14} />
-                {t("open_disc_location")}
+                <ButtonLabel>{t("open_disc_location")}</ButtonLabel>
               </Button>
             )}
             {hasPs4GameFolder && (
@@ -458,9 +465,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 theme="outline"
                 onClick={() => void ps4Update.pick()}
                 disabled={isPkgBusy}
+                title={t("apply_ps4_update")}
               >
                 <RefreshCw size={14} />
-                {t("apply_ps4_update")}
+                <ButtonLabel>{t("apply_ps4_update")}</ButtonLabel>
               </Button>
             )}
             {selectedDisc && (
@@ -468,9 +476,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 type="button"
                 theme="danger"
                 onClick={() => void handleRemoveDisc(selectedDisc.path)}
+                title={t("remove_selected_disc")}
               >
                 <X size={14} />
-                {t("remove_selected_disc")}
+                <ButtonLabel>{t("remove_selected_disc")}</ButtonLabel>
               </Button>
             )}
           </div>
@@ -698,9 +707,10 @@ export function GeneralSettingsSection({
           onClick={onDeleteSteamShortcut}
           theme="danger"
           disabled={creatingSteamShortcut}
+          title={t("delete_steam_shortcut")}
         >
           <SteamLogo />
-          {t("delete_steam_shortcut")}
+          <ButtonLabel>{t("delete_steam_shortcut")}</ButtonLabel>
         </Button>
       );
     } else if (hasShortcutLaunchTarget) {
@@ -709,9 +719,10 @@ export function GeneralSettingsSection({
           onClick={onCreateSteamShortcut}
           theme="outline"
           disabled={creatingSteamShortcut}
+          title={t("steam_shortcut_short")}
         >
           <SteamLogo />
-          {t("steam_shortcut_short")}
+          <ButtonLabel>{t("steam_shortcut_short")}</ButtonLabel>
         </Button>
       );
     }
@@ -1141,8 +1152,9 @@ export function GeneralSettingsSection({
                 <Button
                   onClick={() => onCreateShortcut("desktop")}
                   theme="outline"
+                  title={t("create_shortcut")}
                 >
-                  {t("create_shortcut")}
+                  <ButtonLabel>{t("create_shortcut")}</ButtonLabel>
                 </Button>
               )}
               {steamShortcutButton}
@@ -1150,8 +1162,9 @@ export function GeneralSettingsSection({
                 <Button
                   onClick={() => onCreateShortcut("start_menu")}
                   theme="outline"
+                  title={t("create_start_menu_shortcut")}
                 >
-                  {t("create_start_menu_shortcut")}
+                  <ButtonLabel>{t("create_start_menu_shortcut")}</ButtonLabel>
                 </Button>
               )}
             </div>
