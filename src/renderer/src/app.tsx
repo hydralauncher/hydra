@@ -113,6 +113,9 @@ export function App() {
   );
 
   const toast = useAppSelector((state) => state.toast);
+  const userPreferences = useAppSelector(
+    (state) => state.userPreferences.value
+  );
 
   const [version, setVersion] = useState("");
 
@@ -822,7 +825,7 @@ export function App() {
 
       <ScanGamesProvider>
         <main>
-          <Sidebar />
+          {userPreferences?.hideSidebar !== true && <Sidebar />}
 
           <article className="container">
             <AutoUpdateSubHeader />
