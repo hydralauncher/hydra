@@ -100,15 +100,18 @@ export const discCloudSaveWrongGameErrorCode = (
   provider: DiscCloudSaveEmulatorProvider
 ) => `cloud_save_${provider}_save_wrong_game`;
 
-export const hasCloudSaveDisc = (game: { discs?: Array<{ path: string }> }) =>
-  game.discs?.some((disc) => Boolean(disc.path.trim())) ?? false;
+/** A port's disc is the port's own game, so the emulator has no disc there. */
+export const hasCloudSaveDisc = (game: { discs?: RomDisc[] }) =>
+  game.discs?.some(
+    (disc) => Boolean(disc.path.trim()) && !disc.recompilationSlug
+  ) ?? false;
 
 export const hasCloudSaveExecutableSelection = (game: {
   shop: GameShop;
   platform?: string | null;
   executablePath?: string | null;
   selectedDiscPath?: string | null;
-  discs?: Array<{ path: string }>;
+  discs?: RomDisc[];
 }) => {
   const provider = getCloudSaveEmulatorProvider(game.shop, game.platform);
   if (provider === "retroarch") return hasSelectedRetroArchRom(game);

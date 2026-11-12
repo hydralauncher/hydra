@@ -45,6 +45,7 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import { Ps4PkgJobHost } from "./components/ps4-pkg-job/ps4-pkg-job-host";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 import { LevelUpModal } from "./components/gamification";
@@ -554,6 +555,16 @@ export function App() {
           return;
         }
 
+        if (failure?.reason === "pkg-keys-unavailable") {
+          showErrorToast(
+            t("extraction_failed_title", { ns: "downloads" }),
+            t("extraction_pkg_keys_unavailable_description", {
+              ns: "downloads",
+            })
+          );
+          return;
+        }
+
         if (failure?.reason === "file-not-found") {
           showErrorToast(
             t("extraction_file_not_found_title", { ns: "downloads" }),
@@ -803,6 +814,7 @@ export function App() {
       />
 
       <ClassicsScanModal />
+      <Ps4PkgJobHost />
       <RetroArchScanModal />
 
       <ScanGamesProvider>

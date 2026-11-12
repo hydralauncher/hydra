@@ -1,8 +1,8 @@
 {
   "language_name": "English",
   "app": {
-    "ps4_pkg_not_supported_one": "Found {{count, number}} PKG file. PKG isn't supported, so it was skipped. PS4 games need a folder dump.",
-    "ps4_pkg_not_supported_other": "Found {{count, number}} PKG files. PKG isn't supported, so they were skipped. PS4 games need a folder dump.",
+    "ps4_pkg_not_supported_one": "{{count, number}} update or DLC PKG file found. It is not added to the library, so it was skipped. Use \"Apply update\" on the game.",
+    "ps4_pkg_not_supported_other": "{{count, number}} update or DLC PKG files found. They are not added to the library, so they were skipped. Use \"Apply update\" on the game.",
     "successfully_signed_in": "Successfully signed in",
     "error_boundary_title": "Something went wrong",
     "error_boundary_description": "The app ran into an unexpected error. You can reload to keep using Hydra.",
@@ -380,6 +380,20 @@
     "game_executable": "Game executable",
     "bat_tracking_warning": "We can't track the playtime if .bat selected. Please add .exe of the game so we can track it",
     "open_folder": "Open folder",
+    "apply_ps4_update": "Apply update",
+    "ps4_update_versions": "Version {{from}} → {{to}}",
+    "ps4_update_done": "Update {{version}} applied",
+    "ps4_update_not_update": "This PKG isn't an update.",
+    "ps4_update_no_game_folder": "We couldn't find the game folder.",
+    "ps4_update_other_game": "This update is for another game.",
+    "ps4_update_not_newer": "The game is already on this version or a newer one.",
+    "ps4_update_no_space": "There isn't enough space to apply this update.",
+    "ps4_pkg_unsupported": "This PKG isn't a game or an update.",
+    "ps4_pkg_busy": "Wait for the current PKG to finish.",
+    "ps4_pkg_failed": "Couldn't use this PKG. Try again.",
+    "ps4_pkg_extract_title": "Extract the game",
+    "ps4_pkg_extract_description": "The game needs to be extracted before you play. This can take a few minutes.",
+    "ps4_pkg_extract_confirm": "Extract",
     "open_save_folder": "Open save folder",
     "searching_save_folder": "Searching save folder...",
     "no_save_folder_found": "No save folder found",
@@ -1154,7 +1168,9 @@
     "epic_not_enough_space": "Not enough disk space for this selection.",
     "epic_selection_invalid": "The selection changed. Reopen the download options and try again.",
     "epic_retry": "Try again",
-    "review_played_with": "Played with {{name}}"
+    "review_played_with": "Played with {{name}}",
+    "ps4_pkg_keys_unavailable": "Connect to the internet to extract a PKG for the first time.",
+    "ps4_update_game_running": "Close the game before applying the update."
   },
   "activation": {
     "title": "Activate Hydra",
@@ -1229,7 +1245,8 @@
     "installed_game_not_found_title": "Couldn't find the installed game",
     "installed_game_not_found_description": "Select the game's executable to finish setting it up.",
     "installer_launch_failed": "Couldn't start the installer",
-    "installing": "Installing…"
+    "installing": "Installing…",
+    "extraction_pkg_keys_unavailable_description": "Connect to the internet to extract a PKG for the first time."
   },
   "settings": {
     "rpcs3_config_title": "RPCS3 configuration folder",
@@ -3641,6 +3658,14 @@
     "rom_download_failed": "Could not start the download.",
     "rom_wrong_format": "Choose the ROM file itself: {{extensions}}.",
     "rom_not_found": "Couldn't find this ROM file. Choose it again.",
+    "rom_other_game": "This eboot.bin is from another game. Choose the one from {{name}}.",
+    "rom_pkg_other_game": "This PKG is from another game. Choose the one from {{name}}.",
+    "rom_pkg_wrong_format": "This PKG is not a PS4 game or update.",
+    "rom_update_needs_game": "This PKG is an update. Choose the {{name}} game first.",
+    "rom_not_full_game": "This folder isn't the full game. Choose the {{name}} game folder.",
+    "rom_pkg_no_space": "There isn't enough space to extract this PKG.",
+    "rom_pkg_not_newer": "The game is already on this version or a newer one.",
+    "rom_pkg_failed": "Couldn't extract this PKG. Try again.",
     "rom_version_warning": "This ROM isn't a version {{name}} supports. It may not start.",
     "rom_save_failed": "Couldn't save the ROM. Try again.",
     "rom_extracting": "ROM · extracting",
@@ -3660,6 +3685,7 @@
     "tip_body": "Pick a version recompiled by the community and install it straight from Hydra, with no emulator to download or set up.",
     "tip_no_emulator": "No emulator",
     "tip_quick_install": "Installs in minutes",
-    "tip_got_it": "Got it!"
+    "tip_got_it": "Got it!",
+    "rom_pkg_keys_unavailable": "Connect to the internet to extract a PKG for the first time."
   }
 }

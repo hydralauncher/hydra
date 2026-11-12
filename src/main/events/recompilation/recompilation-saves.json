@@ -362,5 +362,63 @@
         "tags": ["save"]
       }
     ]
+  },
+  "spartanport": {
+    "saves": [
+      {
+        "id": "savedata",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/savedata/",
+          "linux": "<xdgData>/spartanport/user/savedata/"
+        }
+      },
+      {
+        "id": "trophies.dat",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/trophies.dat",
+          "linux": "<xdgData>/spartanport/user/trophies.dat"
+        }
+      }
+    ]
+  },
+  "bloodborne-pc": {
+    "saves": [
+      {
+        "path": "<base>/user/savedata/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/user/seamless-coop/savedata/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "shadowofthecolossus-pc": {
+    "saves": [
+      {
+        "path": "<base>/user/savedata/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "bbport": {
+    "saves": [
+      {
+        "id": "savedata",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/savedata/",
+          "linux": "<xdgData>/bbport/user/savedata/"
+        }
+      }
+    ]
   }
 }

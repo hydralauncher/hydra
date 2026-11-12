@@ -140,7 +140,11 @@ export interface RecompilationRomMeta {
     env?: Record<string, string>;
     /** The first item names a program in the release, or `{exe}` for the port itself. */
     installer?: string[];
-    config?: { file: string; key: string[] };
+    /** One path, or one per system for ports that keep the file in different places. */
+    config?: {
+      file: string | Partial<Record<"win32" | "linux", string>>;
+      key: string[];
+    };
   };
   once?: boolean;
   /** Runs the installer again after every port update, for ports that rebuild the game per version. */
@@ -149,6 +153,12 @@ export interface RecompilationRomMeta {
   imported?: Partial<Record<"win32" | "linux", string[]>>;
   format?: "z64";
   sha1?: string[];
+  /** The game is a folder (a PS4 dump) holding these files, not a single ROM file. */
+  folder?: string[];
+  /** PS4 game IDs (TITLE_ID in sce_sys/param.sfo) the port runs; a folder of another game is refused. */
+  titleIds?: string[];
+  /** PS4 game versions (APP_VER in sce_sys/param.sfo) the port runs; others get a warning. */
+  appVersions?: string[];
   extensions: string[];
 }
 
@@ -161,6 +171,7 @@ export interface RecompilationRomState {
   libraryRomPath: string | null;
   isReady: boolean;
   needsPreparation: boolean;
+  isFolder: boolean;
   extensions: string[];
 }
 
@@ -182,4 +193,6 @@ export interface RecompilationActionResult {
   warning?: string;
   /** Set when an update finished and the port started preparing again. */
   preparing?: boolean;
+  /** The game folder a picked file resolves to, for the folder ports. */
+  path?: string;
 }

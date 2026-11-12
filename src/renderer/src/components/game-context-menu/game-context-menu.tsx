@@ -26,6 +26,7 @@ import {
   PinSlashIcon,
   EyeClosedIcon,
   LockIcon,
+  SyncIcon,
 } from "@primer/octicons-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
@@ -52,6 +53,7 @@ import { RemoveGameFromLibraryModal } from "@renderer/pages/game-details/modals/
 import { DeleteGameModal } from "@renderer/pages/downloads/delete-game-modal";
 import type { GameCollection } from "@types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
+import { usePs4PkgPicker } from "../ps4-pkg-job/ps4-pkg-job-host";
 
 interface GameContextMenuProps extends Omit<ContextMenuProps, "items"> {
   game: GameContextMenuGame;
@@ -99,6 +101,7 @@ export function GameContextMenu({
   );
   const [isFavoritePending, setIsFavoritePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
+  const [hasPs4GameFolder, setHasPs4GameFolder] = useState(false);
   const [visibility, setVisibility] = useState({
     isHiddenFromOthers: Boolean(preferenceGame.isHiddenFromOthers),
     isConcealed: Boolean(preferenceGame.isConcealed),
@@ -138,6 +141,22 @@ export function GameContextMenu({
   const { isGameDeleting } = useDownload();
   const { isCollectionContextMenuOrModalOpen } = useCollectionContextMenu();
   const selectedCollectionId = searchParams.get("collection");
+
+  useEffect(() => {
+    if (!visible || game.shop !== "launchbox") return;
+    let active = true;
+    void window.electron
+      .hasPs4GameFolder(game.shop, game.objectId)
+      .then((has) => {
+        if (active) setHasPs4GameFolder(has);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [visible, game.shop, game.objectId]);
+
+  const ps4Update = usePs4PkgPicker(game.shop, game.objectId, "update");
 
   const targetSource =
     group ??
@@ -457,6 +476,17 @@ export function GameContextMenu({
           closeOnClick: false,
           disabled: isDeleting || isVisibilityPending || !userDetails,
         },
+        ...(hasPs4GameFolder
+          ? [
+              {
+                id: "apply-ps4-update",
+                label: t("apply_ps4_update"),
+                icon: <SyncIcon size={16} />,
+                onClick: () => void ps4Update.pick(),
+                disabled: isDeleting || ps4Update.isBusy,
+              },
+            ]
+          : []),
         ...(game.executablePath
           ? [
               {
