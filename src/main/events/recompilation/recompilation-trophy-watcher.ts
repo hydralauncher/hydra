@@ -36,7 +36,11 @@ import {
 
 const TROPHY_SOURCES = recompilationMeta as Record<
   string,
-  { trophies?: RecompilationTrophySource } | undefined
+  | {
+      trophies?: RecompilationTrophySource;
+      rom?: { titleIds?: string[] } | null;
+    }
+  | undefined
 >;
 
 export const getTrophySource = (slug: string) =>
@@ -211,7 +215,8 @@ const createReader = (
 
 /** Where a port keeps its trophies on this machine, or null without a source. */
 export const resolveRecompilationTrophyFiles = async (
-  ref: RecompilationRef
+  ref: RecompilationRef,
+  titleIdOverride?: string
 ) => {
   const source = getTrophySource(ref.slug);
   const template = source && getTrophySourcePath(source, process.platform);
@@ -222,7 +227,7 @@ export const resolveRecompilationTrophyFiles = async (
   );
   const needsTitleId = template.includes(TITLE_ID_TOKEN);
   const titleId = needsTitleId
-    ? await getRecompilationChosenTitleId(ref)
+    ? (titleIdOverride ?? (await getRecompilationChosenTitleId(ref)))
     : null;
   if (needsTitleId && !titleId) return null;
   const resolvePath = (value: string) =>
@@ -241,6 +246,24 @@ export const resolveRecompilationTrophyFiles = async (
     resetFiles: (source.resetFiles?.[platform] ?? []).map(resolvePath),
     resolvePath,
   };
+};
+
+export const resolveAllRecompilationTrophyFiles = async (
+  ref: RecompilationRef
+) => {
+  const source = getTrophySource(ref.slug);
+  const template = source && getTrophySourcePath(source, process.platform);
+  const titleIds = template?.includes(TITLE_ID_TOKEN)
+    ? (TROPHY_SOURCES[ref.slug]?.rom?.titleIds ?? [])
+    : [];
+  if (!titleIds.length) {
+    const files = await resolveRecompilationTrophyFiles(ref);
+    return files ? [files] : [];
+  }
+  const all = await Promise.all(
+    titleIds.map((titleId) => resolveRecompilationTrophyFiles(ref, titleId))
+  );
+  return all.filter((files) => files !== null);
 };
 
 type TrophyFiles = NonNullable<

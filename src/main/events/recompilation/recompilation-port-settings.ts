@@ -66,7 +66,7 @@ export const isValidPortName = (name: string, reserved: string[]) =>
 export const toPortName = (displayName: string, reserved: string[]) => {
   const name = displayName
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/\p{M}/gu, "")
     .replace(/[^A-Za-z0-9_-]/g, "")
     .slice(0, NAME_MAX_LENGTH);
   return isValidPortName(name, reserved) ? name : null;

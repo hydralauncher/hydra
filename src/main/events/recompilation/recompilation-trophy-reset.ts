@@ -9,6 +9,7 @@ import {
 } from "./recompilation-trophies";
 import {
   clearPendingTrophyReset,
+  resolveAllRecompilationTrophyFiles,
   resolveRecompilationTrophyFiles,
 } from "./recompilation-trophy-watcher";
 
@@ -25,20 +26,11 @@ const stripLog = async (file: string) => {
   if (stripped !== contents) await fs.writeFile(file, stripped);
 };
 
-const resetPortTrophies = async (ref: RecompilationRef, isRunning: boolean) => {
-  const files = await resolveRecompilationTrophyFiles(ref);
-  if (!files) return;
+type TrophyFiles = NonNullable<
+  Awaited<ReturnType<typeof resolveRecompilationTrophyFiles>>
+>;
 
-  // An open port keeps its trophies in memory and may hold its files, so they
-  // are left alone: the watcher ignores what they have now, and takes those
-  // trophies out once the port closes. Only rotated logs are not in use.
-  if (isRunning) {
-    if (files.source.kind === "log") {
-      for (const rotated of files.history) await stripLog(rotated);
-    }
-    return;
-  }
-
+const clearTrophyFiles = async (files: TrophyFiles) => {
   switch (files.source.kind) {
     case "bitmask":
       // An empty bitmask instead of no file: it is a newer local change, so a
@@ -62,6 +54,23 @@ const resetPortTrophies = async (ref: RecompilationRef, isRunning: boolean) => {
   }
 
   for (const file of files.resetFiles) await fs.rm(file, { force: true });
+};
+
+const resetPortTrophies = async (ref: RecompilationRef, isRunning: boolean) => {
+  // An open port keeps its trophies in memory and may hold its files, so they
+  // are left alone: the watcher ignores what they have now, and takes those
+  // trophies out once the port closes. Only rotated logs are not in use.
+  if (isRunning) {
+    const files = await resolveRecompilationTrophyFiles(ref);
+    if (files?.source.kind === "log") {
+      for (const rotated of files.history) await stripLog(rotated);
+    }
+    return;
+  }
+
+  for (const files of await resolveAllRecompilationTrophyFiles(ref)) {
+    await clearTrophyFiles(files);
+  }
 };
 
 /**
