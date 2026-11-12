@@ -7,3 +7,4 @@ import "./prepare-recompilation";
 import "./close-recompilation";
 import "./get-recompilation-rom-state";
 import "./set-recompilation-rom";
+import "./check-recompilation-rom";

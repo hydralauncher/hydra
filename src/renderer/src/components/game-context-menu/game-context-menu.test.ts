@@ -353,6 +353,9 @@ async function fixture(
         return null;
       },
     },
+    "../ps4-pkg-job/ps4-pkg-job-host": {
+      usePs4PkgPicker: () => ({ pick: async () => {}, isBusy: false }),
+    },
   });
   const Menu = menuModule.GameContextMenu as React.ElementType;
   const root = createRoot(dom.window.document.getElementById("root")!);

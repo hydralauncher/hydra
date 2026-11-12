@@ -28,6 +28,15 @@ export const getHydraPlaytimeRevision = (key?: string) =>
   key === undefined
     ? hydraPlaytimeRevision
     : (hydraPlaytimeRevisions.get(key) ?? 0);
+let collectionOrderRevision = 0;
+const collectionOrderRevisions = new Map<string, number>();
+export function markCollectionOrderChanged(collectionId: string) {
+  collectionOrderRevisions.set(collectionId, ++collectionOrderRevision);
+}
+export const getCollectionOrderRevision = (collectionId?: string) =>
+  collectionId === undefined
+    ? collectionOrderRevision
+    : (collectionOrderRevisions.get(collectionId) ?? 0);
 let epicConnectionRevision = 0;
 let epicConnection: {
   environment: string;

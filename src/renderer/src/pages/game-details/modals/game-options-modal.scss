@@ -67,6 +67,57 @@ $disc-menu-transition-duration: 0.15s;
     }
   }
 
+  // General tab: sections split by a thin line, one heading size, and
+  // action buttons that share each row in one line of text.
+  &__panel--general {
+    > .game-options-modal__section + .game-options-modal__section,
+    > .game-options-modal__section + .game-options-modal__launch-options,
+    > .game-options-modal__launch-options + .game-options-modal__section {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: calc(globals.$spacing-unit * 2.5);
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .game-options-modal__header {
+      gap: calc(globals.$spacing-unit / 2);
+    }
+
+    .game-options-modal__header-description {
+      font-size: 13px;
+      color: rgba(globals.$body-color, 0.65);
+    }
+
+    .game-options-modal__row,
+    .disc-field__actions {
+      flex-wrap: nowrap;
+    }
+
+    .game-options-modal__row > button,
+    .disc-field__actions > button {
+      flex: 1 1 auto;
+      padding-left: calc(globals.$spacing-unit * 1.5);
+      padding-right: calc(globals.$spacing-unit * 1.5);
+      white-space: nowrap;
+      // Long labels give up space first; short ones like "Steam" stay whole.
+      min-width: 6.5rem;
+      overflow: hidden;
+
+      > svg {
+        flex-shrink: 0;
+      }
+    }
+
+    .game-options-modal__button-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
   &__panel-header {
     display: flex;
     flex-direction: column;
@@ -233,14 +284,71 @@ $disc-menu-transition-duration: 0.15s;
     flex-direction: column;
     gap: globals.$spacing-unit;
 
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
     &-description {
+      font-size: 13px;
       font-weight: 400;
+      color: rgba(globals.$body-color, 0.65);
     }
 
     &-buttons {
       display: flex;
       gap: globals.$spacing-unit;
       flex-wrap: wrap;
+    }
+  }
+
+  // Danger zone table: what it is, what it does, and its action.
+  &__danger-table {
+    display: flex;
+    flex-direction: column;
+    margin-top: globals.$spacing-unit;
+  }
+
+  &__danger-row {
+    display: grid;
+    grid-template-columns: 160px 1fr auto;
+    gap: calc(globals.$spacing-unit * 2);
+    align-items: center;
+    padding: calc(globals.$spacing-unit * 1.75) 0;
+
+    & + & {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    &--disabled &-label,
+    &--disabled &-description {
+      opacity: 0.55;
+    }
+
+    &-label {
+      font-size: 14px;
+    }
+
+    &-description {
+      font-size: 13px;
+      color: rgba(globals.$body-color, 0.65);
+    }
+
+    &-action button {
+      // Every action button has the same width.
+      width: 104px;
+      justify-content: center;
+    }
+  }
+
+  // Same colors as the warning in the change playtime modal it opens.
+  &__warning-button.button {
+    background-color: rgba(globals.$warning-color, 0.1);
+    border: 1px solid rgba(globals.$warning-color, 0.3);
+    color: globals.$warning-color;
+
+    &:hover:not(:disabled) {
+      background-color: rgba(globals.$warning-color, 0.18);
     }
   }
 

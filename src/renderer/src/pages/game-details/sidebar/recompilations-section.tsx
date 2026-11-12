@@ -179,7 +179,7 @@ export function RecompilationsSection({
               >
                 {recompilation.iconUrl ? (
                   <img
-                    className="list__item-image"
+                    className="list__item-image recompilations-section__icon"
                     src={recompilation.iconUrl}
                     alt=""
                   />

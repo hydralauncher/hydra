@@ -18,6 +18,7 @@ import { splitRomRequirement } from "./rom-requirement";
 import type { RecompilationInstall } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
+import { formatRecompilationVersion } from "./recompilation-version";
 import "./recompilation-install-section.scss";
 
 const shortPath = (fullPath: string) => {
@@ -173,10 +174,12 @@ export function RecompilationInstallSection({
       return (
         <>
           <p className="recompilation-install-section__sub">
-            <strong>v{state.version}</strong>
+            <strong>{formatRecompilationVersion(state.version)}</strong>
             {" · "}
             {hasUpdate
-              ? t("version_available", { version: details.version })
+              ? t("version_available", {
+                  version: formatRecompilationVersion(details.version),
+                })
               : t("version_latest_long")}
           </p>
           {state.installPath && (
