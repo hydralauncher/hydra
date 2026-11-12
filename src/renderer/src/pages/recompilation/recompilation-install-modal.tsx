@@ -3,6 +3,7 @@ import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
 import type {
+  RecompilationActionResult,
   RecompilationDetails,
   RecompilationPrepareProgress,
   RecompilationReleaseAsset,
@@ -335,10 +336,12 @@ function InstallModalContent({
     }
 
     // Checked right away, so another game's eboot.bin is never left selected.
-    const check = await window.electron.checkRecompilationRom(
-      { objectId: details.game.objectId, slug: details.slug },
-      filePath
-    );
+    const check: RecompilationActionResult = await window.electron
+      .checkRecompilationRom(
+        { objectId: details.game.objectId, slug: details.slug },
+        filePath
+      )
+      .catch(() => ({ ok: false, reason: "rom_save_failed" }));
     const isPkg = filePath.toLowerCase().endsWith(".pkg");
     if (!check.ok) {
       setPickedFile(null);
@@ -350,7 +353,7 @@ function InstallModalContent({
       await extractPkg(filePath);
       return;
     }
-    setPickedFile(filePath.replace(/[\\/]eboot\.bin$/i, ""));
+    setPickedFile(check.path ?? filePath);
   };
 
   const libraryRom =
@@ -374,6 +377,9 @@ function InstallModalContent({
       return t(isPkg ? "rom_pkg_other_game" : "rom_other_game", {
         name: romName,
       });
+    }
+    if (reason === "rom_not_full_game") {
+      return t("rom_not_full_game", { name: romName });
     }
     if (reason === "rom_update_needs_game") {
       return t("rom_update_needs_game", { name: romName });

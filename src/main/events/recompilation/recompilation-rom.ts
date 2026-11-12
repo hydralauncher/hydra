@@ -394,7 +394,12 @@ const checkChosenRom = async (
 
   if (isFolderRom(meta)) {
     if (!(await hasGameFiles(romPath, meta))) {
-      return { ok: false, reason: "rom_wrong_format" };
+      // An update or patch folder has the eboot.bin but not the whole game.
+      const hasEboot = await fileExists(path.join(romPath, "eboot.bin"));
+      return {
+        ok: false,
+        reason: hasEboot ? "rom_not_full_game" : "rom_wrong_format",
+      };
     }
     return (await isPortGame(romPath, meta))
       ? null
@@ -540,12 +545,12 @@ export const checkRecompilationRom = async (
   ) {
     return (await checkChosenPkg(ref.slug, rawPath, meta)) ?? { ok: true };
   }
-  const problem = await checkChosenRom(
-    "file",
-    toChosenPath(rawPath, meta),
-    meta
-  );
-  return problem ?? { ok: true };
+  const chosenPath = toChosenPath(rawPath, meta);
+  const problem = await checkChosenRom("file", chosenPath, meta);
+  if (problem) return problem;
+  return isFolderRom(meta) && typeof chosenPath === "string"
+    ? { ok: true, path: chosenPath }
+    : { ok: true };
 };
 
 export const setRecompilationRom = async (

@@ -1,4 +1,4 @@
-import { execFile, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import path from "node:path";
 
 import type { Game, RecompilationDetails, RecompilationRef } from "@types";
@@ -27,6 +27,7 @@ import { createGame, trackGamePlaytime } from "@main/services/library-sync";
 import { getHydraPlaytimeRevision } from "@main/services/library-sync/library-write-queue";
 import { persistGamePlaytime } from "@main/services/process-watcher";
 import { logger } from "@main/services/logger";
+import { killWindowsProcessTree } from "@main/helpers/kill-windows-process-tree";
 import { WindowManager } from "@main/services/window-manager";
 import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
 import { getRecompilationInstallDirectory } from "./recompilation-paths";
@@ -364,22 +365,8 @@ const signalProcessGroup = (pid: number, signal: NodeJS.Signals) => {
 
 // Some ports start the game in a child process (the PS4 ports run it in a
 // separate probe executable), so killing only the launcher leaves it open.
-const killWindowsProcessTree = (pid: number) => {
-  const taskkillPath = path.win32.join(
-    process.env.SystemRoot || String.raw`C:\Windows`,
-    "System32",
-    "taskkill.exe"
-  );
-
-  execFile(
-    taskkillPath,
-    ["/PID", String(pid), "/T", "/F"],
-    { shell: false, windowsHide: true },
-    (error) => {
-      if (error)
-        logger.warn("Failed to close recompilation process tree", error);
-    }
-  );
+const killPortProcessTree = (pid: number) => {
+  killWindowsProcessTree(pid, "recompilation");
   return true;
 };
 
@@ -387,7 +374,7 @@ const killWindowsProcessTree = (pid: number) => {
 const closePortProcesses = async (slug: string) => {
   for (const pid of await listPortProcessIds(slug)) {
     if (process.platform === "win32") {
-      killWindowsProcessTree(pid);
+      killPortProcessTree(pid);
     } else {
       try {
         process.kill(pid, "SIGTERM");
@@ -409,7 +396,7 @@ export const closeRecompilation = (ref: RecompilationRef) => {
 
   const { pid } = session.child;
   if (!pid) return session.child.kill();
-  if (process.platform === "win32") return killWindowsProcessTree(pid);
+  if (process.platform === "win32") return killPortProcessTree(pid);
   if (!signalProcessGroup(pid, "SIGTERM")) return session.child.kill();
 
   setTimeout(

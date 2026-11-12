@@ -3662,6 +3662,7 @@
     "rom_pkg_other_game": "This PKG is from another game. Choose the one from {{name}}.",
     "rom_pkg_wrong_format": "This PKG is not a PS4 game or update.",
     "rom_update_needs_game": "This PKG is an update. Choose the {{name}} game first.",
+    "rom_not_full_game": "This folder isn't the full game. Choose the {{name}} game folder.",
     "rom_pkg_no_space": "There isn't enough space to extract this PKG.",
     "rom_pkg_not_newer": "The game is already on this version or a newer one.",
     "rom_pkg_failed": "Couldn't extract this PKG. Try again.",
