@@ -5,6 +5,7 @@ mod desktop_duplication;
 mod in_place_extraction;
 mod kde_focus;
 mod linux_process;
+mod ps4_xts;
 mod screenshot_input;
 mod torrent;
 mod window_bounds;
@@ -618,4 +619,16 @@ fn mime_type_from_image_format(format: Option<ImageFormat>) -> Option<&'static s
         Some(ImageFormat::Avif) => Some("image/avif"),
         _ => None,
     }
+}
+
+/// Decrypts PS4 PKG image sectors in place (AES-128-XTS, 4 KiB sectors).
+#[napi]
+pub fn decrypt_ps4_pkg_sectors(
+    tweak_key: Buffer,
+    data_key: Buffer,
+    mut data: Buffer,
+    first_sector: i64,
+) -> napi::Result<()> {
+    ps4_xts::decrypt_sectors(&tweak_key, &data_key, &mut data, first_sector as u64)
+        .map_err(Error::from_reason)
 }

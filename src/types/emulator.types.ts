@@ -1,3 +1,5 @@
+import type { GameShop } from "./game.types";
+
 export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "ps4" | "psp" | "dolphin";
 
 export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
@@ -24,6 +26,7 @@ export interface EmulatorConfig {
   binary: EmulatorBinary;
   executablePath: string | null;
   rpcs3ConfigRoot?: string | null;
+  shadps4DataDir?: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
   biosPath: string | null;
@@ -287,4 +290,49 @@ export interface EmulatorInstallResult {
   ok: boolean;
   path?: string;
   reason?: string;
+}
+
+export type Ps4PkgFailure =
+  | "not_update"
+  | "unsupported"
+  | "no_game_folder"
+  | "other_game"
+  | "not_newer"
+  | "no_space"
+  | "keys_unavailable"
+  | "game_running"
+  | "cancelled"
+  | "busy"
+  | "failed";
+
+/** "update" only takes update PKGs; "any" also takes the game PKG. */
+export type Ps4PkgAccept = "update" | "any";
+
+export type Ps4PkgJobMode = "update" | "extract";
+
+export type Ps4PkgCheck =
+  | {
+      ok: true;
+      mode: Ps4PkgJobMode;
+      version: string | null;
+      currentVersion: string | null;
+    }
+  | { ok: false; reason: Ps4PkgFailure };
+
+export interface Ps4PkgResult {
+  ok: boolean;
+  reason?: Ps4PkgFailure;
+  version?: string | null;
+}
+
+export interface Ps4PkgJobEvent {
+  shop: GameShop;
+  objectId: string;
+  title: string;
+  mode: Ps4PkgJobMode;
+  phase: "start" | "progress" | "done" | "error" | "cancelled";
+  progress: number;
+  version?: string | null;
+  currentVersion?: string | null;
+  reason?: Ps4PkgFailure;
 }

@@ -50,12 +50,68 @@ import { SystemPath } from "./system-path";
 import { WindowManager } from "./window-manager";
 import { runAutomaticCloudSaveSync } from "./cloud-save";
 import { updateGameRecord } from "./game-record-updater";
+import {
+  installPs4Pkg,
+  isPs4PkgPath,
+  Ps4PkgError,
+  readPs4PkgInfo,
+} from "./ps4-pkg";
 
 const PROGRESS_THROTTLE_MS = 1000;
 
 const MAX_ARCHIVE_EXTRACTION_PASSES = 2;
 
 const INSTALLED_EXECUTABLE_MAX_DEPTH = 4;
+
+const PS4_PKG_SEARCH_DEPTH = 3;
+
+/** The folder an earlier run extracted a game PKG to, next to that PKG. */
+const findExtractedPs4Game = (
+  directory: string,
+  titleId: string,
+  depth = 0
+): string | undefined => {
+  const candidate = path.join(directory, titleId);
+  if (
+    fs.existsSync(path.join(candidate, "eboot.bin")) &&
+    fs.existsSync(path.join(candidate, "sce_sys", "param.sfo"))
+  ) {
+    return candidate;
+  }
+  if (depth >= PS4_PKG_SEARCH_DEPTH) return undefined;
+  const entries =
+    fs.existsSync(directory) && fs.statSync(directory).isDirectory()
+      ? fs.readdirSync(directory, { withFileTypes: true })
+      : [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const found = findExtractedPs4Game(
+      path.join(directory, entry.name),
+      titleId,
+      depth + 1
+    );
+    if (found) return found;
+  }
+  return undefined;
+};
+
+const findPs4Pkgs = async (directory: string, depth = 0): Promise<string[]> => {
+  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
+  const found: string[] = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isFile() && isPs4PkgPath(entry.name)) {
+      found.push(entryPath);
+    } else if (entry.isDirectory() && depth < PS4_PKG_SEARCH_DEPTH) {
+      found.push(...(await findPs4Pkgs(entryPath, depth + 1)));
+    }
+  }
+
+  return found;
+};
+
+const PS4_PKG_KIND_ORDER = { game: 0, patch: 1 } as const;
 
 const IN_PLACE_EXTRACTION_FEATURE = "IN_PLACE_ARCHIVE_EXTRACTION";
 const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
@@ -103,6 +159,14 @@ export class GameFilesManager {
     inPlaceEnabled: () =>
       (this.inPlaceExtractionEnabled ??= isInPlaceExtractionEnabled()),
   };
+
+  // PS4 PKG extractions in progress, so cancelling or removing the download
+  // stops the workers instead of writing the game in the background.
+  private static readonly ps4Extractions = new Map<string, AbortController>();
+
+  static cancelPs4Extraction(shop: GameShop, objectId: string) {
+    this.ps4Extractions.get(levelKeys.game(shop, objectId))?.abort();
+  }
 
   constructor(
     private readonly shop: GameShop,
@@ -198,6 +262,11 @@ export class GameFilesManager {
     filePath: string,
     { notify }: { notify: boolean }
   ) {
+    if (isPs4PkgPath(filePath) && (await this.isPs4Game())) {
+      await this.setExtractionComplete(notify);
+      return;
+    }
+
     const format = path.extname(filePath).toLowerCase();
 
     await this.searchAndBindExecutable();
@@ -460,7 +529,174 @@ export class GameFilesManager {
     return true;
   }
 
+  private async isPs4Game() {
+    const game = await gamesSublevel.get(this.gameKey);
+    return (
+      game?.shop === "launchbox" && platformToSystem(game.platform) === "ps4"
+    );
+  }
+
+  private async collectPs4Pkgs(sourcePath: string) {
+    const stats = await fs.promises.stat(sourcePath);
+    const pkgPaths = stats.isFile()
+      ? [sourcePath].filter(isPs4PkgPath)
+      : await findPs4Pkgs(sourcePath);
+
+    const pkgs: {
+      pkgPath: string;
+      titleId: string;
+      kind: "game" | "patch";
+      appVersion: string;
+      size: number;
+    }[] = [];
+
+    for (const pkgPath of pkgPaths) {
+      const info = await readPs4PkgInfo(pkgPath).catch(() => null);
+      if (
+        !info ||
+        info.isDeltaPatch ||
+        (info.kind !== "game" && info.kind !== "patch")
+      ) {
+        logger.info(
+          `[GameFilesManager] Keeping PS4 PKG as is: ${pkgPath}`,
+          info ? { kind: info.kind, isDeltaPatch: info.isDeltaPatch } : null
+        );
+        continue;
+      }
+
+      pkgs.push({
+        pkgPath,
+        titleId: info.titleId,
+        kind: info.kind,
+        appVersion: info.appVersion ?? "",
+        size: (await fs.promises.stat(pkgPath)).size,
+      });
+    }
+
+    return pkgs.toSorted(
+      (a, b) =>
+        PS4_PKG_KIND_ORDER[a.kind] - PS4_PKG_KIND_ORDER[b.kind] ||
+        a.appVersion.localeCompare(b.appVersion)
+    );
+  }
+
+  private async extractPs4Pkgs(): Promise<boolean> {
+    const download = await downloadsSublevel.get(this.gameKey);
+    if (!download?.folderName || !(await this.isPs4Game())) return true;
+
+    const sourcePath = path.join(download.downloadPath, download.folderName);
+    if (!fs.existsSync(sourcePath)) return true;
+
+    let currentPkg = sourcePath;
+    const controller = new AbortController();
+    GameFilesManager.ps4Extractions.set(this.gameKey, controller);
+    try {
+      const pkgs = await this.collectPs4Pkgs(sourcePath);
+      if (pkgs.length === 0) return true;
+
+      const totalSize = pkgs.reduce((sum, pkg) => sum + pkg.size, 0) || 1;
+      const gameDirectories = new Map<string, string>();
+      // A PKG the download keeps (setting, or a torrent still seeding) stays.
+      const deletePkg =
+        (await this.shouldDeleteArchives(download)) && !download.shouldSeed;
+      const searchRoot = fs.statSync(sourcePath).isDirectory()
+        ? sourcePath
+        : path.dirname(sourcePath);
+      let doneSize = 0;
+      this.updateExtractionProgress(0, true);
+
+      for (const pkg of pkgs) {
+        currentPkg = pkg.pkgPath;
+        const install = () =>
+          installPs4Pkg({
+            pkgPath: pkg.pkgPath,
+            gameDirectory:
+              gameDirectories.get(pkg.titleId) ??
+              findExtractedPs4Game(searchRoot, pkg.titleId),
+            deletePkg,
+            signal: controller.signal,
+            onProgress: (fraction) =>
+              this.updateExtractionProgress(
+                (doneSize + fraction * pkg.size) / totalSize
+              ),
+          });
+
+        if (pkg.kind === "game") {
+          gameDirectories.set(pkg.titleId, (await install()).gameDirectory);
+        } else {
+          // An update that does not fit (wrong game, not newer) is kept, and
+          // the game it came with still finishes extracting.
+          await install().catch((error) => {
+            if (
+              error instanceof Ps4PkgError &&
+              (error.code === "keys_unavailable" || error.code === "cancelled")
+            ) {
+              throw error;
+            }
+            logger.warn(
+              `[GameFilesManager] Skipped PS4 update PKG ${pkg.pkgPath}`,
+              error
+            );
+          });
+        }
+        doneSize += pkg.size;
+        this.updateExtractionProgress(doneSize / totalSize, true);
+      }
+
+      const sourceWasPkg = (await getPathType(sourcePath)) === "missing";
+      const extractedGame = gameDirectories.values().next().value;
+      if (sourceWasPkg && extractedGame) {
+        const current = await downloadsSublevel.get(this.gameKey);
+        if (current) {
+          await downloadsSublevel.put(this.gameKey, {
+            ...current,
+            folderName: path.relative(current.downloadPath, extractedGame),
+          });
+        }
+      } else if (!deletePkg) {
+        // The download still points at the kept PKG, which the disc scan
+        // cannot use, so the extracted folders are linked as discs here.
+        const { linkExtractedDisc } = await import(
+          "@main/events/emulators/ps4-pkg-actions"
+        );
+        for (const [titleId, folder] of gameDirectories) {
+          const pkg = pkgs.find((candidate) => candidate.titleId === titleId);
+          if (pkg) {
+            await linkExtractedDisc(
+              this.shop,
+              this.objectId,
+              pkg.pkgPath,
+              folder,
+              titleId
+            );
+          }
+        }
+      }
+
+      return true;
+    } catch (error) {
+      if (error instanceof Ps4PkgError && error.code === "cancelled") {
+        await this.resetExtractingState();
+        return false;
+      }
+      const keysUnavailable =
+        error instanceof Ps4PkgError && error.code === "keys_unavailable";
+      await this.setExtractionFailedState(
+        error,
+        currentPkg,
+        keysUnavailable ? { reason: "pkg-keys-unavailable" } : null
+      );
+      return false;
+    } finally {
+      if (GameFilesManager.ps4Extractions.get(this.gameKey) === controller) {
+        GameFilesManager.ps4Extractions.delete(this.gameKey);
+      }
+    }
+  }
+
   async setExtractionComplete(publishNotification = true) {
+    if (!(await this.extractPs4Pkgs())) return;
+
     const extractedDownload = await downloadsSublevel.get(this.gameKey);
 
     if (!extractedDownload) return;

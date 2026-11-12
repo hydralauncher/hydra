@@ -1,5 +1,6 @@
 import "./get-emulator-configs";
 import "./rpcs3-config-root";
+import "./shadps4-data-dir";
 import "./detect-emulator";
 import "./detect-emulators";
 import "./preview-emulator-executable";
@@ -35,3 +36,4 @@ import "./restore-emulation-save";
 import "./inspect-memcard";
 import "./emulation-saves";
 import "./list-local-emulation-saves";
+import "./ps4-pkg-actions";

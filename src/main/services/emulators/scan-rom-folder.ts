@@ -5,6 +5,7 @@ import path from "node:path";
 import type { KnownBinary } from "./known-binaries";
 import { resolveSniffTarget, sniffDiscImage } from "./sniff-disc-platform";
 import { logger } from "../logger";
+import { readPs4PkgInfo } from "../ps4-pkg/ps4-pkg-info";
 import type { EmulatorSystem } from "@types";
 
 const MAX_COLLECTED_FILES = 50_000;
@@ -334,6 +335,7 @@ const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
       case "ps3":
         games.push(...applyPs3Rules(group));
         break;
+      case "ps4":
       case "psp":
       case "dolphin":
         games.push(...applySimpleRules(group));
@@ -404,8 +406,8 @@ const collectPs4Directory = (
   shouldDescend: boolean,
   candidates: Candidate[],
   queue: string[]
-): string[] => {
-  if (isPs4OverlayDirectory(directory)) return [];
+): void => {
+  if (isPs4OverlayDirectory(directory)) return;
 
   if (isPs4GameDirectory(entries)) {
     candidates.push({
@@ -413,16 +415,40 @@ const collectPs4Directory = (
       name: path.basename(directory),
       isMarkerDir: true,
     });
-    return [];
+    return;
   }
 
-  if (shouldDescend) {
-    for (const entry of entries) {
-      if (entry.isDirectory()) queue.push(path.join(directory, entry.name));
+  for (const fullPath of findPs4PackageFiles(directory, entries)) {
+    candidates.push({
+      fullPath,
+      name: path.basename(fullPath).slice(0, -".pkg".length),
+      isMarkerDir: false,
+    });
+  }
+
+  if (!shouldDescend) return;
+  for (const entry of entries) {
+    if (entry.isDirectory()) queue.push(path.join(directory, entry.name));
+  }
+};
+
+/**
+ * Game PKGs are imported (and extracted on Play); update and add-on PKGs are
+ * not games, so they are left out and counted for the scan warning.
+ */
+const keepPs4GamePkgs = async (candidates: Candidate[]) => {
+  const kept: Candidate[] = [];
+  const skipped: string[] = [];
+  for (const candidate of candidates) {
+    if (candidate.isMarkerDir) {
+      kept.push(candidate);
+      continue;
     }
+    const info = await readPs4PkgInfo(candidate.fullPath).catch(() => null);
+    if (info?.kind === "game" && !info.isDeltaPatch) kept.push(candidate);
+    else skipped.push(candidate.fullPath);
   }
-
-  return findPs4PackageFiles(directory, entries);
+  return { kept, skipped };
 };
 
 const collectEntries = (
@@ -449,7 +475,6 @@ const collectCandidates = async (
   const candidates: Candidate[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();
-  const unsupportedPackages: string[] = [];
 
   for (let dir = queue.shift(); dir !== undefined; dir = queue.shift()) {
     if (signal?.cancelled) break;
@@ -469,14 +494,12 @@ const collectCandidates = async (
     if (!entries) continue;
 
     if (binary.system === "ps4") {
-      unsupportedPackages.push(
-        ...collectPs4Directory(
-          dir,
-          entries,
-          scanSubfolders || dir === rootPath,
-          candidates,
-          queue
-        )
+      collectPs4Directory(
+        dir,
+        entries,
+        scanSubfolders || dir === rootPath,
+        candidates,
+        queue
       );
       continue;
     }
@@ -492,7 +515,11 @@ const collectCandidates = async (
     );
   }
 
-  return { candidates, unsupportedPackages };
+  if (binary.system === "ps4") {
+    const { kept, skipped } = await keepPs4GamePkgs(candidates);
+    return { candidates: kept, unsupportedPackages: skipped };
+  }
+  return { candidates, unsupportedPackages: [] };
 };
 
 const sizeGame = async (

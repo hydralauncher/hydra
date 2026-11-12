@@ -15,7 +15,7 @@ import path from "node:path";
 import {
   findManagedEmulatorExecutable,
   type ManagedExecutableBinary,
-} from "./find-managed-emulator-executable";
+} from "./find-managed-emulator-executable.js";
 
 export const SHADPS4_CORE_DIRECTORY = "core";
 
@@ -39,7 +39,7 @@ interface Shadps4VersionRecord {
   executableSize: number;
 }
 
-const defaultUserDir = (): string => {
+export const shadps4DefaultUserDir = (): string => {
   if (process.platform === "win32") {
     const appData =
       process.env["APPDATA"] || path.join(homedir(), "AppData", "Roaming");
@@ -51,17 +51,17 @@ const defaultUserDir = (): string => {
   return path.join(dataHome, "shadPS4");
 };
 
+export const shadps4PortableUserDir = (executablePath: string): string =>
+  path.join(path.dirname(executablePath), PORTABLE_USER_DIR);
+
 export const resolveShadps4UserDir = (
   executablePath: string | null
 ): string => {
   if (executablePath) {
-    const portableDir = path.join(
-      path.dirname(executablePath),
-      PORTABLE_USER_DIR
-    );
+    const portableDir = shadps4PortableUserDir(executablePath);
     if (existsSync(portableDir)) return portableDir;
   }
-  return defaultUserDir();
+  return shadps4DefaultUserDir();
 };
 
 const readShadps4GeneralConfig = async (
