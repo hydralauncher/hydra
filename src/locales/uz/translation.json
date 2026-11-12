@@ -217,7 +217,7 @@
     "danger_playtime_label": "O'yin vaqti",
     "danger_playtime_description": "Siz {{time}} o'ynadingiz. Noto'g'ri bo'lsa, tuzating.",
     "danger_reset_playtime_label": "O'yin vaqtini tiklash",
-    "danger_reset_playtime_description": "Qayd etilgan o'yin vaqtini nolga qaytaradi.",
+    "danger_reset_playtime_description": "Hydra qayd etgan o'yin vaqtini nolga qaytaradi.",
     "danger_achievements_label": "Yutuqlar",
     "danger_achievements_description": "Ushbu o'yinda ochilgan yutuqlarni o'chiradi.",
     "danger_achievements_none": "Ushbu o'yinda ochilgan yutuqlar yo'q.",

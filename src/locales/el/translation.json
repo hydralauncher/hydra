@@ -389,7 +389,7 @@
     "danger_playtime_label": "Χρόνος παιχνιδιού",
     "danger_playtime_description": "Έπαιξες {{time}}. Διόρθωσέ το αν είναι λάθος.",
     "danger_reset_playtime_label": "Επαναφορά χρόνου παιχνιδιού",
-    "danger_reset_playtime_description": "Μηδενίζει τον καταγεγραμμένο χρόνο παιχνιδιού.",
+    "danger_reset_playtime_description": "Μηδενίζει τον χρόνο παιχνιδιού που κατέγραψε το Hydra.",
     "danger_achievements_label": "Επιτεύγματα",
     "danger_achievements_description": "Αφαιρεί τα επιτεύγματα που ξεκλείδωσες σε αυτό το παιχνίδι.",
     "danger_achievements_none": "Δεν υπάρχουν ξεκλείδωτα επιτεύγματα σε αυτό το παιχνίδι.",

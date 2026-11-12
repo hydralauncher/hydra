@@ -350,7 +350,7 @@
     "danger_playtime_label": "Време за игра",
     "danger_playtime_description": "Играл си {{time}}. Коригирай го, ако е грешно.",
     "danger_reset_playtime_label": "Нулирай времето за игра",
-    "danger_reset_playtime_description": "Връща записаното време за игра на нула.",
+    "danger_reset_playtime_description": "Връща времето за игра, записано от Hydra, на нула.",
     "danger_achievements_label": "Постижения",
     "danger_achievements_description": "Премахва отключените постижения в тази игра.",
     "danger_achievements_none": "Няма отключени постижения в тази игра.",

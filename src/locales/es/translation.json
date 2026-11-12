@@ -418,7 +418,7 @@
     "danger_playtime_label": "Tiempo de juego",
     "danger_playtime_description": "Jugaste {{time}}. Ajústalo si no es correcto.",
     "danger_reset_playtime_label": "Reiniciar tiempo de juego",
-    "danger_reset_playtime_description": "Vuelve a poner en cero el tiempo registrado.",
+    "danger_reset_playtime_description": "Vuelve a poner en cero el tiempo registrado por Hydra.",
     "danger_achievements_label": "Logros",
     "danger_achievements_description": "Borra los logros desbloqueados en este juego.",
     "danger_achievements_none": "No hay logros desbloqueados en este juego.",

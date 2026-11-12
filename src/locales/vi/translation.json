@@ -398,7 +398,7 @@
     "danger_playtime_label": "Thời gian chơi",
     "danger_playtime_description": "Bạn đã chơi {{time}}. Hãy chỉnh lại nếu chưa đúng.",
     "danger_reset_playtime_label": "Đặt lại thời gian chơi",
-    "danger_reset_playtime_description": "Đưa thời gian chơi đã ghi về 0.",
+    "danger_reset_playtime_description": "Đưa thời gian chơi do Hydra ghi lại về 0.",
     "danger_achievements_label": "Thành tựu",
     "danger_achievements_description": "Xóa các thành tựu đã mở khóa trong trò chơi này.",
     "danger_achievements_none": "Chưa có thành tựu nào được mở khóa trong trò chơi này.",

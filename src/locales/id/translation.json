@@ -364,7 +364,7 @@
     "danger_playtime_label": "Waktu bermain",
     "danger_playtime_description": "Kamu sudah bermain {{time}}. Ubah jika tidak sesuai.",
     "danger_reset_playtime_label": "Reset waktu bermain",
-    "danger_reset_playtime_description": "Mengembalikan waktu bermain yang tercatat ke nol.",
+    "danger_reset_playtime_description": "Mengembalikan waktu bermain yang dicatat Hydra ke nol.",
     "danger_achievements_label": "Pencapaian",
     "danger_achievements_description": "Menghapus pencapaian yang terbuka di game ini.",
     "danger_achievements_none": "Belum ada pencapaian yang terbuka di game ini.",

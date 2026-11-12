@@ -294,7 +294,7 @@
     "danger_playtime_label": "Játékidő",
     "danger_playtime_description": "{{time}} játszottál. Javítsd, ha nem stimmel.",
     "danger_reset_playtime_label": "Játékidő nullázása",
-    "danger_reset_playtime_description": "Nullára állítja a rögzített játékidőt.",
+    "danger_reset_playtime_description": "Nullára állítja a Hydra által rögzített játékidőt.",
     "danger_achievements_label": "Achievementek",
     "danger_achievements_description": "Eltávolítja a játékban feloldott achievementeket.",
     "danger_achievements_none": "Ebben a játékban nincs feloldott achievement.",

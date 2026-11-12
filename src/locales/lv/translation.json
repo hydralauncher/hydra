@@ -249,7 +249,7 @@
     "danger_playtime_label": "Spēles laiks",
     "danger_playtime_description": "Tu esi spēlējis {{time}}. Izlabo, ja tas nav pareizi.",
     "danger_reset_playtime_label": "Atiestatīt spēles laiku",
-    "danger_reset_playtime_description": "Atiestata reģistrēto spēles laiku uz nulli.",
+    "danger_reset_playtime_description": "Atiestata Hydra reģistrēto spēles laiku uz nulli.",
     "danger_achievements_label": "Sasniegumi",
     "danger_achievements_description": "Noņem šajā spēlē atbloķētos sasniegumus.",
     "danger_achievements_none": "Šajā spēlē nav atbloķētu sasniegumu.",

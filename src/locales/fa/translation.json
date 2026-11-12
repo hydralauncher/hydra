@@ -277,7 +277,7 @@
     "danger_playtime_label": "زمان بازی",
     "danger_playtime_description": "شما {{time}} بازی کرده‌اید. اگر درست نیست، آن را اصلاح کنید.",
     "danger_reset_playtime_label": "بازنشانی زمان بازی",
-    "danger_reset_playtime_description": "زمان بازی ثبت‌شده را به صفر برمی‌گرداند.",
+    "danger_reset_playtime_description": "زمان بازی ثبت‌شده توسط Hydra را به صفر برمی‌گرداند.",
     "danger_achievements_label": "دستاوردها",
     "danger_achievements_description": "دستاوردهای باز شده در این بازی را حذف می‌کند.",
     "danger_achievements_none": "هیچ دستاوردی در این بازی باز نشده است.",

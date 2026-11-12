@@ -246,7 +246,7 @@
     "danger_playtime_label": "Herní čas",
     "danger_playtime_description": "Hráli jste {{time}}. Pokud to nesedí, upravte to.",
     "danger_reset_playtime_label": "Vynulovat herní čas",
-    "danger_reset_playtime_description": "Vrátí zaznamenaný herní čas na nulu.",
+    "danger_reset_playtime_description": "Vrátí herní čas zaznamenaný Hydrou na nulu.",
     "danger_achievements_label": "Achievementy",
     "danger_achievements_description": "Odebere achievementy odemčené v této hře.",
     "danger_achievements_none": "V této hře nemáte odemčené žádné achievementy.",

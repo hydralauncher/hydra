@@ -245,7 +245,7 @@
     "danger_playtime_label": "Spilletid",
     "danger_playtime_description": "Du har spillet {{time}}. Ret det, hvis det er forkert.",
     "danger_reset_playtime_label": "Nulstil spilletid",
-    "danger_reset_playtime_description": "Sætter den registrerede spilletid tilbage til nul.",
+    "danger_reset_playtime_description": "Sætter spilletiden, som Hydra har registreret, tilbage til nul.",
     "danger_achievements_label": "Præstationer",
     "danger_achievements_description": "Fjerner de præstationer, du har låst op i dette spil.",
     "danger_achievements_none": "Ingen præstationer låst op i dette spil.",

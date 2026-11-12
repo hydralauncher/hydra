@@ -277,7 +277,7 @@
     "danger_playtime_label": "플레이 시간",
     "danger_playtime_description": "{{time}} 플레이했습니다. 틀리면 수정하세요.",
     "danger_reset_playtime_label": "플레이 시간 초기화",
-    "danger_reset_playtime_description": "기록된 플레이 시간을 0으로 되돌립니다.",
+    "danger_reset_playtime_description": "Hydra가 기록한 플레이 시간을 0으로 되돌립니다.",
     "danger_achievements_label": "도전 과제",
     "danger_achievements_description": "이 게임에서 달성한 도전 과제를 삭제합니다.",
     "danger_achievements_none": "이 게임에서 달성한 도전 과제가 없습니다.",

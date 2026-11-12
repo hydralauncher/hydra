@@ -231,7 +231,7 @@
     "danger_playtime_label": "Час у грі",
     "danger_playtime_description": "Ви грали {{time}}. Виправте, якщо це неправильно.",
     "danger_reset_playtime_label": "Скинути час у грі",
-    "danger_reset_playtime_description": "Обнуляє записаний час у грі.",
+    "danger_reset_playtime_description": "Обнуляє час у грі, записаний Hydra.",
     "danger_achievements_label": "Досягнення",
     "danger_achievements_description": "Видаляє досягнення, відкриті в цій грі.",
     "danger_achievements_none": "У цій грі немає відкритих досягнень.",

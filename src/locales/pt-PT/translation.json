@@ -268,7 +268,7 @@
     "danger_playtime_label": "Tempo de jogo",
     "danger_playtime_description": "Jogaste {{time}}. Ajusta se estiver errado.",
     "danger_reset_playtime_label": "Repor tempo de jogo",
-    "danger_reset_playtime_description": "Volta a pôr o tempo de jogo registado a zero.",
+    "danger_reset_playtime_description": "Volta a pôr a zero o tempo de jogo registado pelo Hydra.",
     "danger_achievements_label": "Conquistas",
     "danger_achievements_description": "Remove as conquistas desbloqueadas neste jogo.",
     "danger_achievements_none": "Nenhuma conquista desbloqueada neste jogo.",

@@ -277,7 +277,7 @@
     "danger_playtime_label": "Timp de joc",
     "danger_playtime_description": "Ai jucat {{time}}. Corectează dacă e greșit.",
     "danger_reset_playtime_label": "Resetează timpul de joc",
-    "danger_reset_playtime_description": "Readuce la zero timpul de joc înregistrat.",
+    "danger_reset_playtime_description": "Readuce la zero timpul de joc înregistrat de Hydra.",
     "danger_achievements_label": "Realizări",
     "danger_achievements_description": "Elimină realizările deblocate în acest joc.",
     "danger_achievements_none": "Nicio realizare deblocată în acest joc.",

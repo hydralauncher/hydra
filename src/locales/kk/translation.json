@@ -245,7 +245,7 @@
     "danger_playtime_label": "Ойын уақыты",
     "danger_playtime_description": "Сіз {{time}} ойнадыңыз. Қате болса, түзетіңіз.",
     "danger_reset_playtime_label": "Ойын уақытын нөлдеу",
-    "danger_reset_playtime_description": "Тіркелген ойын уақытын нөлге қайтарады.",
+    "danger_reset_playtime_description": "Hydra тіркеген ойын уақытын нөлге қайтарады.",
     "danger_achievements_label": "Жетістіктер",
     "danger_achievements_description": "Осы ойында ашылған жетістіктерді жояды.",
     "danger_achievements_none": "Бұл ойында ашылған жетістіктер жоқ.",

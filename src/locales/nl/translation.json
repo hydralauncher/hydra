@@ -277,7 +277,7 @@
     "danger_playtime_label": "Speeltijd",
     "danger_playtime_description": "Je hebt {{time}} gespeeld. Pas het aan als het niet klopt.",
     "danger_reset_playtime_label": "Speeltijd resetten",
-    "danger_reset_playtime_description": "Zet de geregistreerde speeltijd terug naar nul.",
+    "danger_reset_playtime_description": "Zet de door Hydra geregistreerde speeltijd terug naar nul.",
     "danger_achievements_label": "Prestaties",
     "danger_achievements_description": "Verwijdert de prestaties die je in deze game hebt ontgrendeld.",
     "danger_achievements_none": "Geen ontgrendelde prestaties in deze game.",

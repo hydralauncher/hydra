@@ -245,7 +245,7 @@
     "danger_playtime_label": "Mänguaeg",
     "danger_playtime_description": "Oled mänginud {{time}}. Paranda, kui see on vale.",
     "danger_reset_playtime_label": "Lähtesta mänguaeg",
-    "danger_reset_playtime_description": "Seab salvestatud mänguaja tagasi nulli.",
+    "danger_reset_playtime_description": "Seab Hydra salvestatud mänguaja tagasi nulli.",
     "danger_achievements_label": "Saavutused",
     "danger_achievements_description": "Eemaldab selles mängus avatud saavutused.",
     "danger_achievements_none": "Selles mängus pole avatud saavutusi.",

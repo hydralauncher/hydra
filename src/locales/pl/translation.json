@@ -389,7 +389,7 @@
     "danger_playtime_label": "Czas gry",
     "danger_playtime_description": "Grasz już {{time}}. Popraw, jeśli to się nie zgadza.",
     "danger_reset_playtime_label": "Zresetuj czas gry",
-    "danger_reset_playtime_description": "Ustawia zapisany czas gry z powrotem na zero.",
+    "danger_reset_playtime_description": "Ustawia czas gry zapisany przez Hydrę z powrotem na zero.",
     "danger_achievements_label": "Osiągnięcia",
     "danger_achievements_description": "Usuwa osiągnięcia odblokowane w tej grze.",
     "danger_achievements_none": "Brak odblokowanych osiągnięć w tej grze.",

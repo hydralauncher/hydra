@@ -245,7 +245,7 @@
     "danger_playtime_label": "Temps de joc",
     "danger_playtime_description": "Has jugat {{time}}. Ajusta-ho si no és correcte.",
     "danger_reset_playtime_label": "Restableix el temps de joc",
-    "danger_reset_playtime_description": "Torna a zero el temps de joc registrat.",
+    "danger_reset_playtime_description": "Torna a zero el temps de joc registrat per Hydra.",
     "danger_achievements_label": "Assoliments",
     "danger_achievements_description": "Elimina els assoliments desbloquejats en aquest joc.",
     "danger_achievements_none": "No hi ha assoliments desbloquejats en aquest joc.",

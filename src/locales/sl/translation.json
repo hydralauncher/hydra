@@ -254,7 +254,7 @@
     "danger_playtime_label": "Čas igranja",
     "danger_playtime_description": "Igrali ste {{time}}. Popravite, če ni pravilno.",
     "danger_reset_playtime_label": "Ponastavi čas igranja",
-    "danger_reset_playtime_description": "Zabeleženi čas igranja nastavi nazaj na nič.",
+    "danger_reset_playtime_description": "Čas igranja, ki ga je zabeležil Hydra, nastavi nazaj na nič.",
     "danger_achievements_label": "Dosežki",
     "danger_achievements_description": "Odstrani dosežke, odklenjene v tej igri.",
     "danger_achievements_none": "V tej igri ni odklenjenih dosežkov.",

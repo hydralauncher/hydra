@@ -245,7 +245,7 @@
     "danger_playtime_label": "游戏时长",
     "danger_playtime_description": "你已游玩 {{time}}。如有错误，请修改。",
     "danger_reset_playtime_label": "重置游戏时长",
-    "danger_reset_playtime_description": "将记录的游戏时长归零。",
+    "danger_reset_playtime_description": "将 Hydra 记录的游戏时长归零。",
     "danger_achievements_label": "成就",
     "danger_achievements_description": "移除此游戏中已解锁的成就。",
     "danger_achievements_none": "此游戏中没有已解锁的成就。",

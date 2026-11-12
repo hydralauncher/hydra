@@ -249,7 +249,7 @@
     "danger_playtime_label": "Peliaika",
     "danger_playtime_description": "Olet pelannut {{time}}. Korjaa, jos se on väärin.",
     "danger_reset_playtime_label": "Nollaa peliaika",
-    "danger_reset_playtime_description": "Palauttaa tallennetun peliajan nollaan.",
+    "danger_reset_playtime_description": "Palauttaa Hydran tallentaman peliajan nollaan.",
     "danger_achievements_label": "Saavutukset",
     "danger_achievements_description": "Poistaa tässä pelissä avatut saavutukset.",
     "danger_achievements_none": "Tässä pelissä ei ole avattuja saavutuksia.",

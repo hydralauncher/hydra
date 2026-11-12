@@ -294,7 +294,7 @@
     "danger_playtime_label": "プレイ時間",
     "danger_playtime_description": "{{time}}プレイしました。違う場合は修正してください。",
     "danger_reset_playtime_label": "プレイ時間をリセット",
-    "danger_reset_playtime_description": "記録されたプレイ時間をゼロに戻します。",
+    "danger_reset_playtime_description": "Hydraが記録したプレイ時間をゼロに戻します。",
     "danger_achievements_label": "実績",
     "danger_achievements_description": "このゲームで解除した実績を削除します。",
     "danger_achievements_none": "このゲームで解除した実績はありません。",

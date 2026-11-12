@@ -246,7 +246,7 @@
     "danger_playtime_label": "Oynama süresi",
     "danger_playtime_description": "{{time}} oynadın. Yanlışsa düzelt.",
     "danger_reset_playtime_label": "Oynama süresini sıfırla",
-    "danger_reset_playtime_description": "Kaydedilen oynama süresini sıfıra döndürür.",
+    "danger_reset_playtime_description": "Hydra'nın kaydettiği oynama süresini sıfıra döndürür.",
     "danger_achievements_label": "Başarımlar",
     "danger_achievements_description": "Bu oyunda açılan başarımları kaldırır.",
     "danger_achievements_none": "Bu oyunda açılmış başarım yok.",

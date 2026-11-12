@@ -340,7 +340,7 @@
     "danger_playtime_label": "Temps de jeu",
     "danger_playtime_description": "Vous avez joué {{time}}. Corrigez-le s'il est faux.",
     "danger_reset_playtime_label": "Réinitialiser le temps de jeu",
-    "danger_reset_playtime_description": "Remet à zéro le temps de jeu enregistré.",
+    "danger_reset_playtime_description": "Remet à zéro le temps de jeu enregistré par Hydra.",
     "danger_achievements_label": "Succès",
     "danger_achievements_description": "Supprime les succès débloqués dans ce jeu.",
     "danger_achievements_none": "Aucun succès débloqué dans ce jeu.",
