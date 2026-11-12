@@ -16,7 +16,9 @@ export interface RecompilationInstall {
   prepareFailed: boolean;
   install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
-  play: () => Promise<boolean | "already_running" | "pkg_job_running">;
+  play: () => Promise<
+    boolean | "already_running" | "pkg_job_running" | "rom_update_required"
+  >;
   close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
 }
@@ -140,11 +142,11 @@ export function useRecompilationInstall(
       .finally(() => setIsLaunching(false));
     if (result.reason === "already_running") return "already_running";
     if (result.reason === "pkg_job_running") return "pkg_job_running";
+    if (result.reason === "rom_update_required") return "rom_update_required";
     return (
       result.ok ||
       result.reason === "cloud_save_conflict" ||
       (result.reason === "rom_prepare_failed" && prepareErrorShown.current) ||
-      result.reason === "rom_update_required" ||
       result.reason === "running"
     );
   }, [objectId, slug]);

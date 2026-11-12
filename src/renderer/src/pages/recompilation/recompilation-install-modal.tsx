@@ -63,6 +63,7 @@ interface RecompilationInstallModalProps {
   installAsset: RecompilationReleaseAsset | null;
   install: RecompilationInstall;
   rom: RecompilationRom;
+  openOnUpdate?: boolean;
   onClose: () => void;
 }
 
@@ -150,6 +151,7 @@ function InstallModalContent({
   installAsset,
   install,
   rom,
+  openOnUpdate = false,
   onClose,
   onFreeSpaceChange,
 }: Readonly<
@@ -191,6 +193,7 @@ function InstallModalContent({
 
   const [hasLocationStep] = useState(!isInstalled && !install.isBusy);
   const [step, setStep] = useState<InstallStep>(() => {
+    if (openOnUpdate) return "update";
     if (hasLocationStep) return "location";
     return install.isPreparing ? "prepare" : "rom";
   });
@@ -210,6 +213,18 @@ function InstallModalContent({
   }, [romState?.source, romState?.romPath]);
   const [isSaving, setIsSaving] = useState(false);
   const [requiredVersion, setRequiredVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openOnUpdate || !romState?.romPath) return;
+    void chooseRom(
+      romState.source === "library" ? "library" : "file",
+      romState.source === "library" ? undefined : romState.romPath
+    ).then((result) => {
+      if (result.warning === "rom_update_required") {
+        setRequiredVersion(result.requiredVersion ?? null);
+      }
+    });
+  }, [openOnUpdate, romState?.romPath, romState?.source, chooseRom]);
 
   const handlesRom = romState?.handlesRom !== false;
   const needsPreparation = romState?.needsPreparation === true;
@@ -865,7 +880,7 @@ function InstallModalContent({
       <SetupFooter
         currentStepIndex={stepIndex}
         totalSteps={stepOrder.length}
-        showBack={step === "sources" || step === "update"}
+        showBack={step === "sources" || (step === "update" && !openOnUpdate)}
         showSkip={false}
         continueHidden={step !== "rom" && step !== "location"}
         continueDisabled={
@@ -887,6 +902,7 @@ export function RecompilationInstallModal({
   installAsset,
   install,
   rom,
+  openOnUpdate,
   onClose,
 }: Readonly<RecompilationInstallModalProps>) {
   const { t } = useTranslation("recompilation");
@@ -921,6 +937,7 @@ export function RecompilationInstallModal({
             installAsset={installAsset}
             install={install}
             rom={rom}
+            openOnUpdate={openOnUpdate}
             onClose={onClose}
             onFreeSpaceChange={setFreeSpace}
           />
