@@ -139,3 +139,20 @@ it("routes PS4 games to shadPS4 and requires a registered game folder", () => {
     true
   );
 });
+
+it("does not count a port disc as an emulator disc", () => {
+  const portOnly = {
+    shop: "launchbox" as const,
+    platform: "Sony Playstation 4",
+    discs: [{ path: "C:/recompilations/bbport", recompilationSlug: "bbport" }],
+  };
+  assert.equal(hasCloudSaveDisc(portOnly), false);
+  assert.equal(hasCloudSaveExecutableSelection(portOnly), false);
+
+  const withGame = {
+    ...portOnly,
+    discs: [...portOnly.discs, { path: "C:/games/CUSA03173" }],
+  };
+  assert.equal(hasCloudSaveDisc(withGame), true);
+  assert.equal(hasCloudSaveExecutableSelection(withGame), true);
+});

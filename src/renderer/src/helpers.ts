@@ -22,6 +22,7 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
+import { requestPs4PkgExtraction } from "./components/ps4-pkg-job/ps4-pkg-extract-request";
 import type { SortOption } from "./pages/library/library-display-menu";
 import type { SkuRegion } from "./helpers/sku-region";
 import {
@@ -236,6 +237,11 @@ export const handleClassicsLaunchError = (
     if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
   } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
     showErrorToast(t("recompilation_already_running_toast"));
+  } else if (code === "PS4_PKG_JOB_RUNNING") {
+    showErrorToast(t("ps4_pkg_busy"));
+  } else if (code === "PS4_PKG_NEEDS_EXTRACTION") {
+    const game = getPs4PkgGameFromLaunchError(error);
+    if (game) requestPs4PkgExtraction(game);
   } else {
     showErrorToast(t("launch_failed_toast"));
   }
@@ -243,7 +249,9 @@ export const handleClassicsLaunchError = (
   return (
     code !== "EMULATOR_ALREADY_RUNNING" &&
     code !== "PKG_INSTALLING" &&
-    code !== "RECOMPILATION_ALREADY_RUNNING"
+    code !== "RECOMPILATION_ALREADY_RUNNING" &&
+    code !== "PS4_PKG_NEEDS_EXTRACTION" &&
+    code !== "PS4_PKG_JOB_RUNNING"
   );
 };
 
@@ -419,6 +427,8 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "RECOMPILATION_NEEDS_SETUP",
   "RECOMPILATION_ALREADY_RUNNING",
   "RECOMPILATION_LAUNCH_FAILED",
+  "PS4_PKG_NEEDS_EXTRACTION",
+  "PS4_PKG_JOB_RUNNING",
 ] as const;
 
 const getRecompilationFromLaunchError = (error: unknown) => {
@@ -427,6 +437,12 @@ const getRecompilationFromLaunchError = (error: unknown) => {
     message
   );
   return match ? { objectId: match[1], slug: match[2] } : null;
+};
+
+const getPs4PkgGameFromLaunchError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = /PS4_PKG_NEEDS_EXTRACTION: ([a-z]+)\/(\S+)/i.exec(message);
+  return match ? { shop: match[1] as GameShop, objectId: match[2] } : null;
 };
 
 export const getClassicsLaunchErrorCode = (

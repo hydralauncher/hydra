@@ -104,6 +104,7 @@ async function fixture(
     export const collectGameAchievementFiles = async () => [];
     export const removeShadps4TrophyFile = async () => {};
     export const removeRpcs3TrophyFiles = async () => {};
+    export const resetRecompilationTrophies = async () => {};
     export const emulators = {emulatorSessions: new Map()};
     export const updateGameRecord = async () => {};
     export const cancelPendingSouvenirsForGame = async () => {if (state.resetGate) await state.resetGate;};

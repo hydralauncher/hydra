@@ -3,6 +3,7 @@ import cn from "classnames";
 import { useTranslation } from "react-i18next";
 import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
 import type {
+  RecompilationActionResult,
   RecompilationDetails,
   RecompilationPrepareProgress,
   RecompilationReleaseAsset,
@@ -193,6 +194,13 @@ function InstallModalContent({
     romState?.source === "file" ? romState.romPath : null
   );
   const [skipLibrary, setSkipLibrary] = useState(false);
+
+  // A PKG extracted in the background is saved as the chosen ROM when it ends.
+  useEffect(() => {
+    if (romState?.source === "file" && romState.romPath) {
+      setPickedFile((current) => current ?? romState.romPath);
+    }
+  }, [romState?.source, romState?.romPath]);
   const [isSaving, setIsSaving] = useState(false);
 
   const handlesRom = romState?.handlesRom !== false;
@@ -292,15 +300,60 @@ function InstallModalContent({
     type: "disjunction",
   }).format((romState?.extensions ?? []).map((extension) => `.${extension}`));
 
+  const isFolderRom = romState?.isFolder === true;
+  const folderRomChoices = new Intl.ListFormat(i18n.language, {
+    type: "disjunction",
+  }).format(["eboot.bin", ".pkg"]);
+
+  const extractPkg = async (pkgPath: string) => {
+    const ref = { objectId: details.game.objectId, slug: details.slug };
+    const result = await window.electron
+      .extractRecompilationRomPkg(ref, pkgPath)
+      .catch(() => null);
+    if (!result?.ok) {
+      showErrorToast(romChoiceErrorMessage(result?.reason, true));
+    }
+  };
+
   const pickFile = async () => {
+    // A PS4 game is picked by its eboot.bin, which the folder picker would hide.
     const { filePaths } = await window.electron.showOpenDialog({
       properties: ["openFile"],
       filters: [
-        { name: t("rom_file_filter"), extensions: romState?.extensions ?? [] },
+        isFolderRom
+          ? { name: folderRomChoices, extensions: ["bin", "pkg"] }
+          : {
+              name: t("rom_file_filter"),
+              extensions: romState?.extensions ?? [],
+            },
       ],
     });
     const [filePath] = filePaths ?? [];
-    if (filePath) setPickedFile(filePath);
+    if (!filePath) return;
+    if (!isFolderRom) {
+      setPickedFile(filePath);
+      return;
+    }
+
+    // Checked right away, so another game's eboot.bin is never left selected.
+    const check: RecompilationActionResult = await window.electron
+      .checkRecompilationRom(
+        { objectId: details.game.objectId, slug: details.slug },
+        filePath
+      )
+      .catch(() => ({ ok: false, reason: "rom_save_failed" }));
+    const isPkg = filePath.toLowerCase().endsWith(".pkg");
+    if (!check.ok) {
+      setPickedFile(null);
+      showErrorToast(romChoiceErrorMessage(check.reason, isPkg));
+      return;
+    }
+    if (isPkg) {
+      setPickedFile(null);
+      await extractPkg(filePath);
+      return;
+    }
+    setPickedFile(check.path ?? filePath);
   };
 
   const libraryRom =
@@ -313,9 +366,34 @@ function InstallModalContent({
   };
   const romSource = getRomSource();
 
-  const romChoiceErrorMessage = (reason?: string) => {
+  const romChoiceErrorMessage = (reason?: string, isPkg = false) => {
     if (reason === "rom_wrong_format") {
-      return t("rom_wrong_format", { extensions: extensionList });
+      if (isPkg) return t("rom_pkg_wrong_format");
+      return isFolderRom
+        ? t("ps4_folder_missing_eboot", { ns: "game_details" })
+        : t("rom_wrong_format", { extensions: extensionList });
+    }
+    if (reason === "rom_other_game") {
+      return t(isPkg ? "rom_pkg_other_game" : "rom_other_game", {
+        name: romName,
+      });
+    }
+    if (reason === "rom_not_full_game") {
+      return t("rom_not_full_game", { name: romName });
+    }
+    if (reason === "rom_update_needs_game") {
+      return t("rom_update_needs_game", { name: romName });
+    }
+    if (reason === "rom_pkg_no_space") return t("rom_pkg_no_space");
+    if (reason === "rom_pkg_not_newer") return t("rom_pkg_not_newer");
+    if (reason === "rom_game_running") {
+      return t("ps4_update_game_running", { ns: "game_details" });
+    }
+    if (reason === "rom_pkg_keys_unavailable") {
+      return t("rom_pkg_keys_unavailable");
+    }
+    if (reason === "rom_pkg_failed" || reason === "rom_pkg_busy") {
+      return t("rom_pkg_failed");
     }
     if (reason === "rom_not_found") return t("rom_not_found");
     return t("rom_save_failed");
@@ -368,7 +446,9 @@ function InstallModalContent({
     onClose();
     const played = await install.play();
     if (played === "already_running") showErrorToast(t("already_running"));
-    else if (!played) showErrorToast(t("play_failed"));
+    if (played === "pkg_job_running") {
+      showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
+    } else if (!played) showErrorToast(t("play_failed"));
   };
 
   useEffect(() => {
@@ -480,7 +560,7 @@ function InstallModalContent({
           />
           <ChoiceRow
             title={t("rom_choice_file")}
-            info={extensionList}
+            info={isFolderRom ? folderRomChoices : extensionList}
             onClick={pickFile}
           />
         </div>
@@ -701,7 +781,7 @@ function InstallModalContent({
         continueDisabled={
           step === "location"
             ? !parentDirectory || !hasEnoughSpace
-            : !romSource || isSaving
+            : !romSource || isSaving || isRomDownloading
         }
         onBack={() => setStep("rom")}
         onSkip={() => {}}
