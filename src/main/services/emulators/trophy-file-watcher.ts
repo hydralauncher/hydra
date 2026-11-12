@@ -127,42 +127,56 @@ export const startTrophyFileWatcher = ({
     lastModifiedAt = stats.mtimeMs;
   };
 
-  const runRead = (isFinalRead: boolean) => {
-    inFlightRead = readTrophies(isFinalRead)
-      .catch((error) => {
+  // Reads and resets take turns: the interval starts a read only when nothing
+  // is in flight, and a reset holds the slot until it is done.
+  const occupy = <T>(work: Promise<T>) => {
+    const slot = work.then(
+      () => undefined,
+      () => undefined
+    );
+    inFlightRead = slot;
+    void slot.finally(() => {
+      if (inFlightRead === slot) inFlightRead = null;
+    });
+    return work;
+  };
+
+  const runRead = (isFinalRead: boolean) =>
+    occupy(
+      readTrophies(isFinalRead).catch((error) => {
         achievementsLogger.error(
           `Failed to read ${label} trophies`,
           gameKey,
           error
         );
       })
-      .finally(() => {
-        inFlightRead = null;
-      });
-    return inFlightRead;
-  };
+    );
 
   const timer = setInterval(() => {
     if (inFlightRead === null) void runRead(false);
   }, INTERVALS.achievementWatcher);
   timer.unref?.();
 
+  const forgetNow = async (previous: Promise<void> | null) => {
+    await previous;
+    trophyFile ??= await resolveFile();
+    await onForget?.(trophyFile);
+    const current = trophyFile
+      ? await readUnlocks(trophyFile).catch(() => null)
+      : null;
+    ignored = new Set([
+      ...ignored,
+      ...(current ?? []).map((unlock) => unlock.name.toUpperCase()),
+    ]);
+    lastModifiedAt = -1;
+    hasImportedExistingUnlocks = true;
+    return [...ignored];
+  };
+
   return {
-    forget: async () => {
+    forget: () => {
       generation += 1;
-      await inFlightRead;
-      trophyFile ??= await resolveFile();
-      await onForget?.(trophyFile);
-      const current = trophyFile
-        ? await readUnlocks(trophyFile).catch(() => null)
-        : null;
-      ignored = new Set([
-        ...ignored,
-        ...(current ?? []).map((unlock) => unlock.name.toUpperCase()),
-      ]);
-      lastModifiedAt = -1;
-      hasImportedExistingUnlocks = true;
-      return [...ignored];
+      return occupy(forgetNow(inFlightRead));
     },
     finish: async () => {
       clearInterval(timer);

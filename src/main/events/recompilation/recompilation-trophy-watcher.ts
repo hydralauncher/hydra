@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import path from "node:path";
 
 import type { RecompilationRef, UnlockedAchievement } from "@types";
 
@@ -42,6 +43,30 @@ export const getTrophySource = (slug: string) =>
 
 const readText = (file: string) => fs.readFile(file, "utf8").catch(() => null);
 
+/** Where the SotC log stood at a reset made while the port ran. */
+interface LogResetMark {
+  ino: number;
+  offset: number;
+}
+
+/**
+ * Takes the trophy lines written before the reset out of the log. A log the
+ * port rotated since (another file) is left alone.
+ */
+const stripLogBeforeMark = async (file: string, mark: LogResetMark) => {
+  const stats = await fs.stat(file).catch(() => null);
+  if (!stats || stats.ino !== mark.ino || stats.size < mark.offset) return;
+  const data = await fs.readFile(file);
+  const head = data.subarray(0, mark.offset).toString("utf8");
+  const stripped = stripTrophyLogLines(head);
+  if (stripped !== head) {
+    await fs.writeFile(
+      file,
+      Buffer.concat([Buffer.from(stripped), data.subarray(mark.offset)])
+    );
+  }
+};
+
 const createLogReader = (history: string[]) => {
   const seen = new Map<string, number>();
   let identity: number | null = null;
@@ -52,7 +77,7 @@ const createLogReader = (history: string[]) => {
   // Where the log was when the reset happened; its trophy lines up to there
   // are taken out once the port closes, or the next session would read them
   // back from the rotated log.
-  let resetOffset: number | null = null;
+  let resetMark: LogResetMark | null = null;
 
   const remember = (contents: string) => {
     const now = Date.now();
@@ -71,7 +96,7 @@ const createLogReader = (history: string[]) => {
     if (stats) {
       identity = stats.ino;
       offset = stats.size;
-      resetOffset = stats.size;
+      resetMark = { ino: stats.ino, offset: stats.size };
     }
   };
 
@@ -112,21 +137,12 @@ const createLogReader = (history: string[]) => {
   };
 
   const afterSession = async (file: string) => {
-    if (resetOffset === null) return;
-    const data = await fs.readFile(file).catch(() => null);
-    if (!data) return;
-    const head = data.subarray(0, resetOffset).toString("utf8");
-    const stripped = stripTrophyLogLines(head);
-    if (stripped !== head) {
-      await fs.writeFile(
-        file,
-        Buffer.concat([Buffer.from(stripped), data.subarray(resetOffset)])
-      );
-    }
-    resetOffset = null;
+    if (!resetMark) return;
+    await stripLogBeforeMark(file, resetMark);
+    resetMark = null;
   };
 
-  return { read, forget, afterSession };
+  return { read, forget, afterSession, getResetMark: () => resetMark };
 };
 
 interface TrophyReader {
@@ -134,6 +150,7 @@ interface TrophyReader {
   forget?: (file: string | null) => Promise<void>;
   /** Runs once the port closed and the last read is done. */
   afterSession?: (file: string) => Promise<void>;
+  getResetMark?: () => LogResetMark | null;
 }
 
 const createReader = (
@@ -238,10 +255,73 @@ const removeResetTrophies = async (files: TrophyFiles, ids: string[]) => {
   }
 };
 
+export interface RecompilationTrophyWatcher
+  extends Omit<TrophyFileWatcher, "finish"> {
+  /**
+   * The last read. With the port still open (the Hydra quits first), the
+   * clean-up after a reset is saved and runs before the next launch instead.
+   */
+  finish: (portClosed?: boolean) => Promise<void>;
+}
+
+const PENDING_RESET_FILE = ".hydra-trophy-reset.json";
+
+interface PendingTrophyReset {
+  ids: string[];
+  log: LogResetMark | null;
+}
+
+const pendingResetPath = async (slug: string) =>
+  path.join(await getRecompilationInstallDirectory(slug), PENDING_RESET_FILE);
+
+const savePendingTrophyReset = async (
+  slug: string,
+  pending: PendingTrophyReset
+) => {
+  const file = await pendingResetPath(slug);
+  const saved = await readText(file);
+  const previous: PendingTrophyReset | null = saved
+    ? (JSON.parse(saved) as PendingTrophyReset)
+    : null;
+  await fs.writeFile(
+    file,
+    JSON.stringify({
+      ids: [...new Set([...(previous?.ids ?? []), ...pending.ids])],
+      log: pending.log ?? previous?.log ?? null,
+    })
+  );
+};
+
+/** Drops a saved clean-up, after a reset of the closed port cleared all. */
+export const clearPendingTrophyReset = async (slug: string) => {
+  await fs.rm(await pendingResetPath(slug), { force: true });
+};
+
+/** Runs a clean-up saved when the Hydra quit with the port open. */
+export const applyPendingTrophyReset = async (slug: string) => {
+  const file = await pendingResetPath(slug);
+  const contents = await readText(file);
+  if (contents === null) return;
+  const files = await resolveRecompilationTrophyFiles(slug);
+  try {
+    const pending = JSON.parse(contents) as PendingTrophyReset;
+    if (files) {
+      await removeResetTrophies(files, pending.ids ?? []);
+      if (pending.log) await stripLogBeforeMark(files.file, pending.log);
+    }
+  } catch (error) {
+    achievementsLogger.error(
+      `Failed to apply the saved ${slug} trophy reset`,
+      error
+    );
+  }
+  await fs.rm(file, { force: true });
+};
+
 export const startRecompilationTrophyWatcher = (
   ref: RecompilationRef,
   gameKey: string
-): TrophyFileWatcher | null => {
+): RecompilationTrophyWatcher | null => {
   const source = getTrophySource(ref.slug);
   if (!source || !getTrophySourcePath(source, process.platform)) return null;
 
@@ -285,17 +365,22 @@ export const startRecompilationTrophyWatcher = (
       for (const id of ids) resetIds.add(id);
       return ids;
     },
-    finish: async () => {
+    finish: async (portClosed = true) => {
       await watcher.finish();
       const resolved = files;
       if (!resolved) return;
-      const cleanUp = async () => {
-        await reader?.afterSession?.(resolved.file);
-        if (resetIds.size > 0) {
-          await removeResetTrophies(resolved, [...resetIds]);
-        }
-      };
-      await cleanUp().catch((error) =>
+      const logMark = reader?.getResetMark?.() ?? null;
+      if (resetIds.size === 0 && !logMark) return;
+
+      const work = portClosed
+        ? removeResetTrophies(resolved, [...resetIds]).then(() =>
+            logMark ? stripLogBeforeMark(resolved.file, logMark) : undefined
+          )
+        : savePendingTrophyReset(ref.slug, {
+            ids: [...resetIds],
+            log: logMark,
+          });
+      await work.catch((error) =>
         achievementsLogger.error(
           `Failed to clean the ${ref.slug} trophies after a reset`,
           error

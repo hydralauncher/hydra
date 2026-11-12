@@ -4,14 +4,13 @@ import type { Game } from "@types";
 
 import { achievementsLogger } from "@main/services/logger";
 import {
-  findRunningRecompilation,
-  forgetRunningRecompilationTrophies,
-} from "./recompilation-session";
-import {
   emptyTrophyBitmask,
   stripTrophyLogLines,
 } from "./recompilation-trophies";
-import { resolveRecompilationTrophyFiles } from "./recompilation-trophy-watcher";
+import {
+  clearPendingTrophyReset,
+  resolveRecompilationTrophyFiles,
+} from "./recompilation-trophy-watcher";
 
 const exists = (file: string) =>
   fs.stat(file).then(
@@ -66,13 +65,18 @@ const resetPortTrophies = async (slug: string, isRunning: boolean) => {
  * when the port opens and its trophies are read again.
  */
 export const resetRecompilationTrophies = async (game: Game) => {
-  const running = findRunningRecompilation(game.objectId);
-  const slugs = new Set(
-    (game.discs ?? []).flatMap((disc) =>
+  // Ports belong to LaunchBox games; another shop can share the object id.
+  if (game.shop !== "launchbox") return;
+
+  const { forgetRunningRecompilationTrophies, listRunningRecompilationSlugs } =
+    await import("./recompilation-session");
+  const running = new Set(listRunningRecompilationSlugs(game.objectId));
+  const slugs = new Set([
+    ...(game.discs ?? []).flatMap((disc) =>
       disc.recompilationSlug ? [disc.recompilationSlug] : []
-    )
-  );
-  if (running) slugs.add(running.slug);
+    ),
+    ...running,
+  ]);
 
   // First, while the files still hold the old trophies, the running port's
   // watcher marks them as reset.
@@ -85,7 +89,10 @@ export const resetRecompilationTrophies = async (game: Game) => {
 
   for (const slug of slugs) {
     try {
-      await resetPortTrophies(slug, running?.slug === slug);
+      const isRunning = running.has(slug);
+      await resetPortTrophies(slug, isRunning);
+      // A closed port is cleared completely, so a saved clean-up is moot.
+      if (!isRunning) await clearPendingTrophyReset(slug);
     } catch (error) {
       achievementsLogger.error(`Failed to reset ${slug} trophies`, error);
     }
