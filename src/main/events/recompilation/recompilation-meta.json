@@ -309,6 +309,13 @@
       "folder": ["eboot.bin", "sce_sys/param.sfo"],
       "titleIds": ["CUSA01623", "CUSA01715"],
       "extensions": []
+    },
+    "trophies": {
+      "kind": "bitmask",
+      "path": {
+        "win32": "<base>/user/trophies.dat",
+        "linux": "<xdgData>/spartanport/user/trophies.dat"
+      }
     }
   },
   "bloodborne-pc": {
@@ -336,6 +343,12 @@
         "CUSA03179"
       ],
       "extensions": []
+    },
+    "trophies": {
+      "kind": "id-time-lines",
+      "path": {
+        "win32": "<base>/user/trophies.log"
+      }
     }
   },
   "shadowofthecolossus-pc": {
@@ -353,6 +366,19 @@
       "folder": ["eboot.bin", "sce_sys/param.sfo"],
       "titleIds": ["CUSA08034", "CUSA08809"],
       "extensions": []
+    },
+    "trophies": {
+      "kind": "log",
+      "path": {
+        "win32": "<base>/user/last_run.log"
+      },
+      "history": [
+        "<base>/user/last_run.1.log",
+        "<base>/user/last_run.2.log",
+        "<base>/user/last_run.3.log",
+        "<base>/user/last_run.4.log"
+      ],
+      "grantPlatinum": true
     }
   },
   "bbport": {
@@ -384,6 +410,17 @@
       ],
       "appVersions": ["01.09"],
       "extensions": []
+    },
+    "trophies": {
+      "kind": "jsonl",
+      "path": {
+        "win32": "<base>/user/trophies.jsonl",
+        "linux": "<xdgData>/bbport/user/trophies.jsonl"
+      },
+      "resetFiles": {
+        "win32": ["<base>/user/trophy/NPWR05818_00/unlocked.txt"],
+        "linux": ["<xdgData>/bbport/user/trophy/NPWR05818_00/unlocked.txt"]
+      }
     }
   }
 }

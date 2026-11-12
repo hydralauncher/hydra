@@ -30,6 +30,10 @@ import { logger } from "@main/services/logger";
 import { WindowManager } from "@main/services/window-manager";
 import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
 import { getRecompilationInstallDirectory } from "./recompilation-paths";
+import {
+  startRecompilationTrophyWatcher,
+  type RecompilationTrophyWatcher,
+} from "./recompilation-trophy-watcher";
 
 const SHOP = "launchbox";
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
@@ -43,6 +47,7 @@ interface RecompilationSession {
   heartbeat: ReturnType<typeof setInterval> | null;
   portProcessWatch: ReturnType<typeof setInterval> | null;
   baseGameReady: Promise<void>;
+  trophyWatcher: RecompilationTrophyWatcher | null;
 }
 
 const sessions = new Map<string, RecompilationSession>();
@@ -214,13 +219,17 @@ const finishSession = async (session: RecompilationSession) => {
   const deltaMs = endSession(session);
   const objectId = cloudSaveObjectId(session.ref);
 
+  // Trophy files are cleaned before the cloud backup reads them (SpartanPort
+  // backs up trophies.dat).
+  await session.baseGameReady;
+  await session.trophyWatcher?.finish();
+
   const backup = hasCloudSaveLaunchGuard(objectId, SHOP)
     ? runAutomaticCloudSavePostExit(objectId, SHOP).catch((error) => {
         logger.error("Failed to sync recompilation save after exit", error);
       })
     : Promise.resolve();
 
-  await session.baseGameReady;
   await creditPlaytime(baseKeyOf(session.ref), deltaMs).catch((error) => {
     logger.error("Failed to save recompilation playtime", error);
   });
@@ -282,6 +291,7 @@ export const startRecompilationSession = async (
     startedAt: performance.now(),
     heartbeat: null,
     portProcessWatch: null,
+    trophyWatcher: null,
     baseGameReady: getOrAddBaseGame(ref)
       .then(() => undefined)
       .catch((error) => {
@@ -294,6 +304,9 @@ export const startRecompilationSession = async (
   sessions.set(portKey, session);
   setEmulatorGameRunning(portKey);
   setRecompilationGameRunning(portKey, baseKey, ref.slug);
+  // Started before the wait for the library, so a port that exits right away
+  // still has its trophies read when the session finishes.
+  session.trophyWatcher = startRecompilationTrophyWatcher(ref, baseKey);
 
   const finish = () => {
     if (sessions.get(portKey) !== session) return;
@@ -321,9 +334,24 @@ export const startRecompilationSession = async (
 export const isRecompilationRunning = (ref: RecompilationRef) =>
   sessions.has(portKeyOf(ref));
 
+/** Every port of this game running now; several can run at once. */
+export const listRunningRecompilationSlugs = (objectId: string) =>
+  [...sessions.values()]
+    .filter((session) => session.ref.objectId === objectId)
+    .map((session) => session.ref.slug);
+
 export const findRunningRecompilation = (objectId: string) =>
   [...sessions.values()].find((session) => session.ref.objectId === objectId)
     ?.ref ?? null;
+
+/** After a reset, the running port of the game stops counting old trophies. */
+export const forgetRunningRecompilationTrophies = async (objectId: string) => {
+  await Promise.all(
+    [...sessions.values()]
+      .filter((session) => session.ref.objectId === objectId)
+      .map((session) => session.trophyWatcher?.forget())
+  );
+};
 
 const signalProcessGroup = (pid: number, signal: NodeJS.Signals) => {
   try {
@@ -395,6 +423,11 @@ export const saveRecompilationPlaytimeOnQuit = async () => {
   await Promise.all(
     Array.from(sessions.values(), async (session) => {
       const deltaMs = endSession(session);
+      // The port keeps running after the Hydra quits: the last trophy read
+      // runs now, and a clean-up after a reset waits for the next launch.
+      await session.trophyWatcher?.finish(false).catch((error) => {
+        logger.error("Failed to finish the port trophy watcher", error);
+      });
       const baseKey = baseKeyOf(session.ref);
       const game = await gamesSublevel.get(baseKey);
       if (!game) return;

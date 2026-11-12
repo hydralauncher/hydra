@@ -612,6 +612,13 @@ const launchRecompilation = async (
   const consoleHider = shouldHideRecompilationConsole(ref.slug)
     ? startConsoleHider()
     : null;
+  const { applyPendingTrophyReset } = await import(
+    "./recompilation-trophy-watcher"
+  );
+  await applyPendingTrophyReset(ref.slug).catch((error) =>
+    logger.error("Failed to apply a saved trophy reset", error)
+  );
+
   const spawned = await spawnPort(executablePath, launch);
   if (spawned.ok && spawned.child.pid) {
     consoleHider?.stdin?.end(`${spawned.child.pid}\n`);
