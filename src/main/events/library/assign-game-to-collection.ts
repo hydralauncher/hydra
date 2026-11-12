@@ -47,13 +47,13 @@ const assignGameToCollection = async (
       }
     }
 
-    await updateGameRecord(gameKey, {
+    await updateGameRecord(gameKey, (latest) => ({
       collectionIds,
       collectionPositions: pickLibraryCollectionPositions(
-        game.collectionPositions,
+        latest.collectionPositions,
         collectionIds
       ),
-    });
+    }));
   } catch (error) {
     logger.error("Failed to assign game to collection", error);
     throw new Error(`Failed to assign game to collection: ${error}`);
