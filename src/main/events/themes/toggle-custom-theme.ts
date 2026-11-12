@@ -1,6 +1,9 @@
 import { themesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
-import { achievementNotificationPresenter } from "@main/services";
+import {
+  achievementNotificationPresenter,
+  WindowManager,
+} from "@main/services";
 
 const toggleCustomTheme = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -19,6 +22,7 @@ const toggleCustomTheme = async (
     updatedAt: new Date(),
   });
 
+  WindowManager.sendToAppWindows("on-custom-theme-updated");
   achievementNotificationPresenter.notifyThemeUpdated();
 };
 

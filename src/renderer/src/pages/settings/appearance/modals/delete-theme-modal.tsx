@@ -3,7 +3,6 @@ import { Modal } from "@renderer/components/modal/modal";
 import { useTranslation } from "react-i18next";
 import "./modals.scss";
 import { removeCustomCss } from "@renderer/helpers";
-import { levelDBService } from "@renderer/services/leveldb.service";
 
 interface DeleteThemeModalProps {
   visible: boolean;
@@ -29,7 +28,7 @@ export const DeleteThemeModal = ({
       removeCustomCss();
     }
 
-    await levelDBService.del(themeId, "themes");
+    await window.electron.deleteCustomTheme(themeId);
     await window.electron.closeEditorWindow(themeId);
     onThemeDeleted();
   };

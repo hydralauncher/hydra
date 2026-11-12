@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 
 import { useFeature } from "@renderer/hooks/use-feature";
+import { useCustomTheme } from "@renderer/hooks/use-custom-theme";
 import {
   fetchAllProfileFriends,
   OFFICIAL_MESSAGES_PATH,
@@ -49,6 +50,7 @@ const createConversation = (friend: UserFriend): ChatConversation => ({
 });
 
 export default function ChatWindow() {
+  useCustomTheme();
   const { t, i18n } = useTranslation("chat_window");
   const { isFeatureEnabled, Feature } = useFeature();
 
