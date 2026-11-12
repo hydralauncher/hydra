@@ -19,6 +19,7 @@ import "./library-toolbar-menu.scss";
 export type SortOption =
   | "title_asc"
   | "recently_played"
+  | "recently_downloaded"
   | "most_played"
   | "achievements"
   | "installed_first"
@@ -46,6 +47,7 @@ export function LibraryDisplayMenu({
   const sortOptions: { value: SortOption; label: string }[] = [
     { value: "title_asc", label: t("sort_title_asc") },
     { value: "recently_played", label: t("recently_played") },
+    { value: "recently_downloaded", label: t("sort_recently_downloaded") },
     { value: "most_played", label: t("sort_most_played") },
     { value: "achievements", label: t("sort_achievements") },
     { value: "installed_first", label: t("sort_installed_first") },

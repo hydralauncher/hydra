@@ -45,6 +45,7 @@ import {
 
 const SORT_OPTIONS = [
   { value: "last_played", label: "Last Played" },
+  { value: "recently_downloaded", label: "Recently Downloaded" },
   { value: "playtime", label: "Most Played" },
   { value: "title_asc", label: "Alphabetical (A-Z)" },
   { value: "title_desc", label: "Alphabetical (Z-A)" },
