@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 
-import type { Game } from "@types";
+import type { Game, RecompilationRef } from "@types";
 
 import { achievementsLogger } from "@main/services/logger";
 import {
@@ -25,8 +25,8 @@ const stripLog = async (file: string) => {
   if (stripped !== contents) await fs.writeFile(file, stripped);
 };
 
-const resetPortTrophies = async (slug: string, isRunning: boolean) => {
-  const files = await resolveRecompilationTrophyFiles(slug);
+const resetPortTrophies = async (ref: RecompilationRef, isRunning: boolean) => {
+  const files = await resolveRecompilationTrophyFiles(ref);
   if (!files) return;
 
   // An open port keeps its trophies in memory and may hold its files, so they
@@ -94,7 +94,7 @@ export const resetRecompilationTrophies = async (game: Game) => {
   for (const slug of slugs) {
     try {
       const isRunning = running.has(slug);
-      await resetPortTrophies(slug, isRunning);
+      await resetPortTrophies({ objectId: game.objectId, slug }, isRunning);
       // A closed port is cleared completely, so a saved clean-up is moot.
       if (!isRunning) await clearPendingTrophyReset(slug);
     } catch (error) {

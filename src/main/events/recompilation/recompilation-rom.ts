@@ -1085,12 +1085,7 @@ export const listRecompilationGameFolders = async (objectId: string) => {
   return folders;
 };
 
-export const getRecompilationChosenTitleId = async (slug: string) => {
-  const meta = getRecompilationRomMeta(slug);
-  if (!meta || !isFolderRom(meta)) return null;
-  const choice = await readRomChoice(
-    await getRecompilationInstallDirectory(slug)
-  );
-  if (choice?.source !== "file" || !choice.path) return null;
-  return readTitleId(toGameFolder(choice.path));
+export const getRecompilationChosenTitleId = async (ref: RecompilationRef) => {
+  const folder = await getRecompilationGameFolder(ref.objectId, ref.slug);
+  return folder ? readTitleId(folder) : null;
 };
