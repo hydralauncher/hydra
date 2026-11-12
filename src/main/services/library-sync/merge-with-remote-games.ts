@@ -3,6 +3,7 @@ import {
   hasPendingHydraClaim,
   getEpicLibraryConnectionRevision,
   getHydraPlaytimeRevision,
+  getCollectionOrderRevision,
 } from "./library-write-queue";
 import type { HydraApiAuthContext } from "../hydra-auth-context";
 import type { EpicConnection } from "../../../types/epic-integration.types";
@@ -386,12 +387,30 @@ const buildMergedGame = (
   return { ...mergedGame, collectionPositions };
 };
 
+const keepNewerLocalCollectionOrders = (
+  merged: Game,
+  localGame: Game,
+  collectionOrderRevision: number
+) => {
+  const positions = { ...merged.collectionPositions };
+  for (const collectionId of getCollectionIds(merged)) {
+    if (getCollectionOrderRevision(collectionId) <= collectionOrderRevision)
+      continue;
+
+    const localPosition = localGame.collectionPositions?.[collectionId];
+    if (localPosition === undefined) delete positions[collectionId];
+    else positions[collectionId] = localPosition;
+  }
+  return positions;
+};
+
 const mergeRemoteGamesChunk = async (
   remoteGames: ProfileGame[],
   canReconcileCustomArtwork: boolean,
   context: HydraApiAuthContext | null,
   epicConnectionId: string | undefined,
   hydraRevision: number,
+  collectionOrderRevision: number,
   current: () => boolean
 ) => {
   let achievementTotalsChanged = false;
@@ -435,6 +454,12 @@ const mergeRemoteGamesChunk = async (
             localGame.hasManuallyUpdatedPlaytime;
           merged.lastTimePlayed = localGame.lastTimePlayed;
         }
+        if (localGame)
+          merged.collectionPositions = keepNewerLocalCollectionOrders(
+            merged,
+            localGame,
+            collectionOrderRevision
+          );
         if (remoteGame.hasActiveEpicImport && context && epicConnectionId)
           merged.epicImportScope = {
             environment: context.environment,
@@ -604,6 +629,7 @@ const mergeWithRemoteGamesOnce = async (
   const context = capturedContext ?? HydraApi.getAuthContext();
   const revision = getEpicLibraryConnectionRevision();
   const hydraRevision = getHydraPlaytimeRevision();
+  const collectionOrderRevision = getCollectionOrderRevision();
   const current = () =>
     (context
       ? HydraApi.isAuthContextCurrent(context)
@@ -655,6 +681,7 @@ const mergeWithRemoteGamesOnce = async (
         context,
         epicConnectionId,
         hydraRevision,
+        collectionOrderRevision,
         current
       );
       if (!current()) return false;

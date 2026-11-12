@@ -1,4 +1,7 @@
-import { libraryWriteQueue } from "@main/services/library-sync/library-write-queue";
+import {
+  libraryWriteQueue,
+  markCollectionOrderChanged,
+} from "@main/services/library-sync/library-write-queue";
 import { registerEvent } from "../register-event";
 import { gamesSublevel } from "@main/level";
 import { HydraApi, logger } from "@main/services";
@@ -27,20 +30,39 @@ const completeCollectionOrder = (
   if (games.length === 0) return games;
 
   const listedKeys = new Set(games.map(getOrderKey));
-  const getPosition = (game: Game) =>
-    game.collectionPositions?.[collectionId] ?? Number.MAX_SAFE_INTEGER;
-  const omittedGames = storedGames
+  const collectionGames = storedGames.filter(
+    (game) =>
+      !game.isDeleted && getLibraryCollectionIds(game).includes(collectionId)
+  );
+  const placedGames = collectionGames
+    .flatMap((game) => {
+      const position = game.collectionPositions?.[collectionId];
+      return position === undefined ? [] : [{ game, position }];
+    })
+    .sort((a, b) => a.position - b.position)
+    .map(({ game }) => game);
+  const unplacedGames = collectionGames
     .filter(
       (game) =>
-        !game.isDeleted &&
-        getLibraryCollectionIds(game).includes(collectionId) &&
+        game.collectionPositions?.[collectionId] === undefined &&
         !listedKeys.has(getOrderKey(game))
     )
-    .sort((a, b) => getPosition(a) - getPosition(b));
+    .sort((a, b) => a.title.localeCompare(b.title));
+
+  const completed = games.map(({ shop, objectId }) => ({ shop, objectId }));
+  placedGames.forEach((game, index) => {
+    if (listedKeys.has(getOrderKey(game))) return;
+
+    const previousKey = index > 0 ? getOrderKey(placedGames[index - 1]) : null;
+    const insertAt = previousKey
+      ? completed.findIndex((listed) => getOrderKey(listed) === previousKey) + 1
+      : 0;
+    completed.splice(insertAt, 0, { shop: game.shop, objectId: game.objectId });
+  });
 
   return [
-    ...games,
-    ...omittedGames.map(({ shop, objectId }) => ({ shop, objectId })),
+    ...completed,
+    ...unplacedGames.map(({ shop, objectId }) => ({ shop, objectId })),
   ];
 };
 
@@ -93,6 +115,7 @@ const saveCollectionGameOrder = async (
     });
 
     if (updates.length) await gamesSublevel.batch(updates);
+    markCollectionOrderChanged(collectionId);
   });
 };
 
