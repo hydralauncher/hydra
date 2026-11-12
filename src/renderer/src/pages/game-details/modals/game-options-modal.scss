@@ -266,14 +266,60 @@ $disc-menu-transition-duration: 0.15s;
     flex-direction: column;
     gap: globals.$spacing-unit;
 
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
     &-description {
+      font-size: 13px;
       font-weight: 400;
+      color: rgba(globals.$body-color, 0.65);
     }
 
     &-buttons {
       display: flex;
       gap: globals.$spacing-unit;
       flex-wrap: wrap;
+    }
+  }
+
+  // Danger zone table: what it is, what it does, and its action.
+  &__danger-table {
+    display: flex;
+    flex-direction: column;
+    margin-top: globals.$spacing-unit;
+  }
+
+  &__danger-row {
+    display: grid;
+    grid-template-columns: 160px 1fr auto;
+    gap: calc(globals.$spacing-unit * 2);
+    align-items: center;
+    padding: calc(globals.$spacing-unit * 1.75) 0;
+
+    & + & {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    &--disabled &-label,
+    &--disabled &-description {
+      opacity: 0.55;
+    }
+
+    &-label {
+      font-size: 14px;
+    }
+
+    &-description {
+      font-size: 13px;
+      color: rgba(globals.$body-color, 0.65);
+    }
+
+    &-action button {
+      // Every action button has the same width.
+      width: 104px;
+      justify-content: center;
     }
   }
 
