@@ -7,9 +7,13 @@ import { chunk } from "lodash-es";
 import * as playtime from "../../../shared/playtime.js";
 import { preserveEpicDefaultArtwork } from "../../../shared/artwork-resolver.js";
 import { mergeLibraryCatalogueMetadata } from "../../../shared/library-catalogue.js";
+import { pickLibraryCollectionPositions } from "../../../shared/library-group-actions.js";
 import * as source from "./resolve-library-source.js";
 import * as queue from "./library-write-queue.js";
-import { mergeImportedProfileGame } from "./merge-imported-profile-game.js";
+import {
+  keepNewerLocalCollectionOrders,
+  mergeImportedProfileGame,
+} from "./merge-imported-profile-game.js";
 import type { Game, ShopAssets } from "@types";
 import { EPIC_HYDRA_TIMEOUT_MS } from "../epic/constants.js";
 
@@ -102,6 +106,7 @@ function fixture() {
       ...playtime,
       preserveEpicDefaultArtwork,
       mergeLibraryCatalogueMetadata,
+      pickLibraryCollectionPositions,
     },
     "./library-write-queue": queue,
     "../hydra-api": {
@@ -171,7 +176,10 @@ function fixture() {
       CUSTOM_ASSET_FIELD_BY_TYPE: {},
       reconcileRemoteArtworkSelection: () => ({ selected: {}, changed: false }),
     },
-    "./merge-imported-profile-game": { mergeImportedProfileGame },
+    "./merge-imported-profile-game": {
+      keepNewerLocalCollectionOrders,
+      mergeImportedProfileGame,
+    },
     "./resolve-library-source": source,
     "../achievements/achievement-memory-store": {
       mergePersistedAchievementTotals: (
