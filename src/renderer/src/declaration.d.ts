@@ -733,6 +733,10 @@ declare global {
       shop: GameShop
     ) => Promise<import("@types").EmulatorDiscIdentityStatus>;
     setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
+    getShadps4DataDirStatus: () => Promise<
+      import("@types").EmulatorSaveLocationStatus
+    >;
+    setShadps4DataDir: (dir: string | null) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (
       system: EmulatorSystem,

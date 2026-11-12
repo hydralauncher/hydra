@@ -24,6 +24,7 @@ export interface EmulatorConfig {
   binary: EmulatorBinary;
   executablePath: string | null;
   rpcs3ConfigRoot?: string | null;
+  shadps4DataDir?: string | null;
   detectedVersion: string | null;
   detectedAt: number | null;
   biosPath: string | null;

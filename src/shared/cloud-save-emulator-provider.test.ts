@@ -3,6 +3,7 @@ import { it } from "node:test";
 
 import {
   canSelectCloudSaveCustomFile,
+  getCloudSaveEmulatorProvider,
   hasCloudSaveExecutableSelection,
   hasCloudSaveDisc,
   isCloudSaveV2Eligible,
@@ -112,6 +113,28 @@ it("requires a registered RPCS3 disc regardless of active disc selection", () =>
     hasCloudSaveExecutableSelection({
       shop: "steam",
       executablePath: "/games/minecraft.exe",
+    }),
+    true
+  );
+});
+
+it("routes PS4 games to shadPS4 and requires a registered game folder", () => {
+  assert.equal(
+    getCloudSaveEmulatorProvider("launchbox", "Sony Playstation 4"),
+    "shadps4"
+  );
+  assert.equal(getCloudSaveEmulatorProvider("launchbox", "PS4"), "shadps4");
+  assert.equal(
+    getCloudSaveEmulatorProvider("steam", "Sony Playstation 4"),
+    null
+  );
+  assert.equal(isCloudSaveV2Eligible("launchbox", "Sony Playstation 4"), true);
+  const ps4 = { shop: "launchbox" as const, platform: "Sony Playstation 4" };
+  assert.equal(hasCloudSaveExecutableSelection({ ...ps4, discs: [] }), false);
+  assert.equal(
+    hasCloudSaveExecutableSelection({
+      ...ps4,
+      discs: [{ path: "D:/PS4/CUSA00207" }],
     }),
     true
   );

@@ -561,6 +561,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getEmulatorDiscIdentityStatus", objectId, shop),
   setRpcs3ConfigRoot: (root: string) =>
     ipcRenderer.invoke("setRpcs3ConfigRoot", root),
+  getShadps4DataDirStatus: () => ipcRenderer.invoke("getShadps4DataDirStatus"),
+  setShadps4DataDir: (dir: string | null) =>
+    ipcRenderer.invoke("setShadps4DataDir", dir),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
   detectEmulator: (
     system: EmulatorSystem,
