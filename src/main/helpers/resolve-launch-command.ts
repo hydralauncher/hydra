@@ -9,7 +9,7 @@ export interface ResolveLaunchCommandOptions {
   baseArgs?: string[];
   launchOptions?: string | null;
   wrapperCommand?: string | null;
-  wrapperCommands?: string[];
+  wrapperCommands?: (string | string[])[];
 }
 
 export interface ResolvedLaunchCommand {
@@ -52,7 +52,7 @@ export const resolveLaunchCommand = ({
   wrapperCommand,
   wrapperCommands,
 }: ResolveLaunchCommandOptions): ResolvedLaunchCommand => {
-  let wrappers: string[];
+  let wrappers: (string | string[])[];
 
   if (wrapperCommands && wrapperCommands.length > 0) {
     wrappers = wrapperCommands;
@@ -72,15 +72,19 @@ export const resolveLaunchCommand = ({
     }
 
     return wrappers.reduceRight<ResolvedLaunchCommand>((current, wrapper) => {
-      if (
-        path.basename(current.command).toLowerCase() === wrapper.toLowerCase()
-      ) {
+      const wrapperArgs = Array.isArray(wrapper) ? wrapper : [wrapper];
+      if (wrapperArgs.length === 0) return current;
+
+      const cmd = wrapperArgs[0];
+      const wArgs = wrapperArgs.slice(1);
+
+      if (path.basename(current.command).toLowerCase() === cmd.toLowerCase()) {
         return current;
       }
 
       return {
-        command: wrapper,
-        args: [current.command, ...current.args],
+        command: cmd,
+        args: [...wArgs, current.command, ...current.args],
         env: current.env,
       };
     }, resolved);

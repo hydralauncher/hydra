@@ -46,6 +46,7 @@ import {
 } from "../events/helpers/parse-executable-path";
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
+import { isGamescopeAvailable } from "./is-gamescope-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import {
   buildWindowsBatchCommand,
@@ -73,6 +74,7 @@ export interface LaunchGameOptions {
 }
 
 const LAUNCH_DELAY_IN_MS = 2_000;
+const gamescopeResolutionRegex = /^\s*(\d+)\s*[xX]\s*(\d+)\s*$/;
 
 const createUmuStatusReporter =
   (gameKey: string) =>
@@ -121,6 +123,7 @@ const launchNatively = (
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false,
+  gamescopeArgs: string[] = [],
   shortcut: ExecutableShortcut | null = null
 ): number | null => {
   const workingDirectory =
@@ -130,6 +133,7 @@ const launchNatively = (
     baseArgs: shortcut?.arguments,
     launchOptions,
     wrapperCommands: [
+      ...(gamescopeArgs.length > 0 ? [gamescopeArgs] : []),
       ...(useGamemode ? ["gamemoderun"] : []),
       ...(useMangohud ? ["mangohud"] : []),
     ],
@@ -205,6 +209,7 @@ const launchWithWine = async (
   launchOptions?: string | null,
   useMangohud = false,
   useGamemode = false,
+  gamescopeArgs: string[] = [],
   winePrefixPath?: string | null
 ): Promise<boolean> => {
   const workingDirectory = path.dirname(executablePath);
@@ -213,6 +218,7 @@ const launchWithWine = async (
     baseArgs: [executablePath],
     launchOptions,
     wrapperCommands: [
+      ...(gamescopeArgs.length > 0 ? [gamescopeArgs] : []),
       ...(useGamemode ? ["gamemoderun"] : []),
       ...(useMangohud ? ["mangohud"] : []),
     ],
@@ -446,8 +452,11 @@ const launchWindowsBinaryOnLinux = async (
   parsedPath: string,
   compatibilityContext: LinuxCompatibilityLaunchContext,
   launchOptions: string | null | undefined,
-  useMangohud: boolean,
-  useGamemode: boolean
+  linuxArgs: {
+    useMangohud: boolean;
+    useGamemode: boolean;
+    gamescopeArgs: string[];
+  }
 ): Promise<boolean> => {
   const { protonPath, winePrefixPath } = compatibilityContext;
   const reportUmuStatus = createUmuStatusReporter(gameKey);
@@ -460,8 +469,9 @@ const launchWindowsBinaryOnLinux = async (
       protonPath,
       gameId: objectId,
       launchOptions,
-      useGamemode,
-      useMangohud,
+      useGamemode: linuxArgs.useGamemode,
+      useMangohud: linuxArgs.useMangohud,
+      gamescopeArgs: linuxArgs.gamescopeArgs,
       onStatus: reportUmuStatus,
       wasGameDetected: () => wasGameLauncherGameDetected(gameKey),
     });
@@ -478,8 +488,9 @@ const launchWindowsBinaryOnLinux = async (
   const launchedWithWine = await launchWithWine(
     parsedPath,
     launchOptions,
-    useMangohud,
-    useGamemode,
+    linuxArgs.useMangohud,
+    linuxArgs.useGamemode,
+    linuxArgs.gamescopeArgs,
     winePrefixPath
   );
 
@@ -625,6 +636,7 @@ const launchResolvedGame = async (
   launchOptions: string | null | undefined,
   useMangohud: boolean,
   useGamemode: boolean,
+  gamescopeArgs: string[] = [],
   shortcut: ExecutableShortcut | null = null
 ) => {
   if (process.platform !== "linux") {
@@ -633,6 +645,7 @@ const launchResolvedGame = async (
       launchOptions,
       useMangohud,
       useGamemode,
+      gamescopeArgs,
       shortcut
     );
   }
@@ -649,8 +662,11 @@ const launchResolvedGame = async (
       parsedPath,
       compatibilityContext,
       launchOptions,
-      useMangohud,
-      useGamemode
+      {
+        useMangohud,
+        useGamemode,
+        gamescopeArgs,
+      }
     );
     if (launched) return null;
     clearCloudSaveLaunchGuard(objectId, shop);
@@ -660,7 +676,9 @@ const launchResolvedGame = async (
     parsedPath,
     launchOptions,
     useMangohud,
-    useGamemode
+    useGamemode,
+    gamescopeArgs,
+    shortcut
   );
   if (pid !== null) launchedGamePids.set(gameKey, pid);
   return pid;
@@ -742,6 +760,37 @@ const launchGameWithCloudSaveChecks = async (
     (userPreferences?.autoRunGamemode === true ||
       game?.autoRunGamemode === true) &&
     isGamemodeAvailable();
+
+  const useGamescope =
+    (userPreferences?.autoRunGamescope === true ||
+      game?.autoRunGamescope === true) &&
+    isGamescopeAvailable();
+
+  const gamescopeArgs: string[] = [];
+  if (useGamescope) {
+    gamescopeArgs.push("gamescope", "-f");
+    if (game?.gamescopeResolution) {
+      const match = gamescopeResolutionRegex.exec(game.gamescopeResolution);
+      if (match) {
+        gamescopeArgs.push("-w", match[1], "-h", match[2]);
+      }
+    }
+    if (game?.gamescopeOutputResolution) {
+      const match = gamescopeResolutionRegex.exec(
+        game.gamescopeOutputResolution
+      );
+      if (match) {
+        gamescopeArgs.push("-W", match[1], "-H", match[2]);
+      }
+    }
+    if (game?.gamescopeUpscaler) {
+      gamescopeArgs.push("-F", game.gamescopeUpscaler);
+    }
+    if (game?.gamescopeFramerateLimit) {
+      gamescopeArgs.push("-r", String(game.gamescopeFramerateLimit));
+    }
+    gamescopeArgs.push("--");
+  }
 
   const steamCompatibilityPrefixPath =
     process.platform === "linux" &&
@@ -945,6 +994,7 @@ const launchGameWithCloudSaveChecks = async (
                 launchOptions,
                 useGamemode,
                 useMangohud,
+                gamescopeArgs,
                 onStatus: createUmuStatusReporter(gameKey),
               }
             );
@@ -1021,6 +1071,7 @@ const launchGameWithCloudSaveChecks = async (
           launchOptions,
           useMangohud,
           useGamemode,
+          gamescopeArgs,
           shortcut
         );
       }
@@ -1054,6 +1105,7 @@ const launchGameWithCloudSaveChecks = async (
     launchOptions,
     useMangohud,
     useGamemode,
+    gamescopeArgs,
     shortcut
   );
 };

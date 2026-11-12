@@ -44,11 +44,12 @@ async function fixture(t: TestContext) {
   const state = {
     ready: false,
     occupied: false,
-    calls: [] as Array<{
+    calls: [] as {
+      executable?: string;
       args: string[];
       environment: Record<string, string>;
       cwd: string;
-    }>,
+    }[],
     terminated: 0,
     code: 0,
     launchCode: 0,
@@ -89,11 +90,25 @@ async function fixture(t: TestContext) {
     "@main/helpers/resolve-launch-command": {
       resolveLaunchCommand: ({
         baseCommand,
-        baseArgs,
+        baseArgs = [],
+        wrapperCommands = [],
       }: {
         baseCommand: string;
-        baseArgs: string[];
-      }) => ({ command: baseCommand, args: baseArgs, env: {} }),
+        baseArgs?: string[];
+        wrapperCommands?: (string | string[])[];
+      }) => {
+        let command = baseCommand;
+        let args = [...baseArgs];
+        for (let i = wrapperCommands.length - 1; i >= 0; i--) {
+          const wrapper = wrapperCommands[i];
+          const w = Array.isArray(wrapper) ? wrapper : [wrapper];
+          if (w.length > 0) {
+            args = [...w.slice(1), command, ...args];
+            command = w[0];
+          }
+        }
+        return { command, args, env: {} };
+      },
     },
     "@main/events/helpers/parse-launch-options": {
       parseLaunchOptions: (input?: string) => input?.split(" ") ?? [],
@@ -126,6 +141,7 @@ async function fixture(t: TestContext) {
           sha256: createHash("sha256").update("umu fixture").digest("hex"),
         }),
         launchSupervised: async (options: {
+          executable?: string;
           args: string[];
           environment: Record<string, string>;
           cwd: string;
@@ -838,4 +854,35 @@ test("cancellation or lease replacement during fingerprint IO prevents spawning"
     code: "compatibility-prefix-busy",
   });
   replacement.release();
+});
+
+test("gamescope args wrap launch command around gamemoderun", async (t) => {
+  const f = await fixture(t);
+  const context = (await f.api.prepareEpicLinuxRuntime(
+    f.game,
+    f.target,
+    f.options()
+  )) as PreparedEpicLinuxContext;
+  const parameters = {
+    executable: "Game.exe",
+    args: [],
+    workingDirectory: f.root,
+    environment: {},
+  };
+  const lease = (await f.api.acquireEpicLinuxPrefixSession(context)) as {
+    release(): void;
+  };
+  try {
+    await f.api.launchEpicLinuxGame(parameters, context, {
+      lease,
+      useGamemode: true,
+      gamescopeArgs: ["gamescope", "-f", "--"],
+    });
+    const lastCall = f.state.calls.at(-1);
+    assert.ok(lastCall);
+    assert.equal(lastCall.executable, "gamescope");
+    assert.deepEqual(lastCall.args.slice(0, 3), ["-f", "--", "gamemoderun"]);
+  } finally {
+    lease.release();
+  }
 });

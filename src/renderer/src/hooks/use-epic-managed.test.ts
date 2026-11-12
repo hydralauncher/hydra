@@ -439,6 +439,7 @@ describe("Epic managed UI lifecycle", () => {
       getInstalledProtonVersions: async () => [],
       isGamemodeAvailable: async () => false,
       isMangohudAvailable: async () => false,
+      isGamescopeAvailable: async () => false,
       selectGameWinePrefix: async (...args: unknown[]) => selected.push(args),
     });
     const wrap = ({ children }: { children: React.ReactNode }) =>
