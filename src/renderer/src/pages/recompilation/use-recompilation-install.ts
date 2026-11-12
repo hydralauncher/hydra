@@ -144,6 +144,8 @@ export function useRecompilationInstall(
       result.ok ||
       result.reason === "cloud_save_conflict" ||
       (result.reason === "rom_prepare_failed" && prepareErrorShown.current) ||
+      // The main process already said which update the game needs.
+      result.reason === "rom_update_required" ||
       result.reason === "running"
     );
   }, [objectId, slug]);

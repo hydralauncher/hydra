@@ -51,6 +51,11 @@ const resetPortTrophies = async (slug: string, isRunning: boolean) => {
     case "jsonl":
       await fs.rm(files.file, { force: true });
       break;
+    case "earned-json":
+      // The copy beside it too, or the port would bring the trophies back.
+      await fs.rm(files.file, { force: true });
+      await fs.rm(`${files.file}.bak`, { force: true });
+      break;
     case "log":
       await stripLog(files.file);
       for (const rotated of files.history) await stripLog(rotated);

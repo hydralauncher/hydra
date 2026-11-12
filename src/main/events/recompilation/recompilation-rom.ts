@@ -12,11 +12,13 @@ import type {
   RecompilationRomMeta,
   RecompilationRomSource,
   RecompilationRomState,
+  User,
 } from "@types";
 import { isCompletedLikeDownload } from "../../../types";
-import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { t } from "i18next";
 import { logger, SevenZip, WindowManager } from "@main/services";
+import { HydraApi } from "@main/services/hydra-api";
 import { parseParamSfoValue } from "@main/services/emulators/param-sfo";
 import {
   assertPs4UpdateFits,
@@ -39,6 +41,11 @@ import {
   runPs4PkgJob,
 } from "../emulators/ps4-pkg-job";
 import { toZ64 } from "./n64-rom";
+import {
+  getOnlineLaunchEnv,
+  pickPortFile,
+  writeIniValues,
+} from "./recompilation-port-settings";
 import {
   isPreparedForVersion,
   readInstallerEvent,
@@ -595,7 +602,15 @@ export const setRecompilationRom = async (
   const supported = isChecked
     ? await isSupportedRomVersion(chosenPath, meta)
     : true;
-  return supported ? { ok: true } : { ok: true, warning: "rom_version" };
+  if (supported) return { ok: true };
+  // The game stays chosen, so its update can be applied over it.
+  return meta.requireAppVersion
+    ? {
+        ok: true,
+        warning: "rom_update_required",
+        requiredVersion: getRequiredVersionLabel(meta),
+      }
+    : { ok: true, warning: "rom_version" };
 };
 
 const MAX_HASHED_ROM_BYTES = 128 * 1024 * 1024;
@@ -791,6 +806,10 @@ const writeRomConfig = async (
       : config.file[process.platform as MetaPlatform];
   if (!template) return;
   const file = resolveRecompilationPath(template, baseDirectory, "");
+  if (path.extname(file).toLowerCase() === ".ini") {
+    await writeIniValues(file, { [config.key.at(-1)!]: romPath });
+    return;
+  }
   let root: Record<string, unknown> = {};
   try {
     const parsed = JSON.parse(await fs.promises.readFile(file, "utf-8"));
@@ -813,14 +832,66 @@ const writeRomConfig = async (
   await fs.promises.writeFile(file, JSON.stringify(root, null, 2));
 };
 
+const getPortName = async (installDirectory: string) =>
+  (await readInstallMarker(installDirectory))?.name ??
+  path.basename(installDirectory);
+
 const warnUnsupportedRom = async (installDirectory: string) => {
-  const name =
-    (await readInstallMarker(installDirectory))?.name ??
-    path.basename(installDirectory);
+  const name = await getPortName(installDirectory);
   WindowManager.mainWindow?.webContents.send("on-show-toast", {
     type: "warning",
     title: t("rom_version_warning", { ns: "recompilation", name }),
   });
+};
+
+/** The game version a port that requires one needs, as players read it (1.21). */
+const getRequiredVersionLabel = (meta: RecompilationRomMeta) =>
+  (meta.appVersions?.[0] ?? "").replace(/^0+(?=\d)/, "");
+
+const refuseOutdatedGame = async (
+  installDirectory: string,
+  meta: RecompilationRomMeta
+) => {
+  WindowManager.mainWindow?.webContents.send("on-show-toast", {
+    type: "error",
+    title: t("rom_update_required", {
+      ns: "recompilation",
+      name: await getPortName(installDirectory),
+      version: getRequiredVersionLabel(meta),
+    }),
+  });
+};
+
+const writePortSettings = async (
+  meta: RecompilationRomMeta,
+  baseDirectory: string
+) => {
+  for (const setting of meta.path?.settings ?? []) {
+    const template = pickPortFile(setting.file);
+    if (!template) continue;
+    const file = resolveRecompilationPath(template, baseDirectory, "");
+    // A port that builds this file from its defaults skips that once it exists.
+    if (setting.seedFrom && !(await fileExists(file))) {
+      const seed = resolveRecompilationPath(
+        setting.seedFrom,
+        baseDirectory,
+        ""
+      );
+      if (await fileExists(seed)) {
+        await fs.promises.mkdir(path.dirname(file), { recursive: true });
+        await fs.promises.copyFile(seed, file);
+      }
+    }
+    await writeIniValues(file, setting.values);
+  }
+};
+
+const getHydraAccount = async () => {
+  if (!HydraApi.isLoggedIn()) return null;
+  const user = await db
+    .get<string, User | null>(levelKeys.user, { valueEncoding: "json" })
+    .catch(() => null);
+  return user?.displayName ? { displayName: user.displayName } : null;
 };
 
 /** A port that rebuilds the game per version prepares again right after an update. */
@@ -860,6 +931,18 @@ export const prepareRecompilationRom = async (
     choice.preparedFrom === state.romPath &&
     choice.preparedVersion === portVersion;
   let romPath = state.romPath;
+
+  // A port that refuses other game versions would only fail once it opens.
+  if (
+    meta.requireAppVersion &&
+    isFolderRom(meta) &&
+    !(await isSupportedGameVersion(state.romPath, meta))
+  ) {
+    await refuseOutdatedGame(installDirectory, meta);
+    return { ok: false, reason: "rom_update_required" };
+  }
+
+  let onlineEnv: Record<string, string> = {};
 
   try {
     if (isFolderRom(meta)) {
@@ -908,6 +991,14 @@ export const prepareRecompilationRom = async (
     if (meta.path?.config) {
       await writeRomConfig(meta.path.config, baseDirectory, romPath);
     }
+    await writePortSettings(meta, baseDirectory);
+    if (meta.path?.online) {
+      onlineEnv = await getOnlineLaunchEnv(
+        meta.path.online,
+        (template) => resolveRecompilationPath(template, baseDirectory, ""),
+        await getHydraAccount()
+      );
+    }
 
     // ROMs downloaded or picked inside an archive are only checked once they are unpacked.
     const needsVersionCheck = choice.checkedFrom !== state.romPath;
@@ -945,14 +1036,17 @@ export const prepareRecompilationRom = async (
   return {
     ok: true,
     args: passRom ? (meta.path?.arg ?? []).map(fill) : [],
-    env: passRom
-      ? Object.fromEntries(
-          Object.entries(meta.path?.env ?? {}).map(([key, value]) => [
-            key,
-            fill(value),
-          ])
-        )
-      : {},
+    env: {
+      ...(passRom
+        ? Object.fromEntries(
+            Object.entries(meta.path?.env ?? {}).map(([key, value]) => [
+              key,
+              fill(value),
+            ])
+          )
+        : {}),
+      ...onlineEnv,
+    },
   };
 };
 
@@ -993,4 +1087,15 @@ export const listRecompilationGameFolders = async (objectId: string) => {
     if (folder) folders.push(folder);
   }
   return folders;
+};
+
+/** The PS4 game ID (TITLE_ID) of the game folder chosen for a port, or null. */
+export const getRecompilationChosenTitleId = async (slug: string) => {
+  const meta = getRecompilationRomMeta(slug);
+  if (!meta || !isFolderRom(meta)) return null;
+  const choice = await readRomChoice(
+    await getRecompilationInstallDirectory(slug)
+  );
+  if (choice?.source !== "file" || !choice.path) return null;
+  return readTitleId(toGameFolder(choice.path));
 };

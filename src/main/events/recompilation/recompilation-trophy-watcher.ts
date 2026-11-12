@@ -15,14 +15,17 @@ import {
   resolveRecompilationPath,
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
+import { getRecompilationChosenTitleId } from "./recompilation-rom";
 import {
   getTrophySourcePath,
   keepCatalogueTrophies,
   parseTrophyBitmask,
+  parseTrophyEarnedJson,
   parseTrophyIdTimeLines,
   parseTrophyJsonLines,
   parseTrophyLogLines,
   removeTrophiesFromBitmask,
+  removeTrophiesFromEarnedJson,
   removeTrophiesFromIdLines,
   removeTrophiesFromIdTimeLines,
   removeTrophiesFromJsonLines,
@@ -40,6 +43,8 @@ export const getTrophySource = (slug: string) =>
   (Object.hasOwn(TROPHY_SOURCES, slug)
     ? TROPHY_SOURCES[slug]?.trophies
     : undefined) ?? null;
+
+const TITLE_ID_TOKEN = "{titleId}";
 
 const readText = (file: string) => fs.readFile(file, "utf8").catch(() => null);
 
@@ -178,6 +183,13 @@ const createReader = (
           return data ? parseTrophyBitmask(data) : null;
         },
       };
+    case "earned-json":
+      return {
+        read: async (file) => {
+          const contents = await readText(file);
+          return contents === null ? null : parseTrophyEarnedJson(contents);
+        },
+      };
     case "id-time-lines":
       return {
         read: async (file) => {
@@ -206,8 +218,17 @@ export const resolveRecompilationTrophyFiles = async (slug: string) => {
   const baseDirectory = await getRecompilationBaseDirectory(
     await getRecompilationInstallDirectory(slug)
   );
+  // Some ports keep trophies per game ID ({titleId}): the chosen game's.
+  const needsTitleId = template.includes(TITLE_ID_TOKEN);
+  const titleId = needsTitleId
+    ? await getRecompilationChosenTitleId(slug)
+    : null;
+  if (needsTitleId && !titleId) return null;
   const resolvePath = (value: string) =>
-    resolveRecompilationPath(value, baseDirectory);
+    resolveRecompilationPath(
+      titleId ? value.replaceAll(TITLE_ID_TOKEN, titleId) : value,
+      baseDirectory
+    );
   const platform = process.platform as keyof NonNullable<
     RecompilationTrophySource["resetFiles"]
   >;
@@ -257,6 +278,14 @@ const removeResetTrophies = async (files: TrophyFiles, ids: string[]) => {
       await rewriteText(files.file, (contents) =>
         removeTrophiesFromJsonLines(contents, ids)
       );
+      break;
+    case "earned-json":
+      // The port keeps a copy beside it and falls back to it.
+      for (const file of [files.file, `${files.file}.bak`]) {
+        await rewriteText(file, (contents) =>
+          removeTrophiesFromEarnedJson(contents, ids)
+        );
+      }
       break;
     case "log":
       break;

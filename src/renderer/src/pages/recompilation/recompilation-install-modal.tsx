@@ -32,6 +32,7 @@ import {
 } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
+import { formatRecompilationVersion } from "./recompilation-version";
 import "./recompilation-install-modal.scss";
 
 type InstallStep = "location" | "rom" | "sources" | "prepare" | "done";
@@ -411,6 +412,16 @@ function InstallModalContent({
       showErrorToast(romChoiceErrorMessage(result.reason));
       return;
     }
+    if (result.warning === "rom_update_required") {
+      // The game is kept, so its update PKG can be picked in this same step.
+      showWarningToast(
+        t("rom_update_required", {
+          name: details.name,
+          version: result.requiredVersion,
+        })
+      );
+      return;
+    }
     if (result.warning === "rom_version") {
       showWarningToast(t("rom_version_warning", { name: details.name }));
     }
@@ -462,7 +473,7 @@ function InstallModalContent({
       return (
         <StatusLine
           label={t("install_port_installed")}
-          detail={`v${state.version}`}
+          detail={formatRecompilationVersion(state.version)}
           isDone
         />
       );
