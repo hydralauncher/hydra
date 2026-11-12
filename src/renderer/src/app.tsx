@@ -48,13 +48,14 @@ import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-moda
 import { Ps4PkgJobHost } from "./components/ps4-pkg-job/ps4-pkg-job-host";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
+import { SteamOverlayUnavailableModal } from "./pages/shared-modals/steam-overlay-unavailable-modal";
 import { LevelUpModal } from "./components/gamification";
 import { useMissingScreenshotsToast } from "./hooks/use-missing-screenshots-toast";
 import { useScreenshotUploadFailureToast } from "./hooks/use-screenshot-upload-failure-toast";
 import { LeaderboardNotificationLayer } from "./components/leaderboard-notification/leaderboard-notification-layer";
 import { playMessageSound } from "./pages/chat-window/chat-sounds";
 
-import type { UserPreferences } from "@types";
+import type { GameShop, UserPreferences } from "@types";
 import "./app.scss";
 import {
   getAchievementSoundUrl,
@@ -66,6 +67,13 @@ import { levelDBService } from "./services/leveldb.service";
 
 export interface AppProps {
   children: React.ReactNode;
+}
+
+interface BlockedSteamOverlayLaunch {
+  shop: GameShop;
+  objectId: string;
+  executablePath: string;
+  launchOptions: string | null;
 }
 
 type WorkWondersWithKnowledge = WorkWonders & {
@@ -128,6 +136,8 @@ export function App() {
     useState(false);
   const [archivePaths, setArchivePaths] = useState<string[]>([]);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [blockedSteamOverlayLaunch, setBlockedSteamOverlayLaunch] =
+    useState<BlockedSteamOverlayLaunch | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -587,6 +597,16 @@ export function App() {
           t("executable_not_found_description", { ns: "game_details" })
         );
       }),
+      window.electron.onSteamOverlayUnavailable(
+        (shop, objectId, executablePath, launchOptions) => {
+          setBlockedSteamOverlayLaunch({
+            shop,
+            objectId,
+            executablePath,
+            launchOptions,
+          });
+        }
+      ),
       window.electron.onDownloadHalted((gameTitle) => {
         updateLibrary();
         showErrorToast(
@@ -776,6 +796,22 @@ export function App() {
     };
   }, []);
 
+  const handleRunSteamOverlayLaunchAnyway = () => {
+    if (!blockedSteamOverlayLaunch) return;
+
+    const { shop, objectId, executablePath, launchOptions } =
+      blockedSteamOverlayLaunch;
+    void window.electron.openGame(
+      shop,
+      objectId,
+      executablePath,
+      launchOptions,
+      undefined,
+      true
+    );
+    setBlockedSteamOverlayLaunch(null);
+  };
+
   return (
     <>
       <AppTitleBar
@@ -814,6 +850,12 @@ export function App() {
       <AddFriendModal
         visible={showAddFriendModal}
         onClose={() => setShowAddFriendModal(false)}
+      />
+
+      <SteamOverlayUnavailableModal
+        visible={blockedSteamOverlayLaunch !== null}
+        onClose={() => setBlockedSteamOverlayLaunch(null)}
+        onRunAnyway={handleRunSteamOverlayLaunchAnyway}
       />
 
       <ClassicsScanModal />
