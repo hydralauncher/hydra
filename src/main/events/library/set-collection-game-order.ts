@@ -92,6 +92,8 @@ const saveCollectionGameOrder = async (
   const positions = getLibraryCollectionOrderPositions(games);
 
   await libraryWriteQueue.run(async () => {
+    if (authContext && !HydraApi.isAuthContextCurrent(authContext)) return;
+
     const currentGames = await gamesSublevel.iterator().all();
     const updates = currentGames.flatMap(([key, game]) => {
       const collectionPositions = applyLibraryCollectionOrder(
