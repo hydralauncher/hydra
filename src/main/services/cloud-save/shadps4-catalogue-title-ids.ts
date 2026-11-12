@@ -1,19 +1,28 @@
 import type { Game } from "@types";
 
-import { readCachedCatalogueTitleIds } from "./rpcs3-savedata-title-ids.js";
-import { normalizeRpcs3CatalogueTitleId } from "./rpcs3-title-ids.js";
+import {
+  fetchCatalogueTitleIds,
+  normalizeCatalogueTitleIds,
+  readCachedCatalogueTitleIds,
+} from "./catalogue-title-ids.js";
 
-const normalizeAll = (ids: Iterable<unknown>) => [
-  ...new Set(
-    [...ids]
-      .map(normalizeRpcs3CatalogueTitleId)
-      .filter((id): id is string => id !== null)
-  ),
-];
+/** A game the catalogue answered with no title IDs is not asked again for a while. */
+const EMPTY_ANSWER_RETRY_MS = 10 * 60 * 1000;
+const emptyAnswers = new Map<string, number>();
+const runningLookups = new Map<string, Promise<string[]>>();
 
-/** A game the catalogue had no title IDs for is not asked again for a while. */
-const EMPTY_LOOKUP_RETRY_MS = 10 * 60 * 1000;
-const emptyLookups = new Map<string, number>();
+const lookUp = async (game: Game, key: string): Promise<string[]> => {
+  let ids: string[];
+  try {
+    ids = normalizeCatalogueTitleIds(await fetchCatalogueTitleIds(game));
+  } catch {
+    // A failed request is not remembered, so the next sync asks again.
+    return [];
+  }
+  if (ids.length) emptyAnswers.delete(key);
+  else emptyAnswers.set(key, Date.now());
+  return ids;
+};
 
 /**
  * The title IDs of every version of the game (regions, editions), as the
@@ -23,28 +32,22 @@ const emptyLookups = new Map<string, number>();
 export const getShadps4CatalogueTitleIds = async (
   game: Game
 ): Promise<string[]> => {
-  const cached = normalizeAll(
+  const cached = normalizeCatalogueTitleIds(
     await readCachedCatalogueTitleIds(game).catch(() => [])
   );
   if (cached.length) return cached;
 
   const key = `${game.shop}:${game.objectId}`;
-  const emptyAt = emptyLookups.get(key);
-  if (emptyAt !== undefined && Date.now() - emptyAt < EMPTY_LOOKUP_RETRY_MS) {
+  const emptyAt = emptyAnswers.get(key);
+  if (emptyAt !== undefined && Date.now() - emptyAt < EMPTY_ANSWER_RETRY_MS) {
     return [];
   }
-  try {
-    const { getRpcs3CatalogueTitleIds } = await import(
-      "./rpcs3-game-identity.js"
-    );
-    const ids = normalizeAll(await getRpcs3CatalogueTitleIds(game));
-    if (ids.length) {
-      emptyLookups.delete(key);
-      return ids;
-    }
-  } catch {
-    // Remembered below, like an empty answer.
+
+  // A scan and a restore can ask at the same time: they share one request.
+  let pending = runningLookups.get(key);
+  if (!pending) {
+    pending = lookUp(game, key).finally(() => runningLookups.delete(key));
+    runningLookups.set(key, pending);
   }
-  emptyLookups.set(key, Date.now());
-  return [];
+  return pending;
 };

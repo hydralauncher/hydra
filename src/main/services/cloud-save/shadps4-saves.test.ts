@@ -395,7 +395,9 @@ describe("shadPS4 saves", () => {
       status: { status: "ready", path: null, titleId: null },
       saveTitleIds: ["CUSA00207"],
     });
-    assert.deepEqual(await getShadps4SavedataTitleIds(pcGame), ["CUSA00207"]);
+    assert.deepEqual(await getShadps4SavedataTitleIds(pcGame, async () => []), [
+      "CUSA00207",
+    ]);
   });
 
   it("accepts a save folder that is itself named savedata", () => {
