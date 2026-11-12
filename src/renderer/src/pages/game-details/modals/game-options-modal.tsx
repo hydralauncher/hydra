@@ -1386,6 +1386,10 @@ export function GameOptionsModal({
               selectedCategory === "assets"
                 ? " game-options-modal__panel--assets"
                 : ""
+            }${
+              selectedCategory === "general"
+                ? " game-options-modal__panel--general"
+                : ""
             }`}
           >
             {selectedCategory === "general" && (
