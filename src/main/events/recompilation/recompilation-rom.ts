@@ -603,7 +603,6 @@ export const setRecompilationRom = async (
     ? await isSupportedRomVersion(chosenPath, meta)
     : true;
   if (supported) return { ok: true };
-  // The game stays chosen, so its update can be applied over it.
   return meta.requireAppVersion
     ? {
         ok: true,
@@ -844,7 +843,6 @@ const warnUnsupportedRom = async (installDirectory: string) => {
   });
 };
 
-/** The game version a port that requires one needs, as players read it (1.21). */
 const getRequiredVersionLabel = (meta: RecompilationRomMeta) =>
   (meta.appVersions?.[0] ?? "").replace(/^0+(?=\d)/, "");
 
@@ -870,7 +868,6 @@ const writePortSettings = async (
     const template = pickPortFile(setting.file);
     if (!template) continue;
     const file = resolveRecompilationPath(template, baseDirectory, "");
-    // A port that builds this file from its defaults skips that once it exists.
     if (setting.seedFrom && !(await fileExists(file))) {
       const seed = resolveRecompilationPath(
         setting.seedFrom,
@@ -932,7 +929,6 @@ export const prepareRecompilationRom = async (
     choice.preparedVersion === portVersion;
   let romPath = state.romPath;
 
-  // A port that refuses other game versions would only fail once it opens.
   if (
     meta.requireAppVersion &&
     isFolderRom(meta) &&
@@ -1089,7 +1085,6 @@ export const listRecompilationGameFolders = async (objectId: string) => {
   return folders;
 };
 
-/** The PS4 game ID (TITLE_ID) of the game folder chosen for a port, or null. */
 export const getRecompilationChosenTitleId = async (slug: string) => {
   const meta = getRecompilationRomMeta(slug);
   if (!meta || !isFolderRom(meta)) return null;

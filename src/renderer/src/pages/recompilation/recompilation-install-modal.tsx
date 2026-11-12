@@ -413,7 +413,6 @@ function InstallModalContent({
       return;
     }
     if (result.warning === "rom_update_required") {
-      // The game is kept, so its update PKG can be picked in this same step.
       showWarningToast(
         t("rom_update_required", {
           name: details.name,

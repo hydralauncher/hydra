@@ -89,7 +89,6 @@ describe("port online names", () => {
         }),
         { BB_ONLINE: "1" }
       );
-      // A default or reserved name in the port is replaced by the Hydra one.
       fs.writeFileSync(file, "user_name=RyuPC\n");
       assert.deepEqual(
         await getOnlineLaunchEnv(online(file), (p) => p, {

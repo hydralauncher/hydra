@@ -218,7 +218,6 @@ const parseEarnedLedger = (contents: string): EarnedLedger | null => {
   }
 };
 
-/** iss_pc's earned.json: `{"earned": [{"id": 12, "time": <unix seconds>}]}`. */
 export const parseTrophyEarnedJson = (
   contents: string
 ): UnlockedAchievement[] => {
@@ -231,10 +230,6 @@ export const parseTrophyEarnedJson = (
   return toUnlockedAchievements(unlocks);
 };
 
-/**
- * The earned.json without these trophies. The rest of the ledger is kept as
- * it was: the port turns trophies off when its schema or fingerprint changes.
- */
 export const removeTrophiesFromEarnedJson = (
   contents: string,
   ids: Iterable<string>

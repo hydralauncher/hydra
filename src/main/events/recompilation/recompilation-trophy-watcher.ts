@@ -218,7 +218,6 @@ export const resolveRecompilationTrophyFiles = async (slug: string) => {
   const baseDirectory = await getRecompilationBaseDirectory(
     await getRecompilationInstallDirectory(slug)
   );
-  // Some ports keep trophies per game ID ({titleId}): the chosen game's.
   const needsTitleId = template.includes(TITLE_ID_TOKEN);
   const titleId = needsTitleId
     ? await getRecompilationChosenTitleId(slug)
@@ -280,7 +279,6 @@ const removeResetTrophies = async (files: TrophyFiles, ids: string[]) => {
       );
       break;
     case "earned-json":
-      // The port keeps a copy beside it and falls back to it.
       for (const file of [files.file, `${files.file}.bak`]) {
         await rewriteText(file, (contents) =>
           removeTrophiesFromEarnedJson(contents, ids)

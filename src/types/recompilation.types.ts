@@ -140,35 +140,23 @@ export interface RecompilationRomMeta {
     env?: Record<string, string>;
     /** The first item names a program in the release, or `{exe}` for the port itself. */
     installer?: string[];
-    /**
-     * One path, or one per system for ports that keep the file in different
-     * places. A .ini file takes a `key=value` line (its last key); others are JSON.
-     */
+    /** One path, or one per system for ports that keep the file in different places. */
     config?: {
       file: string | Partial<Record<"win32" | "linux", string>>;
       key: string[];
     };
-    /** Fixed `key=value` lines written to the port's INI files before each launch. */
     settings?: Array<{
       file: string | Partial<Record<"win32" | "linux", string>>;
       values: Record<string, string>;
-      /** The port's defaults, copied first when the file doesn't exist yet. */
       seedFrom?: string;
     }>;
-    /**
-     * Online play under the Hydra account's name: signed in, the port goes
-     * online as that name unless the player set one in the port; signed out,
-     * it starts offline.
-     */
     online?: {
       enabledEnv: string;
       nameEnv: string;
-      /** Where the port keeps a name the player chose (an INI file and its keys). */
       nameConfig: {
         file: string | Partial<Record<"win32" | "linux", string>>;
         keys: string[];
       };
-      /** Names the port refuses (it stops before the game starts). */
       reservedNames: string[];
     };
   };
@@ -185,7 +173,6 @@ export interface RecompilationRomMeta {
   titleIds?: string[];
   /** PS4 game versions (APP_VER in sce_sys/param.sfo) the port runs; others get a warning. */
   appVersions?: string[];
-  /** The port refuses other versions: it can't start until the game is updated. */
   requireAppVersion?: boolean;
   extensions: string[];
 }
@@ -219,7 +206,6 @@ export interface RecompilationActionResult {
   ok: boolean;
   reason?: string;
   warning?: string;
-  /** The game version a port requires, with the warning "rom_update_required". */
   requiredVersion?: string;
   /** Set when an update finished and the port started preparing again. */
   preparing?: boolean;

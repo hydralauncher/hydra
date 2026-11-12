@@ -8,7 +8,6 @@ type OnlineMeta = NonNullable<
   NonNullable<RecompilationRomMeta["path"]>["online"]
 >;
 
-/** The file a port keeps on this system, or null when it has none here. */
 export const pickPortFile = (file: PortPath) =>
   typeof file === "string"
     ? file
@@ -16,7 +15,6 @@ export const pickPortFile = (file: PortPath) =>
 
 const INI_LINE = /^\s*([^#;=\s][^=]*?)\s*=(.*)$/;
 
-/** The value of `key=value` in an INI text, or null. */
 export const readIniValue = (contents: string, key: string) => {
   for (const line of contents.split(/\r?\n/)) {
     const match = INI_LINE.exec(line);
@@ -25,7 +23,6 @@ export const readIniValue = (contents: string, key: string) => {
   return null;
 };
 
-/** The INI text with these `key=value` lines replaced, or added at the end. */
 export const setIniValues = (
   contents: string,
   values: Record<string, string>
@@ -60,18 +57,12 @@ const NAME_MIN_LENGTH = 3;
 const NAME_MAX_LENGTH = 16;
 const NAME_CHARACTERS = /^[A-Za-z0-9_-]+$/;
 
-/** A name the port accepts: 3 to 16 ASCII letters, digits, _ or -, not reserved. */
 export const isValidPortName = (name: string, reserved: string[]) =>
   name.length >= NAME_MIN_LENGTH &&
   name.length <= NAME_MAX_LENGTH &&
   NAME_CHARACTERS.test(name) &&
   !reserved.includes(name.toLowerCase());
 
-/**
- * The Hydra name made into one the port accepts: accents become plain
- * letters, other characters go, and it is cut to 16. Null when what is left
- * is too short or reserved.
- */
 export const toPortName = (displayName: string, reserved: string[]) => {
   const name = displayName
     .normalize("NFD")
@@ -81,11 +72,6 @@ export const toPortName = (displayName: string, reserved: string[]) => {
   return isValidPortName(name, reserved) ? name : null;
 };
 
-/**
- * The environment for a port's online play. Signed in: online, as the name
- * the player set in the port or else the Hydra name. Signed out, or with no
- * usable name: offline.
- */
 export const getOnlineLaunchEnv = async (
   online: OnlineMeta,
   resolvePath: (template: string) => string,
