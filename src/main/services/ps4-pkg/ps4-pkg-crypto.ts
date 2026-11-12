@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-import type { Ps4PkgEntry } from "./ps4-pkg-info";
+import { Ps4PkgError, type Ps4PkgEntry } from "./ps4-pkg-info";
 
 export interface Ps4PkgRsaKey {
   modulus: string;
@@ -42,11 +42,17 @@ const rsaDecrypt = (key: Ps4PkgRsaKey, cipher: Buffer) => {
   );
 
   if (block[0] !== 0 || block[1] !== 2) {
-    throw new Error("PKG key block has an unexpected padding");
+    // Wrong keys decrypt to noise, so this is how bad keys show up.
+    throw new Ps4PkgError(
+      "bad_keys",
+      "PKG key block has an unexpected padding"
+    );
   }
 
   const separator = block.indexOf(0, 2);
-  if (separator === -1) throw new Error("PKG key block has no separator");
+  if (separator === -1) {
+    throw new Ps4PkgError("bad_keys", "PKG key block has no separator");
+  }
   return block.subarray(separator + 1);
 };
 

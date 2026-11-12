@@ -5,7 +5,7 @@ import { Worker } from "node:worker_threads";
 
 import workerPath from "./ps4-pkg-worker?modulePath";
 import { NativeAddon } from "../native-addon";
-import { getPs4PkgKeys } from "./ps4-pkg-keys-store";
+import { forgetPs4PkgKeys, getPs4PkgKeys } from "./ps4-pkg-keys-store";
 import { parseParamSfoValue } from "../emulators/param-sfo.js";
 import {
   Ps4PkgError,
@@ -99,6 +99,7 @@ export const assertPs4UpdateFits = async (
  * Crash Team Racing PKG (14 GB) 4 workers took 96 s against 247 s for one.
  */
 const MAX_EXTRACTION_WORKERS = 4;
+const WORKER_STOP_TIMEOUT_MS = 5_000;
 
 const workerCount = () =>
   Math.max(1, Math.min(MAX_EXTRACTION_WORKERS, os.availableParallelism() - 1));
@@ -120,6 +121,10 @@ const runWorkers = async (
     const nativeAddonPath = NativeAddon.getAddonPath();
     const written = new Array<number>(count).fill(0);
     const workers: Worker[] = [];
+    const exits: Promise<unknown>[] = [];
+    // Workers stop themselves at the next block when this is set, closing
+    // their files; terminate() would leave those file descriptors open.
+    const stopFlag = new Int32Array(new SharedArrayBuffer(4));
     let pkgBytes = 0;
     let finished = 0;
     let settled = false;
@@ -130,9 +135,16 @@ const runWorkers = async (
       signal?.removeEventListener("abort", onAbort);
       if (error) {
         // Waits for every worker to stop, so the caller can clean up safely.
-        void Promise.allSettled(
-          workers.map((worker) => worker.terminate())
-        ).then(() => reject(error));
+        Atomics.store(stopFlag, 0, 1);
+        const stopped = Promise.allSettled(exits);
+        const timeout = new Promise((done) =>
+          setTimeout(done, WORKER_STOP_TIMEOUT_MS).unref()
+        );
+        void Promise.race([stopped, timeout])
+          .then(() =>
+            Promise.allSettled(workers.map((worker) => worker.terminate()))
+          )
+          .then(() => reject(error));
       } else {
         resolve();
       }
@@ -149,9 +161,11 @@ const runWorkers = async (
           shard: { index, count },
           nativeAddonPath,
           keys,
+          stopFlag: stopFlag.buffer,
         },
       });
       workers.push(worker);
+      exits.push(new Promise((done) => worker.once("exit", done)));
       let done = false;
 
       worker.on("message", (message: WorkerMessage) => {
@@ -167,6 +181,9 @@ const runWorkers = async (
           finished += 1;
           if (finished === count) settle();
         } else if (message.type === "error") {
+          if (message.code === "bad_keys") {
+            void forgetPs4PkgKeys().catch(() => undefined);
+          }
           settle(
             new Ps4PkgError(
               message.code ?? "failed",
@@ -191,7 +208,6 @@ const runWorkers = async (
   });
 };
 
-/** Moves every file of `source` over `target`, replacing what is there. */
 /** Moves every file of `source` over `target`, replacing what is there. */
 const moveInto = async (
   source: string,

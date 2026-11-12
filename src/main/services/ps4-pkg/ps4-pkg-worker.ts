@@ -20,6 +20,7 @@ interface Ps4PkgWorkerData {
   shard: Ps4PkgExtractShard;
   nativeAddonPath: string | null;
   keys: Ps4PkgKeys;
+  stopFlag: SharedArrayBuffer;
 }
 
 /** Decrypting natively is what makes the extraction run at disk speed. */
@@ -54,9 +55,10 @@ const hasFreeSpace = (target: string, bytes: number) => {
   return Number(stats.bavail) * Number(stats.bsize) >= bytes;
 };
 
-const { pkgPath, outputDirectory, shard, nativeAddonPath, keys } =
+const { pkgPath, outputDirectory, shard, nativeAddonPath, keys, stopFlag } =
   workerData as Ps4PkgWorkerData;
 loadNativeDecryptor(nativeAddonPath);
+const stop = new Int32Array(stopFlag);
 let lastProgressAt = 0;
 let checkedSpace = false;
 
@@ -67,6 +69,9 @@ try {
     shard,
     keys,
     onProgress: ({ writtenBytes, totalBytes, pkgBytes }) => {
+      if (Atomics.load(stop, 0) === 1) {
+        throw new Ps4PkgError("cancelled", "Extraction cancelled");
+      }
       if (!checkedSpace) {
         checkedSpace = true;
         // Only the first worker checks, against the whole PKG.

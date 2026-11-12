@@ -30,6 +30,7 @@ export type Ps4PkgErrorCode =
   | "other_game"
   | "not_newer"
   | "keys_unavailable"
+  | "bad_keys"
   | "cancelled"
   | "failed";
 

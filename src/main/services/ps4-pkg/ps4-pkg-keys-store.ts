@@ -42,6 +42,12 @@ const readStoredKeys = async () => {
   }
 };
 
+/** Drops the stored keys, so the next extraction fetches them again. */
+export const forgetPs4PkgKeys = async () => {
+  cached = null;
+  await fs.promises.rm(keysFilePath(), { force: true });
+};
+
 /**
  * The keys to open PS4 fake PKGs. They are fetched once from the Hydra API
  * (no login needed) and kept on disk, so extracting works offline afterwards.

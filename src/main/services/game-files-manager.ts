@@ -160,6 +160,14 @@ export class GameFilesManager {
       (this.inPlaceExtractionEnabled ??= isInPlaceExtractionEnabled()),
   };
 
+  // PS4 PKG extractions in progress, so cancelling or removing the download
+  // stops the workers instead of writing the game in the background.
+  private static readonly ps4Extractions = new Map<string, AbortController>();
+
+  static cancelPs4Extraction(shop: GameShop, objectId: string) {
+    this.ps4Extractions.get(levelKeys.game(shop, objectId))?.abort();
+  }
+
   constructor(
     private readonly shop: GameShop,
     private readonly objectId: string
@@ -580,6 +588,8 @@ export class GameFilesManager {
     if (!fs.existsSync(sourcePath)) return true;
 
     let currentPkg = sourcePath;
+    const controller = new AbortController();
+    GameFilesManager.ps4Extractions.set(this.gameKey, controller);
     try {
       const pkgs = await this.collectPs4Pkgs(sourcePath);
       if (pkgs.length === 0) return true;
@@ -604,6 +614,7 @@ export class GameFilesManager {
               gameDirectories.get(pkg.titleId) ??
               findExtractedPs4Game(searchRoot, pkg.titleId),
             deletePkg,
+            signal: controller.signal,
             onProgress: (fraction) =>
               this.updateExtractionProgress(
                 (doneSize + fraction * pkg.size) / totalSize
@@ -618,7 +629,7 @@ export class GameFilesManager {
           await install().catch((error) => {
             if (
               error instanceof Ps4PkgError &&
-              error.code === "keys_unavailable"
+              (error.code === "keys_unavailable" || error.code === "cancelled")
             ) {
               throw error;
             }
@@ -664,6 +675,10 @@ export class GameFilesManager {
 
       return true;
     } catch (error) {
+      if (error instanceof Ps4PkgError && error.code === "cancelled") {
+        await this.resetExtractingState();
+        return false;
+      }
       const keysUnavailable =
         error instanceof Ps4PkgError && error.code === "keys_unavailable";
       await this.setExtractionFailedState(
@@ -672,6 +687,10 @@ export class GameFilesManager {
         keysUnavailable ? { reason: "pkg-keys-unavailable" } : null
       );
       return false;
+    } finally {
+      if (GameFilesManager.ps4Extractions.get(this.gameKey) === controller) {
+        GameFilesManager.ps4Extractions.delete(this.gameKey);
+      }
     }
   }
 
