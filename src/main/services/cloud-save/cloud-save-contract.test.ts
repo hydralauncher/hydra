@@ -6,6 +6,7 @@ import {
   cloudSaveFileKey,
   validateCustomPathRawPaths,
   validateRemoteSnapshotSummary,
+  validateRestoreDownloadUrls,
   validateRestoreManifest,
 } from "./cloud-save-contract.ts";
 
@@ -21,6 +22,130 @@ const file = (variantId: string) => ({
 });
 
 describe("Cloud Save launcher API contract", () => {
+  it("accepts Epic restores without accepting Steam account variants", () => {
+    const manifest = {
+      snapshot: {
+        id: "epic-snapshot",
+        version: 1,
+        shop: "epic",
+        objectId: "namespace:game",
+      },
+      customPathRawPaths: [],
+      variants: [{ variantId: firstVariantId, kind: "default" }],
+      files: [{ ...file(firstVariantId), rawPath: "<winAppData>/Game" }],
+    };
+    assert.equal(validateRestoreManifest(manifest).snapshot.shop, "epic");
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...manifest,
+        variants: [
+          {
+            variantId: firstVariantId,
+            kind: "steam-account",
+            steamId64: "76561197960265729",
+          },
+        ],
+      })
+    );
+  });
+  it("maps a recompilation restore back to the port's own key", () => {
+    const manifest = {
+      snapshot: {
+        id: "port-snapshot",
+        version: 1,
+        shop: "launchbox",
+        objectId: "167",
+        recompilationSlug: "zelda64recomp",
+      },
+      customPathRawPaths: [],
+      variants: [{ variantId: firstVariantId, kind: "default" }],
+      files: [{ ...file(firstVariantId), rawPath: "<base>/saves" }],
+    };
+    assert.equal(
+      validateRestoreManifest(manifest).snapshot.objectId,
+      "167:zelda64recomp"
+    );
+    assert.equal(
+      validateRestoreManifest({
+        ...manifest,
+        snapshot: { ...manifest.snapshot, recompilationSlug: null },
+      }).snapshot.objectId,
+      "167"
+    );
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...manifest,
+        snapshot: { ...manifest.snapshot, shop: "steam" },
+      })
+    );
+  });
+  it("downloads Steam files and emulator states with optional metadata", () => {
+    const steamFile = {
+      ...file(firstVariantId),
+      downloadUrl: "https://storage.example.com/steam-save",
+    };
+    const emulatorState = {
+      ...file(secondVariantId),
+      rawPath: "<emulator>/retroarch/snes/1234ABCD",
+      relativePath: "state.state1",
+      stateMetadata: { emulatorId: "retroarch", coreId: "snes9x" },
+      downloadUrl: "https://storage.example.com/emulator-state",
+    };
+
+    assert.deepEqual(validateRestoreDownloadUrls([steamFile, emulatorState]), [
+      steamFile,
+      emulatorState,
+    ]);
+    assert.throws(() =>
+      validateRestoreDownloadUrls([{ ...emulatorState, unknown: true }])
+    );
+    assert.throws(() =>
+      validateRestoreDownloadUrls([
+        {
+          ...emulatorState,
+          stateMetadata: { emulatorId: "retroarch", extra: true },
+        },
+      ])
+    );
+    assert.throws(() =>
+      validateRestoreDownloadUrls([emulatorState, emulatorState])
+    );
+  });
+
+  it("accepts optional state origin metadata and rejects unknown fields", () => {
+    const base = {
+      snapshot: {
+        id: "snapshot",
+        version: 1,
+        shop: "launchbox",
+        objectId: "game",
+      },
+      customPathRawPaths: [],
+      variants: [{ variantId: firstVariantId, kind: "default" }],
+    };
+    const state = {
+      ...file(firstVariantId),
+      rawPath: "<emulator>/retroarch/snes/1234ABCD",
+      relativePath: "state.state1",
+      stateMetadata: { emulatorId: "retroarch", coreId: "snes9x" },
+    };
+    assert.deepEqual(
+      validateRestoreManifest({ ...base, files: [state] }).files[0]
+        .stateMetadata,
+      state.stateMetadata
+    );
+    assert.throws(() =>
+      validateRestoreManifest({
+        ...base,
+        files: [
+          {
+            ...state,
+            stateMetadata: { ...state.stateMetadata, unknown: true },
+          },
+        ],
+      })
+    );
+  });
   it("accepts the active snapshot summary and complete manifest DTOs", () => {
     const summary = validateRemoteSnapshotSummary({
       id: "snapshot",

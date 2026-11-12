@@ -15,9 +15,10 @@ import {
   WindowManager,
   emulators,
   logger,
-  mergeWithRemoteGames,
+  mergeImportedProfileGames,
 } from "@main/services";
 import { clearFinishedDownload, platformToSystem } from "@main/helpers";
+import { mergeScannedDiscs } from "@main/helpers/classics-executable-disc";
 import {
   fetchShopDetailsForSkus,
   normalizeSku,
@@ -45,7 +46,12 @@ interface FolderInput {
 
 const PROFILE_BATCH_CHUNK_SIZE = 100;
 
-const inflight = new Map<string, { cancelled: boolean }>();
+type CancelSignal = {
+  cancelled: boolean;
+  abortController?: AbortController;
+};
+
+const inflight = new Map<string, CancelSignal>();
 
 const lookupYmlSku = (
   index: Map<string, string>,
@@ -157,10 +163,13 @@ const buildDiscList = (
   });
 };
 
-const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string> = {
+const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string | null> = {
   ps1: "PlayStation",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+  ps4: "PlayStation 4",
+  psp: "PlayStation Portable",
+  dolphin: null,
 };
 
 export const persistEntryLocally = async (
@@ -212,12 +221,13 @@ export const persistEntryLocally = async (
     if (platform && !existing.platform) {
       existing.platform = platform;
     }
-    existing.discs = discs;
+    const mergedDiscs = mergeScannedDiscs(discs, existing.discs);
+    existing.discs = mergedDiscs;
     if (
       !existing.selectedDiscPath ||
-      !discs.some((d) => d.path === existing.selectedDiscPath)
+      !mergedDiscs.some((d) => d.path === existing.selectedDiscPath)
     ) {
-      existing.selectedDiscPath = discs[0]?.path ?? null;
+      existing.selectedDiscPath = mergedDiscs[0]?.path ?? null;
     }
     existing.romSizeBytes = romSizeBytes ?? existing.romSizeBytes ?? null;
     await gamesSublevel.put(gameKey, existing);
@@ -244,13 +254,17 @@ export const persistEntryLocally = async (
   AchievementWatcherManager.firstSyncWithRemoteIfNeeded(shop, objectId);
 };
 
-export const syncProfileBatch = async (objectIds: string[]) => {
+export const syncProfileBatch = async (
+  objectIds: string[],
+  signal?: AbortSignal
+) => {
   if (objectIds.length === 0) return;
 
   const chunks = chunk(objectIds, PROFILE_BATCH_CHUNK_SIZE);
-  let syncedAtLeastOneChunk = false;
+  const syncedObjectIds: string[] = [];
 
   for (const objectIdChunk of chunks) {
+    if (signal?.aborted) break;
     const payload = objectIdChunk.map((objectId) => ({
       objectId,
       shop: "launchbox",
@@ -258,14 +272,15 @@ export const syncProfileBatch = async (objectIds: string[]) => {
       lastTimePlayed: null,
     }));
     try {
-      await HydraApi.post("/profile/games/batch", payload);
-      syncedAtLeastOneChunk = true;
+      await HydraApi.post("/profile/games/batch", payload, { signal });
+      syncedObjectIds.push(...objectIdChunk);
     } catch (err) {
+      if (signal?.aborted) break;
       logger.error("Failed to batch-sync launchbox games to profile", err);
     }
   }
 
-  if (syncedAtLeastOneChunk) await mergeWithRemoteGames();
+  await mergeImportedProfileGames("launchbox", syncedObjectIds);
 };
 
 const persistRomFolder = async (
@@ -329,7 +344,7 @@ export type UnmatchedReason = "wrong_platform" | "unmatched";
 
 export interface UnmatchedFile {
   name: string;
-  reason: UnmatchedReason;
+  reason: UnmatchedReason | "unsupported_package";
 }
 
 export type LaunchboxImportProgress = {
@@ -348,10 +363,13 @@ export type LaunchboxImportProgress = {
 const SCAN_BAND = 15;
 const EXTRACT_BAND = 70;
 
-const SYSTEM_CATALOGUE_PLATFORM: Record<EmulatorSystem, string> = {
-  ps1: "Sony Playstation",
-  ps2: "Sony Playstation 2",
-  ps3: "Sony Playstation 3",
+const SYSTEM_CATALOGUE_PLATFORMS: Record<EmulatorSystem, string[]> = {
+  ps1: ["Sony Playstation"],
+  ps2: ["Sony Playstation 2"],
+  ps3: ["Sony Playstation 3"],
+  ps4: ["Sony Playstation 4"],
+  psp: ["Sony PSP"],
+  dolphin: ["Nintendo GameCube", "Nintendo Wii"],
 };
 
 const normalizePlatformName = (value: string): string =>
@@ -363,9 +381,9 @@ const entryMatchesSystemPlatform = (
 ): boolean => {
   const raw = entry.platform ?? entry.data?.platform ?? "";
   if (!raw) return true;
-  return (
-    normalizePlatformName(raw) ===
-    normalizePlatformName(SYSTEM_CATALOGUE_PLATFORM[system])
+  const normalized = normalizePlatformName(raw);
+  return SYSTEM_CATALOGUE_PLATFORMS[system].some(
+    (platform) => normalizePlatformName(platform) === normalized
   );
 };
 
@@ -375,6 +393,7 @@ export interface LaunchboxImportResult {
   matched: number;
   unmatched: number;
   unmatchedFiles: UnmatchedFile[];
+  unsupportedPackages: number;
   cancelled: boolean;
 }
 
@@ -405,7 +424,6 @@ type DiscsByTitle = Map<
   string,
   { primaryPath: string; name: string; sku: string | null }[]
 >;
-type CancelSignal = { cancelled: boolean };
 type ProgressFn = (payload: LaunchboxImportProgress) => void;
 
 const cancelledResult = (
@@ -420,6 +438,7 @@ const cancelledResult = (
   matched,
   unmatched,
   unmatchedFiles,
+  unsupportedPackages: 0,
   cancelled: true,
 });
 
@@ -435,24 +454,29 @@ const scanFolders = async (
   folders: FolderInput[],
   signal: CancelSignal,
   onScan?: ScanReporter
-): Promise<ScannedGameInfo[]> => {
+): Promise<{ collected: ScannedGameInfo[]; unsupportedPackages: string[] }> => {
   const binary = emulators.KNOWN_BINARIES[system];
 
   const folderTotals: number[] = [];
   let scanTotal = 0;
-  for (const folder of folders) {
-    if (signal.cancelled) break;
-    const count = await emulators.countRomGroups(
-      folder.path,
-      binary,
-      folder.scanSubfolders
-    );
-    folderTotals.push(count);
-    scanTotal += count;
+  const hasMultipleFolders = folders.length > 1;
+  if (hasMultipleFolders) {
+    for (const folder of folders) {
+      if (signal.cancelled) break;
+      const count = await emulators.countRomGroups(
+        folder.path,
+        binary,
+        folder.scanSubfolders,
+        signal
+      );
+      folderTotals.push(count);
+      scanTotal += count;
+    }
   }
 
   let scanBase = 0;
   let keptTotal = 0;
+  const unsupportedPackages: string[] = [];
   const collected: ScannedGameInfo[] = [];
 
   for (let fi = 0; fi < folders.length; fi++) {
@@ -468,7 +492,7 @@ const scanFolders = async (
         onProgress: (p) => {
           onScan?.(
             scanBase + p.processed,
-            scanTotal,
+            hasMultipleFolders ? scanTotal : p.total,
             p.currentFile,
             keptTotal + p.kept
           );
@@ -478,12 +502,13 @@ const scanFolders = async (
 
     scanBase += folderTotals[fi] ?? partial.games.length;
     keptTotal += partial.games.length;
+    unsupportedPackages.push(...partial.unsupportedPackages);
     for (const game of partial.games) {
       collected.push({ folderPath: folder.path, ...game });
     }
   }
 
-  return collected;
+  return { collected, unsupportedPackages };
 };
 
 const resolveSkus = async (
@@ -551,7 +576,7 @@ const buildEnriched = (
 } => {
   const enriched: EnrichedGame[] = gameSkus.map(({ game, sku }) => {
     const groupKey =
-      system === "ps3"
+      system === "ps3" || system === "ps4"
         ? game.primaryPath
         : `${game.folderPath}::${stripDiscMarker(game.name)}`;
 
@@ -720,8 +745,10 @@ const persistMatchedEntries = async (
 ) => {
   for (const entry of matchedEntries.values()) {
     if (signal.cancelled) break;
-    const titleDiscs = discsByTitle.get(entry.objectId) ?? [];
-    const discs = buildDiscList(titleDiscs);
+    const discs = await emulators.attachDiscRegions(
+      buildDiscList(discsByTitle.get(entry.objectId) ?? []),
+      system
+    );
     const romSizeBytes = titleByFolder.get(entry.objectId)?.sizeBytes ?? null;
     await persistEntryLocally(
       entry,
@@ -738,9 +765,11 @@ const persistMatchedEntries = async (
 const persistFolderRollups = async (
   system: EmulatorSystem,
   folderRollup: Map<string, { fileCount: number; sizeBytes: number }>,
-  folderInputBy: Map<string, FolderInput>
+  folderInputBy: Map<string, FolderInput>,
+  signal: CancelSignal
 ) => {
   for (const [folderPath, rollup] of folderRollup) {
+    if (signal.cancelled) break;
     const input = folderInputBy.get(folderPath);
     if (!input) continue;
     await persistRomFolder(
@@ -757,10 +786,11 @@ const persistFolderRollups = async (
 
 const reconcileDeletedGames = async (
   system: EmulatorSystem,
-  folders: FolderInput[]
+  folders: FolderInput[],
+  signal: CancelSignal
 ) => {
-  const entries = await gamesSublevel.iterator().all();
-  for (const [key, game] of entries) {
+  for await (const [key, game] of gamesSublevel.iterator()) {
+    if (signal.cancelled) break;
     if (game.isDeleted) continue;
     if (game.shop !== "launchbox") continue;
     if (platformToSystem(game.platform) !== system) continue;
@@ -794,10 +824,11 @@ export async function runLaunchboxImport(
   // before the rollup is persisted, and the user still expects the folder they
   // picked to be listed - just with no games detected yet.
   for (const folder of folders) {
+    if (signal.cancelled) return cancelledResult();
     await ensureRomFolderRegistered(system, folder.path, folder.scanSubfolders);
   }
 
-  const collected = await scanFolders(
+  const { collected, unsupportedPackages } = await scanFolders(
     system,
     folders,
     signal,
@@ -845,7 +876,11 @@ export async function runLaunchboxImport(
         .filter((s): s is string => s !== null && s.length > 0)
     )
   );
-  const skuLookup = await fetchShopDetailsForSkus(uniqueSkus, language);
+  const skuLookup = await fetchShopDetailsForSkus(
+    uniqueSkus,
+    language,
+    signal.abortController?.signal
+  );
   if (signal.cancelled) return cancelledResult();
 
   const { enriched, groupCanonical } = buildEnriched(
@@ -908,9 +943,42 @@ export async function runLaunchboxImport(
     system,
     signal
   );
-  await persistFolderRollups(system, folderRollup, folderInputBy);
-  await reconcileDeletedGames(system, folders);
-  await syncProfileBatch(Array.from(matchedEntries.keys()));
+  if (signal.cancelled) {
+    return cancelledResult(
+      totalFileCount,
+      totalSizeBytes,
+      matched,
+      unmatched,
+      unmatchedFiles
+    );
+  }
+
+  await persistFolderRollups(system, folderRollup, folderInputBy, signal);
+  if (signal.cancelled) {
+    return cancelledResult(
+      totalFileCount,
+      totalSizeBytes,
+      matched,
+      unmatched,
+      unmatchedFiles
+    );
+  }
+
+  await reconcileDeletedGames(system, folders, signal);
+  if (signal.cancelled) {
+    return cancelledResult(
+      totalFileCount,
+      totalSizeBytes,
+      matched,
+      unmatched,
+      unmatchedFiles
+    );
+  }
+
+  await syncProfileBatch(
+    Array.from(matchedEntries.keys()),
+    signal.abortController?.signal
+  );
 
   if (system === "ps3" && !signal.cancelled && ps3ExtractedForYml.size > 0) {
     await emulators
@@ -923,7 +991,14 @@ export async function runLaunchboxImport(
     sizeBytes: totalSizeBytes,
     matched,
     unmatched,
-    unmatchedFiles,
+    unmatchedFiles: [
+      ...unmatchedFiles,
+      ...unsupportedPackages.map((packagePath) => ({
+        name: path.basename(packagePath),
+        reason: "unsupported_package" as const,
+      })),
+    ],
+    unsupportedPackages: unsupportedPackages.length,
     cancelled: signal.cancelled,
   };
 }
@@ -937,7 +1012,10 @@ const importLaunchboxRoms = async (
   language: string
 ) => {
   const requestId = randomUUID();
-  const signal = { cancelled: false };
+  const signal: CancelSignal = {
+    cancelled: false,
+    abortController: new AbortController(),
+  };
   inflight.set(requestId, signal);
 
   setActiveClassicsImport({
@@ -991,6 +1069,7 @@ const importLaunchboxRoms = async (
         matched: result.matched,
         unmatched: result.unmatched,
         unmatchedFiles: result.unmatchedFiles,
+        unsupportedPackages: result.unsupportedPackages,
       });
     } catch (err) {
       WindowManager.sendToAppWindows(CLASSICS_IMPORT_PROGRESS_CHANNEL, {
@@ -1014,7 +1093,10 @@ const cancelLaunchboxImport = async (
   requestId: string
 ) => {
   const signal = inflight.get(requestId);
-  if (signal) signal.cancelled = true;
+  if (signal) {
+    signal.cancelled = true;
+    signal.abortController?.abort();
+  }
 };
 
 registerEvent("importLaunchboxRoms", importLaunchboxRoms);

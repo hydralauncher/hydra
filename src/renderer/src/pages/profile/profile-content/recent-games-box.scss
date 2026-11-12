@@ -47,7 +47,7 @@
   }
 
   &__game-title {
-    font-size: 0.8rem;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     overflow: hidden;
     white-space: nowrap;
@@ -55,9 +55,27 @@
   }
 
   &__game-description {
-    font-size: 0.75rem;
+    font-size: globals.$small-font-size;
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .game-visibility-badge {
+      padding: 0;
+      height: 16px;
+      color: inherit;
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
   }
 }

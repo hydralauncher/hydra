@@ -28,6 +28,7 @@ const blobKey = (file: Pick<SnapshotFile, "hash" | "sizeBytes">) =>
 
 export interface PrepareLocalSnapshotOptions {
   baseVersion: number;
+  retroArchFormatVersion?: 2;
   customPathRawPaths?: string[];
   variants?: SnapshotVariant[];
   files?: SnapshotFile[];
@@ -70,6 +71,7 @@ export const uploadLocalGameSnapshot = async (
         hostname: os.hostname() || undefined,
         snapshotHash: aggregateHash,
         baseVersion: resolvedOptions.baseVersion,
+        retroArchFormatVersion: resolvedOptions.retroArchFormatVersion,
         customPathRawPaths: proposalCustomPathRawPaths,
         variants: proposalVariants,
         files: proposalFiles,

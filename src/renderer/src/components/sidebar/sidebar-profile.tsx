@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import {
   BellIcon,
   ChevronDownIcon,
+  CommentDiscussionIcon,
   PeopleIcon,
   PersonIcon,
   SignOutIcon,
@@ -11,10 +12,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import { Avatar } from "../avatar/avatar";
+import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { AuthPage } from "@shared";
 import { platformToSystem } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
 import type {
+  ChatUnreadState,
   NotificationCountResponse,
   NotificationsChangedDetail,
   ProfileFriends,
@@ -22,6 +25,8 @@ import type {
 import { useDispatch } from "react-redux";
 import { setFriendRequestCount } from "@renderer/features/user-details-slice";
 import "./sidebar-profile.scss";
+
+const MAX_UNREAD_BADGE_COUNT = 99;
 
 const CLASSIC_DISC_OVERLAY = (
   <svg
@@ -108,7 +113,7 @@ export function SidebarProfile() {
 
   const { t } = useTranslation(["sidebar", "user_profile"]);
 
-  const { userDetails, signOut } = useUserDetails();
+  const { userDetails, hasActiveSubscription, signOut } = useUserDetails();
   const { showSuccessToast } = useToast();
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
@@ -127,12 +132,15 @@ export function SidebarProfile() {
 
   const [notificationCount, setNotificationCount] = useState(0);
   const [onlineFriendsCount, setOnlineFriendsCount] = useState(0);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isDropdownClosing, setIsDropdownClosing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const apiNotificationCountRef = useRef(0);
   const hasFetchedInitialCount = useRef(false);
+  const onlineFriendsRequestIdRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fetchLocalNotificationCount = useCallback(async () => {
@@ -215,6 +223,9 @@ export function SidebarProfile() {
   }, [fetchLocalNotificationCount]);
 
   const updateOnlineFriendsCount = useCallback(async () => {
+    // Presence bursts fire overlapping refetches; only the latest may write.
+    const requestId = ++onlineFriendsRequestIdRef.current;
+
     if (!userDetails) {
       setOnlineFriendsCount(0);
       return;
@@ -225,7 +236,9 @@ export function SidebarProfile() {
           "/profile/friends",
           { params: { take: 5, skip: 0 } }
         );
-      setOnlineFriendsCount(response.onlineFriends);
+      if (requestId === onlineFriendsRequestIdRef.current) {
+        setOnlineFriendsCount(response.onlineFriends);
+      }
     } catch {
       // ignore transient errors
     }
@@ -300,8 +313,39 @@ export function SidebarProfile() {
       closeDropdown();
     } else {
       setDropdownOpen(true);
+      // Warm the friends cache now so the friends window opens populated.
+      void globalThis.window.electron.prefetchFriends();
     }
   };
+
+  useEffect(() => {
+    if (!userDetails) {
+      setChatUnreadCount(0);
+      return;
+    }
+
+    let cancelled = false;
+    const applyState = (state: ChatUnreadState) => {
+      if (!cancelled) setChatUnreadCount(state.totalUnread);
+    };
+
+    globalThis.window.electron
+      .getChatUnreadState()
+      .then(applyState)
+      .catch(() => {});
+    const unsubscribe =
+      globalThis.window.electron.onChatUnreadUpdated(applyState);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [userDetails]);
+
+  const formatBadgeCount = (count: number) =>
+    count > MAX_UNREAD_BADGE_COUNT
+      ? `${MAX_UNREAD_BADGE_COUNT}+`
+      : String(count);
 
   const handleViewProfile = () => {
     if (!userDetails) return;
@@ -319,14 +363,19 @@ export function SidebarProfile() {
     globalThis.window.electron.openFriendsWindow();
   };
 
+  const handleSignOutClick = () => {
+    closeDropdown();
+    setShowSignOutModal(true);
+  };
+
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    closeDropdown();
     try {
       await signOut();
       showSuccessToast(t("user_profile:successfully_signed_out"));
     } finally {
       setIsSigningOut(false);
+      setShowSignOutModal(false);
     }
     navigate("/");
   };
@@ -365,11 +414,19 @@ export function SidebarProfile() {
         onClick={handleProfileClick}
       >
         <div className="sidebar-profile__button-content">
-          <Avatar
-            size={35}
-            src={userDetails?.profileImageUrl}
-            alt={userDetails?.displayName}
-          />
+          <span className="sidebar-profile__avatar">
+            <Avatar
+              size={35}
+              src={userDetails?.profileImageUrl}
+              alt={userDetails?.displayName}
+            />
+            {userDetails && chatUnreadCount > 0 && (
+              <output
+                className="sidebar-profile__unread-dot"
+                aria-label={t("unread_messages", { count: chatUnreadCount })}
+              />
+            )}
+          </span>
 
           <div className="sidebar-profile__button-information">
             <p className="sidebar-profile__button-title">
@@ -433,14 +490,35 @@ export function SidebarProfile() {
                 {onlineFriendsCount}
               </small>
             )}
+            {chatUnreadCount > 0 && (
+              <small
+                className="sidebar-profile__dropdown-badge sidebar-profile__dropdown-badge--unread"
+                title={t("unread_messages", { count: chatUnreadCount })}
+                aria-label={t("unread_messages", { count: chatUnreadCount })}
+              >
+                {formatBadgeCount(chatUnreadCount)}
+              </small>
+            )}
           </button>
+
+          {hasActiveSubscription && (
+            <button
+              type="button"
+              className="sidebar-profile__dropdown-item"
+              data-open-support-chat
+              onClick={closeDropdown}
+            >
+              <CommentDiscussionIcon size={16} />
+              <span>{t("need_help")}</span>
+            </button>
+          )}
 
           <div className="sidebar-profile__dropdown-separator" />
 
           <button
             type="button"
             className="sidebar-profile__dropdown-item sidebar-profile__dropdown-item--danger"
-            onClick={handleSignOut}
+            onClick={handleSignOutClick}
             disabled={isSigningOut}
           >
             <SignOutIcon size={16} />
@@ -448,6 +526,18 @@ export function SidebarProfile() {
           </button>
         </div>
       )}
+
+      <ConfirmationModal
+        visible={showSignOutModal}
+        title={t("user_profile:sign_out_modal_title")}
+        descriptionText={t("user_profile:sign_out_modal_text")}
+        confirmButtonLabel={t("user_profile:sign_out")}
+        cancelButtonLabel={t("user_profile:cancel")}
+        confirmButtonTheme="danger"
+        buttonsIsDisabled={isSigningOut}
+        onConfirm={() => void handleSignOut()}
+        onClose={() => setShowSignOutModal(false)}
+      />
     </div>
   );
 }

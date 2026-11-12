@@ -1,5 +1,7 @@
 import type { PrepareSnapshotRequest } from "@types";
 
+import { toCloudSaveApiGame } from "../../../shared/recompilations.js";
+
 import {
   validateCustomPathRawPaths,
   validateSnapshotFiles,
@@ -13,6 +15,7 @@ export const buildPrepareSnapshotPayload = ({
   hostname,
   snapshotHash,
   baseVersion,
+  retroArchFormatVersion,
   customPathRawPaths,
   variants,
   files,
@@ -33,12 +36,17 @@ export const buildPrepareSnapshotPayload = ({
   }
 
   return {
-    shop,
-    objectId,
+    ...toCloudSaveApiGame(shop, objectId),
     platform,
     ...(hostname ? { hostname } : {}),
     snapshotHash,
     baseVersion,
+    ...(retroArchFormatVersion === 2 ||
+    validatedFiles.some((file) =>
+      file.rawPath.startsWith("<emulator>/retroarch-v2/")
+    )
+      ? { retroArchFormatVersion: 2 as const }
+      : {}),
     customPathRawPaths: validatedCustomPathRawPaths,
     variants: validatedVariants,
     files: validatedFiles,

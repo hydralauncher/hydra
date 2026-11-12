@@ -1,9 +1,26 @@
 import { existsSync } from "node:fs";
+import path from "node:path";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger, NativeAddon } from "@main/services";
-import type { GameShop, RetroArchPlatform } from "@types";
+import { WindowManager } from "@main/services/window-manager";
+import { HydraApi } from "@main/services/hydra-api";
+import {
+  canCreateCloudSaveUploadGuard,
+  canRunAutomaticCloudSaveSync,
+  clearCloudSaveLaunchGuard,
+  getCloudSaveGameContext,
+  runAutomaticCloudSaveSyncDetailed,
+  setCloudSaveLaunchGuard,
+} from "@main/services/cloud-save";
+import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
+import {
+  findSelectedExecutableDisc,
+  findSelectedRecompilationDisc,
+} from "./classics-executable-disc";
+import { launchRecompilationDisc } from "./launch-recompilation-disc";
 import { launchClassicsGame } from "./launch-classics-game";
+import { launchGame } from "./launch-game";
 import { launchRetroArchGame } from "./launch-retroarch-game";
 import { platformToRetroArchPlatform } from "./platform-to-retroarch-platform";
 import { platformToSystem } from "./platform-to-system";
@@ -16,6 +33,11 @@ const codedLaunchError = (
   logger.error("Failed to launch classics game", { code, ...context });
   return Object.assign(new Error(message), { code });
 };
+
+const resolveDiscBootPath = (
+  discPath: string,
+  system: EmulatorSystem
+): string => (system === "ps4" ? path.join(discPath, "eboot.bin") : discPath);
 
 const isRpcs3RunningExternally = async (): Promise<number[]> => {
   const procs = await NativeAddon.listProcesses();
@@ -82,7 +104,7 @@ const stopRunningRpcs3 = async (
 const translateLaunchError = (
   error: unknown,
   objectId: string,
-  system: "ps1" | "ps2" | "ps3"
+  system: EmulatorSystem
 ) => {
   const code =
     error && typeof error === "object" && "code" in error ? error.code : null;
@@ -184,11 +206,95 @@ export const openClassicsGame = async (
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey);
   if (!game) throw new Error(`Game not found: ${gameKey}`);
+  clearCloudSaveLaunchGuard(objectId, shop);
+
+  const recompilationDisc = findSelectedRecompilationDisc(
+    game.discs,
+    discPath,
+    game.selectedDiscPath
+  );
+  if (recompilationDisc?.recompilationSlug) {
+    await launchRecompilationDisc(
+      objectId,
+      recompilationDisc.recompilationSlug
+    );
+    return;
+  }
+
+  const executableDisc = findSelectedExecutableDisc(
+    game.discs,
+    discPath,
+    game.selectedDiscPath
+  );
+  if (executableDisc) {
+    await launchGame({
+      shop,
+      objectId,
+      executablePath: executableDisc.path,
+      launchOptions: game.launchOptions ?? null,
+    });
+    return;
+  }
+
+  const prepareCloudSaveBeforeLaunch = async () => {
+    if (!(await canRunAutomaticCloudSaveSync(objectId, shop))) return true;
+    const context = await getCloudSaveGameContext(objectId, shop).catch(
+      () => null
+    );
+    if (!context) return true;
+    const outcome = await runAutomaticCloudSaveSyncDetailed(
+      objectId,
+      shop,
+      "pre-launch",
+      context
+    );
+    if (outcome.result?.action === "conflict") {
+      WindowManager.redirectToGameWindow(
+        `game/${shop}/${objectId}?${new URLSearchParams({
+          title: game.title,
+          openCloudSaveConflict: "1",
+        })}`
+      );
+      return false;
+    }
+    if (
+      "errorCode" in outcome &&
+      (outcome.errorCode === "cloud_save_retroarch_battery_local_conflict" ||
+        outcome.errorCode === "cloud_save_retroarch_legacy_battery_conflict")
+    ) {
+      WindowManager.redirectToGameWindow(
+        `game/${shop}/${objectId}?${new URLSearchParams({
+          title: game.title,
+          openCloudSaveBatteryConflict:
+            outcome.errorCode === "cloud_save_retroarch_battery_local_conflict"
+              ? "local"
+              : "legacy",
+        })}`
+      );
+      return false;
+    }
+    if (outcome.result) {
+      setCloudSaveLaunchGuard(objectId, shop, {
+        environmentId: context.environmentId,
+        baseRemoteHash: outcome.result.remoteHash ?? null,
+        uploadAllowed: canCreateCloudSaveUploadGuard(
+          context.prefixIdentityMode !== "session",
+          context.environmentId,
+          outcome.result
+        ),
+        createdAt: new Date().toISOString(),
+      });
+    }
+    return true;
+  };
 
   const retroArchPlatform = platformToRetroArchPlatform(game.platform);
   if (retroArchPlatform) {
     const resolvedRomPath =
-      discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
+      discPath ??
+      (game.selectedDiscPath === null
+        ? null
+        : (game.selectedDiscPath ?? game.discs?.[0]?.path ?? null));
     if (!resolvedRomPath || !existsSync(resolvedRomPath)) {
       throw codedLaunchError(
         "NO_DISC",
@@ -197,12 +303,52 @@ export const openClassicsGame = async (
       );
     }
 
-    await launchRetroArchWithErrors(
-      shop,
-      objectId,
-      resolvedRomPath,
-      retroArchPlatform
-    );
+    if (HydraApi.isLoggedIn() && HydraApi.hasActiveSubscription()) {
+      const { materializeRetroArchLocalSaves } = await import(
+        "@main/services/cloud-save/retroarch-save-provider"
+      );
+      try {
+        await materializeRetroArchLocalSaves({
+          ...game,
+          selectedDiscPath: resolvedRomPath,
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "cloud_save_retroarch_battery_local_conflict"
+        ) {
+          WindowManager.redirectToGameWindow(
+            `game/${shop}/${objectId}?${new URLSearchParams({
+              title: game.title,
+              openCloudSaveBatteryConflict: "local",
+            })}`
+          );
+          return;
+        }
+        if (
+          !(error instanceof Error) ||
+          error.message !== "cloud_save_user_required"
+        ) {
+          logger.warn("RetroArch save materialization unavailable", {
+            objectId,
+            errorCode: error instanceof Error ? error.message : "unknown",
+          });
+        }
+      }
+    }
+
+    if (!(await prepareCloudSaveBeforeLaunch())) return;
+    try {
+      await launchRetroArchWithErrors(
+        shop,
+        objectId,
+        resolvedRomPath,
+        retroArchPlatform
+      );
+    } catch (error) {
+      clearCloudSaveLaunchGuard(objectId, shop);
+      throw error;
+    }
     return;
   }
 
@@ -215,9 +361,38 @@ export const openClassicsGame = async (
     );
   }
 
+  if (system === "ps4") {
+    const { isPs4PkgJobRunningFor } = await import(
+      "@main/events/emulators/ps4-pkg-job"
+    );
+    if (isPs4PkgJobRunningFor(objectId)) {
+      throw Object.assign(
+        new Error(`PS4_PKG_JOB_RUNNING: ${shop}/${objectId}`),
+        { code: "PS4_PKG_JOB_RUNNING" }
+      );
+    }
+  }
+
   const resolvedDiscPath =
     discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-  if (!resolvedDiscPath || !existsSync(resolvedDiscPath)) {
+
+  // A PS4 PKG found in the ROM folder has to be extracted before it plays;
+  // the renderer asks first and then extracts it.
+  if (
+    system === "ps4" &&
+    resolvedDiscPath?.toLowerCase().endsWith(".pkg") &&
+    existsSync(resolvedDiscPath)
+  ) {
+    throw Object.assign(
+      new Error(`PS4_PKG_NEEDS_EXTRACTION: ${shop}/${objectId}`),
+      { code: "PS4_PKG_NEEDS_EXTRACTION" }
+    );
+  }
+
+  if (
+    !resolvedDiscPath ||
+    !existsSync(resolveDiscBootPath(resolvedDiscPath, system))
+  ) {
     throw codedLaunchError(
       "NO_DISC",
       `NO_DISC: No disc available for game ${objectId}`,
@@ -227,6 +402,8 @@ export const openClassicsGame = async (
 
   if (system === "ps3") await stopRunningRpcs3(objectId, force);
 
+  if (!(await prepareCloudSaveBeforeLaunch())) return;
+
   try {
     await launchClassicsGame({
       shop,
@@ -235,6 +412,7 @@ export const openClassicsGame = async (
       system,
     });
   } catch (error) {
+    clearCloudSaveLaunchGuard(objectId, shop);
     throw translateLaunchError(error, objectId, system);
   }
 };

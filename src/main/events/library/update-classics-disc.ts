@@ -3,6 +3,13 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { emulators } from "@main/services";
 import { platformToSystem } from "@main/helpers";
 import type { ClassicsDisc, GameShop } from "@types";
+import {
+  getDiscCloudSaveEmulatorProvider,
+  getCloudSaveRetroArchPlatform,
+} from "@shared";
+import { isCloudSaveSyncActive } from "@main/services/cloud-save/sync-game-cloud-save";
+import { isGameRunning } from "@main/services/process-watcher";
+import { HydraApi } from "@main/services/hydra-api";
 
 interface ClassicsDiscPatch {
   selectedDiscPath?: string | null;
@@ -18,13 +25,14 @@ const applyAddDisc = async (
   platformHint: string | null | undefined
 ): Promise<void> => {
   if (discs.some((d) => d.path === addDisc.path)) return;
-  if (!addDisc.sku) {
-    const system = platformToSystem(platformHint);
-    if (system) {
-      addDisc.sku = await emulators.extractDiscSku(addDisc.path, system);
-    }
+  const system = addDisc.isExecutable ? null : platformToSystem(platformHint);
+  if (!system) {
+    discs.push(addDisc);
+    return;
   }
-  discs.push(addDisc);
+
+  addDisc.sku ||= await emulators.extractDiscSku(addDisc.path, system);
+  discs.push(await emulators.attachDiscRegion(addDisc, system));
 };
 
 const updateClassicsDisc = async (
@@ -40,6 +48,30 @@ const updateClassicsDisc = async (
     throw new Error(`Game not found: ${gameKey}`);
   }
 
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, game.platform);
+  if (
+    discProvider &&
+    (patch.addDisc || patch.removeDiscPath) &&
+    isCloudSaveSyncActive(objectId, shop)
+  ) {
+    throw new Error(`cloud_save_${discProvider}_disc_change_during_sync`);
+  }
+
+  if (
+    HydraApi.isLoggedIn() &&
+    HydraApi.hasActiveSubscription() &&
+    getCloudSaveRetroArchPlatform(shop, game.platform) &&
+    !isGameRunning(objectId, shop) &&
+    (patch.removeDiscPath ||
+      (patch.selectedDiscPath !== undefined &&
+        patch.selectedDiscPath !== game.selectedDiscPath))
+  ) {
+    const { captureRetroArchSavesBeforeRomChange } = await import(
+      "@main/services/cloud-save/retroarch-save-provider"
+    );
+    await captureRetroArchSavesBeforeRomChange(game).catch(() => undefined);
+  }
+
   const discs = [...(game.discs ?? [])];
 
   if (patch.addDisc) {
@@ -52,6 +84,9 @@ const updateClassicsDisc = async (
   }
 
   const next = { ...game, discs };
+  if (patch.removeDiscPath && game.executablePath === patch.removeDiscPath) {
+    next.executablePath = null;
+  }
   if (patch.selectedDiscPath !== undefined) {
     next.selectedDiscPath = patch.selectedDiscPath;
   }
@@ -66,10 +101,25 @@ const updateClassicsDisc = async (
     next.selectedDiscPath &&
     !discs.some((d) => d.path === next.selectedDiscPath)
   ) {
-    next.selectedDiscPath = discs[0]?.path ?? null;
+    next.selectedDiscPath = getCloudSaveRetroArchPlatform(shop, next.platform)
+      ? null
+      : (discs[0]?.path ?? null);
   }
 
   await gamesSublevel.put(gameKey, next);
+  if (
+    HydraApi.isLoggedIn() &&
+    HydraApi.hasActiveSubscription() &&
+    getCloudSaveRetroArchPlatform(shop, next.platform) &&
+    next.selectedDiscPath &&
+    next.selectedDiscPath !== game.selectedDiscPath &&
+    !isGameRunning(objectId, shop)
+  ) {
+    const { materializeRetroArchLocalSaves } = await import(
+      "@main/services/cloud-save/retroarch-save-provider"
+    );
+    await materializeRetroArchLocalSaves(next).catch(() => undefined);
+  }
   return next;
 };
 

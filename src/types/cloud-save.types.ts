@@ -31,6 +31,7 @@ export interface CloudSaveCustomPath {
   path: string;
   platform: CloudSaveCustomPathPlatform;
   storeUserId?: string;
+  kind?: "file" | "dir";
 }
 
 export type CloudSaveUnresolvedCustomPathState =
@@ -53,6 +54,7 @@ export type CloudSaveUnresolvedCustomPathReason =
 export interface CloudSaveUnresolvedCustomPath {
   rawPath: string;
   pathHint: string | null;
+  kind?: "file" | "dir";
   state: CloudSaveUnresolvedCustomPathState;
   reason: CloudSaveUnresolvedCustomPathReason;
   registered: boolean;
@@ -91,6 +93,7 @@ export interface CloudSaveCustomPathApproval {
   gameId: CloudSaveGameId;
   purpose: "pre-launch" | "manual-sync" | "custom-path-rebind";
   rawPath: string;
+  kind?: "file" | "dir";
   suggestedPath: string | null;
   selectedPath: string | null;
   canUseSuggestedPath: boolean;
@@ -131,11 +134,20 @@ export type CloudSaveModalSyncResult =
       result: SyncGameCloudSaveResult;
     };
 
+export interface RecompilationSaveRule {
+  rawPath: string;
+  kind: "dir" | "file";
+  tags: string[];
+  when: CloudSaveRuleCondition[];
+  preferredPath?: string;
+}
+
 export interface GetSaveRulesForGameInput extends CloudSaveGameId {
   title?: string;
   remoteId?: string;
   userDataPath: string;
   sourceUrl?: string;
+  recompilationRules?: RecompilationSaveRule[];
 }
 
 export interface GameSaveRules {
@@ -221,6 +233,26 @@ export interface BuildLocalGameSnapshotPipelineInput
   environmentId: string;
   hashCache: LocalFileHashCacheEntry[];
   extraRules?: CloudSaveRule[];
+  recompilationRules?: RecompilationSaveRule[];
+}
+
+export interface DiscoveredLocalSaveFile extends CloudSaveFileIdentity {
+  ruleId: string;
+  absolutePath: string;
+  localBindings: LocalResolutionBindings;
+  confidence: "authoritative" | "exact" | "inferred";
+  provenance: string[];
+}
+
+export interface BuildLocalGameSnapshotInput {
+  gameId: CloudSaveGameId;
+  manifestKey?: string;
+  ruleSourceRevision: string;
+  discoveryEngineVersion: number;
+  coverage: UserLocationCoverage[];
+  variants: SnapshotVariant[];
+  files: DiscoveredLocalSaveFile[];
+  hashCache: LocalFileHashCacheEntry[];
 }
 
 export interface LocalFileHashCacheEntry {
@@ -268,6 +300,14 @@ export interface SnapshotFile extends CloudSaveFileIdentity {
   hash: string;
   sizeBytes: number;
   lastModifiedAt: string;
+  stateMetadata?: CloudSaveStateMetadata;
+}
+
+export interface CloudSaveStateMetadata {
+  emulatorId: string;
+  coreId?: string;
+  version?: string;
+  hostPlatform?: string;
 }
 
 export type UserVariantSnapshotFile = SnapshotFile;
@@ -312,6 +352,26 @@ export interface CloudSaveStateResult {
   activeRemoteSnapshot: RemoteSnapshotSummary | null;
 }
 
+export interface RetroArchLocalBatteryCandidate {
+  romPath: string;
+  signature: string;
+  files: Array<{
+    relativePath: string;
+    path: string;
+    hash: string;
+    lastModifiedAt: string;
+  }>;
+}
+
+export interface RetroArchLegacyBatteryCandidate {
+  rawPath: string;
+  files: Array<{
+    relativePath: string;
+    hash: string;
+    lastModifiedAt: string;
+  }>;
+}
+
 export interface CloudSaveOverview extends CloudSaveStateResult {
   localSnapshotSummary: {
     updatedAt: string | null;
@@ -342,6 +402,7 @@ interface CloudSaveV2FileBase extends CloudSaveFileIdentity {
   sizeBytes: number;
   lastModifiedAt: string | null;
   userLabel: string;
+  displayName?: string;
 }
 
 export interface CloudSaveV2LocalFile extends CloudSaveV2FileBase {
@@ -390,6 +451,14 @@ export interface CloudSaveV2FileDetails {
   local: CloudSaveV2LocalFileSource;
   activeSnapshot: CloudSaveV2ActiveSnapshotFileSource | null;
   customPaths: CloudSaveCustomPath[];
+  emulatorDestinations?: Array<{
+    rawPath: string;
+    kind: "save" | "state";
+    pathHint: string | null;
+    selectedPath: string | null;
+    fileCount: number;
+    status: "pending" | "bound" | "unavailable";
+  }>;
   unresolvedCustomPaths: CloudSaveUnresolvedCustomPath[];
   comparisons: CloudSaveV2FileComparison[];
   variants: Array<{
@@ -513,6 +582,7 @@ export type BlockedRestoreReason =
   | "blocked-relative-path-incomplete"
   | "blocked-target-outside-root"
   | "blocked-target-ambiguous"
+  | "blocked-emulator-destination-unavailable"
   | "foreign-environment";
 
 export interface BlockedRestoreFile extends RestoreManifestFile {
@@ -660,6 +730,7 @@ export interface LocalGameSnapshotSourceFile extends CloudSaveFileIdentity {
   localBindings: LocalResolutionBindings;
   confidence: "authoritative" | "exact" | "inferred";
   provenance: string[];
+  stateMetadata?: CloudSaveStateMetadata;
 }
 
 export interface LocalGameSnapshotPipelineResult
@@ -680,10 +751,12 @@ export interface NativeLocalGameSnapshotPipelineResult
 }
 
 export interface PrepareSnapshotRequest extends CloudSaveGameId {
+  recompilationSlug?: string;
   platform: CloudSavePathContext["platform"];
   hostname?: string;
   snapshotHash: string;
   baseVersion: number;
+  retroArchFormatVersion?: 2;
   customPathRawPaths: string[];
   variants: SnapshotVariant[];
   files: SnapshotFile[];
@@ -747,6 +820,7 @@ export interface RemoteGameSnapshot {
 export interface CloudSaveSyncAnchorEntry extends CloudSaveFileIdentity {
   hash: string;
   sizeBytes: number;
+  stateMetadata?: CloudSaveStateMetadata;
 }
 
 export interface CloudSaveSyncAnchor {

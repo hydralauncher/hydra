@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  AlertIcon,
   DeviceDesktopIcon,
   FileDirectoryIcon,
   SyncIcon,
@@ -132,15 +131,14 @@ export function ScanGamesModal({
     setIsResolving(true);
 
     try {
-      const added: FoundGame[] = [];
-
-      for (const [executablePath, objectId] of Object.entries(picks)) {
-        const game = await window.electron
-          .addScannedGame(objectId, executablePath)
-          .catch(() => null);
-
-        if (game) added.push(game);
-      }
+      const added: FoundGame[] = await window.electron
+        .addScannedGames(
+          Object.entries(picks).map(([executablePath, objectId]) => ({
+            objectId,
+            executablePath,
+          }))
+        )
+        .catch(() => []);
 
       setResolvedGames(added);
     } finally {
@@ -359,11 +357,6 @@ export function ScanGamesModal({
 
         {scanResult && pending.length === 0 && (
           <div className="scan-games-modal__results">
-            <div className="scan-games-modal__warning">
-              <AlertIcon size={14} className="scan-games-modal__warning-icon" />
-              <span>{t("scan_games_detection_warning")}</span>
-            </div>
-
             {hasResults ? (
               <div className="scan-games-modal__result-section">
                 <p className="scan-games-modal__result">{resultSummary}</p>

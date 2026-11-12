@@ -16,6 +16,7 @@ export const buildCloudSaveCustomPathRebindApproval = ({
   suggestedPath,
   selectedPath,
   canUseSuggestedPath,
+  kind,
   remoteFiles,
   snapshot,
 }: {
@@ -24,6 +25,7 @@ export const buildCloudSaveCustomPathRebindApproval = ({
   suggestedPath: string | null;
   selectedPath: string | null;
   canUseSuggestedPath: boolean;
+  kind?: "file" | "dir";
   remoteFiles: RestoreManifestFile[];
   snapshot: { id: string; version: number } | null;
 }): CloudSaveCustomPathApproval => {
@@ -35,6 +37,7 @@ export const buildCloudSaveCustomPathRebindApproval = ({
     gameId,
     purpose: "custom-path-rebind",
     rawPath,
+    kind,
     suggestedPath,
     selectedPath,
     canUseSuggestedPath,

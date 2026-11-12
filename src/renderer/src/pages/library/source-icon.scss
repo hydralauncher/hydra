@@ -1,0 +1,11 @@
+.library-source-icon {
+  flex-shrink: 0;
+
+  &--hydra {
+    margin: -1px -2px -1px 0;
+
+    path {
+      fill: currentColor;
+    }
+  }
+}

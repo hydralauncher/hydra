@@ -9,6 +9,7 @@ import type {
 import cn from "classnames";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 import { RETROARCH_EMULATOR_ICON } from "@renderer/pages/settings/emulation/emulator-icons";
 import {
   RETROARCH_LABEL,
@@ -21,6 +22,7 @@ import { FocusItem, GridFocusGroup } from "../../../components";
 import { useNavigation } from "../../../hooks";
 import {
   EMULATION_DETAIL_BACK_BUTTON_ID,
+  EMULATION_DETAIL_EXECUTABLE_BUTTON_ID,
   EMULATION_OVERVIEW_CARD_FOCUS_IDS,
   EMULATION_OVERVIEW_REGION_ID,
   SETTINGS_HEADER_RETURN_TARGET,
@@ -35,6 +37,10 @@ import {
 } from "./shared";
 import { EmulationDetail } from "./detail";
 import { RetroArchEmulationDetail } from "./retroarch-detail";
+import {
+  isRetroArchEmulationDeepLink,
+  getEmulatorDetailDeepLinkSystem,
+} from "./navigation";
 import { SettingsSection } from "../settings-section";
 
 interface SettingsSectionProps {
@@ -228,12 +234,22 @@ export function EmulationSettingsSection({
   className,
 }: Readonly<SettingsSectionProps>) {
   const { t } = useTranslation("settings");
+  const { search } = useLocation();
+  const isRetroArchDeepLink = isRetroArchEmulationDeepLink(search);
+  const deepLinkSystem = getEmulatorDetailDeepLinkSystem(search);
   const { setFocus } = useNavigation();
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [retroArchConfig, setRetroArchConfig] =
     useState<RetroArchConfig | null>(null);
-  const [view, setView] = useState<EmulationView>({ kind: "grid" });
+  const [view, setView] = useState<EmulationView>(() =>
+    isRetroArchDeepLink
+      ? { kind: "retroarch" }
+      : deepLinkSystem
+        ? { kind: "detail", system: deepLinkSystem }
+        : { kind: "grid" }
+  );
   const [returnSystem, setReturnSystem] = useState<EmulationCardKey>("ps1");
+  const isLoaded = configs !== null && retroArchConfig !== null;
 
   useEffect(() => {
     let cancelled = false;
@@ -301,9 +317,21 @@ export function EmulationSettingsSection({
   }, []);
 
   useEffect(() => {
+    if (isRetroArchDeepLink) setView({ kind: "retroarch" });
+    else if (deepLinkSystem)
+      setView({ kind: "detail", system: deepLinkSystem });
+  }, [isRetroArchDeepLink, deepLinkSystem]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
     const frameId = globalThis.window.requestAnimationFrame(() => {
       if (view.kind === "detail" || view.kind === "retroarch") {
-        setFocus(EMULATION_DETAIL_BACK_BUTTON_ID);
+        setFocus(
+          (view.kind === "retroarch" && isRetroArchDeepLink) ||
+            (view.kind === "detail" && deepLinkSystem !== null)
+            ? EMULATION_DETAIL_EXECUTABLE_BUTTON_ID
+            : EMULATION_DETAIL_BACK_BUTTON_ID
+        );
         return;
       }
 
@@ -313,7 +341,14 @@ export function EmulationSettingsSection({
     return () => {
       globalThis.window.cancelAnimationFrame(frameId);
     };
-  }, [returnSystem, setFocus, view]);
+  }, [
+    isLoaded,
+    isRetroArchDeepLink,
+    deepLinkSystem,
+    returnSystem,
+    setFocus,
+    view,
+  ]);
 
   const detailConfig = useMemo(() => {
     if (!configs || view.kind !== "detail") return null;
@@ -334,10 +369,22 @@ export function EmulationSettingsSection({
       },
       ps3: {
         left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps2),
+        right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps4),
+      },
+      ps4: {
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps3),
+        right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.psp),
+      },
+      psp: {
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps4),
+        right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.dolphin),
+      },
+      dolphin: {
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.psp),
         right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.retroarch),
       },
       retroarch: {
-        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.ps3),
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.dolphin),
         right: { type: "block" },
       },
     }),

@@ -15,11 +15,15 @@ import { DescriptionHeader } from "./description-header/description-header";
 import { GallerySlider } from "./gallery-slider/gallery-slider";
 import { Sidebar } from "./sidebar/sidebar";
 import { GameReviews } from "./game-reviews";
+import { ReviewPromptBanner } from "./review-prompt-banner";
+import { useReviewPrompt } from "./use-review-prompt";
+import { useUserReviewStatus } from "./use-user-review-status";
 import { GameLogo } from "./game-logo";
 import { CloudSaveWidget } from "./cloud-save-v2";
 import { getCloudSaveVisibility } from "./cloud-save-visibility";
+import { SimilarGames } from "./similar-games/similar-games";
 
-import { AuthPage } from "@shared";
+import { AuthPage, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
@@ -79,6 +83,8 @@ export function GameDetailsContent() {
     objectId,
     shopDetails,
     game,
+    presentation,
+    catalogueGame,
     hasNSFWContentBlocked,
     shop,
     setShowGameOptionsModal,
@@ -89,7 +95,9 @@ export function GameDetailsContent() {
   const { library } = useLibrary();
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
-  const cloudSaveVisibility = game ? getCloudSaveVisibility(game.shop) : null;
+  const cloudSaveVisibility = game
+    ? getCloudSaveVisibility(game.shop, game.platform)
+    : null;
 
   const aboutTheGame = useMemo(() => {
     const aboutTheGame = shopDetails?.about_the_game;
@@ -115,7 +123,6 @@ export function GameDetailsContent() {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isDescriptionOverflowing, setIsDescriptionOverflowing] =
     useState(false);
-  const [hasUserReviewed, setHasUserReviewed] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Check if the current game is in the user's library
@@ -125,6 +132,36 @@ export function GameDetailsContent() {
       (libItem) => libItem.shop === shop && libItem.objectId === objectId
     );
   }, [library, shop, objectId]);
+
+  const { hasUserReviewed, isCheckingUserReview, updateHasUserReviewed } =
+    useUserReviewStatus({
+      shop,
+      objectId,
+      userDetailsId: userDetails?.id,
+    });
+
+  const { showPrompt, isPromptPending, dismissPrompt } = useReviewPrompt({
+    shop,
+    objectId,
+    playTimeInMilliseconds: getDisplayedPlayTimeInMilliseconds({
+      playTimeInMilliseconds: game?.playTimeInMilliseconds ?? 0,
+      steamPlayTimeInMilliseconds: game?.steamPlayTimeInMilliseconds,
+      epicPlayTimeInMilliseconds: game?.epicPlayTimeInMilliseconds,
+    }),
+    userDetailsId: userDetails?.id,
+    isGameInLibrary,
+    hasUserReviewed,
+    isCheckingUserReview,
+  });
+
+  const handleReviewPromptYes = () => {
+    dismissPrompt({ persist: false });
+    reviewsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleReviewPromptLater = () => {
+    dismissPrompt({ persist: true });
+  };
 
   useEffect(() => {
     setBackdropOpacity(1);
@@ -137,9 +174,21 @@ export function GameDetailsContent() {
       return;
     }
 
+    const images = Array.from(el.querySelectorAll("img"));
+    const videos = Array.from(el.querySelectorAll("video"));
+    const isMediaPending = () =>
+      images.some((img) => !img.complete) ||
+      videos.some((video) => video.readyState === 0);
+
     const measure = () => {
       const collapsedMaxHeight = 300;
-      setIsDescriptionOverflowing(el.scrollHeight > collapsedMaxHeight);
+      // While media is still loading the text alone may fit, but the
+      // finished description almost never does. Assume it overflows until
+      // the media has loaded, so "Show more" doesn't pop in and push the
+      // page down later.
+      setIsDescriptionOverflowing(
+        el.scrollHeight > collapsedMaxHeight || isMediaPending()
+      );
     };
 
     measure();
@@ -147,15 +196,30 @@ export function GameDetailsContent() {
     const observer = new ResizeObserver(measure);
     observer.observe(el);
 
-    const images = Array.from(el.querySelectorAll("img"));
     const onMediaLoad = () => measure();
     images.forEach((img) => {
-      if (!img.complete) img.addEventListener("load", onMediaLoad);
+      if (!img.complete) {
+        img.addEventListener("load", onMediaLoad);
+        img.addEventListener("error", onMediaLoad);
+      }
+    });
+    videos.forEach((video) => {
+      if (video.readyState === 0) {
+        video.addEventListener("loadedmetadata", onMediaLoad);
+        video.addEventListener("error", onMediaLoad);
+      }
     });
 
     return () => {
       observer.disconnect();
-      images.forEach((img) => img.removeEventListener("load", onMediaLoad));
+      images.forEach((img) => {
+        img.removeEventListener("load", onMediaLoad);
+        img.removeEventListener("error", onMediaLoad);
+      });
+      videos.forEach((video) => {
+        video.removeEventListener("loadedmetadata", onMediaLoad);
+        video.removeEventListener("error", onMediaLoad);
+      });
     };
   }, [aboutTheGame]);
 
@@ -201,7 +265,7 @@ export function GameDetailsContent() {
   const heroImage = isCustomGame
     ? game?.libraryHeroImageUrl || game?.iconUrl || ""
     : getImageWithCustomPriority(
-        game?.customHeroImageUrl,
+        (presentation ?? game)?.customHeroImageUrl,
         shopDetails?.assets?.libraryHeroImageUrl
       );
 
@@ -384,7 +448,10 @@ export function GameDetailsContent() {
             <div className="game-details__hero-content">
               {!renderClassicsHero && (
                 <div className="game-details__hero-standard-meta">
-                  <GameLogo game={game} shopDetails={shopDetails} />
+                  <GameLogo
+                    game={presentation ?? game}
+                    shopDetails={shopDetails}
+                  />
                   {classicsChips}
                 </div>
               )}
@@ -433,19 +500,37 @@ export function GameDetailsContent() {
         <div className="game-details__description-container">
           <div className="game-details__description-content">
             <DescriptionHeader />
+
+            {(showPrompt || isPromptPending) && (
+              <ReviewPromptBanner
+                pending={!showPrompt}
+                onYesClick={handleReviewPromptYes}
+                onLaterClick={handleReviewPromptLater}
+              />
+            )}
+
             <GallerySlider />
+
+            {shopDetails?.about_the_game && (
+              <h2 className="game-details__description-title">
+                {t("about_this_game")}
+              </h2>
+            )}
 
             <div
               ref={descriptionRef}
               dangerouslySetInnerHTML={{
                 __html: aboutTheGame,
               }}
+              // Clamped from the first paint: images inside the description
+              // load late, and measuring first let it render at full height
+              // before collapsing.
               className={`game-details__description ${
                 isDescriptionExpanded
                   ? "game-details__description--expanded"
                   : isDescriptionOverflowing
-                    ? "game-details__description--collapsed"
-                    : ""
+                    ? "game-details__description--clamped game-details__description--collapsed"
+                    : "game-details__description--clamped"
               }`}
             />
 
@@ -459,6 +544,13 @@ export function GameDetailsContent() {
               </button>
             )}
 
+            {shop && objectId && (
+              <SimilarGames
+                objectId={catalogueGame.objectId}
+                shop={catalogueGame.shop}
+              />
+            )}
+
             {shop !== "custom" && shop && objectId && (
               <div ref={reviewsRef}>
                 <GameReviews
@@ -466,9 +558,9 @@ export function GameDetailsContent() {
                   objectId={objectId}
                   game={game}
                   userDetailsId={userDetails?.id}
-                  isGameInLibrary={isGameInLibrary}
                   hasUserReviewed={hasUserReviewed}
-                  onUserReviewedChange={setHasUserReviewed}
+                  isCheckingUserReview={isCheckingUserReview}
+                  onUserReviewedChange={updateHasUserReviewed}
                 />
               </div>
             )}

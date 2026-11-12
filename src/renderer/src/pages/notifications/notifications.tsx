@@ -3,10 +3,19 @@ import { BellIcon } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@renderer/components";
-import { useAppDispatch, useToast, useUserDetails } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useFeature,
+  useToast,
+  useUserDetails,
+} from "@renderer/hooks";
 import { setHeaderTitle } from "@renderer/features";
 import { logger } from "@renderer/logger";
 import { ensureArray } from "@renderer/helpers";
+import {
+  isLeaderboardNotificationType,
+  isScreenshotNotificationType,
+} from "@shared";
 
 import { NotificationItem } from "./notification-item";
 import { LocalNotificationItem } from "./local-notification-item";
@@ -30,6 +39,7 @@ export default function Notifications() {
   const { showSuccessToast, showErrorToast } = useToast();
   const { userDetails } = useUserDetails();
   const dispatch = useAppDispatch();
+  const { isFeatureEnabled, Feature } = useFeature();
 
   useEffect(() => {
     dispatch(setHeaderTitle(t("title")));
@@ -163,17 +173,31 @@ export default function Notifications() {
     };
   }, []);
 
+  const visibleApiNotifications = useMemo(() => {
+    const isShown = ({ type }: Notification) => {
+      if (isLeaderboardNotificationType(type))
+        return isFeatureEnabled(Feature.GlobalLeaderboards);
+      if (!isScreenshotNotificationType(type)) return true;
+      if (!isFeatureEnabled(Feature.Screenshots)) return false;
+      return (
+        type === "SCREENSHOT_LIKE" ||
+        isFeatureEnabled(Feature.ScreenshotComments)
+      );
+    };
+    return apiNotifications.filter(isShown);
+  }, [Feature, apiNotifications, isFeatureEnabled]);
+
   const mergedNotifications = useMemo<MergedNotification[]>(() => {
     const sortByDate = (a: MergedNotification, b: MergedNotification) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 
     // High priority notifications (priority === 1) - keep in API order
-    const highPriority: MergedNotification[] = apiNotifications
+    const highPriority: MergedNotification[] = visibleApiNotifications
       .filter((n) => n.priority === 1)
       .map((n) => ({ ...n, source: "api" as const }));
 
     // Low priority: other API notifications + local notifications, merged and sorted by date
-    const lowPriorityApi: MergedNotification[] = apiNotifications
+    const lowPriorityApi: MergedNotification[] = visibleApiNotifications
       .filter((n) => n.priority !== 1)
       .map((n) => ({ ...n, source: "api" as const }));
 
@@ -194,7 +218,7 @@ export default function Notifications() {
     );
 
     return [...highPriority, ...lowPriority];
-  }, [apiNotifications, localNotifications, filter]);
+  }, [visibleApiNotifications, localNotifications, filter]);
 
   const displayedNotifications = useMemo(() => {
     return mergedNotifications;
@@ -443,10 +467,10 @@ export default function Notifications() {
   };
 
   const unreadCount = useMemo(() => {
-    const apiUnread = apiNotifications.filter((n) => !n.isRead).length;
+    const apiUnread = visibleApiNotifications.filter((n) => !n.isRead).length;
     const localUnread = localNotifications.filter((n) => !n.isRead).length;
     return apiUnread + localUnread;
-  }, [apiNotifications, localNotifications]);
+  }, [visibleApiNotifications, localNotifications]);
 
   const renderFilterTabs = () => (
     <div className="notifications__filter-tabs">
@@ -490,16 +514,15 @@ export default function Notifications() {
 
   const hasNoNotifications = mergedNotifications.length === 0;
   const shouldDisableActions = isClearing || hasNoNotifications;
+  const hasApiUnread = apiNotifications.some((n) => !n.isRead);
+  const shouldDisableMarkAllAsRead =
+    isClearing || (hasNoNotifications && !hasApiUnread);
+
+  // The page frame (tabs and actions) renders right away; only the list area
+  // waits for the first load, so nothing moves when it finishes.
+  const isFirstLoad = isInitialLoad && isLoading;
 
   const renderContent = () => {
-    if (isInitialLoad && isLoading) {
-      return (
-        <div className="notifications__loading">
-          <span>{t("loading")}</span>
-        </div>
-      );
-    }
-
     return (
       <div className="notifications">
         <div className="notifications__header">
@@ -508,7 +531,7 @@ export default function Notifications() {
             <Button
               theme="outline"
               onClick={handleMarkAllAsRead}
-              disabled={shouldDisableActions}
+              disabled={shouldDisableMarkAllAsRead}
             >
               {t("mark_all_as_read")}
             </Button>
@@ -532,7 +555,11 @@ export default function Notifications() {
             exit={{ opacity: 0, x: 10 }}
             transition={{ duration: 0.2 }}
           >
-            {hasNoNotifications && !isClearing ? (
+            {isFirstLoad ? (
+              <div className="notifications__loading">
+                <span>{t("loading")}</span>
+              </div>
+            ) : hasNoNotifications && !isClearing ? (
               <div className="notifications__empty">
                 <div className="notifications__icon-container">
                   <BellIcon size={24} />

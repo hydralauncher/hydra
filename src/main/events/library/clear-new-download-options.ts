@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger } from "@main/services";
@@ -14,8 +15,7 @@ const clearNewDownloadOptions = async (
   if (!game) return;
 
   try {
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameRecord(gameKey, {
       newDownloadOptionsCount: undefined,
     });
     logger.info(`Cleared newDownloadOptionsCount for game ${gameKey}`);

@@ -2,12 +2,14 @@ import type {
   CloudSaveFileIdentity,
   GameShop,
   RemoteSnapshotSummary,
+  RestoreDownloadUrlFile,
   RestoreManifestResponse,
   SnapshotFile,
   SnapshotVariant,
 } from "@types";
 
 import { toSteamAccount } from "../steam-login-users.js";
+import { toRecompilationCloudSaveObjectId } from "../../../shared/recompilations.js";
 
 export const CLOUD_SAVE_HASH_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -44,6 +46,24 @@ const hasOnlyKeys = (
 ) =>
   Object.keys(value).every((key) => expected.includes(key)) &&
   expected.every((key) => key in value);
+
+const isStateMetadata = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const metadata = value as Record<string, unknown>;
+  return (
+    Object.keys(metadata).every((key) =>
+      ["emulatorId", "coreId", "version", "hostPlatform"].includes(key)
+    ) &&
+    typeof metadata.emulatorId === "string" &&
+    metadata.emulatorId.length > 0 &&
+    metadata.emulatorId.length <= 255 &&
+    [metadata.coreId, metadata.version, metadata.hostPlatform].every(
+      (field) =>
+        field === undefined ||
+        (typeof field === "string" && field.length > 0 && field.length <= 255)
+    )
+  );
+};
 
 export const validateSnapshotVariant = (value: unknown): SnapshotVariant => {
   if (!value || typeof value !== "object") {
@@ -115,7 +135,10 @@ export const validateSnapshotFile = (value: unknown): SnapshotFile => {
       "hash",
       "sizeBytes",
       "lastModifiedAt",
+      ...(file.stateMetadata === undefined ? [] : ["stateMetadata"]),
     ]) ||
+    (file.stateMetadata !== undefined &&
+      !isStateMetadata(file.stateMetadata)) ||
     !isNonEmptyString(file.variantId) ||
     !CLOUD_SAVE_HASH_PATTERN.test(file.variantId) ||
     !isNonEmptyString(file.rawPath) ||
@@ -164,6 +187,39 @@ export const validateSnapshotFiles = (
     throw new Error("Cloud Save manifest contains an unused variant");
   }
   return files;
+};
+
+export const validateRestoreDownloadUrls = (
+  value: unknown
+): RestoreDownloadUrlFile[] => {
+  if (!Array.isArray(value)) {
+    throw new TypeError("Invalid restore download URLs response");
+  }
+  const seenIds = new Set<string>();
+  return value.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error("Invalid restore download URL file");
+    }
+    const { downloadUrl, ...snapshotValue } = item as Record<string, unknown>;
+    if (typeof downloadUrl !== "string" || !downloadUrl) {
+      throw new Error("Invalid restore download URL file");
+    }
+    try {
+      const url = new URL(downloadUrl);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        throw new Error("Invalid restore download URL file");
+      }
+    } catch {
+      throw new Error("Invalid restore download URL file");
+    }
+    const snapshotFile = validateSnapshotFile(snapshotValue);
+    const key = cloudSaveFileKey(snapshotFile);
+    if (seenIds.has(key)) {
+      throw new Error("Duplicate restore download URL file");
+    }
+    seenIds.add(key);
+    return { ...snapshotFile, downloadUrl };
+  });
 };
 
 export const validateCustomPathRawPaths = (value: unknown): string[] => {
@@ -244,17 +300,33 @@ export const validateRestoreManifest = (
   const snapshot = response.snapshot as Record<string, unknown> | undefined;
   if (
     !snapshot ||
-    !hasOnlyKeys(snapshot, ["id", "version", "shop", "objectId"]) ||
+    !hasOnlyKeys(
+      snapshot,
+      "recompilationSlug" in snapshot
+        ? ["id", "version", "shop", "objectId", "recompilationSlug"]
+        : ["id", "version", "shop", "objectId"]
+    ) ||
     !isNonEmptyString(snapshot.id) ||
     typeof snapshot.version !== "number" ||
     !Number.isSafeInteger(snapshot.version) ||
     snapshot.version < 1 ||
-    (snapshot.shop !== "steam" && snapshot.shop !== "launchbox") ||
-    !isNonEmptyString(snapshot.objectId)
+    (snapshot.shop !== "steam" &&
+      snapshot.shop !== "epic" &&
+      snapshot.shop !== "launchbox") ||
+    !isNonEmptyString(snapshot.objectId) ||
+    (snapshot.recompilationSlug != null &&
+      (snapshot.shop !== "launchbox" ||
+        !isNonEmptyString(snapshot.recompilationSlug)))
   ) {
     throw new Error("Invalid restore manifest snapshot");
   }
   const shop = snapshot.shop as GameShop;
+  const objectId = isNonEmptyString(snapshot.recompilationSlug)
+    ? toRecompilationCloudSaveObjectId(
+        snapshot.objectId,
+        snapshot.recompilationSlug
+      )
+    : snapshot.objectId;
   const variants = validateSnapshotVariants(response.variants, shop);
   const files = validateSnapshotFiles(response.files, variants);
   const customPathRawPaths = validateCustomPathRawPaths(
@@ -281,7 +353,7 @@ export const validateRestoreManifest = (
       id: snapshot.id,
       version: snapshot.version,
       shop,
-      objectId: snapshot.objectId,
+      objectId,
     },
     customPathRawPaths,
     variants,

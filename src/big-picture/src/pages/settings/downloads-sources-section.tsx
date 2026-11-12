@@ -56,6 +56,8 @@ function getStatusLabel(status: DownloadSourceStatus) {
       return "Up to Date";
     case DownloadSourceStatus.Failed:
       return "Error";
+    case DownloadSourceStatus.Dead:
+      return "Offline";
     case DownloadSourceStatus.PendingMatching:
     case DownloadSourceStatus.Matching:
       return "Syncing";
@@ -65,6 +67,7 @@ function getStatusLabel(status: DownloadSourceStatus) {
 function getStatusTone(status: DownloadSourceStatus) {
   switch (status) {
     case DownloadSourceStatus.Failed:
+    case DownloadSourceStatus.Dead:
       return "error" as const;
     case DownloadSourceStatus.Matched:
       return "success" as const;

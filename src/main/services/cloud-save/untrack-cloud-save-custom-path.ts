@@ -1,7 +1,8 @@
 import type { CloudSaveCustomPathBindings, GameShop } from "@types";
 
 import { HydraApi } from "../hydra-api.js";
-import { NativeAddon } from "../native-addon.js";
+import { assertCloudSaveV2Eligible } from "./assert-cloud-save-executable.js";
+import { buildCloudSaveAggregateHash } from "./snapshot-aggregate-hash.js";
 import { buildLocalGameSnapshotContext } from "./build-local-game-snapshot.js";
 import { createRemoteSnapshotFromLocalState } from "./create-remote-snapshot-from-local-state.js";
 import {
@@ -13,6 +14,7 @@ import { cloudSaveCustomPathContextFromPathContext } from "./custom-path.js";
 import { withCloudSaveCustomPathStoreMutation } from "./custom-path-store.js";
 import { executeCloudSaveCustomPathUntracking } from "./custom-path-untracking-policy.js";
 import { getCloudSaveGameContext } from "./cloud-save-game-context.js";
+import { assertEmulatorDiscIdentity } from "./emulator-disc-identity.js";
 import { buildDeleteGameCloudSaveSnapshotsUrl } from "./delete-game-cloud-save-data-policy.js";
 import { listRemoteGameSnapshots } from "./list-remote-game-snapshots.js";
 import {
@@ -36,6 +38,10 @@ const publishCustomPathRemoval = async (
 
     const manifest = await getRemoteSnapshotRestoreManifest(activeSnapshot);
     const proposal = buildCloudSaveCustomPathRemovalProposal(manifest, rawPath);
+    (await assertEmulatorDiscIdentity(context.game))?.assertSnapshotFiles(
+      proposal.files,
+      bindings.ready
+    );
     await executeCloudSaveCustomPathRemoteRemoval({
       proposal,
       deleteSnapshot: () =>
@@ -47,7 +53,7 @@ const publishCustomPathRemoval = async (
           }
         ),
       updateSnapshot: async () => {
-        const aggregateHash = NativeAddon.buildSnapshotAggregateHash({
+        const aggregateHash = buildCloudSaveAggregateHash({
           variants: proposal.variants,
           files: proposal.files,
         });
@@ -106,6 +112,7 @@ export const untrackCloudSaveCustomPath = (
     scopeKey,
     JSON.stringify(["untrack-custom-path", rawPath]),
     async () => {
+      await assertCloudSaveV2Eligible(objectId, shop);
       const context = await getCloudSaveGameContext(objectId, shop);
       const customPathContext = cloudSaveCustomPathContextFromPathContext(
         context.pathContext

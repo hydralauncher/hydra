@@ -5,6 +5,8 @@ export const PROFILE_HERO_EXTERNAL_PRIMARY_ACTION_ID =
   "profile-hero-external-primary";
 export const PROFILE_HERO_EXTERNAL_SECONDARY_ACTION_ID =
   "profile-hero-external-secondary";
+export const PROFILE_HERO_EXTERNAL_TERTIARY_ACTION_ID =
+  "profile-hero-external-tertiary";
 export const PROFILE_RECENT_ACTIVITY_REGION_ID = "profile-recent-activity";
 export const PROFILE_LIBRARY_CAROUSEL_REGION_ID = "profile-library-carousel";
 export const PROFILE_SOUVENIRS_REGION_ID = "profile-souvenirs";
@@ -25,3 +27,16 @@ export const getProfileFriendItemId = (friendId: string) =>
 export function getProfileSouvenirItemId(souvenirKey: string) {
   return `profile-souvenir-${souvenirKey}`;
 }
+
+export const PROFILE_SCREENSHOTS_REGION_ID = "profile-screenshots";
+export const PROFILE_SCREENSHOTS_CONTROLS_REGION_ID =
+  "profile-screenshots-controls";
+export const PROFILE_SCREENSHOTS_FILTER_ID = "profile-screenshots-filter";
+export const PROFILE_SCREENSHOTS_SORT_ID = "profile-screenshots-sort";
+
+export function getProfileScreenshotItemId(screenshotId: string) {
+  return `profile-screenshot-${screenshotId}`;
+}
+export const PROFILE_SCREENSHOTS_RETRY_ID = "profile-screenshots-retry";
+export const PROFILE_SCREENSHOTS_LOAD_MORE_RETRY_ID =
+  "profile-screenshots-load-more-retry";

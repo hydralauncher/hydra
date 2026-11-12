@@ -1,16 +1,19 @@
 import type { FriendGameSession } from "../types";
 import { db, levelKeys } from "@main/level";
-import { HydraApi } from "@main/services/hydra-api";
-import { WindowManager } from "@main/services/window-manager";
 import { publishFriendStartedPlayingGameNotification } from "@main/services/notifications";
-import type { UserPreferences, UserProfile } from "@types";
+import type { UserPreferences } from "@types";
+import { toFriendGameSessionNotification } from "../friend-game-session-notification";
+import { broadcastFriendsUpdated } from "../friends-updated-broadcast";
 
 export const friendGameSessionEvent = async (
   payload: FriendGameSession,
   signal: AbortSignal
 ) => {
   if (signal.aborted) return;
-  WindowManager.sendToAppWindows("on-friends-updated");
+  broadcastFriendsUpdated();
+
+  const notification = toFriendGameSessionNotification(payload);
+  if (!notification) return;
 
   const userPreferences = await db.get<string, UserPreferences | null>(
     levelKeys.userPreferences,
@@ -22,13 +25,5 @@ export const friendGameSessionEvent = async (
   if (signal.aborted) return;
   if (userPreferences?.friendStartGameNotificationsEnabled === false) return;
 
-  const friend = await HydraApi.get<UserProfile>(
-    `/users/${payload.friendId}`,
-    { shop: payload.shop },
-    { signal }
-  );
-
-  if (friend && !signal.aborted) {
-    await publishFriendStartedPlayingGameNotification(friend, signal);
-  }
+  await publishFriendStartedPlayingGameNotification(notification, signal);
 };

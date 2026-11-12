@@ -1,15 +1,20 @@
 import type {
   Badge,
+  EmulationCloudSave,
   EmulatorBinary,
   EmulatorSystem,
+  EmulationSavePlatform,
   GameShop,
   LibraryGame,
   SouvenirSort,
 } from "@types";
 
 import {
+  EMULATOR_SYSTEMS,
   platformToRetroArchPlatform,
+  platformToSystem,
   RETROARCH_PLATFORM_LABELS,
+  getDisplayedPlayTimeInMilliseconds,
 } from "@shared";
 
 import Color from "color";
@@ -18,8 +23,24 @@ import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
 import { levelDBService } from "./services/leveldb.service";
 import { logger } from "./logger";
-import type { LibraryCategory } from "./pages/library/category-filter";
-import type { SortOption } from "./pages/library/filter-options";
+import { requestPs4PkgExtraction } from "./components/ps4-pkg-job/ps4-pkg-extract-request";
+import type { SortOption } from "./pages/library/library-display-menu";
+import type { SkuRegion } from "./helpers/sku-region";
+import {
+  appendProfileLibraryFilterParams,
+  getProfileLibraryFilter,
+  shouldShowSteamLibraryBadge,
+  type LibraryCategory,
+  type ProfileLibraryFilter,
+} from "./pages/library/library-category";
+
+export {
+  getDiscRegion,
+  getRegionsFromSkus,
+  getSkuRegion,
+  getSkuRegionFromSaveIdentity,
+  type SkuRegion,
+} from "./helpers/sku-region";
 
 // Pixel-art flag icons from R74n PixelFlags (https://r74n.com/pixelflags).
 import flagUS from "./assets/flags/us.png";
@@ -73,14 +94,33 @@ export const getTranslatedBadgeDescription = (
   return apiDescription;
 };
 
-export const platformToSystem = (
+export const platformToEmulationSavePlatform = (
   platform?: string | null
-): EmulatorSystem | null => {
+): EmulationSavePlatform | null => {
   if (!platform) return null;
-  const p = platform.toLowerCase();
-  if (/playstation\s*3|\bps3\b/.test(p)) return "ps3";
-  if (/playstation\s*2|\bps2\b/.test(p)) return "ps2";
-  if (/playstation|\bps1\b|\bpsx\b/.test(p)) return "ps1";
+  const normalized = platform.toLowerCase().trim();
+  if (/playstation\s*portable|\bpsp\b/.test(normalized)) return "psp";
+  if (/playstation\s*[34]|\bps[34]\b/.test(normalized)) return null;
+  if (/playstation\s*2|\bps2\b/.test(normalized)) return "ps2";
+  if (/playstation(?!\s*(?:[5-9]|vita))|\bps1\b|\bpsx\b/.test(normalized)) {
+    return "ps1";
+  }
+  if (/game\s*cube/.test(normalized)) return "gamecube";
+  if (/^(nintendo\s+)?wii$/.test(normalized)) return "wii";
+  return null;
+};
+
+export const getEmulationSaveMetadataSku = (
+  save: Pick<EmulationCloudSave, "metadata">
+): string | null => {
+  const metadata = save.metadata;
+  if (!metadata) return null;
+  if ("discId" in metadata && typeof metadata.discId === "string") {
+    return metadata.discId;
+  }
+  if ("gameId" in metadata && typeof metadata.gameId === "string") {
+    return metadata.gameId;
+  }
   return null;
 };
 
@@ -88,15 +128,24 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps1: "duckstation",
   ps2: "pcsx2",
   ps3: "rpcs3",
+  ps4: "shadps4",
+  psp: "ppsspp",
+  dolphin: "dolphin",
 };
 
 export {
   platformToRetroArchPlatform,
+  platformToSystem,
   RETROARCH_PLATFORM_LABELS,
 } from "@shared";
 
+export const isPs4GameFolder = async (folderPath: string): Promise<boolean> => {
+  const info = await window.electron.getPathInfo(`${folderPath}/eboot.bin`);
+  return info.exists && info.isFile;
+};
+
 export const RETROARCH_EMULATION_SETTINGS_PATH =
-  "/settings?tab=emulation&system=retroarch";
+  "/settings?tab=emulation&system=retroarch&section=emulator";
 
 export const retroarchLaunchErrorToastKey = (
   code: "RETROARCH_NOT_CONFIGURED" | "CORE_NOT_INSTALLED"
@@ -133,6 +182,9 @@ export const CLASSICS_PS_PLATFORM_LABELS: Partial<
   ps1: "PS",
   ps2: "PS2",
   ps3: "PS3",
+  ps4: "PS4",
+  psp: "PSP",
+  dolphin: "GC/Wii",
 };
 
 export const resolveClassicsBadge = (
@@ -148,8 +200,9 @@ export const resolveClassicsBadge = (
 
   const system = platformToSystem(platform);
   if (system) {
+    const dolphinLabel = /game\s*cube/i.test(platform ?? "") ? "GC" : "Wii";
     return {
-      label: psLabels[system] ?? null,
+      label: system === "dolphin" ? dolphinLabel : (psLabels[system] ?? null),
       icon: icons.emulatorIcons[SYSTEM_TO_BINARY[system]],
     };
   }
@@ -181,7 +234,7 @@ export const handleClassicsLaunchError = (
   const code = getClassicsLaunchErrorCode(error);
   const system = getClassicsLaunchErrorSystem(error);
   const emulationPath = system
-    ? `/settings?tab=emulation&system=${system}`
+    ? `/settings?tab=emulation&system=${system}&section=emulator`
     : "/settings?tab=emulation";
 
   if (code === "EMULATOR_NOT_CONFIGURED") {
@@ -206,11 +259,27 @@ export const handleClassicsLaunchError = (
     showErrorToast(t("pkg_unreadable_toast"));
   } else if (code === "EMULATOR_ALREADY_RUNNING") {
     context.onEmulatorAlreadyRunning();
+  } else if (code === "RECOMPILATION_NEEDS_SETUP") {
+    const port = getRecompilationFromLaunchError(error);
+    if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
+  } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
+    showErrorToast(t("recompilation_already_running_toast"));
+  } else if (code === "PS4_PKG_JOB_RUNNING") {
+    showErrorToast(t("ps4_pkg_busy"));
+  } else if (code === "PS4_PKG_NEEDS_EXTRACTION") {
+    const game = getPs4PkgGameFromLaunchError(error);
+    if (game) requestPs4PkgExtraction(game);
   } else {
     showErrorToast(t("launch_failed_toast"));
   }
 
-  return code !== "EMULATOR_ALREADY_RUNNING" && code !== "PKG_INSTALLING";
+  return (
+    code !== "EMULATOR_ALREADY_RUNNING" &&
+    code !== "PKG_INSTALLING" &&
+    code !== "RECOMPILATION_ALREADY_RUNNING" &&
+    code !== "PS4_PKG_NEEDS_EXTRACTION" &&
+    code !== "PS4_PKG_JOB_RUNNING"
+  );
 };
 
 export const formatDownloadProgress = (
@@ -226,12 +295,21 @@ export const formatDownloadProgress = (
   return `${progressPercentage.toFixed(fractionDigits ?? 2)}%`;
 };
 
+export const getGameTitleFromExecutablePath = (executablePath: string) =>
+  (executablePath.split(/[\\/]/).pop() ?? "").replace(/\.[^/.]+$/, "");
+
 export const buildGameDetailsPath = (
-  game: { shop: GameShop; objectId: string; title: string },
+  game: {
+    shop: GameShop;
+    objectId: string;
+    title: string;
+    catalogueGame?: { shop: GameShop; objectId: string };
+  },
   params: Record<string, string> = {}
 ) => {
   const searchParams = new URLSearchParams({ title: game.title, ...params });
-  return `/game/${game.shop}/${game.objectId}?${searchParams.toString()}`;
+  const identity = game.catalogueGame ?? game;
+  return `/game/${identity.shop}/${identity.objectId}?${searchParams.toString()}`;
 };
 
 export const buildGameAchievementPath = (
@@ -352,51 +430,6 @@ export const isGameCompleted = (
   return (unlockedAchievementCount ?? 0) >= achievementCount;
 };
 
-export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
-
-const SKU_REGION_MAP: Record<string, SkuRegion> = {
-  SCUS: "US",
-  SLUS: "US",
-  SCUD: "US",
-  SLUD: "US",
-  BCUS: "US",
-  BLUS: "US",
-  BCUD: "US",
-  NPUA: "US",
-  NPUB: "US",
-  SCES: "EU",
-  SLES: "EU",
-  SCED: "EU",
-  SLED: "EU",
-  BCES: "EU",
-  BLES: "EU",
-  BCED: "EU",
-  NPEA: "EU",
-  NPEB: "EU",
-  SCPS: "JP",
-  SLPS: "JP",
-  SLPM: "JP",
-  SIPS: "JP",
-  PAPX: "JP",
-  PCPX: "JP",
-  SRPM: "JP",
-  BCJS: "JP",
-  BLJS: "JP",
-  BLJM: "JP",
-  NPJA: "JP",
-  NPJB: "JP",
-  NPJD: "JP",
-  SCKA: "KR",
-  SLKA: "KR",
-  BCKS: "KR",
-  BLKS: "KR",
-  BCKD: "KR",
-  BCAS: "ASIA",
-  BLAS: "ASIA",
-  NPHA: "ASIA",
-  NPHB: "ASIA",
-};
-
 const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
   US: flagUS,
   EU: flagEU,
@@ -405,35 +438,8 @@ const SKU_REGION_FLAGS: Record<SkuRegion, string> = {
   ASIA: flagAsia,
 };
 
-const SKU_REGION_ORDER: SkuRegion[] = ["US", "EU", "JP", "KR", "ASIA"];
-
-export const getSkuRegion = (sku: string): SkuRegion | null => {
-  const prefix = sku.slice(0, 4).toUpperCase();
-  return SKU_REGION_MAP[prefix] ?? null;
-};
-
-export const getSkuRegionFromSaveIdentity = (
-  saveIdentity: string | null | undefined
-): SkuRegion | null => {
-  if (!saveIdentity) return null;
-  const cleaned = saveIdentity
-    .trim()
-    .toUpperCase()
-    .replace(/^B[A-Z](?=[A-Z]{4}[-_ .]?\d{5})/, "");
-  return getSkuRegion(cleaned);
-};
-
 export const getSkuRegionFlag = (region: SkuRegion): string =>
   SKU_REGION_FLAGS[region];
-
-export const getRegionsFromSkus = (skus: string[]): SkuRegion[] => {
-  const set = new Set<SkuRegion>();
-  for (const sku of skus) {
-    const region = getSkuRegion(sku);
-    if (region) set.add(region);
-  }
-  return SKU_REGION_ORDER.filter((r) => set.has(r));
-};
 
 const CLASSICS_LAUNCH_ERROR_CODES = [
   "EMULATOR_NOT_CONFIGURED",
@@ -445,7 +451,26 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "PKG_UNREADABLE",
   "RETROARCH_NOT_CONFIGURED",
   "CORE_NOT_INSTALLED",
+  "RECOMPILATION_NEEDS_SETUP",
+  "RECOMPILATION_ALREADY_RUNNING",
+  "RECOMPILATION_LAUNCH_FAILED",
+  "PS4_PKG_NEEDS_EXTRACTION",
+  "PS4_PKG_JOB_RUNNING",
 ] as const;
+
+const getRecompilationFromLaunchError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = /RECOMPILATION_NEEDS_SETUP: (\d+)\/([a-z0-9._-]+)/i.exec(
+    message
+  );
+  return match ? { objectId: match[1], slug: match[2] } : null;
+};
+
+const getPs4PkgGameFromLaunchError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const match = /PS4_PKG_NEEDS_EXTRACTION: ([a-z]+)\/(\S+)/i.exec(message);
+  return match ? { shop: match[1] as GameShop, objectId: match[2] } : null;
+};
 
 export const getClassicsLaunchErrorCode = (
   error: unknown
@@ -463,16 +488,15 @@ export const getClassicsLaunchErrorCode = (
 
 export const getClassicsLaunchErrorSystem = (
   error: unknown
-): "ps1" | "ps2" | "ps3" | undefined => {
+): EmulatorSystem | undefined => {
   const direct = (error as { system?: string })?.system;
-  if (direct === "ps1" || direct === "ps2" || direct === "ps3") return direct;
+  if (EMULATOR_SYSTEMS.includes(direct as EmulatorSystem))
+    return direct as EmulatorSystem;
 
   let message = "";
   if (error instanceof Error) message = error.message;
   else if (typeof error === "string") message = error;
-  return (["ps1", "ps2", "ps3"] as const).find((system) =>
-    message.includes(system)
-  );
+  return EMULATOR_SYSTEMS.find((system) => message.includes(system));
 };
 
 const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
@@ -493,12 +517,23 @@ const getPlayTimeDifference = (a: LibraryGame, b: LibraryGame): number => {
 };
 
 const getMostPlayedDifference = (a: LibraryGame, b: LibraryGame): number =>
-  b.playTimeInMilliseconds - a.playTimeInMilliseconds;
+  getDisplayedPlayTimeInMilliseconds(b) - getDisplayedPlayTimeInMilliseconds(a);
 
 export const isGameInstalled = (game: LibraryGame): boolean =>
   Boolean(game.executablePath) ||
   game.installedSizeInBytes != null ||
   (game.shop === "launchbox" && (game.discs?.length ?? 0) > 0);
+
+export const isSteamImportedGame = (
+  game: Pick<LibraryGame, "shop" | "hasActiveSteamImport"> | null | undefined
+): boolean => game?.shop === "steam" && game.hasActiveSteamImport === true;
+
+export const canDownloadOnSteam = (
+  game:
+    | Pick<LibraryGame, "shop" | "hasActiveSteamImport" | "executablePath">
+    | null
+    | undefined
+): boolean => isSteamImportedGame(game) && !game?.executablePath;
 
 export const isGameReadyToPlay = (game: LibraryGame): boolean =>
   game.shop === "launchbox"
@@ -540,18 +575,18 @@ const getAchievementRateDifference = (
   return bUnlocked - aUnlocked;
 };
 
+const libraryTitleCollator = new Intl.Collator(undefined, {
+  sensitivity: "base",
+});
+
 const compareLibraryGamesByTitle = (
   a: LibraryGame,
   b: LibraryGame,
   ascending = true
 ): number =>
   ascending
-    ? (a.title ?? "").localeCompare(b.title ?? "", undefined, {
-        sensitivity: "base",
-      })
-    : (b.title ?? "").localeCompare(a.title ?? "", undefined, {
-        sensitivity: "base",
-      });
+    ? libraryTitleCollator.compare(a.title ?? "", b.title ?? "")
+    : libraryTitleCollator.compare(b.title ?? "", a.title ?? "");
 
 export const sortLibraryGames = (
   games: LibraryGame[],
@@ -609,19 +644,11 @@ export const getGameCollectionIds = (game: {
   return legacyCollectionId ? [legacyCollectionId] : [];
 };
 
-export const filterLibraryGamesByCategory = (
-  games: LibraryGame[],
-  category: LibraryCategory
-): LibraryGame[] => {
-  if (category === "pc") {
-    return games.filter((game) => game.shop !== "launchbox");
-  }
-
-  if (category === "classics") {
-    return games.filter((game) => game.shop === "launchbox");
-  }
-
-  return games;
+export {
+  appendProfileLibraryFilterParams,
+  getProfileLibraryFilter,
+  shouldShowSteamLibraryBadge,
+  type ProfileLibraryFilter,
 };
 
 export const resolveImageSource = (
@@ -661,7 +688,7 @@ export type ProfileSortOption =
   | "achievementCount"
   | "playedRecently";
 
-export type ProfilePlatformFilter = "all" | "pc" | "classics";
+export type ProfilePlatformFilter = LibraryCategory;
 
 export const readStoredProfileSort = (): ProfileSortOption => {
   const saved = localStorage.getItem("profile-sort-by");
@@ -695,8 +722,4 @@ export const readStoredSouvenirGrouping = (): SouvenirGrouping => {
 
 export const getShopsForProfilePlatform = (
   platform: ProfilePlatformFilter
-): string[] => {
-  if (platform === "pc") return ["steam"];
-  if (platform === "classics") return ["launchbox"];
-  return ["steam", "launchbox"];
-};
+): string[] => getProfileLibraryFilter(platform).shops;

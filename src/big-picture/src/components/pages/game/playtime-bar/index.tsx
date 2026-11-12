@@ -1,10 +1,12 @@
 import { Typography } from "../../../common";
 
-import type { LibraryGame } from "@types";
+import type { LibraryGame, LibraryGamePresentation } from "@types";
+import { getDisplayedPlayTimeInMilliseconds } from "@shared";
 import { useDate, useFormat } from "../../../../hooks";
 
 export interface PlaytimeBarProps {
   game: LibraryGame | null;
+  presentationGame?: LibraryGamePresentation | null;
   isGameRunning?: boolean;
   runningSessionDurationInMillis?: number | null;
 }
@@ -24,13 +26,17 @@ function formatRunningSessionTime(
 
 export function PlaytimeBar({
   game,
+  presentationGame,
   isGameRunning = false,
   runningSessionDurationInMillis,
 }: Readonly<PlaytimeBarProps>) {
   const { formatDistance } = useDate();
   const { formatPlayTime } = useFormat();
 
-  const playTimeInSeconds = (game?.playTimeInMilliseconds ?? 0) / 1000;
+  const displayedGame = presentationGame ?? game;
+  const playTimeInSeconds = displayedGame
+    ? getDisplayedPlayTimeInMilliseconds(displayedGame) / 1000
+    : 0;
   const runningSessionTimeLabel = formatRunningSessionTime(
     runningSessionDurationInMillis,
     formatPlayTime
@@ -59,15 +65,15 @@ export function PlaytimeBar({
                 {runningSessionTimeLabel}
               </strong>
             </>
-          ) : game?.lastTimePlayed ? (
+          ) : displayedGame?.lastTimePlayed ? (
             <>
               Last played{" "}
-              {formatDistance(game.lastTimePlayed, new Date(), {
+              {formatDistance(displayedGame.lastTimePlayed, new Date(), {
                 addSuffix: true,
               })}
             </>
-          ) : (
-            <>You haven&apos;t played {game?.title} yet</>
+          ) : playTimeInSeconds > 0 ? null : (
+            <>You haven&apos;t played {displayedGame?.title} yet</>
           )}
         </Typography>
       </div>

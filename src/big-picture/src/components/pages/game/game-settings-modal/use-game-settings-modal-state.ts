@@ -2,8 +2,13 @@ import type { LibraryGame } from "@types";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem } from "@renderer/helpers";
-import { getGameExecutableFilters } from "@shared";
+import { isPs4GameFolder, platformToSystem } from "@renderer/helpers";
+import { useIsNonSteamExecutable } from "@renderer/hooks/use-non-steam-executable";
+import {
+  getGameExecutableFilters,
+  getRetroArchRomExtensions,
+  platformToRetroArchPlatform,
+} from "@shared";
 import type { FileFilter } from "../../../common";
 import { useBigPictureToast } from "../../../../hooks";
 import {
@@ -125,9 +130,14 @@ export function useGameSettingsModalState({
 
     const loadDiscFilters = async () => {
       const system = platformToSystem(game.platform);
-      const extensions = system
-        ? await globalThis.window.electron.getEmulatorRomExtensions(system)
-        : ["*"];
+      const retroArchPlatform = platformToRetroArchPlatform(game.platform);
+      let extensions = ["*"];
+      if (retroArchPlatform) {
+        extensions = getRetroArchRomExtensions(retroArchPlatform);
+      } else if (system) {
+        extensions =
+          await globalThis.window.electron.getEmulatorRomExtensions(system);
+      }
 
       if (!cancelled) {
         setDiscPickerFilters([
@@ -642,11 +652,11 @@ export function useGameSettingsModalState({
   );
 
   const addDiscFromPath = useCallback(
-    async (fullPath: string) => {
+    async (fullPath: string, isExecutable = false) => {
       if (!game) return;
 
       await updateClassicsDisc(
-        buildAddedDiscPayload(fullPath, game.discs?.length ?? 0)
+        buildAddedDiscPayload(fullPath, game.discs ?? [], isExecutable)
       );
     },
     [game, updateClassicsDisc]
@@ -654,7 +664,21 @@ export function useGameSettingsModalState({
 
   const handleProcessDiscPath = useCallback(
     async (path: string) => {
+      if (
+        platformToSystem(game?.platform) === "ps4" &&
+        !(await isPs4GameFolder(path))
+      ) {
+        showErrorToast(t("ps4_folder_missing_eboot"));
+        return;
+      }
       await addDiscFromPath(path);
+    },
+    [addDiscFromPath, game?.platform, showErrorToast, t]
+  );
+
+  const handleProcessDiscExecutablePath = useCallback(
+    async (path: string) => {
+      await addDiscFromPath(path, true);
     },
     [addDiscFromPath]
   );
@@ -670,7 +694,10 @@ export function useGameSettingsModalState({
   const handleRemoveAllDiscs = useCallback(async () => {
     if (!game) return;
 
-    const discsToRemove = game.discs ?? [];
+    // Ports leave through their own uninstall, which asks first.
+    const discsToRemove = (game.discs ?? []).filter(
+      (disc) => !disc.recompilationSlug
+    );
     if (discsToRemove.length === 0) return;
 
     for (const disc of discsToRemove) {
@@ -684,6 +711,42 @@ export function useGameSettingsModalState({
 
     await updateGame();
   }, [game, updateClassicsDisc, updateGame]);
+
+  const handleUninstallPort = useCallback(
+    async (slug: string) => {
+      if (!game) return;
+
+      const result = await window.electron.uninstallRecompilation({
+        objectId: game.objectId,
+        slug,
+      });
+      if (!result.ok && result.reason !== "not_installed") {
+        showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+      }
+      await updateGame();
+    },
+    [game, showErrorToast, t, updateGame]
+  );
+
+  const isNonSteamExecutable = useIsNonSteamExecutable(game);
+
+  const handleToggleHydraPlaytimeEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!game) return;
+
+      try {
+        await globalThis.window.electron.setGameHydraPlaytimeEnabled(
+          game.shop,
+          game.objectId,
+          enabled
+        );
+        await updateGame();
+      } catch {
+        showErrorToast(t("steam_playtime_tracking_error"));
+      }
+    },
+    [game, showErrorToast, t, updateGame]
+  );
 
   const handleToggleAutomaticCloudSync = useCallback(
     async (checked: boolean) => {
@@ -725,6 +788,7 @@ export function useGameSettingsModalState({
       execPickerInitialPath,
       execPickerFilters,
       discPickerFilters,
+      isNonSteamExecutable,
       onProcessExecPath: handleProcessExecPath,
       onClearExecutablePath: handleClearExecutablePath,
       onChangeLaunchOptions: setLaunchOptions,
@@ -736,8 +800,11 @@ export function useGameSettingsModalState({
       onSelectDisc: handleSelectDisc,
       onToggleDontAskDiscSelection: handleToggleDontAskDiscSelection,
       onProcessDiscPath: handleProcessDiscPath,
+      onProcessDiscExecutablePath: handleProcessDiscExecutablePath,
       onRemoveSelectedDisc: handleRemoveSelectedDisc,
       onRemoveAllDiscs: handleRemoveAllDiscs,
+      onUninstallPort: handleUninstallPort,
+      onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
     } satisfies GameLaunchSettingsProps;
   }, [
     creatingSteamShortcut,
@@ -753,10 +820,14 @@ export function useGameSettingsModalState({
     handleCreateSteamShortcut,
     handleDeleteSteamShortcut,
     handleProcessDiscPath,
+    handleProcessDiscExecutablePath,
     handleRemoveAllDiscs,
     handleRemoveSelectedDisc,
+    handleUninstallPort,
     handleSelectDisc,
     handleToggleDontAskDiscSelection,
+    handleToggleHydraPlaytimeEnabled,
+    isNonSteamExecutable,
     launchOptions,
     steamShortcutExists,
   ]);

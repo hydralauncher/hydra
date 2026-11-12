@@ -1,15 +1,20 @@
 import type { EmulatorBinary, EmulatorSystem } from "@types";
 
+import { readShadps4InstalledVersion } from "./shadps4-files.js";
+
 export interface KnownBinary {
   system: EmulatorSystem;
   binary: EmulatorBinary;
   displayName: string;
   linuxNames: string[];
   windowsNames: string[];
+  macosBundleNames: string[];
   flatpakIds: string[];
   versionFlags: string[];
+  versionProbeDisabledPlatforms?: NodeJS.Platform[];
   romExtensions: string[];
   romDirectoryMarkers: string[];
+  readVersion?: (executablePath: string) => string | null;
 }
 
 export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
@@ -28,6 +33,7 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
       "duckstation-qt.exe",
       "duckstation-nogui.exe",
     ],
+    macosBundleNames: ["DuckStation.app"],
     flatpakIds: ["org.duckstation.DuckStation"],
     versionFlags: ["-version"],
     romExtensions: [
@@ -52,6 +58,7 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     displayName: "PCSX2",
     linuxNames: ["pcsx2-qt", "pcsx2", "PCSX2"],
     windowsNames: ["pcsx2-qt.exe", "pcsx2-qtx64-avx2.exe", "pcsx2.exe"],
+    macosBundleNames: ["PCSX2.app"],
     flatpakIds: ["net.pcsx2.PCSX2"],
     versionFlags: ["-version"],
     romExtensions: [
@@ -75,6 +82,7 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     displayName: "RPCS3",
     linuxNames: ["rpcs3", "RPCS3"],
     windowsNames: ["rpcs3.exe"],
+    macosBundleNames: ["RPCS3.app"],
     flatpakIds: ["net.rpcs3.RPCS3"],
     versionFlags: ["--version"],
     // Only formats RPCS3 launches as a game. Disc dumps are caught via
@@ -82,11 +90,67 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     romExtensions: [".iso", ".pkg", ".elf", ".self"],
     romDirectoryMarkers: ["PS3_GAME", "ps3_game"],
   },
+  ps4: {
+    system: "ps4",
+    binary: "shadps4",
+    displayName: "shadPS4",
+    linuxNames: ["shadPS4QtLauncher-qt.AppImage"],
+    windowsNames: ["shadPS4QtLauncher.exe"],
+    macosBundleNames: [],
+    flatpakIds: [],
+    versionFlags: [],
+    readVersion: readShadps4InstalledVersion,
+    romExtensions: [],
+    romDirectoryMarkers: [],
+  },
+  psp: {
+    system: "psp",
+    binary: "ppsspp",
+    displayName: "PPSSPP",
+    linuxNames: ["PPSSPPSDL", "ppsspp"],
+    windowsNames: ["PPSSPPWindows64.exe", "PPSSPPWindowsARM64.exe"],
+    macosBundleNames: ["PPSSPP.app", "PPSSPPSDL.app"],
+    flatpakIds: ["org.ppsspp.PPSSPP"],
+    versionFlags: ["--version"],
+    versionProbeDisabledPlatforms: ["win32"],
+    romExtensions: [".iso", ".cso", ".chd", ".pbp"],
+    romDirectoryMarkers: ["PSP_GAME", "psp_game"],
+  },
+  dolphin: {
+    system: "dolphin",
+    binary: "dolphin",
+    displayName: "Dolphin",
+    // `dolphin` is KDE's file manager on Linux. Dolphin Emulator packages use
+    // `dolphin-emu`; keeping the ambiguous name here detects the wrong app.
+    linuxNames: ["dolphin-emu", "dolphin-emu-qt2"],
+    windowsNames: ["Dolphin.exe"],
+    macosBundleNames: ["Dolphin.app"],
+    flatpakIds: ["org.DolphinEmu.dolphin-emu"],
+    versionFlags: ["--version"],
+    romExtensions: [
+      ".iso",
+      ".gcm",
+      ".bin",
+      ".rvz",
+      ".wia",
+      ".gcz",
+      ".ciso",
+      ".tgc",
+      ".wbfs",
+      ".wad",
+    ],
+    romDirectoryMarkers: [],
+  },
 };
 
-export const EMULATOR_BINARIES: readonly EmulatorBinary[] = Object.values(
-  KNOWN_BINARIES
-).map((entry) => entry.binary);
+const EMULATOR_BINARIES: readonly EmulatorBinary[] = Array.from(
+  new Set(Object.values(KNOWN_BINARIES).map((entry) => entry.binary))
+);
+
+export const systemsForBinary = (binary: EmulatorBinary): EmulatorSystem[] =>
+  Object.values(KNOWN_BINARIES)
+    .filter((entry) => entry.binary === binary)
+    .map((entry) => entry.system);
 
 export const isKnownEmulatorBinary = (
   value: unknown

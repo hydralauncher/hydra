@@ -250,7 +250,7 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: globals.$spacing-unit;
     min-width: 0;
 
     h2,
@@ -295,7 +295,7 @@
     font-family: inherit;
 
     &:focus-visible {
-      border-radius: 3px;
+      border-radius: 4px;
       outline: 2px solid globals.$muted-color;
       outline-offset: 2px;
     }
@@ -457,7 +457,7 @@
   &__rarity {
     flex-shrink: 0;
     gap: 4px;
-    padding: 4px 6px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border: 1px solid transparent;
     border-radius: 4px;
     font-size: globals.$small-font-size;
@@ -482,13 +482,15 @@
     gap: globals.$spacing-unit;
   }
 
+  // The like counter and icon-only delete; text actions use the shared
+  // Button, whose 40px height these match.
   &__action {
     justify-content: center;
-    gap: 6px;
-    min-height: 36px;
-    padding: 0 calc(globals.$spacing-unit * 1.25);
+    gap: globals.$spacing-unit;
+    min-height: 40px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
     border: 1px solid globals.$border-color;
-    border-radius: 6px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.06);
     color: globals.$body-color;
     cursor: pointer;
@@ -504,11 +506,11 @@
     }
 
     &--active {
-      color: #fff;
+      color: globals.$muted-color;
     }
 
     &--icon {
-      width: 36px;
+      width: 40px;
       padding: 0;
     }
 

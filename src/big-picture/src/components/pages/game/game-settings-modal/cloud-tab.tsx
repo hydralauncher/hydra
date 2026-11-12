@@ -13,7 +13,7 @@ import type {
 } from "@types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem } from "@renderer/helpers";
+import { platformToEmulationSavePlatform } from "@renderer/helpers";
 import {
   Button,
   Checkbox,
@@ -49,6 +49,18 @@ const RESTORE_MODAL_CONFIRM_BUTTON_ID = "emu-saves-restore-confirm";
 
 const recordKey = (record: MemoryCardSaveRecord): string =>
   `${record.cardFilePath}::${record.folderName}`;
+
+const listLocalSaves = (
+  platform: EmulationSavePlatform
+): Promise<MemoryCardSaveRecord[]> => {
+  if (platform === "ps2") {
+    return globalThis.window.electron.listPs2MemcardSaves();
+  }
+  if (platform === "ps1") {
+    return globalThis.window.electron.listPs1MemcardSaves();
+  }
+  return globalThis.window.electron.listLocalEmulationSaves(platform);
+};
 
 function emulationSaveToArtifact(save: EmulationCloudSave): GameArtifact {
   return {
@@ -87,7 +99,15 @@ function EmulationRestoreModal({
       platform={platform}
       onClose={onClose}
       onRestored={onRestored}
-      onRestoreSuccess={() => showSuccessToast(t("cloud_restore_success"))}
+      onRestoreSuccess={(result) =>
+        showSuccessToast(
+          t(
+            result.reason === "manual-import-required"
+              ? "cloud_restore_wii_downloaded"
+              : "cloud_restore_success"
+          )
+        )
+      }
       onRestoreError={(reason) =>
         showErrorToast(
           t(reason === "unformatted" ? unformattedKey : "cloud_restore_failed")
@@ -108,12 +128,15 @@ export function GameCloudSettingsTab({
 }: Readonly<GameCloudSettingsProps>) {
   const { t } = useTranslation("big_picture");
   const { t: tGameDetails } = useTranslation("game_details");
+  const { t: tSettings } = useTranslation("settings");
   const { showErrorToast, showSuccessToast } = useBigPictureToast();
   const { userDetails } = useUserDetails();
 
-  const system =
-    game.shop === "launchbox" ? platformToSystem(game.platform) : null;
-  const isEmulationGame = system === "ps1" || system === "ps2";
+  const emulationPlatform =
+    game.shop === "launchbox"
+      ? platformToEmulationSavePlatform(game.platform)
+      : null;
+  const isEmulationGame = emulationPlatform !== null;
 
   const [artifacts, setArtifacts] = useState<GameArtifact[]>([]);
   const [emulationSaves, setEmulationSaves] = useState<EmulationCloudSave[]>(
@@ -221,16 +244,13 @@ export function GameCloudSettingsTab({
     setLoadingArtifacts(true);
 
     if (isEmulationGame) {
-      const platform = system;
-      const localPromise =
-        platform === "ps2"
-          ? globalThis.window.electron.listPs2MemcardSaves()
-          : globalThis.window.electron.listPs1MemcardSaves();
+      const platform = emulationPlatform;
+      if (!platform) return;
       const [saves, local] = await Promise.all([
         globalThis.window.electron
           .listEmulationSaves(platform, game.objectId)
           .catch(() => [] as EmulationCloudSave[]),
-        localPromise,
+        listLocalSaves(platform),
       ]);
       const filtered = saves.filter((s) => s.objectId === game.objectId);
       setEmulationSaves(filtered);
@@ -251,7 +271,7 @@ export function GameCloudSettingsTab({
       .catch(() => []);
     setArtifacts(result ?? []);
     setLoadingArtifacts(false);
-  }, [game.objectId, game.shop, isEmulationGame, system]);
+  }, [emulationPlatform, game.objectId, game.shop, isEmulationGame]);
 
   const loadBackupPreview = useCallback(async () => {
     if (isEmulationGame) {
@@ -344,7 +364,7 @@ export function GameCloudSettingsTab({
       setUploadingCardKey(key);
       try {
         await globalThis.window.electron.uploadEmulationSave(
-          system as EmulationSavePlatform,
+          emulationPlatform as EmulationSavePlatform,
           record.cardFilePath,
           record.folderName
         );
@@ -356,8 +376,31 @@ export function GameCloudSettingsTab({
         setUploadingCardKey(null);
       }
     },
-    [system, showSuccessToast, showErrorToast, loadArtifacts]
+    [emulationPlatform, showSuccessToast, showErrorToast, loadArtifacts]
   );
+
+  const handleWiiUpload = useCallback(async () => {
+    const result = await globalThis.window.electron.showOpenDialog({
+      properties: ["openFile"],
+      filters: [{ name: "Dolphin Wii Save", extensions: ["bin"] }],
+    });
+    if (result.canceled || result.filePaths.length === 0) return;
+    setUploadingCardKey("wii-data-bin");
+    try {
+      await globalThis.window.electron.uploadWiiEmulationSave(
+        result.filePaths[0],
+        game.objectId
+      );
+      showSuccessToast("Cloud backup complete");
+      await loadArtifacts();
+    } catch (error) {
+      showErrorToast(
+        error instanceof Error ? error.message : "Cloud backup failed"
+      );
+    } finally {
+      setUploadingCardKey(null);
+    }
+  }, [game.objectId, loadArtifacts, showErrorToast, showSuccessToast]);
 
   const handleCreateBackup = useCallback(async () => {
     if (creatingBackup || isEmulationGame) return;
@@ -475,13 +518,29 @@ export function GameCloudSettingsTab({
   return (
     <VerticalFocusGroup className="game-cloud-settings-tab">
       {isEmulationGame ? (
-        hasLocalSaves && (
+        (hasLocalSaves || emulationPlatform === "wii") && (
           <SettingsSection
             className="game-cloud-settings-tab__section"
             title={t("cloud_saves_section_title")}
-            description={t("cloud_saves_section_description_memory")}
+            description={
+              emulationPlatform === "ps1" || emulationPlatform === "ps2"
+                ? t("cloud_saves_section_description_memory")
+                : tSettings("cloud_saves_section_description")
+            }
           >
             <div className="game-cloud-settings-tab__saves-list">
+              {emulationPlatform === "wii" && (
+                <Button
+                  focusId={`${GAME_CLOUD_SETTINGS_PRIMARY_CONTROL_ID}-wii`}
+                  variant="secondary"
+                  loading={uploadingCardKey === "wii-data-bin"}
+                  disabled={uploadingCardKey === "wii-data-bin"}
+                  icon={<UploadSimpleIcon size={20} weight="bold" />}
+                  onClick={() => void handleWiiUpload()}
+                >
+                  {tSettings("browse_files")}
+                </Button>
+              )}
               {localSaves.map((record) => {
                 const key = recordKey(record);
                 const uploading = uploadingCardKey === key;
@@ -589,7 +648,10 @@ export function GameCloudSettingsTab({
 
       <EmulationRestoreModal
         save={emulationRestoreTarget}
-        platform={system as EmulationSavePlatform}
+        platform={
+          emulationRestoreTarget?.platform ??
+          (emulationPlatform as EmulationSavePlatform)
+        }
         onClose={() => setEmulationRestoreTarget(null)}
         onRestored={() => {
           setEmulationRestoreTarget(null);

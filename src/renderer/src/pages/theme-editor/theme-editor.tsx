@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "./theme-editor.scss";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
 import { AchievementCustomNotificationPosition, Theme } from "@types";
 import { useSearchParams } from "react-router-dom";
 import { Button, SelectField, TextField } from "@renderer/components";
@@ -14,12 +14,17 @@ import { useTranslation } from "react-i18next";
 import cn from "classnames";
 import { injectCustomCss, getAchievementSoundVolume } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
-import { generateAchievementCustomNotificationTest } from "@shared";
+import {
+  generateAchievementCustomNotificationTest,
+  MONACO_VS_URL,
+} from "@shared";
 import { CollapsedMenu } from "@renderer/components/collapsed-menu/collapsed-menu";
 import { levelDBService } from "@renderer/services/leveldb.service";
 import app from "../../app.scss?inline";
 import styles from "../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
+
+loader.config({ paths: { vs: MONACO_VS_URL } });
 
 const notificationVariations = {
   default: "default",

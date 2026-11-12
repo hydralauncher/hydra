@@ -20,6 +20,17 @@ export function HydraCloudV2SettingsSection({
     errorMessageKey,
     progress,
     hasExecutablePath,
+    requiresRom,
+    discProvider,
+    retroArchExecutableStatus,
+    retryRetroArchExecutable,
+    openRetroArchSettings,
+    emulatorConfigStatus,
+    retryEmulatorConfig,
+    discStatus,
+    discIdentityError,
+    retryDiscIdentity,
+    openEmulatorSettings,
     openFileBrowser,
     runCloudSaveOperation,
     setAutomaticSyncEnabled,
@@ -40,6 +51,17 @@ export function HydraCloudV2SettingsSection({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
+        requiresRom={requiresRom}
+        discProvider={discProvider}
+        retroArchExecutableStatus={retroArchExecutableStatus}
+        onRetryRetroArchExecutable={retryRetroArchExecutable}
+        onConfigureRetroArch={openRetroArchSettings}
+        emulatorConfigStatus={emulatorConfigStatus}
+        onRetryEmulatorConfig={retryEmulatorConfig}
+        discStatus={discStatus}
+        discIdentityError={discIdentityError}
+        onRetryDiscIdentity={retryDiscIdentity}
+        onConfigureEmulator={openEmulatorSettings}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled ?? true}
         hasError={hasError}
         errorMessageKey={errorMessageKey}

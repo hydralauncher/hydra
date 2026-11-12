@@ -2,12 +2,20 @@ import "./styles.scss";
 
 import { AnimatePresence, motion } from "framer-motion";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "../button";
 import { GridFocusGroup } from "../grid-focus-group";
 import { NavigationLayer } from "../navigation-layer";
 import { FocusRegionContext } from "../../context";
 import { IS_BROWSER } from "../../../constants";
+import { isPhysicalKeyboardFocus } from "../../../helpers/physical-keyboard-focus";
 import type { FocusDirection, FocusOverrides } from "../../../services";
 import {
   GAMEPAD_REPEAT_INITIAL_DELAY,
@@ -24,7 +32,7 @@ import {
   useInputModeStore,
   useVirtualKeyboardStore,
 } from "../../../stores";
-import { GamepadButtonType } from "../../../types";
+import { GamepadButtonType, type ScreenActions } from "../../../types";
 
 type EditableTarget = HTMLInputElement | HTMLTextAreaElement | HTMLElement;
 
@@ -56,6 +64,13 @@ type VirtualKeyboardKeyPosition = {
 
 const VIRTUAL_KEYBOARD_LAYER_ID = "big-picture-virtual-keyboard-layer";
 const VIRTUAL_KEYBOARD_REGION_ID = "big-picture-virtual-keyboard";
+const VIRTUAL_KEYBOARD_MAX_WIDTH = 1200;
+const VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER = 64;
+const VIRTUAL_KEYBOARD_FALLBACK_DOCK_HEIGHT = 480;
+const VIRTUAL_KEYBOARD_SETTLE_DELAY_MS = 250;
+const VIRTUAL_KEYBOARD_SUBMIT_ON_ENTER_ANCHOR =
+  'form[data-virtual-keyboard-enter="submit"]';
+const VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR = '[data-virtual-keyboard-side="left"]';
 const VIRTUAL_KEYBOARD_FIRST_KEY_ID = "big-picture-virtual-keyboard-key-1";
 const VIRTUAL_KEYBOARD_BACKSPACE_KEY_ID =
   "big-picture-virtual-keyboard-key-backspace";
@@ -600,6 +615,23 @@ function moveInputCursor(
   return nextPosition;
 }
 
+function moveContentEditableCursor(direction: "left" | "right") {
+  const selection = globalThis.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  if (!selection.isCollapsed) {
+    if (direction === "left") selection.collapseToStart();
+    else selection.collapseToEnd();
+    return;
+  }
+
+  selection.modify(
+    "move",
+    direction === "left" ? "backward" : "forward",
+    "character"
+  );
+}
+
 function submitSingleLineInput(target: HTMLInputElement) {
   if (target.form) {
     target.form.requestSubmit();
@@ -665,18 +697,32 @@ function useAcceleratedHoldAction({
   }, [enabled, isPressed]);
 }
 
+function VirtualKeyboardScreenActions({
+  actions,
+}: Readonly<{ actions: ScreenActions }>) {
+  useNavigationScreenActions(actions);
+  return null;
+}
+
 export function VirtualKeyboardProvider() {
   const [target, setTarget] = useState<EditableTarget | null>(null);
   const [isShiftActive, setIsShiftActive] = useState(false);
   const [layer, setLayer] = useState<VirtualKeyboardLayer>("alphabetic");
   const [layoutMode, setLayoutMode] =
     useState<VirtualKeyboardLayoutMode>("floating");
+  const [sideInset, setSideInset] = useState<number | null>(null);
+  const lastDockHeightRef = useRef(VIRTUAL_KEYBOARD_FALLBACK_DOCK_HEIGHT);
+  const sideAnchor =
+    target?.closest<HTMLElement>(VIRTUAL_KEYBOARD_LEFT_SIDE_ANCHOR) ?? null;
   const [pulsingKeyId, setPulsingKeyId] = useState<string | null>(null);
   const userPreferences = useUserPreferences();
   const currentFocusId = useNavigationStore((state) => state.currentFocusId);
   const { setFocus } = useNavigationActions();
   const setVirtualKeyboardTarget = useVirtualKeyboardStore(
     (state) => state.setTarget
+  );
+  const setOpenVirtualKeyboard = useVirtualKeyboardStore(
+    (state) => state.setOpenKeyboard
   );
   const setCloseVirtualKeyboard = useVirtualKeyboardStore(
     (state) => state.setCloseKeyboard
@@ -701,7 +747,7 @@ export function VirtualKeyboardProvider() {
   );
 
   const closeKeyboard = useCallback(
-    (restoreFocus = true) => {
+    (restoreFocus = true, refocusTarget = restoreFocus) => {
       const currentTarget = target;
       shouldRestoreNavigationFocusOnUnmountRef.current = restoreFocus;
 
@@ -712,6 +758,10 @@ export function VirtualKeyboardProvider() {
 
       if (restoreFocus && currentTarget) {
         suppressedTargetRef.current = currentTarget;
+      }
+
+      if (restoreFocus && !refocusTarget && currentTarget) {
+        currentTarget.blur();
       }
 
       if (!restoreFocus && currentTarget) {
@@ -737,7 +787,7 @@ export function VirtualKeyboardProvider() {
         pulseFrameRef.current = null;
       }
 
-      if (restoreFocus && currentTarget) {
+      if (restoreFocus && refocusTarget && currentTarget) {
         globalThis.requestAnimationFrame(() => {
           if (!globalThis.document.contains(currentTarget)) return;
 
@@ -905,6 +955,7 @@ export function VirtualKeyboardProvider() {
         restoreInputSelectionAfterRender(target, nextCursor);
       } else {
         focusEditableTarget(target);
+        moveContentEditableCursor(direction);
       }
 
       focusEditableTarget(target);
@@ -929,6 +980,14 @@ export function VirtualKeyboardProvider() {
     if (target instanceof HTMLInputElement) {
       submitSingleLineInput(target);
       closeKeyboard();
+      return;
+    }
+
+    const submitOnEnterForm = target.closest<HTMLFormElement>(
+      VIRTUAL_KEYBOARD_SUBMIT_ON_ENTER_ANCHOR
+    );
+    if (submitOnEnterForm) {
+      submitOnEnterForm.requestSubmit();
       return;
     }
 
@@ -1011,15 +1070,14 @@ export function VirtualKeyboardProvider() {
     ]
   );
 
-  useNavigationScreenActions(
-    isOpen
-      ? {
-          press: {
-            b: hotkeyBack,
-            y: hotkeySpace,
-          },
-        }
-      : {}
+  const keyboardScreenActions = useMemo(
+    () => ({
+      press: {
+        b: hotkeyBack,
+        y: hotkeySpace,
+      },
+    }),
+    [hotkeyBack, hotkeySpace]
   );
 
   useAcceleratedHoldAction({
@@ -1083,15 +1141,12 @@ export function VirtualKeyboardProvider() {
   useEffect(() => {
     if (!IS_BROWSER) return;
 
-    const handleFocusIn = (event: FocusEvent) => {
-      const nextTarget = event.target instanceof Element ? event.target : null;
-
+    const openKeyboard = (nextTarget: HTMLElement) => {
       if (!isEditableTarget(nextTarget)) return;
       if (!isVirtualKeyboardEnabled) return;
       if (useInputModeStore.getState().mode !== "gamepad") return;
 
-      if (suppressedTargetRef.current === nextTarget) return;
-
+      suppressedTargetRef.current = null;
       const isNewTarget = activeTargetRef.current !== nextTarget;
 
       activeTargetRef.current = nextTarget;
@@ -1105,6 +1160,13 @@ export function VirtualKeyboardProvider() {
       }
 
       setTarget(nextTarget);
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      if (!(event.target instanceof HTMLElement)) return;
+      if (isPhysicalKeyboardFocus(event.target)) return;
+      if (suppressedTargetRef.current === event.target) return;
+      openKeyboard(event.target);
     };
 
     const handleFocusOut = (event: FocusEvent) => {
@@ -1141,6 +1203,7 @@ export function VirtualKeyboardProvider() {
       });
     };
 
+    setOpenVirtualKeyboard(openKeyboard);
     globalThis.window.addEventListener("focusin", handleFocusIn);
     globalThis.window.addEventListener("focusout", handleFocusOut);
 
@@ -1150,10 +1213,16 @@ export function VirtualKeyboardProvider() {
         focusOutFrameRef.current = null;
       }
 
+      setOpenVirtualKeyboard(null);
       globalThis.window.removeEventListener("focusin", handleFocusIn);
       globalThis.window.removeEventListener("focusout", handleFocusOut);
     };
-  }, [closeKeyboard, isVirtualKeyboardEnabled, setVirtualKeyboardTarget]);
+  }, [
+    closeKeyboard,
+    isVirtualKeyboardEnabled,
+    setVirtualKeyboardTarget,
+    setOpenVirtualKeyboard,
+  ]);
 
   useEffect(() => {
     if (!IS_BROWSER || !target) return;
@@ -1206,7 +1275,7 @@ export function VirtualKeyboardProvider() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        closeKeyboard();
+        closeKeyboard(true, false);
         return;
       }
 
@@ -1230,7 +1299,7 @@ export function VirtualKeyboardProvider() {
   }, [closeKeyboard, target]);
 
   useEffect(() => {
-    if (!target || layoutMode !== "floating") return;
+    if (!target || layoutMode !== "floating" || sideAnchor) return;
 
     let secondFrameId: number | null = null;
     const firstFrameId = globalThis.requestAnimationFrame(() => {
@@ -1255,7 +1324,7 @@ export function VirtualKeyboardProvider() {
 
       globalThis.window.clearTimeout(settledLayoutTimeoutId);
     };
-  }, [layoutMode, target]);
+  }, [layoutMode, sideAnchor, target]);
 
   useEffect(() => {
     if (!target || layoutMode !== "avoiding") return;
@@ -1280,6 +1349,57 @@ export function VirtualKeyboardProvider() {
       globalThis.window.clearTimeout(settledLayoutTimeoutId);
     };
   }, [layoutMode, target]);
+
+  useLayoutEffect(() => {
+    if (!sideAnchor) {
+      setSideInset(null);
+      return;
+    }
+
+    const updateSideInset = () => {
+      const anchorRect = sideAnchor.getBoundingClientRect();
+      const viewportWidth = globalThis.window.innerWidth;
+      const centeredWidth = Math.min(
+        VIRTUAL_KEYBOARD_MAX_WIDTH,
+        viewportWidth - VIRTUAL_KEYBOARD_HORIZONTAL_GUTTER
+      );
+      const centeredLeft = (viewportWidth - centeredWidth) / 2;
+      const centeredTop =
+        globalThis.window.innerHeight - lastDockHeightRef.current;
+      const isCoveredWhenCentered =
+        anchorRect.bottom > centeredTop &&
+        anchorRect.right > centeredLeft &&
+        anchorRect.left < centeredLeft + centeredWidth;
+
+      setSideInset(
+        isCoveredWhenCentered ? viewportWidth - anchorRect.left : null
+      );
+    };
+
+    updateSideInset();
+    globalThis.window.addEventListener("resize", updateSideInset);
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateSideInset);
+    resizeObserver?.observe(sideAnchor);
+
+    return () => {
+      globalThis.window.removeEventListener("resize", updateSideInset);
+      resizeObserver?.disconnect();
+    };
+  }, [sideAnchor]);
+
+  useEffect(() => {
+    if (!target) return;
+
+    const timeoutId = globalThis.window.setTimeout(() => {
+      const dockHeight = dockRef.current?.getBoundingClientRect().height;
+      if (dockHeight) lastDockHeightRef.current = dockHeight;
+    }, VIRTUAL_KEYBOARD_SETTLE_DELAY_MS);
+
+    return () => globalThis.window.clearTimeout(timeoutId);
+  }, [target]);
 
   useEffect(() => {
     if (
@@ -1331,12 +1451,23 @@ export function VirtualKeyboardProvider() {
 
   return (
     <FocusRegionContext.Provider value={null}>
+      {isOpen ? (
+        <VirtualKeyboardScreenActions actions={keyboardScreenActions} />
+      ) : null}
       <AnimatePresence>
         {target ? (
           <motion.div
             ref={dockRef}
             className="virtual-keyboard-dock"
             data-layout-mode={layoutMode}
+            data-placement={sideInset === null ? undefined : "left"}
+            style={
+              sideInset === null
+                ? undefined
+                : ({
+                    "--virtual-keyboard-side-inset": `${sideInset}px`,
+                  } as CSSProperties)
+            }
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

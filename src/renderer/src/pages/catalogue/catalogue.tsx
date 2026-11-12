@@ -4,10 +4,16 @@ import type {
   DownloadSource,
 } from "@types";
 
-import { useAppDispatch, useAppSelector, useFormat } from "@renderer/hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useFeature,
+  useFormat,
+} from "@renderer/hooks";
 import {
   lazy,
   Suspense,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -19,7 +25,7 @@ import "./catalogue.scss";
 
 import { Button } from "@renderer/components/button/button";
 import { SelectField } from "@renderer/components/select-field/select-field";
-import { setFilters, setPage } from "@renderer/features";
+import { setFilters, setMode, setPage } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
@@ -27,6 +33,13 @@ import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import cn from "classnames";
 import { CatalogueModeToggle } from "./catalogue-mode-toggle";
+// Imported directly: as a lazy chunk it popped in above the other filters.
+import { ReleaseYearSection } from "./release-year-section";
+import {
+  RECOMPILATION_FILTER_COLOR,
+  RecompilationFilterToggle,
+} from "./recompilation-filter-toggle";
+import { getClassicsPlatformGroup } from "./classics-platform-group";
 import { FilterItem } from "./filter-item";
 import { FilterSection } from "./filter-section";
 import { GameItem } from "./game-item";
@@ -36,15 +49,14 @@ import {
   ClassicsOnboardingModal,
   hasDismissedClassicsOnboarding,
 } from "@renderer/components/classics-onboarding-modal/classics-onboarding-modal";
+import {
+  RecompilationOnboardingModal,
+  hasDismissedRecompilationOnboarding,
+} from "@renderer/components/recompilation-onboarding-modal";
 
 const ProtonCompatibilitySection = lazy(async () => {
   const mod = await import("./proton-compatibility-section");
   return { default: mod.ProtonCompatibilitySection };
-});
-
-const ReleaseYearSection = lazy(async () => {
-  const mod = await import("./release-year-section");
-  return { default: mod.ReleaseYearSection };
 });
 
 const MIN_RELEASE_YEAR = 1970;
@@ -68,6 +80,12 @@ const filterCategoryColors = {
   platforms: "hsl(170deg 50% 36%)",
 };
 
+const classicsPlatformGroups = [
+  { label: "Sony", value: "sony" },
+  { label: "Nintendo", value: "nintendo" },
+  { label: "Other", value: "other" },
+] as const;
+
 const PAGE_SIZE = 30;
 
 const clearAllCategoryFilters = {
@@ -80,6 +98,7 @@ const clearAllCategoryFilters = {
   deckCompatibility: [],
   releaseYear: undefined,
   platforms: [],
+  recompilation: undefined,
 };
 
 const sortValues = [
@@ -126,7 +145,8 @@ export default function Catalogue() {
   const hasResultsRef = useRef(false);
   const cataloguePageRef = useRef<HTMLDivElement>(null);
 
-  const { steamDevelopers, steamPublishers, downloadSources } = useCatalogue();
+  const { steamDevelopers, steamPublishers, downloadSources, loadingLists } =
+    useCatalogue();
 
   const { steamGenres, steamUserTags, filters, page, mode } = useAppSelector(
     (state) => state.catalogueSearch
@@ -148,23 +168,52 @@ export default function Catalogue() {
 
   const [itemsCount, setItemsCount] = useState(0);
 
-  const [showClassicsOnboarding, setShowClassicsOnboarding] = useState(false);
-  const classicsOnboardingTriggeredRef = useRef(false);
+  const { isFeatureEnabled, isFeaturesLoaded, Feature } = useFeature();
+  const isRecompilationsEnabled = isFeatureEnabled(Feature.Recompilations);
+
+  const [onboarding, setOnboarding] = useState<
+    "classics" | "recompilations" | null
+  >(null);
+  const classicsOnboardingClosedRef = useRef(false);
+  const recompilationOnboardingClosedRef = useRef(false);
+
+  const getDueOnboarding = useCallback(
+    (catalogueMode: typeof mode) => {
+      if (
+        catalogueMode === "classics" &&
+        !classicsOnboardingClosedRef.current &&
+        !hasDismissedClassicsOnboarding()
+      ) {
+        return "classics";
+      }
+      if (
+        isFeaturesLoaded &&
+        isRecompilationsEnabled &&
+        !recompilationOnboardingClosedRef.current &&
+        !hasDismissedRecompilationOnboarding()
+      ) {
+        return "recompilations";
+      }
+      return null;
+    },
+    [isFeaturesLoaded, isRecompilationsEnabled]
+  );
 
   useEffect(() => {
-    if (
-      mode === "classics" &&
-      !classicsOnboardingTriggeredRef.current &&
-      !hasDismissedClassicsOnboarding()
-    ) {
-      classicsOnboardingTriggeredRef.current = true;
-      setShowClassicsOnboarding(true);
-    }
-  }, [mode]);
+    if (onboarding) return;
+    const due = getDueOnboarding(mode);
+    if (due) setOnboarding(due);
+  }, [mode, onboarding, getDueOnboarding]);
 
   const { formatNumber } = useFormat();
 
   const dispatch = useAppDispatch();
+
+  const showRecompilationsSkippingClassicsOnboarding = () => {
+    classicsOnboardingClosedRef.current = true;
+    if (mode !== "classics") dispatch(setMode("classics"));
+    dispatch(setFilters({ recompilation: "has" }));
+  };
 
   const { t, i18n } = useTranslation("catalogue");
   const shouldShowProtonFeatures = window.electron.platform === "linux";
@@ -295,6 +344,7 @@ export default function Catalogue() {
           label: platform.name,
           value: platform.key,
           checked: classicsPlatforms.includes(platform.key),
+          group: getClassicsPlatformGroup(platform.name),
         })),
       },
       {
@@ -351,6 +401,17 @@ export default function Catalogue() {
 
   const classicsGroupedFilters = useMemo(() => {
     return [
+      ...(filters.recompilation
+        ? [
+            {
+              label: t("recompilations_filter"),
+              filterType: t("recompilations_filter"),
+              orbColor: RECOMPILATION_FILTER_COLOR,
+              key: "recompilation",
+              value: "toggle",
+            },
+          ]
+        : []),
       ...classicsPlatforms.map((platform) => ({
         label:
           launchboxFilters.platforms.find((p) => p.key === platform)?.name ??
@@ -392,6 +453,7 @@ export default function Catalogue() {
       })),
     ];
   }, [
+    filters.recompilation,
     classicsPlatforms,
     filters.genres,
     filters.developers,
@@ -515,11 +577,13 @@ export default function Catalogue() {
         title: t("genres"),
         items: steamGenresFilterItems,
         key: "genres",
+        isLoading: !steamGenres[language],
       },
       {
         title: t("tags"),
         items: steamUserTagsFilterItems,
         key: "tags",
+        isLoading: !steamUserTags[language],
       },
       {
         title: t("download_sources"),
@@ -533,6 +597,7 @@ export default function Catalogue() {
             ),
           })),
         key: "downloadSourceFingerprints",
+        isLoading: loadingLists.downloadSources,
       },
       {
         title: t("developers"),
@@ -542,6 +607,7 @@ export default function Catalogue() {
           checked: filters.developers.includes(developer),
         })),
         key: "developers",
+        isLoading: loadingLists.developers,
       },
       {
         title: t("publishers"),
@@ -551,9 +617,16 @@ export default function Catalogue() {
           checked: filters.publishers.includes(publisher),
         })),
         key: "publishers",
+        isLoading: loadingLists.publishers,
       },
     ];
   }, [
+    language,
+    loadingLists.developers,
+    loadingLists.downloadSources,
+    loadingLists.publishers,
+    steamGenres,
+    steamUserTags,
     downloadSources,
     filters.developers,
     filters.downloadSourceFingerprints,
@@ -624,8 +697,19 @@ export default function Catalogue() {
   return (
     <div className="catalogue" ref={cataloguePageRef}>
       <ClassicsOnboardingModal
-        visible={showClassicsOnboarding}
-        onClose={() => setShowClassicsOnboarding(false)}
+        visible={onboarding === "classics"}
+        onClose={() => {
+          classicsOnboardingClosedRef.current = true;
+          setOnboarding(null);
+        }}
+      />
+      <RecompilationOnboardingModal
+        visible={onboarding === "recompilations"}
+        onClose={() => {
+          recompilationOnboardingClosedRef.current = true;
+          setOnboarding(null);
+        }}
+        onShowRecompilations={showRecompilationsSkippingClassicsOnboarding}
       />
       <div className="catalogue__header">
         <div className="catalogue__header-row">
@@ -682,6 +766,11 @@ export default function Catalogue() {
                       onRemove={() => {
                         if (filter.value === "range") {
                           dispatch(setFilters({ releaseYear: undefined }));
+                          return;
+                        }
+
+                        if (filter.key === "recompilation") {
+                          dispatch(setFilters({ [filter.key]: undefined }));
                           return;
                         }
 
@@ -742,7 +831,11 @@ export default function Catalogue() {
             </SkeletonTheme>
           ) : mode === "classics" ? (
             results.map((game) => (
-              <GameItemClassics key={game.id} game={game} />
+              <GameItemClassics
+                key={game.id}
+                game={game}
+                showRecompilationBadge={isRecompilationsEnabled}
+              />
             ))
           ) : (
             results.map((game) => <GameItem key={game.id} game={game} />)
@@ -765,6 +858,17 @@ export default function Catalogue() {
         <div className="catalogue__filters-container">
           <div className="catalogue__filters-sections">
             <CatalogueModeToggle />
+
+            {mode === "classics" && isRecompilationsEnabled && (
+              <RecompilationFilterToggle
+                checked={filters.recompilation === "has"}
+                onChange={(checked) =>
+                  dispatch(
+                    setFilters({ recompilation: checked ? "has" : undefined })
+                  )
+                }
+              />
+            )}
 
             {mode === "modern" && shouldShowProtonFeatures && (
               <Suspense fallback={null}>
@@ -810,16 +914,14 @@ export default function Catalogue() {
             )}
 
             {mode === "modern" && (
-              <Suspense fallback={null}>
-                <ReleaseYearSection
-                  title={t("release_year")}
-                  color={filterCategoryColors.releaseYear}
-                  value={filters.releaseYear}
-                  onChange={(value) =>
-                    dispatch(setFilters({ releaseYear: value }))
-                  }
-                />
-              </Suspense>
+              <ReleaseYearSection
+                title={t("release_year")}
+                color={filterCategoryColors.releaseYear}
+                value={filters.releaseYear}
+                onChange={(value) =>
+                  dispatch(setFilters({ releaseYear: value }))
+                }
+              />
             )}
 
             {mode === "modern" &&
@@ -854,6 +956,7 @@ export default function Catalogue() {
                     }
                   }}
                   items={section.items}
+                  isLoading={section.isLoading}
                 />
               ))}
 
@@ -879,6 +982,11 @@ export default function Catalogue() {
                       dispatch(setFilters({ [section.key]: next }));
                     }}
                     items={section.items}
+                    groups={
+                      section.key === "platforms"
+                        ? classicsPlatformGroups
+                        : undefined
+                    }
                   />
                 );
               })}

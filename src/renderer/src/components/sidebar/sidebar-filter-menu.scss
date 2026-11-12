@@ -1,8 +1,11 @@
 @use "../../scss/globals.scss";
 
+$menu-row-height: 35px;
+$menu-visible-rows: 12;
+
 .sidebar-filter-menu {
   &__trigger {
-    margin-right: 6px;
+    margin-right: globals.$spacing-unit;
   }
 
   &__content {
@@ -13,7 +16,10 @@
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    max-height: var(--radix-dropdown-menu-content-available-height);
+    max-height: min(
+      var(--radix-dropdown-menu-content-available-height),
+      $menu-row-height * $menu-visible-rows + 8px
+    );
     overflow: hidden;
     animation: sidebar-filter-menu-slide-in 0.2s ease-out;
   }
@@ -23,6 +29,9 @@
     flex-direction: column;
     flex-shrink: 0;
     min-width: 180px;
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   &__divider {
@@ -41,11 +50,11 @@
     display: block;
     width: 100%;
     padding: 4px 12px;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
+    color: globals.$subtle-color;
   }
 
   &__separator {
@@ -62,17 +71,18 @@
     align-items: center;
     gap: 8px;
     border-radius: 4px;
-    padding: 6px 32px 6px 12px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 4)
+      globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     color: globals.$muted-color;
     outline: none;
     white-space: nowrap;
 
     &:hover,
     &[data-highlighted] {
-      background-color: globals.$background-color;
+      background-color: rgba(255, 255, 255, 0.15);
       outline: none;
     }
   }
@@ -92,7 +102,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
+    color: globals.$muted-color;
     pointer-events: none;
     transform: translateY(-50%) scale(1);
     opacity: 1;

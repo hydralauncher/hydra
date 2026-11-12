@@ -8,10 +8,19 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-import { AuthPage, getCloudSaveAccessAction } from "@shared";
-import { ConfirmationModal } from "@renderer/components";
+import {
+  AuthPage,
+  getCloudSaveAccessAction,
+  discCloudSaveWrongGameErrorCode,
+  getCloudSaveEmulatorProvider,
+  getDiscCloudSaveEmulatorProvider,
+  type DiscCloudSaveEmulatorProvider,
+  hasCloudSaveExecutableSelection,
+  isCloudSaveV2Eligible,
+} from "@shared";
+import { Button, ConfirmationModal, Modal } from "@renderer/components";
 import { gameDetailsContext } from "@renderer/context";
 import { useToast, useUserDetails } from "@renderer/hooks";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -19,8 +28,12 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveCustomPathApproval,
   CloudSaveOverview,
+  EmulatorDiscIdentityStatus,
   CloudSaveSyncProgressPayload,
   GameShop,
+  LibraryGame,
+  RetroArchLocalBatteryCandidate,
+  RetroArchLegacyBatteryCandidate,
 } from "@types";
 
 import { CloudSaveCustomPathApprovalModal } from "./cloud-save-custom-path-approval-modal";
@@ -32,6 +45,18 @@ import {
 import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal";
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
+import {
+  emulatorConfigSettingsUrl,
+  type EmulatorConfigCheckStatus,
+} from "./emulator-config-presentation";
+import {
+  isRetroArchExecutableError,
+  isRetroArchSetupBlocked,
+  RETROARCH_CONFIG_SETTINGS_URL,
+  type RetroArchExecutableStatus,
+} from "./retroarch-executable-status";
+import { useRetroArchExecutableStatus } from "./use-retroarch-executable-status";
+import { useEmulatorConfigStatus } from "./use-emulator-config-status";
 
 interface CloudSaveV2ContextValue {
   overview: CloudSaveOverview | null;
@@ -46,6 +71,17 @@ interface CloudSaveV2ContextValue {
     | null;
   progress: CloudSaveSyncProgressPayload | null;
   hasExecutablePath: boolean;
+  requiresRom: boolean;
+  discProvider: DiscCloudSaveEmulatorProvider | null;
+  retroArchExecutableStatus: RetroArchExecutableStatus | null;
+  retryRetroArchExecutable: () => void;
+  openRetroArchSettings: () => void;
+  emulatorConfigStatus: EmulatorConfigCheckStatus | null;
+  retryEmulatorConfig: () => void;
+  discStatus: EmulatorDiscIdentityStatus | null;
+  discIdentityError: boolean;
+  retryDiscIdentity: () => void;
+  openEmulatorSettings: () => void;
   canUseCloudSaves: boolean;
   openManager: () => void;
   openFileBrowser: () => void;
@@ -137,44 +173,62 @@ interface CloudSaveV2ProviderProps {
   children: React.ReactNode;
   objectId: string;
   shop: GameShop;
+  game?: LibraryGame | null;
+  isGameRunning?: boolean;
 }
 
 export function CloudSaveV2Provider({
   children,
   objectId,
   shop,
+  game: gameOverride,
+  isGameRunning: isGameRunningOverride,
 }: Readonly<CloudSaveV2ProviderProps>) {
   const { t } = useTranslation("game_details");
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { userDetails, hasActiveSubscription } = useUserDetails();
   const { showHydraCloudModal } = useSubscription();
   const { showErrorToast, showSuccessToast, showWarningToast } = useToast();
-  const {
-    game,
-    isGameRunning,
-    setShowGameOptionsModal,
-    setGameOptionsInitialCategory,
-  } = useContext(gameDetailsContext);
+  const detailsContext = useContext(gameDetailsContext);
+  const { setShowGameOptionsModal, setGameOptionsInitialCategory } =
+    detailsContext;
+  const game = gameOverride === undefined ? detailsContext.game : gameOverride;
+  const isGameRunning = isGameRunningOverride ?? detailsContext.isGameRunning;
   const cloudSaveAccessAction = getCloudSaveAccessAction(
     Boolean(userDetails),
     hasActiveSubscription
   );
   const canUseCloudSaves = cloudSaveAccessAction === "open";
-  const hasExecutablePath = Boolean(game?.executablePath);
-  const canCheckCloudSaves =
-    shop === "steam" && canUseCloudSaves && hasExecutablePath;
+  const isV2Eligible = isCloudSaveV2Eligible(shop, game?.platform, objectId);
+  const isRetroArchGame =
+    getCloudSaveEmulatorProvider(shop, game?.platform) === "retroarch";
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, game?.platform);
+  const hasExecutablePath = game
+    ? hasCloudSaveExecutableSelection(game)
+    : false;
+  const canCheckEmulator = isV2Eligible && canUseCloudSaves;
+  const canCheckCloudSaves = canCheckEmulator && hasExecutablePath;
   const {
     overview,
     isAutomaticSyncEnabled,
     isRefreshing,
     hasRefreshError,
+    refreshErrorCode,
     refresh,
   } = useCloudSaveOverview({
     objectId,
     shop,
     enabled: canCheckCloudSaves,
   });
+  const hasWrongGameError =
+    discProvider !== null &&
+    refreshErrorCode === discCloudSaveWrongGameErrorCode(discProvider);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [discStatusEntry, setDiscStatusEntry] = useState<{
+    key: string;
+    status: EmulatorDiscIdentityStatus;
+  } | null>(null);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
   const [isFileBrowserVisible, setIsFileBrowserVisible] = useState(false);
@@ -193,6 +247,16 @@ export function CloudSaveV2Provider({
     useState(searchParams.get("openCloudSavePathApproval") === "1");
   const [pendingResolution, setPendingResolution] =
     useState<CloudSaveConflictResolution | null>(null);
+  const [localBatteryCandidates, setLocalBatteryCandidates] = useState<
+    RetroArchLocalBatteryCandidate[]
+  >([]);
+  const [isLocalBatteryPickerVisible, setIsLocalBatteryPickerVisible] =
+    useState(false);
+  const [legacyBatteryCandidates, setLegacyBatteryCandidates] = useState<
+    RetroArchLegacyBatteryCandidate[]
+  >([]);
+  const [isLegacyBatteryPickerVisible, setIsLegacyBatteryPickerVisible] =
+    useState(false);
   const {
     details: fileDetails,
     isLoading: isFileDetailsLoading,
@@ -204,6 +268,59 @@ export function CloudSaveV2Provider({
     enabled: canCheckCloudSaves && isFileBrowserVisible,
   });
   const gameKey = `${shop}:${objectId}`;
+  const {
+    status: retroArchExecutableStatus,
+    retry: retryRetroArchExecutableStatus,
+  } = useRetroArchExecutableStatus(
+    isRetroArchGame && canCheckEmulator,
+    gameKey,
+    isModalVisible
+  );
+  const { status: emulatorConfigStatus, retry: retryEmulatorConfig } =
+    useEmulatorConfigStatus(
+      canCheckEmulator ? discProvider : null,
+      gameKey,
+      isModalVisible
+    );
+  const retryRetroArchExecutable = useCallback(() => {
+    retryRetroArchExecutableStatus();
+    void refresh().catch(() => undefined);
+  }, [refresh, retryRetroArchExecutableStatus]);
+  const openRetroArchSettings = useCallback(() => {
+    setIsModalVisible(false);
+    navigate(RETROARCH_CONFIG_SETTINGS_URL);
+  }, [navigate]);
+  const discStatus =
+    discStatusEntry?.key === gameKey ? discStatusEntry.status : null;
+  const openEmulatorSettings = useCallback(() => {
+    setIsModalVisible(false);
+    if (discProvider) navigate(emulatorConfigSettingsUrl(discProvider));
+  }, [discProvider, navigate]);
+  const refreshDiscStatus = useCallback(async () => {
+    if (!discProvider || !canCheckCloudSaves) return;
+    const status = await window.electron.getEmulatorDiscIdentityStatus(
+      objectId,
+      shop
+    );
+    setDiscStatusEntry({ key: gameKey, status });
+  }, [canCheckCloudSaves, discProvider, gameKey, objectId, shop]);
+
+  useEffect(() => {
+    void refreshDiscStatus().catch(() =>
+      setDiscStatusEntry({
+        key: gameKey,
+        status: {
+          status: "catalogue-unavailable",
+          path: null,
+          titleId: null,
+        },
+      })
+    );
+  }, [refreshDiscStatus, gameKey, isModalVisible, game?.discs, isSyncing]);
+  const retryDiscIdentity = useCallback(() => {
+    void Promise.all([refreshDiscStatus(), refresh()]).catch(() => undefined);
+  }, [refreshDiscStatus, refresh]);
+
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
 
@@ -211,6 +328,49 @@ export function CloudSaveV2Provider({
 
   const showKnownCloudSaveSyncError = useCallback(
     (error: unknown) => {
+      const message = error instanceof Error ? error.message : error;
+      if (isRetroArchGame && isRetroArchExecutableError(error)) {
+        retryRetroArchExecutableStatus();
+        return true;
+      }
+      if (
+        isRetroArchGame &&
+        typeof message === "string" &&
+        message.includes("cloud_save_retroarch_battery_local_conflict")
+      ) {
+        void window.electron
+          .getRetroArchLocalBatteryCandidates(objectId, shop)
+          .then((candidates) => {
+            if (activeGameKey.current !== gameKey) return;
+            if (candidates.length === 0) {
+              setHasSyncError(true);
+              return;
+            }
+            setLocalBatteryCandidates(candidates);
+            setIsLocalBatteryPickerVisible(true);
+          })
+          .catch(() => setHasSyncError(true));
+        return true;
+      }
+      if (
+        isRetroArchGame &&
+        typeof message === "string" &&
+        message.includes("cloud_save_retroarch_legacy_battery_conflict")
+      ) {
+        void window.electron
+          .getRetroArchLegacyBatteryCandidates(objectId, shop)
+          .then((candidates) => {
+            if (activeGameKey.current !== gameKey) return;
+            if (candidates.length === 0) {
+              setHasSyncError(true);
+              return;
+            }
+            setLegacyBatteryCandidates(candidates);
+            setIsLegacyBatteryPickerVisible(true);
+          })
+          .catch(() => setHasSyncError(true));
+        return true;
+      }
       const errorKind = getCloudSaveSyncErrorKind(error);
       if (errorKind === "generic") return false;
 
@@ -236,7 +396,15 @@ export function CloudSaveV2Provider({
       );
       return true;
     },
-    [showErrorToast, t]
+    [
+      gameKey,
+      isRetroArchGame,
+      objectId,
+      retryRetroArchExecutableStatus,
+      shop,
+      showErrorToast,
+      t,
+    ]
   );
 
   useEffect(() => {
@@ -252,10 +420,35 @@ export function CloudSaveV2Provider({
     setCustomPathApprovalError(null);
     setIsCustomPathApprovalGateActive(false);
     setPendingResolution(null);
+    setLocalBatteryCandidates([]);
+    setIsLocalBatteryPickerVisible(false);
+    setLegacyBatteryCandidates([]);
+    setIsLegacyBatteryPickerVisible(false);
     gamePageSyncInFlight.current = false;
   }, [gameKey]);
 
   const wasGameRunning = useRef(isGameRunning);
+
+  useEffect(() => {
+    const kind = searchParams.get("openCloudSaveBatteryConflict");
+    if (!isRetroArchGame || (kind !== "local" && kind !== "legacy")) return;
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("openCloudSaveBatteryConflict");
+    setSearchParams(nextSearchParams, { replace: true });
+    setIsModalVisible(true);
+    showKnownCloudSaveSyncError(
+      new Error(
+        kind === "local"
+          ? "cloud_save_retroarch_battery_local_conflict"
+          : "cloud_save_retroarch_legacy_battery_conflict"
+      )
+    );
+  }, [
+    isRetroArchGame,
+    searchParams,
+    setSearchParams,
+    showKnownCloudSaveSyncError,
+  ]);
 
   useEffect(() => {
     const gameJustClosed = wasGameRunning.current && !isGameRunning;
@@ -269,7 +462,7 @@ export function CloudSaveV2Provider({
   }, [isGameRunning, refresh]);
 
   useEffect(() => {
-    if (shop !== "steam" || searchParams.get("openCloudSaveConflict") !== "1") {
+    if (!isV2Eligible || searchParams.get("openCloudSaveConflict") !== "1") {
       return;
     }
 
@@ -291,6 +484,7 @@ export function CloudSaveV2Provider({
     setIsModalVisible(true);
   }, [
     cloudSaveAccessAction,
+    isV2Eligible,
     searchParams,
     setSearchParams,
     shop,
@@ -299,7 +493,7 @@ export function CloudSaveV2Provider({
 
   useEffect(() => {
     if (
-      shop !== "steam" ||
+      !isV2Eligible ||
       searchParams.get("openCloudSavePathApproval") !== "1"
     ) {
       return;
@@ -333,7 +527,15 @@ export function CloudSaveV2Provider({
     return () => {
       canceled = true;
     };
-  }, [objectId, searchParams, setSearchParams, shop, showErrorToast, t]);
+  }, [
+    isV2Eligible,
+    objectId,
+    searchParams,
+    setSearchParams,
+    shop,
+    showErrorToast,
+    t,
+  ]);
 
   useEffect(() => {
     return window.electron.onCloudSaveAutomaticSync((event) => {
@@ -393,11 +595,15 @@ export function CloudSaveV2Provider({
       searchParams.get("openCloudSavePathApproval") === "1";
     if (
       isPathApprovalBlockingSync ||
+      (isRetroArchGame && isModalVisible) ||
       !shouldSyncCloudSaveOnGamePage({
         overview,
         shop,
+        platform: game?.platform,
+        objectId,
         canUseCloudSaves,
         hasExecutablePath,
+        retroArchExecutableStatus,
         isGameRunning,
         isSyncing,
         isInFlight: gamePageSyncInFlight.current,
@@ -431,9 +637,13 @@ export function CloudSaveV2Provider({
   }, [
     canUseCloudSaves,
     gameKey,
+    game?.platform,
     hasExecutablePath,
+    isRetroArchGame,
+    retroArchExecutableStatus,
     isCustomPathApprovalGateActive,
     isGameRunning,
+    isModalVisible,
     isSyncing,
     objectId,
     overview,
@@ -461,7 +671,9 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
-    setGameOptionsInitialCategory("locations");
+    setGameOptionsInitialCategory(
+      isRetroArchGame || discProvider ? "general" : "locations"
+    );
     setShowGameOptionsModal(true);
   };
 
@@ -532,7 +744,8 @@ export function CloudSaveV2Provider({
 
   const runCloudSaveOperation = useCallback(
     async (resolution?: CloudSaveConflictResolution) => {
-      if (isGameRunning || !hasExecutablePath || shop !== "steam") return;
+      if (isGameRunning || !hasExecutablePath || !isV2Eligible) return;
+      if (isRetroArchGame && retroArchExecutableStatus !== "ready") return;
       if (cloudSaveAccessAction !== "open") {
         openManager();
         return;
@@ -582,17 +795,23 @@ export function CloudSaveV2Provider({
       gameKey,
       handleCloudSaveOperationError,
       hasExecutablePath,
+      isRetroArchGame,
       isGameRunning,
+      isV2Eligible,
       objectId,
       openManager,
       refresh,
       refreshFileDetails,
+      retroArchExecutableStatus,
       shop,
     ]
   );
 
   const setAutomaticSyncEnabled = useCallback(
     async (enabled: boolean) => {
+      if (enabled && isRetroArchGame && retroArchExecutableStatus !== "ready") {
+        throw new Error("cloud_save_retroarch_not_configured");
+      }
       if (cloudSaveAccessAction !== "open") {
         if (cloudSaveAccessAction === "sign-in") {
           window.electron.openAuthWindow(AuthPage.SignIn);
@@ -618,7 +837,9 @@ export function CloudSaveV2Provider({
     },
     [
       cloudSaveAccessAction,
+      isRetroArchGame,
       objectId,
+      retroArchExecutableStatus,
       refresh,
       shop,
       showErrorToast,
@@ -633,15 +854,18 @@ export function CloudSaveV2Provider({
     if (resolution) void runCloudSaveOperation(resolution);
   };
 
-  const handleSelectCustomPathApproval = async () => {
+  const handleSelectCustomPathApproval = async (mode: "file" | "dir") => {
     const approvalId = customPathApproval?.id;
     if (!approvalId || isSelectingCustomPath || isConfirmingCustomPath) return;
 
     setIsSelectingCustomPath(true);
     setCustomPathApprovalError(null);
     try {
-      const result =
-        await window.electron.selectCloudSaveCustomPathApproval(approvalId);
+      const result = await window.electron.selectCloudSaveCustomPathApproval(
+        approvalId,
+        undefined,
+        mode
+      );
       if (!result.canceled) setCustomPathApproval(result.approval);
     } catch (error) {
       setCustomPathApprovalError(getCustomPathApprovalError(error));
@@ -850,6 +1074,15 @@ export function CloudSaveV2Provider({
   } else if (hasRefreshError) {
     errorMessageKey = "cloud_save_v2_load_error";
   }
+  if (emulatorConfigStatus && emulatorConfigStatus !== "ready") {
+    errorMessageKey = null;
+  }
+  if (isRetroArchGame && isRetroArchSetupBlocked(retroArchExecutableStatus)) {
+    errorMessageKey = null;
+  }
+  if (discStatus?.status !== "ready" && discStatus?.status !== "missing") {
+    if (discStatus || hasWrongGameError) errorMessageKey = null;
+  }
   const openFileBrowser = useCallback(() => {
     if (cloudSaveAccessAction === "open") {
       setIsFileBrowserVisible(true);
@@ -870,6 +1103,17 @@ export function CloudSaveV2Provider({
       errorMessageKey,
       progress,
       hasExecutablePath,
+      requiresRom: isRetroArchGame,
+      discProvider,
+      retroArchExecutableStatus,
+      retryRetroArchExecutable,
+      openRetroArchSettings,
+      emulatorConfigStatus,
+      retryEmulatorConfig,
+      discStatus,
+      discIdentityError: hasWrongGameError,
+      retryDiscIdentity,
+      openEmulatorSettings,
       canUseCloudSaves,
       openManager,
       openFileBrowser,
@@ -882,6 +1126,17 @@ export function CloudSaveV2Provider({
       errorMessageKey,
       hasError,
       hasExecutablePath,
+      isRetroArchGame,
+      discProvider,
+      retroArchExecutableStatus,
+      retryRetroArchExecutable,
+      openRetroArchSettings,
+      emulatorConfigStatus,
+      retryEmulatorConfig,
+      discStatus,
+      hasWrongGameError,
+      retryDiscIdentity,
+      openEmulatorSettings,
       isAutomaticSyncEnabled,
       isGameRunning,
       isRefreshing,
@@ -910,7 +1165,7 @@ export function CloudSaveV2Provider({
         errorMessage={
           customPathApprovalErrorKey ? t(customPathApprovalErrorKey) : undefined
         }
-        onSelectPath={() => void handleSelectCustomPathApproval()}
+        onSelectPath={(mode) => void handleSelectCustomPathApproval(mode)}
         onConfirm={() => void handleConfirmCustomPathApproval()}
         onClose={handleCloseCustomPathApproval}
       />
@@ -923,6 +1178,17 @@ export function CloudSaveV2Provider({
         isSyncing={isSyncing}
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
+        requiresRom={isRetroArchGame}
+        discProvider={discProvider}
+        retroArchExecutableStatus={retroArchExecutableStatus}
+        onRetryRetroArchExecutable={retryRetroArchExecutable}
+        onConfigureRetroArch={openRetroArchSettings}
+        emulatorConfigStatus={emulatorConfigStatus}
+        onRetryEmulatorConfig={retryEmulatorConfig}
+        discStatus={discStatus}
+        discIdentityError={hasWrongGameError}
+        onRetryDiscIdentity={retryDiscIdentity}
+        onConfigureEmulator={openEmulatorSettings}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
         errorMessageKey={errorMessageKey}
@@ -981,6 +1247,79 @@ export function CloudSaveV2Provider({
         onConfirm={handleConfirmResolution}
         onClose={() => setPendingResolution(null)}
       />
+
+      <Modal
+        visible={isLocalBatteryPickerVisible}
+        title={t("cloud_save_v2_local_battery_conflict_title")}
+        description={t("cloud_save_v2_local_battery_conflict_description")}
+        onClose={() => setIsLocalBatteryPickerVisible(false)}
+      >
+        <div className="cloud-save-v2__conflict-actions">
+          {localBatteryCandidates.map((candidate) => (
+            <Button
+              key={`${candidate.romPath}:${candidate.signature}`}
+              disabled={isGameRunning || isSyncing}
+              onClick={() => {
+                void window.electron
+                  .selectRetroArchLocalBattery(
+                    objectId,
+                    shop,
+                    candidate.romPath,
+                    candidate.signature
+                  )
+                  .then(() => {
+                    setIsLocalBatteryPickerVisible(false);
+                    void runCloudSaveOperation();
+                  })
+                  .catch(() => setHasSyncError(true));
+              }}
+            >
+              {candidate.romPath}
+            </Button>
+          ))}
+        </div>
+      </Modal>
+
+      <Modal
+        visible={isLegacyBatteryPickerVisible}
+        title={t("cloud_save_v2_legacy_battery_conflict_title")}
+        description={t("cloud_save_v2_legacy_battery_conflict_description")}
+        onClose={() => setIsLegacyBatteryPickerVisible(false)}
+      >
+        <div className="cloud-save-v2__conflict-actions">
+          {legacyBatteryCandidates.map((candidate, index) => (
+            <Button
+              key={candidate.rawPath}
+              disabled={isGameRunning || isSyncing}
+              onClick={() => {
+                void window.electron
+                  .selectRetroArchLegacyBattery(
+                    objectId,
+                    shop,
+                    candidate.rawPath
+                  )
+                  .then(() => {
+                    setIsLegacyBatteryPickerVisible(false);
+                    void runCloudSaveOperation();
+                  })
+                  .catch(() => setHasSyncError(true));
+              }}
+            >
+              {t("cloud_save_v2_legacy_battery_candidate", {
+                index: index + 1,
+                date: new Date(
+                  candidate.files[0].lastModifiedAt
+                ).toLocaleString(),
+                hash: (
+                  candidate.files.find(
+                    (file) => file.relativePath === "battery.srm"
+                  ) ?? candidate.files[0]
+                ).hash.slice(0, 8),
+              })}
+            </Button>
+          ))}
+        </div>
+      </Modal>
     </cloudSaveV2Context.Provider>
   );
 }

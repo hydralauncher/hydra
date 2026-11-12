@@ -36,7 +36,7 @@ export function useGameCard(
   );
 
   const handleCardClick = useCallback(() => {
-    navigate(buildGameDetailsPath(game));
+    navigate(buildGameDetailsPath({ ...game, ...game.catalogueGame }));
   }, [navigate, game]);
 
   const handleContextMenuClick = useCallback(

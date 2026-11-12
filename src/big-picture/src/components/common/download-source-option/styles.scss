@@ -1,3 +1,7 @@
+$availability-color: #22c55e;
+$availability-glow-blur: 6px;
+$availability-glow-opacity: 0.5;
+
 .download-source-option {
   display: flex;
   flex-direction: column;
@@ -89,6 +93,31 @@
         color: var(--text-secondary);
       }
     }
+  }
+
+  &__steam-title {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 2);
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__availability-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: $availability-color;
+    box-shadow: 0 0 $availability-glow-blur
+      rgba($availability-color, $availability-glow-opacity);
   }
 
   &__divider {

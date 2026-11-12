@@ -7,6 +7,7 @@ import { ClockIcon } from "@primer/octicons-react";
 import { useFormat } from "@renderer/hooks";
 import type { UserGame } from "@types";
 import { MAX_MINUTES_TO_SHOW_IN_PLAYTIME } from "@renderer/constants";
+import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import "./recent-games-box.scss";
 
 export function RecentGamesBox() {
@@ -58,8 +59,11 @@ export function RecentGamesBox() {
 
               <div className="recent-games__game-details">
                 <span className="recent-games__game-title">{game.title}</span>
-
                 <div className="recent-games__game-description">
+                  <GameVisibilityBadge
+                    isHiddenFromOthers={game.isHiddenFromOthers}
+                    isConcealed={game.isConcealed}
+                  />
                   <ClockIcon />
                   <small>{formatPlayTime(game)}</small>
                 </div>

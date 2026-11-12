@@ -139,7 +139,7 @@
 
   &__path-approval-file-size,
   &__path-approval-file-date {
-    color: rgba(255, 255, 255, 0.55);
+    color: globals.$subtle-color;
     white-space: nowrap;
   }
 
@@ -148,9 +148,9 @@
     align-items: center;
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 1.5);
-    border: 1px solid rgba(255, 183, 77, 0.18);
+    border: 1px solid rgba(globals.$warning-color, 0.3);
     border-radius: 8px;
-    background: rgba(255, 183, 77, 0.08);
+    background: rgba(globals.$warning-color, 0.1);
     color: globals.$warning-color;
     font-size: globals.$small-font-size;
     line-height: 1.4;
@@ -317,13 +317,15 @@
     margin-top: calc(globals.$spacing-unit * 2);
   }
 
-  &__missing-executable {
+  &__missing-executable,
+  &__required-setup {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
   }
 
-  &__missing-executable-copy {
+  &__missing-executable-copy,
+  &__required-setup-copy {
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit / 2);
@@ -339,6 +341,19 @@
       color: globals.$muted-color;
       font-size: globals.$small-font-size;
       line-height: 1.4;
+    }
+  }
+
+  &__required-setup-link {
+    align-self: flex-start;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: globals.$disabled-opacity;
     }
   }
 
@@ -384,7 +399,7 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: globals.$spacing-unit;
-    color: rgba(255, 255, 255, 0.55);
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
   }
 
@@ -425,7 +440,7 @@
       }
 
       &:focus-visible {
-        border-radius: 2px;
+        border-radius: 4px;
         outline: 2px solid var(--color-primary);
         outline-offset: 3px;
       }
@@ -443,20 +458,20 @@
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
     color: globals.$muted-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 400;
     line-height: 1;
 
     &--synced {
-      background: rgba(0, 230, 118, 0.22);
+      background: rgba(globals.$success-color, 0.22);
     }
 
     &--outdated {
-      background: rgba(255, 204, 0, 0.22);
+      background: rgba(globals.$warning-color, 0.22);
     }
 
     &--conflict {
-      background: rgba(255, 59, 92, 0.22);
+      background: rgba(globals.$error-color, 0.22);
     }
   }
 
@@ -481,6 +496,32 @@
     gap: calc(globals.$spacing-unit * 1.5);
     min-width: 0;
     height: 100%;
+  }
+
+  &__card-sources {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+    font-size: globals.$small-font-size;
+  }
+
+  &__card-source {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+    min-width: 0;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      flex-shrink: 0;
+    }
   }
 
   &__browser-toolbar {
@@ -567,7 +608,7 @@
     flex-wrap: wrap;
     padding: globals.$spacing-unit;
     border-radius: 6px;
-    background: rgba(255, 59, 92, 0.08);
+    background: rgba(globals.$error-color, 0.08);
     color: globals.$error-color;
     font-size: globals.$small-font-size;
 
@@ -637,7 +678,7 @@
     }
 
     &::-webkit-scrollbar-thumb {
-      border-radius: 24px;
+      border-radius: 999px;
       background-color: rgba(255, 255, 255, 0.15);
 
       &:hover {
@@ -768,7 +809,7 @@
 
   &__browser-status {
     color: globals.$muted-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     text-align: center;
     white-space: nowrap;
 
@@ -891,7 +932,7 @@
   &__browser-folder-heading {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     min-width: 0;
 
     strong {
@@ -932,7 +973,7 @@
     strong {
       min-width: 0;
       overflow: hidden;
-      font-size: 14px;
+      font-size: globals.$body-font-size;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
@@ -943,8 +984,8 @@
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 11px;
+    color: globals.$subtle-color;
+    font-size: globals.$tiny-font-size;
     white-space: nowrap;
   }
 
@@ -955,49 +996,9 @@
     flex-shrink: 0;
   }
 
+  // Look comes from the shared small Button.
   &__browser-path-action {
-    display: inline-flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
-    border: 1px solid globals.$border-color;
-    border-radius: 4px;
-    color: globals.$muted-color;
-    cursor: pointer;
-    font-size: 11px;
-
-    > svg {
-      width: 15px;
-      height: 15px;
-      flex: 0 0 15px;
-    }
-
-    &:hover:not(:disabled) {
-      border-color: rgba(255, 255, 255, 0.18);
-      background: rgba(255, 255, 255, 0.05);
-      color: globals.$body-color;
-    }
-
-    &--remove:hover:not(:disabled) {
-      border-color: rgba(255, 82, 82, 0.35);
-      color: #ff7373;
-    }
-
-    &--rebind:hover:not(:disabled) {
-      border-color: rgba(255, 255, 255, 0.25);
-      color: globals.$body-color;
-    }
-
-    &:disabled {
-      cursor: default;
-      opacity: globals.$disabled-opacity;
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
   }
 
   &__browser-missing-side {

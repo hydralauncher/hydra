@@ -5,7 +5,13 @@ import type {
   GameShop,
   SyncGameCloudSaveResult,
 } from "@types";
-import { gamesSublevel, levelKeys } from "@main/level";
+import {
+  getCloudSaveEmulatorProvider,
+  getDiscCloudSaveEmulatorProvider,
+  hasCloudSaveDisc,
+  isCloudSaveV2Eligible,
+} from "@shared";
+import { getEmulatorDiscIdentityStatus } from "./emulator-disc-identity.js";
 
 import { HydraApi } from "../hydra-api";
 import { isGameRunning } from "../game-running-state";
@@ -15,6 +21,7 @@ import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { canAccessCloudSaves } from "./cloud-save-access";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getCloudSaveGameRecord } from "./recompilation-cloud-save";
 import { getCloudSaveErrorDetails } from "./cloud-save-error-details";
 import { isCloudSaveEnvironmentChangedError } from "./environment-guard";
 import { isCloudSaveExecutableMissingError } from "./executable-path-guard";
@@ -60,7 +67,6 @@ export const canRunAutomaticCloudSaveSync = async (
   shop: GameShop
 ) => {
   if (
-    shop !== "steam" ||
     !canAccessCloudSaves(
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()
@@ -71,10 +77,27 @@ export const canRunAutomaticCloudSaveSync = async (
     return false;
   }
 
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch(() => null);
-  return Boolean(game?.executablePath);
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(() => null);
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform, objectId)) {
+    return false;
+  }
+  if (shop === "steam" || shop === "epic") return Boolean(game.executablePath);
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, game.platform);
+  if (discProvider && !hasCloudSaveDisc(game)) return false;
+  if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
+    const { getSelectedRetroArchRom } = await import(
+      "./retroarch-save-provider"
+    );
+    if (!(await getSelectedRetroArchRom(game))) return false;
+  }
+  const context = await getCloudSaveGameContext(objectId, shop).catch(
+    () => null
+  );
+  if (!context?.pathContext.executablePath) return false;
+  if (discProvider) {
+    return (await getEmulatorDiscIdentityStatus(game))?.status === "ready";
+  }
+  return true;
 };
 
 const emitAutomaticSyncEvent = (event: CloudSaveAutomaticSyncEvent) => {
@@ -89,7 +112,6 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   expectedRemoteHash?: string | null
 ): Promise<AutomaticCloudSaveSyncOutcome> => {
   if (
-    shop !== "steam" ||
     !canAccessCloudSaves(
       HydraApi.isLoggedIn(),
       HydraApi.hasActiveSubscription()
@@ -120,9 +142,8 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   }
 
   let gameReadFailed = false;
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch((error: unknown) => {
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(
+    (error: unknown) => {
       logger.error("[Cloud Save] Failed to inspect automatic sync game", {
         shop,
         objectId,
@@ -131,8 +152,9 @@ export const runAutomaticCloudSaveSyncDetailed = async (
       });
       gameReadFailed = true;
       return null;
-    });
-  if (!game?.executablePath) {
+    }
+  );
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform, objectId)) {
     return {
       status: gameReadFailed
         ? classifyAutomaticCloudSaveFailure(trigger)
@@ -141,6 +163,12 @@ export const runAutomaticCloudSaveSyncDetailed = async (
     };
   }
   if (isGameRunning(objectId, shop)) {
+    return { status: "skipped", result: null };
+  }
+  if (
+    getDiscCloudSaveEmulatorProvider(shop, game.platform) &&
+    !hasCloudSaveDisc(game)
+  ) {
     return { status: "skipped", result: null };
   }
 
@@ -169,6 +197,17 @@ export const runAutomaticCloudSaveSyncDetailed = async (
         : "skipped",
       result: null,
     };
+  }
+  if (!context.pathContext.executablePath) {
+    return { status: "skipped", result: null };
+  }
+  if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
+    const { getSelectedRetroArchRom } = await import(
+      "./retroarch-save-provider"
+    );
+    if (!(await getSelectedRetroArchRom(game))) {
+      return { status: "skipped", result: null };
+    }
   }
   const key = gameKey(objectId, shop);
   const operationKey = JSON.stringify([

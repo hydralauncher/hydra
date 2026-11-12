@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { emulators, logger, retroarch } from "@main/services";
@@ -11,8 +12,12 @@ import type {
 import { resolveEmulatorWrappers } from "./launch-classics-game";
 import { resolveLaunchCommand } from "./resolve-launch-command";
 import { spawnDetachedEmulator } from "./spawn-detached-emulator";
+import {
+  findFlatpakCommand,
+  resolveFlatpakEmulatorLaunch,
+} from "./flatpak-emulator-launch";
 import { prepareEmulatorSouvenirs } from "@main/services/emulators/prepare-emulator-souvenirs";
-import { cleanupRetroArchSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
+import { cleanupEmulatorSouvenirSession } from "@main/services/emulators/emulator-souvenir-config";
 
 export class RetroArchNotConfiguredError extends Error {
   code = "RETROARCH_NOT_CONFIGURED" as const;
@@ -90,18 +95,24 @@ export const launchRetroArchGame = async (
     ? await prepareEmulatorSouvenirs(platform, config.executablePath)
     : null;
   const baseArgs = [
-    ...(souvenirSession
-      ? ["--appendconfig", souvenirSession.appendConfigPath]
-      : []),
+    ...(souvenirSession?.launchArguments ?? []),
     "-L",
     core.path,
     romPath,
     "-f",
   ];
 
+  const flatpakLaunch = resolveFlatpakEmulatorLaunch({
+    executableTarget,
+    args: baseArgs,
+    accessiblePaths: [romPath],
+    flatpakCommand: findFlatpakCommand(),
+    homePath: os.homedir(),
+  });
+
   const resolvedLaunchCommand = resolveLaunchCommand({
-    baseCommand: executableTarget,
-    baseArgs,
+    baseCommand: flatpakLaunch?.command ?? executableTarget,
+    baseArgs: flatpakLaunch?.args ?? baseArgs,
     launchOptions: null,
     wrapperCommands,
   });
@@ -132,7 +143,7 @@ export const launchRetroArchGame = async (
     processRef.unref();
   } catch (error) {
     if (!sessionStarted) {
-      await cleanupRetroArchSouvenirSession(souvenirSession);
+      await cleanupEmulatorSouvenirSession(souvenirSession);
     }
     logger.error("Failed to spawn RetroArch", error);
     throw error;

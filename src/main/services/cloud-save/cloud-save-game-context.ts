@@ -1,10 +1,19 @@
-import { gamesSublevel, levelKeys } from "@main/level";
 import { getSteamLocation } from "@main/services/steam";
 import { SystemPath } from "@main/services/system-path";
 import { Wine } from "@main/services/wine";
 import { logger } from "@main/services/logger";
 import { getSteamStoreUserContext } from "@main/services/steam-login-users";
-import type { CloudSavePathContext, GameShop } from "@types";
+import type { CloudSavePathContext, Game, GameShop } from "@types";
+import {
+  discCloudSaveEmulatorSystem,
+  getCloudSaveEmulatorProvider,
+  isDiscCloudSaveEmulatorProvider,
+} from "@shared";
+import { getEmulatorConfig } from "../emulators/emulators-repository";
+import { getRetroArchConfig } from "../retroarch/retroarch-repository";
+import { getEmulatorSaveEnvironmentKey } from "./emulator-save-provider";
+import { emulatorEnvironmentId } from "./emulator-provider-identity";
+import { getCloudSaveGameRecord } from "./recompilation-cloud-save";
 
 import {
   resolveCloudSaveEnvironment,
@@ -23,9 +32,10 @@ const getCloudSavePlatform = (): CloudSavePathContext["platform"] => {
   return "linux";
 };
 
-const getRequestedWinePrefixPath = (
+const getRequestedWinePrefixPath = async (
   usesWindowsCompatibility: boolean,
-  gameWinePrefixPath: string | null | undefined,
+  shop: GameShop,
+  game: Game | undefined,
   objectId: string,
   overrides?: CloudSaveGameContextOverrides
 ) => {
@@ -33,7 +43,18 @@ const getRequestedWinePrefixPath = (
   if (overrides && "winePrefixPath" in overrides) {
     return overrides.winePrefixPath ?? null;
   }
-  return Wine.getEffectivePrefixPath(gameWinePrefixPath, objectId);
+  // Managed Epic games run in an owner/artifact prefix, not the per-game default.
+  if (shop === "epic" && game?.epicInstallation) {
+    const { resolveEpicLinuxPrefixPath } = await import(
+      "../epic/linux-runtime"
+    );
+    return resolveEpicLinuxPrefixPath(
+      game,
+      game.epicInstallation.owner,
+      game.epicInstallation.artifactId
+    );
+  }
+  return Wine.getEffectivePrefixPath(game?.winePrefixPath, objectId);
 };
 
 export const getCloudSaveGameContext = async (
@@ -41,23 +62,40 @@ export const getCloudSaveGameContext = async (
   shop: GameShop,
   overrides?: CloudSaveGameContextOverrides
 ) => {
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch(() => undefined);
-  const steamPath = await getSteamLocation().catch(() => undefined);
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(
+    () => undefined
+  );
+  const steamPath =
+    shop === "epic"
+      ? undefined
+      : await getSteamLocation().catch(() => undefined);
   const storeUserContext =
     shop === "steam" && steamPath
       ? await getSteamStoreUserContext(steamPath)
       : { known: [] };
   const platform = getCloudSavePlatform();
-  const executablePath =
-    overrides?.executablePath ?? game?.executablePath ?? undefined;
+  const emulatorProvider = getCloudSaveEmulatorProvider(shop, game?.platform);
+  const emulatorExecutablePath =
+    emulatorProvider === "retroarch"
+      ? (await getRetroArchConfig().catch(() => null))?.executablePath
+      : isDiscCloudSaveEmulatorProvider(emulatorProvider)
+        ? (
+            await getEmulatorConfig(
+              discCloudSaveEmulatorSystem(emulatorProvider)
+            ).catch(() => null)
+          )?.executablePath
+        : null;
+  const executablePath = emulatorProvider
+    ? (emulatorExecutablePath ?? undefined)
+    : (overrides?.executablePath ?? game?.executablePath ?? undefined);
   const usesWindowsCompatibility =
+    !emulatorProvider &&
     platform === "linux" &&
     executablePath?.toLowerCase().endsWith(".exe") === true;
-  const requestedWinePrefixPath = getRequestedWinePrefixPath(
+  const requestedWinePrefixPath = await getRequestedWinePrefixPath(
     usesWindowsCompatibility,
-    game?.winePrefixPath,
+    shop,
+    game,
     objectId,
     overrides
   );
@@ -87,6 +125,13 @@ export const getCloudSaveGameContext = async (
     winePrefixIsValid,
     prefixGenerationOverride: overrides?.prefixGenerationOverride,
   });
+  if (emulatorProvider && game) {
+    const providerKey = await getEmulatorSaveEnvironmentKey(game);
+    environment.environmentId = emulatorEnvironmentId(
+      environment.environmentId,
+      providerKey
+    );
+  }
   if (winePrefixIsValid && environment.prefixIdentityMode !== "marker") {
     logger.warn(
       "[Cloud Save] Wine prefix marker unavailable; using degraded identity",

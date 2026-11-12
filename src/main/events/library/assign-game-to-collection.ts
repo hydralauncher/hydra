@@ -1,3 +1,4 @@
+import { updateGameRecord } from "@main/services/game-record-updater";
 import { registerEvent } from "../register-event";
 import { createGame } from "@main/services/library-sync";
 import { gamesSublevel, levelKeys } from "@main/level";
@@ -45,8 +46,7 @@ const assignGameToCollection = async (
       }
     }
 
-    await gamesSublevel.put(gameKey, {
-      ...game,
+    await updateGameRecord(gameKey, {
       collectionIds,
     });
   } catch (error) {

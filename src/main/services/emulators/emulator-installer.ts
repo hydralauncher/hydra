@@ -1,7 +1,8 @@
 import { shell } from "electron";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import type {
   EmulatorBinary,
@@ -10,20 +11,31 @@ import type {
   EmulatorSystem,
   ResolvedInstallOption,
 } from "@types";
+import { getDownloadsPath } from "@main/events/helpers/get-downloads-path";
 
 import { logger } from "../logger";
 import { SevenZip } from "../7zip";
 import { SystemPath } from "../system-path";
 import { WindowManager } from "../window-manager";
 import { downloadToFile, removeFileQuietly } from "../download-to-file";
-import { resolveInstallOptions } from "./emulator-install-sources";
-import { getEmulatorVersion } from "./get-emulator-version";
+import {
+  resolveInstallOptions,
+  resolveShadps4CoreOption,
+} from "./emulator-install-sources";
+import {
+  findManagedEmulatorExecutable,
+  requireManagedEmulatorExecutable,
+  type ManagedExecutableBinary,
+} from "./find-managed-emulator-executable";
 import { KNOWN_BINARIES, isKnownEmulatorBinary } from "./known-binaries";
-import { updateEmulatorConfig } from "./emulators-repository";
-import { isValidEmulatorExecutable } from "./validate-emulator-executable";
+import {
+  SHADPS4_CORE_BINARY,
+  SHADPS4_CORE_DIRECTORY,
+  writeShadps4VersionRecord,
+} from "./shadps4-files";
+import { assertValidEmulatorExecutable } from "./validate-emulator-executable";
 
-const managedEmulatorsDir = (): string =>
-  path.join(SystemPath.getPath("userData"), "emulators");
+const execFileAsync = promisify(execFile);
 
 /** Same shape resolveInstallOptions returns, scoped to the current platform. */
 export const resolveEmulatorInstallOptions = (
@@ -61,48 +73,156 @@ const runWindowsInstaller = async (filePath: string): Promise<boolean> => {
   return openError.length === 0;
 };
 
-const findRpcs3Executable = (root: string): string | null => {
-  const stack = [root];
-  while (stack.length > 0) {
-    const dir = stack.pop();
-    if (!dir) continue;
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        stack.push(full);
-      } else if (entry.name.toLowerCase() === "rpcs3.exe") {
-        return full;
-      }
-    }
-  }
-  return null;
-};
-
 const BINARY_TO_SYSTEM: Record<EmulatorBinary, EmulatorSystem> = {
   duckstation: "ps1",
   pcsx2: "ps2",
   rpcs3: "ps3",
+  shadps4: "ps4",
+  ppsspp: "psp",
+  dolphin: "dolphin",
 };
 
-const autoConfigureEmulator = async (
-  system: EmulatorSystem,
-  executablePath: string
-): Promise<void> => {
-  if (!isValidEmulatorExecutable(executablePath)) return;
+const emulatorInstallDirectory = async (
+  binary: EmulatorBinary
+): Promise<string> => {
+  const downloadsRoot = await getDownloadsPath();
+  const system = BINARY_TO_SYSTEM[binary];
+  return path.join(downloadsRoot, KNOWN_BINARIES[system].displayName);
+};
 
-  const version = getEmulatorVersion(executablePath, KNOWN_BINARIES[system]);
-  await updateEmulatorConfig(system, (current) => ({
-    ...current,
-    executablePath,
-    detectedVersion: version,
-    detectedAt: Date.now(),
-  }));
+const installMacosDmg = async (
+  dmgPath: string,
+  binary: EmulatorBinary,
+  installDirectory: string
+): Promise<string> => {
+  const system = BINARY_TO_SYSTEM[binary];
+  const mountDirectory = await fs.promises.mkdtemp(
+    path.join(SystemPath.getPath("temp"), "hydra-emulator-dmg-")
+  );
+  let mounted = false;
+
+  try {
+    await execFileAsync(
+      "/usr/bin/hdiutil",
+      [
+        "attach",
+        dmgPath,
+        "-nobrowse",
+        "-readonly",
+        "-mountpoint",
+        mountDirectory,
+      ],
+      { timeout: 60_000 }
+    );
+    mounted = true;
+
+    const sourceBundle = findManagedEmulatorExecutable(
+      mountDirectory,
+      KNOWN_BINARIES[system]
+    );
+    if (!sourceBundle || path.extname(sourceBundle).toLowerCase() !== ".app") {
+      throw new Error(`No ${binary} app bundle found in disk image`);
+    }
+    assertValidEmulatorExecutable(sourceBundle);
+
+    const destinationBundle = path.join(
+      installDirectory,
+      path.basename(sourceBundle)
+    );
+    await fs.promises.mkdir(installDirectory, { recursive: true });
+    await fs.promises.rm(destinationBundle, { recursive: true, force: true });
+    await fs.promises.cp(sourceBundle, destinationBundle, {
+      recursive: true,
+      preserveTimestamps: true,
+    });
+    assertValidEmulatorExecutable(destinationBundle);
+    return destinationBundle;
+  } finally {
+    if (mounted) {
+      await execFileAsync("/usr/bin/hdiutil", ["detach", mountDirectory], {
+        timeout: 30_000,
+      }).catch((error) => {
+        logger.warn("Failed to detach emulator disk image", error);
+      });
+    }
+    await fs.promises.rm(mountDirectory, { recursive: true, force: true });
+  }
+};
+
+const addOwnerExecuteBit = async (filePath: string): Promise<void> => {
+  const { mode } = await fs.promises.stat(filePath);
+  await fs.promises.chmod(filePath, mode | 0o100);
+};
+
+const ensureExtractedExecutableBit = async (
+  extractDir: string,
+  binary: ManagedExecutableBinary
+): Promise<void> => {
+  if (process.platform === "win32") return;
+
+  const executable = findManagedEmulatorExecutable(extractDir, binary);
+  if (!executable) return;
+
+  await addOwnerExecuteBit(executable);
+};
+
+const extractManagedEmulator = async (
+  archivePath: string,
+  extractDir: string,
+  binary: EmulatorBinary
+): Promise<string> => {
+  await fs.promises.mkdir(extractDir, { recursive: true });
+  await SevenZip.extractFile({ filePath: archivePath, outputPath: extractDir });
+
+  const knownBinary = KNOWN_BINARIES[BINARY_TO_SYSTEM[binary]];
+  if (binary === "shadps4") {
+    await ensureExtractedExecutableBit(extractDir, knownBinary);
+  }
+
+  return requireManagedEmulatorExecutable(extractDir, knownBinary);
+};
+
+const installShadps4Core = async (
+  launcherExecutable: string,
+  installDirectory: string,
+  optionId: string
+): Promise<void> => {
+  const option = await resolveShadps4CoreOption(process.platform, process.arch);
+  if (!option?.downloadUrl) {
+    throw new Error("No shadPS4 core release available to install");
+  }
+
+  const archivePath = path.join(
+    SystemPath.getPath("temp"),
+    path.basename(option.fileName ?? option.downloadUrl)
+  );
+  const extractDir = path.join(installDirectory, SHADPS4_CORE_DIRECTORY);
+
+  try {
+    await downloadToFile(option.downloadUrl, archivePath, (loaded, total) => {
+      sendProgress({
+        binary: "shadps4",
+        optionId,
+        phase: "downloading",
+        loaded,
+        total: total ?? undefined,
+      });
+    });
+    sendProgress({ binary: "shadps4", optionId, phase: "extracting" });
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: extractDir,
+    });
+    await ensureExtractedExecutableBit(extractDir, SHADPS4_CORE_BINARY);
+    requireManagedEmulatorExecutable(extractDir, SHADPS4_CORE_BINARY);
+    await writeShadps4VersionRecord(launcherExecutable, option.version).catch(
+      (error) => {
+        logger.warn("Failed to record shadPS4 version", error);
+      }
+    );
+  } finally {
+    await removeFileQuietly(archivePath);
+  }
 };
 
 /**
@@ -126,8 +246,9 @@ export const downloadAndInstallEmulator = async (
 
   const fileName = path.basename(option.fileName ?? option.downloadUrl);
   const isAppImage = option.kind === "linux-appimage";
+  const installDirectory = await emulatorInstallDirectory(binary);
   const dest = isAppImage
-    ? path.join(managedEmulatorsDir(), fileName)
+    ? path.join(installDirectory, fileName)
     : path.join(SystemPath.getPath("temp"), fileName);
 
   const removeTempDownload = async () => {
@@ -135,6 +256,9 @@ export const downloadAndInstallEmulator = async (
   };
 
   try {
+    if (isAppImage) {
+      await fs.promises.mkdir(installDirectory, { recursive: true });
+    }
     sendProgress({ binary, optionId, phase: "downloading", loaded: 0 });
     await downloadToFile(option.downloadUrl, dest, (loaded, total) => {
       sendProgress({
@@ -163,27 +287,35 @@ export const downloadAndInstallEmulator = async (
     }
 
     if (option.kind === "linux-appimage") {
-      const { mode } = await fs.promises.stat(dest);
-      await fs.promises.chmod(dest, mode | 0o100);
-      await autoConfigureEmulator(BINARY_TO_SYSTEM[binary], dest);
+      await addOwnerExecuteBit(dest);
+      assertValidEmulatorExecutable(dest);
       shell.showItemInFolder(dest);
       sendProgress({ binary, optionId, phase: "done", path: dest });
       return { ok: true, path: dest };
     }
 
+    if (option.kind === "macos-dmg") {
+      sendProgress({ binary, optionId, phase: "extracting" });
+      const appBundle = await installMacosDmg(dest, binary, installDirectory);
+      await removeTempDownload();
+      shell.showItemInFolder(appBundle);
+      sendProgress({ binary, optionId, phase: "done", path: appBundle });
+      return { ok: true, path: appBundle };
+    }
+
     sendProgress({ binary, optionId, phase: "extracting" });
-    const extractDir = path.join(managedEmulatorsDir(), binary);
-    await fs.promises.mkdir(extractDir, { recursive: true });
-    await SevenZip.extractFile({ filePath: dest, outputPath: extractDir });
-    const rpcs3Exe = findRpcs3Executable(extractDir);
-    if (rpcs3Exe) await autoConfigureEmulator("ps3", rpcs3Exe);
+    const extractDir = installDirectory;
+    const executable = await extractManagedEmulator(dest, extractDir, binary);
     await removeTempDownload();
-    shell.showItemInFolder(extractDir);
+    if (binary === "shadps4") {
+      await installShadps4Core(executable, installDirectory, optionId);
+    }
+    shell.showItemInFolder(executable);
     sendProgress({ binary, optionId, phase: "done", path: extractDir });
     return { ok: true, path: extractDir };
   } catch (error) {
     logger.error("Failed to install emulator", error);
-    await removeTempDownload();
+    await removeFileQuietly(dest);
     sendProgress({
       binary,
       optionId,

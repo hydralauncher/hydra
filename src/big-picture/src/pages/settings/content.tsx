@@ -15,7 +15,12 @@ import {
   VerticalFocusGroup,
 } from "../../components";
 import { ConfirmationModal } from "../../components/modals";
-import { useUserDetails, useUserPreferences } from "../../hooks";
+import {
+  Feature,
+  useFeature,
+  useUserDetails,
+  useUserPreferences,
+} from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
   CONTENT_ITEM_FOCUS_IDS,
@@ -33,10 +38,12 @@ interface SettingsSectionProps {
 interface ContentForm {
   autoplayGameTrailers: boolean;
   disableNsfwAlert: boolean;
+  showSensitiveScreenshots: boolean;
   showHiddenAchievementsDescription: boolean;
   enableSteamAchievements: boolean;
   enableAchievementSouvenirs: boolean;
   autoplayAnimatedArtwork: boolean;
+  persistFiltersAndSorting: boolean;
 }
 
 interface ContentItem {
@@ -50,6 +57,7 @@ interface ContentItem {
 const DEFAULT_FORM: ContentForm = {
   autoplayGameTrailers: true,
   disableNsfwAlert: false,
+  showSensitiveScreenshots: false,
   showHiddenAchievementsDescription: false,
   enableSteamAchievements: false,
   enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
@@ -57,6 +65,7 @@ const DEFAULT_FORM: ContentForm = {
     globalThis.window.electron.platform
   ),
   autoplayAnimatedArtwork: false,
+  persistFiltersAndSorting: false,
 };
 
 const buildForm = (preferences: UserPreferences | null): ContentForm =>
@@ -64,6 +73,7 @@ const buildForm = (preferences: UserPreferences | null): ContentForm =>
     ? {
         autoplayGameTrailers: preferences.autoplayGameTrailers ?? true,
         disableNsfwAlert: preferences.disableNsfwAlert ?? false,
+        showSensitiveScreenshots: preferences.showSensitiveScreenshots ?? false,
         showHiddenAchievementsDescription:
           preferences.showHiddenAchievementsDescription ?? false,
         enableSteamAchievements: preferences.enableSteamAchievements ?? false,
@@ -72,6 +82,7 @@ const buildForm = (preferences: UserPreferences | null): ContentForm =>
           globalThis.window.electron.platform
         ),
         autoplayAnimatedArtwork: preferences.autoplayAnimatedArtwork ?? false,
+        persistFiltersAndSorting: preferences.persistFiltersAndSorting ?? false,
       }
     : DEFAULT_FORM;
 
@@ -81,6 +92,8 @@ export function ContentSettingsSection({
   const { t } = useTranslation("settings");
   const userPreferences = useUserPreferences();
   const { hasActiveSubscription } = useUserDetails();
+  const { isFeatureEnabled } = useFeature();
+  const isScreenshotsEnabled = isFeatureEnabled(Feature.Screenshots);
   const [form, setForm] = useState<ContentForm>(() =>
     buildForm(userPreferences)
   );
@@ -127,8 +140,9 @@ export function ContentSettingsSection({
   }, [updateUserPreferences]);
 
   const supportsSouvenirs = hasActiveSubscription;
+  const showSouvenirScreenshotsDirectory = supportsSouvenirs;
   const canManageScreenshots =
-    supportsSouvenirs && form.enableAchievementSouvenirs;
+    showSouvenirScreenshotsDirectory && form.enableAchievementSouvenirs;
 
   const handleChooseScreenshotsPath = useCallback(async () => {
     if (!canManageScreenshots) return;
@@ -183,6 +197,20 @@ export function ContentSettingsSection({
         onChange: (checked: boolean) =>
           void updateUserPreferences({ disableNsfwAlert: checked }),
       },
+      ...(isScreenshotsEnabled
+        ? [
+            {
+              id: "show-sensitive-screenshots",
+              focusId: CONTENT_ITEM_FOCUS_IDS.showSensitiveScreenshots,
+              label: t("screenshots_show_sensitive"),
+              checked: form.showSensitiveScreenshots,
+              onChange: (checked: boolean) =>
+                void updateUserPreferences({
+                  showSensitiveScreenshots: checked,
+                }),
+            },
+          ]
+        : []),
       {
         id: "show-hidden-achievements-description",
         focusId: CONTENT_ITEM_FOCUS_IDS.showHiddenAchievementsDescription,
@@ -194,20 +222,20 @@ export function ContentSettingsSection({
           }),
       },
       {
+        id: "persist-filters-and-sorting",
+        focusId: CONTENT_ITEM_FOCUS_IDS.persistFiltersAndSorting,
+        label: t("persist_filters_and_sorting"),
+        checked: form.persistFiltersAndSorting,
+        onChange: (checked: boolean) =>
+          void updateUserPreferences({ persistFiltersAndSorting: checked }),
+      },
+      {
         id: "enable-steam-achievements",
         focusId: CONTENT_ITEM_FOCUS_IDS.enableSteamAchievements,
         label: t("enable_steam_achievements"),
         checked: form.enableSteamAchievements,
         onChange: (checked: boolean) =>
           void updateUserPreferences({ enableSteamAchievements: checked }),
-      },
-      {
-        id: "autoplay-animated-artwork",
-        focusId: CONTENT_ITEM_FOCUS_IDS.autoplayAnimatedArtwork,
-        label: t("autoplay_animated_artwork"),
-        checked: form.autoplayAnimatedArtwork,
-        onChange: (checked: boolean) =>
-          void updateUserPreferences({ autoplayAnimatedArtwork: checked }),
       },
       ...(supportsSouvenirs
         ? [
@@ -224,10 +252,25 @@ export function ContentSettingsSection({
   }, [
     form,
     handleAchievementSouvenirsChange,
+    isScreenshotsEnabled,
     supportsSouvenirs,
     t,
     updateUserPreferences,
   ]);
+
+  const trailingItems = useMemo<ContentItem[]>(
+    () => [
+      {
+        id: "autoplay-animated-artwork",
+        focusId: CONTENT_ITEM_FOCUS_IDS.autoplayAnimatedArtwork,
+        label: t("autoplay_animated_artwork"),
+        checked: form.autoplayAnimatedArtwork,
+        onChange: (checked: boolean) =>
+          void updateUserPreferences({ autoplayAnimatedArtwork: checked }),
+      },
+    ],
+    [form.autoplayAnimatedArtwork, t, updateUserPreferences]
+  );
 
   const hasCustomScreenshotsPath = Boolean(
     userPreferences?.achievementScreenshotsPath
@@ -239,8 +282,9 @@ export function ContentSettingsSection({
       ...(canManageScreenshots
         ? [CONTENT_ITEM_FOCUS_IDS.changeScreenshotsDirectory]
         : []),
+      ...trailingItems.map((item) => item.focusId),
     ],
-    [canManageScreenshots, items]
+    [canManageScreenshots, items, trailingItems]
   );
 
   const navigationOverridesByFocusId = useMemo<
@@ -274,6 +318,19 @@ export function ContentSettingsSection({
     );
   }, [navigationFocusIds]);
 
+  const renderItem = (item: ContentItem) => (
+    <Checkbox
+      key={item.id}
+      id={item.id}
+      label={item.label}
+      checked={item.checked}
+      focusId={item.focusId}
+      navigationOverrides={navigationOverridesByFocusId[item.focusId]}
+      block
+      onChange={item.onChange}
+    />
+  );
+
   return (
     <div
       className={
@@ -288,20 +345,9 @@ export function ContentSettingsSection({
       >
         <VerticalFocusGroup regionId={CONTENT_SECTION_REGION_ID} asChild>
           <div className="content-settings-section__content">
-            {items.map((item) => (
-              <Checkbox
-                key={item.id}
-                id={item.id}
-                label={item.label}
-                checked={item.checked}
-                focusId={item.focusId}
-                navigationOverrides={navigationOverridesByFocusId[item.focusId]}
-                block
-                onChange={item.onChange}
-              />
-            ))}
+            {items.map(renderItem)}
 
-            {supportsSouvenirs && (
+            {showSouvenirScreenshotsDirectory && (
               <div className="content-settings-section__screenshots-directory">
                 <span className="content-settings-section__screenshots-label">
                   {t("screenshots_directory")}
@@ -392,6 +438,8 @@ export function ContentSettingsSection({
                 </HorizontalFocusGroup>
               </div>
             )}
+
+            {trailingItems.map(renderItem)}
           </div>
         </VerticalFocusGroup>
       </SettingsSection>

@@ -7,6 +7,7 @@ import {
 } from "react";
 import type {
   ArtworkAssetType,
+  CatalogueGameIdentity,
   ArtworkItem,
   ArtworkKind,
   GameArtworkSelection,
@@ -96,6 +97,7 @@ const preloadArtworkMedia = (url: string) =>
 interface UseGameArtworkGridOptions {
   shop: GameShop;
   objectId: string;
+  lookupIdentity?: CatalogueGameIdentity;
   assetType: ArtworkAssetType;
   enabled: boolean;
   onChanged: () => Promise<void> | void;
@@ -107,6 +109,7 @@ interface UseGameArtworkGridOptions {
 export function useGameArtworkGrid({
   shop,
   objectId,
+  lookupIdentity,
   assetType,
   enabled,
   onChanged,
@@ -114,6 +117,8 @@ export function useGameArtworkGrid({
   onPicked,
   onCleared,
 }: UseGameArtworkGridOptions) {
+  const lookupShop = lookupIdentity?.shop ?? shop;
+  const lookupObjectId = lookupIdentity?.objectId ?? objectId;
   const [items, setItems] = useState<ArtworkItem[]>([]);
   const [selection, setSelection] = useState<GameArtworkSelection | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -144,8 +149,8 @@ export function useGameArtworkGrid({
 
       try {
         const result = await globalThis.window.electron.getGameArtwork(
-          shop,
-          objectId,
+          lookupShop,
+          lookupObjectId,
           ARTWORK_KIND_BY_TYPE[assetType],
           page
         );
@@ -180,7 +185,7 @@ export function useGameArtworkGrid({
         }
       }
     },
-    [shop, objectId, assetType, onError]
+    [lookupShop, lookupObjectId, assetType, onError]
   );
 
   const reset = useCallback(() => {
@@ -200,7 +205,7 @@ export function useGameArtworkGrid({
 
   useLayoutEffect(() => {
     reset();
-  }, [shop, objectId, assetType, reset]);
+  }, [shop, objectId, lookupShop, lookupObjectId, assetType, reset]);
 
   useEffect(() => {
     if (!enabled) return;

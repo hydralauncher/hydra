@@ -7,54 +7,14 @@ import type {
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
-import { cloudSaveFileKey, validateSnapshotFile } from "./cloud-save-contract";
+import {
+  cloudSaveFileKey,
+  validateRestoreDownloadUrls,
+} from "./cloud-save-contract";
 import {
   mapWithConcurrency,
   MAX_CONCURRENT_RESTORE_OPERATIONS,
 } from "./map-with-concurrency";
-
-const isDownloadUrl = (value: unknown): value is string => {
-  if (typeof value !== "string" || !value) return false;
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-};
-
-const validateDownloadUrls = (value: unknown): RestoreDownloadUrlFile[] => {
-  if (!Array.isArray(value)) {
-    throw new TypeError("Invalid restore download URLs response");
-  }
-  const seenIds = new Set<string>();
-  return value.map((item) => {
-    if (!item || typeof item !== "object") {
-      throw new Error("Invalid restore download URL file");
-    }
-    const record = item as Record<string, unknown>;
-    if (
-      Object.keys(record).length !== 7 ||
-      !isDownloadUrl(record.downloadUrl)
-    ) {
-      throw new Error("Invalid restore download URL file");
-    }
-    const snapshotFile = validateSnapshotFile({
-      variantId: record.variantId,
-      rawPath: record.rawPath,
-      relativePath: record.relativePath,
-      hash: record.hash,
-      sizeBytes: record.sizeBytes,
-      lastModifiedAt: record.lastModifiedAt,
-    });
-    const key = cloudSaveFileKey(snapshotFile);
-    if (seenIds.has(key)) {
-      throw new Error("Duplicate restore download URL file");
-    }
-    seenIds.add(key);
-    return { ...snapshotFile, downloadUrl: record.downloadUrl };
-  });
-};
 
 export const downloadRemoteSnapshotToTemp = async (
   snapshotId: string,
@@ -63,7 +23,7 @@ export const downloadRemoteSnapshotToTemp = async (
   onProgress?: (processedFiles: number, totalFiles: number) => void
 ): Promise<DownloadedRestoreFile[]> => {
   if (requestedFiles?.length === 0) return [];
-  const files = validateDownloadUrls(
+  const files = validateRestoreDownloadUrls(
     await HydraApi.get<unknown>(
       "/profile/cloud-saves/snapshot-download-urls",
       { snapshotId },

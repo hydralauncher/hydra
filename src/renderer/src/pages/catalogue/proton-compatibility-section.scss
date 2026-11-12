@@ -4,24 +4,24 @@
   &__content-inner {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 1.5);
   }
 
   &__control {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__label {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: globals.$muted-color;
     line-height: 1.4;
 
     &--deck {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: globals.$spacing-unit;
     }
   }
 
@@ -44,7 +44,7 @@
     touch-action: manipulation;
 
     &.radio-field--selected .radio-field__label {
-      color: #ffffff;
+      color: globals.$muted-color;
     }
   }
 
@@ -59,7 +59,7 @@
 
   &__option-label {
     color: rgba(255, 255, 255, 0.86);
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
     line-height: 1.2;
   }

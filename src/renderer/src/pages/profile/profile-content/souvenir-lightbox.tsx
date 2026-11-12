@@ -25,7 +25,7 @@ import {
 import { TrashIcon } from "lucide-react";
 import { Tooltip } from "react-tooltip";
 
-import { ConfirmationModal, Link } from "@renderer/components";
+import { Button, ConfirmationModal, Link } from "@renderer/components";
 import { buildGameDetailsPath } from "@renderer/helpers";
 import { useDate } from "@renderer/hooks";
 import {
@@ -423,17 +423,16 @@ function SouvenirActions({
 
       {isOwner ? (
         <>
-          <button
-            type="button"
-            className="profile-souvenir-lightbox__action"
+          <Button
+            theme="outline"
             onClick={() => onVisibilityChange(souvenir)}
             disabled={isUpdatingVisibility}
             aria-label={t(visibilityTitleKey)}
             title={t(visibilityTitleKey)}
           >
             <VisibilityIcon size={16} />
-            <span>{t(visibilityLabelKey)}</span>
-          </button>
+            {t(visibilityLabelKey)}
+          </Button>
 
           <button
             type="button"
@@ -447,17 +446,16 @@ function SouvenirActions({
           </button>
         </>
       ) : (
-        <button
-          type="button"
-          className="profile-souvenir-lightbox__action"
+        <Button
+          theme="outline"
           onClick={onRequestReport}
           disabled={isReporting || isReported}
           aria-label={t(isReported ? "souvenir_reported" : "report_souvenir")}
           title={t(isReported ? "souvenir_reported" : "report_souvenir")}
         >
           <ReportIcon size={16} />
-          <span>{t(isReported ? "reported" : "report")}</span>
-        </button>
+          {t(isReported ? "reported" : "report")}
+        </Button>
       )}
     </div>
   );

@@ -16,10 +16,19 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
+  EmulatorDiscIdentityStatus,
 } from "@types";
-import { formatBytes } from "@shared";
+import { formatBytes, type DiscCloudSaveEmulatorProvider } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
+import {
+  getCloudSavePanelMode,
+  discIdentityKey,
+  getEmulatorConfigWarningKey,
+  shouldShowDiscIdentityCard,
+  type EmulatorConfigCheckStatus,
+} from "./emulator-config-presentation";
+import type { RetroArchExecutableStatus } from "./retroarch-executable-status";
 import {
   getCloudSavePanelAction,
   getCloudSaveOperationPresentation,
@@ -38,8 +47,19 @@ export interface CloudSavePanelProps {
   isSyncing: boolean;
   isGameRunning: boolean;
   hasExecutablePath: boolean;
+  requiresRom: boolean;
+  discProvider: DiscCloudSaveEmulatorProvider | null;
+  retroArchExecutableStatus?: RetroArchExecutableStatus | null;
+  onRetryRetroArchExecutable: () => void;
+  onConfigureRetroArch: () => void;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
+  emulatorConfigStatus?: EmulatorConfigCheckStatus | null;
+  onRetryEmulatorConfig: () => void;
+  discStatus?: EmulatorDiscIdentityStatus | null;
+  discIdentityError?: boolean;
+  onRetryDiscIdentity: () => void;
+  onConfigureEmulator: () => void;
   errorMessageKey:
     | "cloud_save_v2_load_error"
     | "cloud_save_v2_sync_error"
@@ -209,8 +229,19 @@ export function CloudSavePanel({
   isSyncing,
   isGameRunning,
   hasExecutablePath,
+  requiresRom,
+  discProvider,
+  retroArchExecutableStatus,
+  onRetryRetroArchExecutable,
+  onConfigureRetroArch,
   isAutomaticSyncEnabled,
   hasError,
+  emulatorConfigStatus,
+  onRetryEmulatorConfig,
+  discStatus,
+  discIdentityError = false,
+  onRetryDiscIdentity,
+  onConfigureEmulator,
   errorMessageKey,
   progress,
   onSync,
@@ -263,6 +294,32 @@ export function CloudSavePanel({
     hasError,
   });
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
+  const requiresDisc = discProvider !== null;
+  const emulatorConfigWarningKey = getEmulatorConfigWarningKey(
+    discProvider,
+    emulatorConfigStatus
+  );
+  const retroArchNeedsConfig =
+    retroArchExecutableStatus !== null &&
+    retroArchExecutableStatus !== undefined &&
+    retroArchExecutableStatus !== "ready";
+  const basePanelMode = getCloudSavePanelMode(
+    hasExecutablePath,
+    emulatorConfigStatus,
+    snapshotPanelMode,
+    isSyncing,
+    retroArchExecutableStatus
+  );
+  const identityBlocked =
+    shouldShowDiscIdentityCard(
+      requiresDisc,
+      discStatus,
+      discIdentityError,
+      isSyncing
+    ) &&
+    hasExecutablePath &&
+    emulatorConfigStatus === "ready";
+  const panelMode = identityBlocked ? "disc-identity" : basePanelMode;
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -415,17 +472,152 @@ export function CloudSavePanel({
       <div className="cloud-save-v2__missing-executable-copy">
         <strong>
           <WarningCircleIcon size={18} />
-          {t("cloud_save_v2_executable_required_title")}
+          {t(
+            requiresDisc
+              ? "cloud_save_v2_disc_required_title"
+              : requiresRom
+                ? "cloud_save_v2_rom_required_title"
+                : "cloud_save_v2_executable_required_title"
+          )}
         </strong>
-        <span>{t("cloud_save_v2_executable_required_description")}</span>
+        <span>
+          {t(
+            requiresDisc
+              ? "cloud_save_v2_disc_required_description"
+              : requiresRom
+                ? "cloud_save_v2_rom_required_description"
+                : "cloud_save_v2_executable_required_description"
+          )}
+        </span>
       </div>
       <Button
         className="cloud-save-v2__sync-button"
         onClick={onSelectExecutable}
       >
         <FolderOpenIcon size={20} />
-        <span>{t("cloud_save_v2_select_executable")}</span>
+        <span>
+          {t(
+            requiresDisc
+              ? "cloud_save_v2_select_disc"
+              : requiresRom
+                ? "cloud_save_v2_select_rom"
+                : "cloud_save_v2_select_executable"
+          )}
+        </span>
       </Button>
+    </section>
+  );
+
+  const emulatorConfigCard = discProvider && emulatorConfigWarningKey && (
+    <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
+      <div className="cloud-save-v2__required-setup-copy">
+        <strong>
+          <WarningCircleIcon size={18} />
+          {t(`cloud_save_v2_${discProvider}_config_required_title`)}
+        </strong>
+        <span>{t(emulatorConfigWarningKey)}</span>
+      </div>
+      <Button
+        className="cloud-save-v2__sync-button"
+        onClick={
+          emulatorConfigStatus === "error"
+            ? onRetryEmulatorConfig
+            : onConfigureEmulator
+        }
+      >
+        {emulatorConfigStatus === "error" ? (
+          <ArrowClockwiseIcon size={20} />
+        ) : (
+          <FolderOpenIcon size={20} />
+        )}
+        <span>
+          {t(
+            emulatorConfigStatus === "error"
+              ? "cloud_save_v2_check_again"
+              : `cloud_save_v2_${discProvider}_config_open_settings`
+          )}
+        </span>
+      </Button>
+    </section>
+  );
+  const retroArchConfigCard = (
+    <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
+      <div className="cloud-save-v2__required-setup-copy">
+        <strong>
+          <WarningCircleIcon size={18} />
+          {t("cloud_save_v2_retroarch_config_required_title")}
+        </strong>
+        <span>
+          {t(
+            retroArchExecutableStatus === "invalid"
+              ? "cloud_save_v2_retroarch_config_invalid"
+              : retroArchExecutableStatus === "error"
+                ? "cloud_save_v2_retroarch_config_error"
+                : "cloud_save_v2_retroarch_config_missing"
+          )}
+        </span>
+      </div>
+      <Button
+        className="cloud-save-v2__sync-button"
+        onClick={
+          retroArchExecutableStatus === "error"
+            ? onRetryRetroArchExecutable
+            : onConfigureRetroArch
+        }
+      >
+        {retroArchExecutableStatus === "error" ? (
+          <ArrowClockwiseIcon size={20} />
+        ) : (
+          <FolderOpenIcon size={20} />
+        )}
+        <span>
+          {t(
+            retroArchExecutableStatus === "error"
+              ? "cloud_save_v2_check_again"
+              : "cloud_save_v2_retroarch_config_open_settings"
+          )}
+        </span>
+      </Button>
+    </section>
+  );
+  const discIdentityCard = discProvider && (
+    <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
+      <div className="cloud-save-v2__required-setup-copy">
+        <strong>
+          <WarningCircleIcon size={18} />
+          {t(discIdentityKey(discProvider, "title"))}
+        </strong>
+        <span>
+          {t(
+            discIdentityError
+              ? discIdentityKey(discProvider, "remote")
+              : discIdentityKey(
+                  discProvider,
+                  discStatus?.status ?? "unverified"
+                ),
+            { path: discStatus?.path, titleId: discStatus?.titleId }
+          )}
+        </span>
+      </div>
+      {!discIdentityError && (
+        <Button
+          className="cloud-save-v2__sync-button"
+          onClick={
+            discStatus?.status === "catalogue-unavailable"
+              ? onRetryDiscIdentity
+              : onSelectExecutable
+          }
+        >
+          <FolderOpenIcon size={20} />
+          <span>
+            {t(
+              discStatus?.status === "catalogue-unavailable"
+                ? "cloud_save_v2_check_again"
+                : discIdentityKey(discProvider, "edit_discs")
+            )}
+          </span>
+        </Button>
+      )}
     </section>
   );
 
@@ -444,6 +636,7 @@ export function CloudSavePanel({
           disabled={
             isUpdatingAutomaticSync ||
             !hasExecutablePath ||
+            (retroArchNeedsConfig && !isCloudSaveEnabled) ||
             isAutomaticSyncEnabled === null
           }
           className={`cloud-save-v2__switch ${isCloudSaveEnabled ? "cloud-save-v2__switch--enabled" : ""}`}
@@ -469,25 +662,29 @@ export function CloudSavePanel({
         <p className="cloud-save-v2__error">{t(errorMessageKey)}</p>
       )}
 
-      {hasUnconfiguredCustomPaths && !hasError && (
+      {panelMode === "content" && hasUnconfiguredCustomPaths && !hasError && (
         <p className="cloud-save-v2__error">
           {t("cloud_save_v2_unconfigured_custom_path_description")}
         </p>
       )}
 
-      {partialDescriptionKey && !hasError && (
+      {panelMode === "content" && partialDescriptionKey && !hasError && (
         <p className="cloud-save-v2__partial-warning">
           {t(partialDescriptionKey)}
         </p>
       )}
 
-      {!hasExecutablePath && missingExecutableCard}
+      {panelMode === "missing-executable" && missingExecutableCard}
 
-      {hasExecutablePath && snapshotPanelMode === "skeleton" && (
+      {panelMode === "emulator-config" && emulatorConfigCard}
+      {panelMode === "retroarch-config" && retroArchConfigCard}
+      {panelMode === "disc-identity" && discIdentityCard}
+
+      {panelMode === "skeleton" && (
         <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />
       )}
 
-      {hasExecutablePath && snapshotPanelMode === "content" && (
+      {panelMode === "content" && (
         <section className="cloud-save-v2__active-snapshot">
           <article className="cloud-save-v2__snapshot cloud-save-v2__snapshot--active">
             {snapshotSummary}

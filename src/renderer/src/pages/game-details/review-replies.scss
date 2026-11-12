@@ -20,9 +20,9 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: -5px;
+    left: calc(globals.$spacing-unit / -2);
     width: 2px;
-    padding: 0 5px;
+    padding: 0 calc(globals.$spacing-unit / 2);
     border: none;
     background-color: rgba(255, 255, 255, 0.12);
     background-clip: content-box;
@@ -52,21 +52,78 @@
 
   &__reply-header {
     display: flex;
-    align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
-    margin-bottom: calc(globals.$spacing-unit * 0.75);
+    flex-direction: column;
+    justify-content: center;
+    margin-bottom: globals.$spacing-unit;
+    position: relative;
 
     button {
       display: inline-flex;
       align-items: center;
     }
+
+    &--has-bg {
+      width: 100%;
+      box-sizing: border-box;
+      aspect-ratio: 388 / 56;
+      min-height: 64px;
+      max-height: 110px;
+      padding: calc(globals.$spacing-unit * 1.5);
+      border-radius: 8px;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        border-radius: inherit;
+        background: linear-gradient(135deg, rgb(0 0 0 / 25%), rgb(0 0 0 / 18%));
+        pointer-events: none;
+      }
+
+      .game-details__review-display-name,
+      .game-details__reply-date {
+        color: #ffffff;
+        text-shadow: 0 0 5px rgb(0 0 0 / 60%);
+        padding-right: calc(globals.$spacing-unit * 0.5);
+      }
+    }
+  }
+
+  &__reply-banner {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  &__reply-header-top {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 1.5);
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+  }
+
+  &__reply-name-row {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
   }
 
   &__reply-date {
-    color: rgba(255, 255, 255, 0.5);
+    align-self: flex-start;
+    flex-shrink: 0;
+    padding-right: calc(globals.$spacing-unit * 2);
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
     white-space: nowrap;
-    margin-left: auto;
   }
 
   &__reply-content {
@@ -89,25 +146,31 @@
   &__reply-action-link {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: calc(globals.$spacing-unit / 2);
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.78);
+    color: globals.$body-color;
     font-size: globals.$small-font-size;
     font-weight: 500;
     cursor: pointer;
-    padding: 4px 6px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 6px;
     transition: all 0.2s ease;
 
-    &:hover {
-      color: #ffffff;
+    &:hover:not(:disabled):not([aria-disabled="true"]) {
+      color: globals.$muted-color;
       background: rgba(255, 255, 255, 0.12);
+    }
+
+    &:disabled,
+    &[aria-disabled="true"] {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
   }
 
   &__delete-reply-button {
-    padding: 5px;
+    padding: calc(globals.$spacing-unit / 2);
     margin-left: auto;
   }
 
@@ -121,10 +184,10 @@
   &__reply-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.78);
+    color: globals.$body-color;
     font-size: globals.$small-font-size;
     font-weight: 600;
     cursor: pointer;
@@ -132,7 +195,7 @@
     transition: color 0.2s ease;
 
     &:hover {
-      color: #ffffff;
+      color: globals.$muted-color;
       text-decoration: underline;
     }
 
@@ -144,7 +207,7 @@
 
     &--primary {
       &:hover {
-        color: #ffffff;
+        color: globals.$muted-color;
       }
     }
   }
@@ -154,7 +217,7 @@
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1);
 
-    .game-details__review-input {
+    .rich-text-editor__input {
       min-height: 72px;
 
       .ProseMirror {

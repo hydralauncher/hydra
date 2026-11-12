@@ -5,7 +5,12 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+  background: linear-gradient(
+    135deg,
+    globals.$dark-background-color 0%,
+    #1a1a2e 50%,
+    #16213e 100%
+  );
   -webkit-app-region: drag;
   padding: calc(globals.$spacing-unit * 3);
   box-sizing: border-box;
@@ -119,7 +124,7 @@
   }
 
   &__title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: globals.$body-color;
     margin: 0;
@@ -131,32 +136,28 @@
   }
 
   &__status {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     color: globals.$muted-color;
     margin: 0;
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
+
+    &--error {
+      color: globals.$error-color;
+    }
   }
 
-  &__spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid transparent;
-    border-top-color: globals.$muted-color;
-    border-right-color: globals.$muted-color;
-    border-radius: 50%;
-    animation: spinner-rotate 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    flex-shrink: 0;
-  }
-
-  @keyframes spinner-rotate {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+  &__status-detail {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    margin: 0;
+    max-width: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
   }
 
   &__dots {
@@ -198,34 +199,20 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
   }
 
-  &__button {
-    width: 100%;
-    background-color: globals.$muted-color;
-    border: solid 1px transparent;
-    color: #0d0d0d;
-    border-radius: 8px;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 2);
-    min-height: 40px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all ease 0.2s;
-    font-family: inherit;
+  &__actions {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: globals.$spacing-unit;
+    width: 100%;
+  }
+
+  // Look comes from the shared Button.
+  &__button {
+    flex: 1;
+    width: 100%;
     margin-top: calc(globals.$spacing-unit * 2);
-
-    &:hover {
-      background-color: #dadbe1;
-    }
-
-    &:active {
-      opacity: globals.$active-opacity;
-    }
   }
 }

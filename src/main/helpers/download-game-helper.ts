@@ -1,3 +1,4 @@
+import { libraryWriteQueue } from "../services/library-sync/library-write-queue";
 import {
   downloadsSublevel,
   gamesShopAssetsSublevel,
@@ -5,6 +6,9 @@ import {
   levelKeys,
 } from "@main/level";
 import { DownloadOrchestrator } from "@main/services/download-orchestrator";
+import { getDownloadParts } from "@main/services/download/download-parts";
+import { assertMultipartHosterDownloadsEnabled } from "@main/services/download/multipart-hoster-feature";
+import { type Downloader, MULTIPART_DOWNLOADERS } from "@shared";
 import { canDiscardDownload, type GameShop } from "../../types";
 
 interface PrepareGameEntryParams {
@@ -13,6 +17,20 @@ interface PrepareGameEntryParams {
   objectId: string;
   shop: GameShop;
 }
+
+export const getMultipartDownloadParts = async (
+  uri: string,
+  parts: unknown,
+  downloader: Downloader
+): Promise<string[] | undefined> => {
+  const downloadParts = getDownloadParts(uri, parts);
+  if (!downloadParts) return undefined;
+  if (!MULTIPART_DOWNLOADERS.has(downloader)) {
+    throw new Error("This downloader does not support multi-part downloads.");
+  }
+  await assertMultipartHosterDownloadsEnabled();
+  return downloadParts;
+};
 
 export const clearFinishedDownload = async (
   shop: GameShop,
@@ -41,9 +59,15 @@ export const prepareGameEntry = async ({
   await downloadsSublevel.del(gameKey);
 
   if (game) {
-    await gamesSublevel.put(gameKey, {
-      ...game,
-      isDeleted: false,
+    await libraryWriteQueue.run(async () => {
+      const latest = await gamesSublevel.get(gameKey);
+      if (!latest) return;
+      await gamesSublevel.put(gameKey, {
+        ...latest,
+        isDeleted: false,
+        source: "hydra",
+        ...(shop === "epic" ? { remoteId: null } : {}),
+      });
     });
   } else {
     await gamesSublevel.put(gameKey, {

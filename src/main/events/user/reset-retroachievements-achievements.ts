@@ -2,6 +2,7 @@ import type { UserAchievement } from "@types";
 import { registerEvent } from "../register-event";
 import { WindowManager } from "@main/services";
 import { AchievementMemoryStore } from "@main/services/achievements/achievement-memory-store";
+import { UnlockedAchievementsCache } from "@main/services/achievements/unlocked-achievements-cache";
 import {
   cancelPendingSouvenirsForShop,
   deleteLocalSouvenirAssetsForShop,
@@ -25,6 +26,7 @@ const resetRetroAchievementsAchievements = async (
       ...gameAchievement,
       unlockedAchievements: [],
     });
+    UnlockedAchievementsCache.invalidate("launchbox", objectId);
 
     const lockedAchievements: UserAchievement[] = (
       gameAchievement.achievements ?? []

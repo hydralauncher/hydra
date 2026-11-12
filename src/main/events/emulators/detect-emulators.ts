@@ -1,20 +1,39 @@
 import { registerEvent } from "../register-event";
 import { emulators } from "@main/services";
-import type { EmulatorConfigMap, EmulatorSystem } from "@types";
-
-const SYSTEMS: EmulatorSystem[] = ["ps1", "ps2", "ps3"];
+import { EMULATOR_SYSTEMS } from "@shared";
+import type { EmulatorConfigMap } from "@types";
 
 const detectEmulatorsEvent = async (): Promise<EmulatorConfigMap> => {
   const results = await Promise.all(
-    SYSTEMS.map(async (system) => {
+    EMULATOR_SYSTEMS.map(async (system) => {
       const binary = emulators.KNOWN_BINARIES[system];
-      const result = emulators.detectEmulator(binary);
-      const next = await emulators.updateEmulatorConfig(system, (current) => ({
-        ...current,
-        executablePath: result?.executablePath ?? current.executablePath,
-        detectedVersion: result?.detectedVersion ?? current.detectedVersion,
-        detectedAt: result ? Date.now() : current.detectedAt,
-      }));
+      const result = await emulators.detectEmulatorWithDownloads(binary);
+      const next = await emulators.updateEmulatorConfig(system, (current) => {
+        if (result) {
+          return {
+            ...current,
+            executablePath: result.executablePath,
+            detectedVersion: result.detectedVersion ?? current.detectedVersion,
+            detectedAt: Date.now(),
+          };
+        }
+
+        const currentStillValid =
+          current.executablePath !== null &&
+          emulators.isValidEmulatorExecutableForBinary(
+            current.executablePath,
+            binary
+          );
+
+        if (currentStillValid) return current;
+
+        return {
+          ...current,
+          executablePath: null,
+          detectedVersion: null,
+          detectedAt: null,
+        };
+      });
       return [system, next] as const;
     })
   );

@@ -38,6 +38,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile --ignore-scripts
 
+      - name: Check preload bridge compatibility
+        run: node scripts/check-ota-bridge.mjs --branch "$BRANCH_NAME"
+
       - name: Build Renderer
         run: yarn build
         env:
