@@ -235,6 +235,11 @@ export const handleClassicsLaunchError = (
   } else if (code === "RECOMPILATION_NEEDS_SETUP") {
     const port = getRecompilationFromLaunchError(error);
     if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
+  } else if (code === "RECOMPILATION_NEEDS_UPDATE") {
+    const port = getRecompilationFromLaunchError(error);
+    if (port) {
+      navigate(`/recompilation/${port.objectId}/${port.slug}?rom=update`);
+    }
   } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
     showErrorToast(t("recompilation_already_running_toast"));
   } else if (code === "PS4_PKG_JOB_RUNNING") {
@@ -427,15 +432,17 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "RECOMPILATION_NEEDS_SETUP",
   "RECOMPILATION_ALREADY_RUNNING",
   "RECOMPILATION_LAUNCH_FAILED",
+  "RECOMPILATION_NEEDS_UPDATE",
   "PS4_PKG_NEEDS_EXTRACTION",
   "PS4_PKG_JOB_RUNNING",
 ] as const;
 
 const getRecompilationFromLaunchError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  const match = /RECOMPILATION_NEEDS_SETUP: (\d+)\/([a-z0-9._-]+)/i.exec(
-    message
-  );
+  const match =
+    /RECOMPILATION_NEEDS_(?:SETUP|UPDATE): (\d+)\/([a-z0-9._-]+)/i.exec(
+      message
+    );
   return match ? { objectId: match[1], slug: match[2] } : null;
 };
 

@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 
-import type { Game } from "@types";
+import type { Game, RecompilationRef } from "@types";
 
 import { achievementsLogger } from "@main/services/logger";
 import {
@@ -9,6 +9,7 @@ import {
 } from "./recompilation-trophies";
 import {
   clearPendingTrophyReset,
+  resolveAllRecompilationTrophyFiles,
   resolveRecompilationTrophyFiles,
 } from "./recompilation-trophy-watcher";
 
@@ -25,20 +26,11 @@ const stripLog = async (file: string) => {
   if (stripped !== contents) await fs.writeFile(file, stripped);
 };
 
-const resetPortTrophies = async (slug: string, isRunning: boolean) => {
-  const files = await resolveRecompilationTrophyFiles(slug);
-  if (!files) return;
+type TrophyFiles = NonNullable<
+  Awaited<ReturnType<typeof resolveRecompilationTrophyFiles>>
+>;
 
-  // An open port keeps its trophies in memory and may hold its files, so they
-  // are left alone: the watcher ignores what they have now, and takes those
-  // trophies out once the port closes. Only rotated logs are not in use.
-  if (isRunning) {
-    if (files.source.kind === "log") {
-      for (const rotated of files.history) await stripLog(rotated);
-    }
-    return;
-  }
-
+const clearTrophyFiles = async (files: TrophyFiles) => {
   switch (files.source.kind) {
     case "bitmask":
       // An empty bitmask instead of no file: it is a newer local change, so a
@@ -51,6 +43,10 @@ const resetPortTrophies = async (slug: string, isRunning: boolean) => {
     case "jsonl":
       await fs.rm(files.file, { force: true });
       break;
+    case "earned-json":
+      await fs.rm(files.file, { force: true });
+      await fs.rm(`${files.file}.bak`, { force: true });
+      break;
     case "log":
       await stripLog(files.file);
       for (const rotated of files.history) await stripLog(rotated);
@@ -58,6 +54,23 @@ const resetPortTrophies = async (slug: string, isRunning: boolean) => {
   }
 
   for (const file of files.resetFiles) await fs.rm(file, { force: true });
+};
+
+const resetPortTrophies = async (ref: RecompilationRef, isRunning: boolean) => {
+  // An open port keeps its trophies in memory and may hold its files, so they
+  // are left alone: the watcher ignores what they have now, and takes those
+  // trophies out once the port closes. Only rotated logs are not in use.
+  if (isRunning) {
+    const files = await resolveRecompilationTrophyFiles(ref);
+    if (files?.source.kind === "log") {
+      for (const rotated of files.history) await stripLog(rotated);
+    }
+    return;
+  }
+
+  for (const files of await resolveAllRecompilationTrophyFiles(ref)) {
+    await clearTrophyFiles(files);
+  }
 };
 
 /**
@@ -90,7 +103,7 @@ export const resetRecompilationTrophies = async (game: Game) => {
   for (const slug of slugs) {
     try {
       const isRunning = running.has(slug);
-      await resetPortTrophies(slug, isRunning);
+      await resetPortTrophies({ objectId: game.objectId, slug }, isRunning);
       // A closed port is cleared completely, so a saved clean-up is moot.
       if (!isRunning) await clearPendingTrophyReset(slug);
     } catch (error) {
