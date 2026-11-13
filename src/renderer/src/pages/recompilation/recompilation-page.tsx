@@ -256,6 +256,7 @@ export default function RecompilationPage() {
           visible={isRomDownloadOpen}
           objectId={objectId}
           gameTitle={details.game.title}
+          romRequirement={details.romRequirement}
           onStarted={() => setIsRomDownloadOpen(false)}
           onClose={() => setIsRomDownloadOpen(false)}
         />

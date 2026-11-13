@@ -25,6 +25,7 @@ import resources from "@locales";
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
 import { clearStateFromPreviousSession } from "./session-state";
+import { restoreDismissedTips } from "./dismissed-tips";
 import * as Sentry from "@sentry/react";
 import { ErrorBoundary } from "./components/error-boundary/error-boundary";
 import { levelDBService } from "./services/leveldb.service";
@@ -85,6 +86,7 @@ const isStaging = await globalThis.electron.isStaging();
 addCookieInterceptor(isStaging);
 
 await clearStateFromPreviousSession();
+await restoreDismissedTips();
 
 const syncDocumentLanguage = (language: string) => {
   document.documentElement.lang = language;

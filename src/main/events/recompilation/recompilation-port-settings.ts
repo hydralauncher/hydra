@@ -8,10 +8,10 @@ type OnlineMeta = NonNullable<
   NonNullable<RecompilationRomMeta["path"]>["online"]
 >;
 
-export const pickPortFile = (file: PortPath) =>
-  typeof file === "string"
-    ? file
-    : (file[process.platform as "win32" | "linux"] ?? null);
+export const pickPortFile = (
+  file: PortPath,
+  platform: "win32" | "linux" = process.platform as "win32" | "linux"
+) => (typeof file === "string" ? file : (file[platform] ?? null));
 
 const INI_LINE = /^\s*([^#;=\s][^=]*?)\s*=(.*)$/;
 

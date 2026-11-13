@@ -11,12 +11,16 @@ import {
 } from "./illustrations";
 
 import "./classics-onboarding-modal.scss";
+import {
+  CLASSICS_ONBOARDING_TIP,
+  dismissTip,
+  isTipDismissed,
+} from "@renderer/dismissed-tips";
 
-const STORAGE_KEY = "hydra-classics-onboarding-dismissed";
 const STEP_COUNT = 3;
 
 export const hasDismissedClassicsOnboarding = () =>
-  localStorage.getItem(STORAGE_KEY) === "true";
+  isTipDismissed(CLASSICS_ONBOARDING_TIP);
 
 export interface ClassicsOnboardingModalProps {
   visible: boolean;
@@ -45,7 +49,7 @@ export function ClassicsOnboardingModal({
   }, [visible]);
 
   const handleClose = () => {
-    if (dontShowAgain) localStorage.setItem(STORAGE_KEY, "true");
+    if (dontShowAgain) dismissTip(CLASSICS_ONBOARDING_TIP);
     onClose();
   };
 

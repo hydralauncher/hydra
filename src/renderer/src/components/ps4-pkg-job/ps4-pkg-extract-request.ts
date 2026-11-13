@@ -1,11 +1,16 @@
 import type { GameShop } from "@types";
 
-/** Window event asking to extract a game's PS4 PKG disc before it plays. */
+/** Window event asking before a PS4 PKG is extracted or applied. */
 export const PS4_PKG_EXTRACT_REQUEST_EVENT = "hydra:ps4-pkg-extract-request";
 
 export interface Ps4PkgExtractRequest {
   shop: GameShop;
   objectId: string;
+  pkgPath?: string;
+  mode?: "extract" | "update" | "dlc";
+  version?: string | null;
+  onDecline?: () => void;
+  onFinish?: () => void;
 }
 
 export const requestPs4PkgExtraction = (request: Ps4PkgExtractRequest) =>

@@ -8,6 +8,12 @@ import { HeroDownloadView, pickChartColor } from "./download-group";
 
 const noop = () => {};
 
+const JOB_LABEL_KEYS = {
+  extract: "installing",
+  update: "applying_update",
+  dlc: "applying_dlc",
+} as const;
+
 /**
  * The PS4 PKG being extracted or applied, shown with the same card as a
  * download that is extracting. It is not stored as a download.
@@ -62,6 +68,7 @@ export function Ps4PkgJobGroup() {
       onCancelClick={noop}
       onExtractionCancel={cancel}
       isExtractionCancelling={cancelledJob === jobKey}
+      extractingLabel={t(JOB_LABEL_KEYS[job.mode])}
       t={t}
     />
   );

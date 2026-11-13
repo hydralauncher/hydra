@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+  FILE_BATCH_SIZE,
+  listFolderFiles,
+  mapInBatches,
+} from "./folder-walk.js";
+
 const EXECUTABLE_SCAN_DEPTH = 3;
 const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
 const APPIMAGE_ENTRY = "AppRun";
@@ -31,37 +37,26 @@ const looksLikeLinuxExecutable = async (filePath: string) => {
   }
 };
 
-const isExecutableCandidate = async (filePath: string) => {
+const isExecutableCandidate = async (filePath: string, platform: string) => {
   const lower = filePath.toLowerCase();
   if (
     /(unins|setup|install|crash|vc_?redist|dxsetup)/.test(path.basename(lower))
   ) {
     return false;
   }
-  if (process.platform === "win32") return lower.endsWith(".exe");
+  if (platform === "win32") return lower.endsWith(".exe");
   if (/\.(so(\.\d+)*|sh|txt|json|md)$/.test(lower)) return false;
   return looksLikeLinuxExecutable(filePath);
 };
 
-const collectExecutables = async (
-  directory: string,
-  depth = 0
-): Promise<string[]> => {
-  if (depth > EXECUTABLE_SCAN_DEPTH) return [];
-
-  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-  const found: string[] = [];
-
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      found.push(...(await collectExecutables(entryPath, depth + 1)));
-    } else if (entry.isFile() && (await isExecutableCandidate(entryPath))) {
-      found.push(entryPath);
-    }
-  }
-
-  return found;
+const collectExecutables = async (directory: string, platform: string) => {
+  const files = await listFolderFiles(directory, {
+    maxDepth: EXECUTABLE_SCAN_DEPTH,
+  });
+  const checked = await mapInBatches(files, FILE_BATCH_SIZE, async (file) =>
+    (await isExecutableCandidate(file, platform)) ? file : null
+  );
+  return checked.filter((file): file is string => file !== null);
 };
 
 const isFile = (filePath: string) =>
@@ -78,11 +73,12 @@ const makeExecutable = async (filePath: string) => {
 
 export const findDeclaredRecompilationEntry = async (
   root: string,
-  override: string | null
+  override: string | null,
+  platform: string = process.platform
 ) => {
   const entries = [
     ...(override ? [override] : []),
-    ...(process.platform === "win32" ? [] : [APPIMAGE_ENTRY]),
+    ...(platform === "win32" ? [] : [APPIMAGE_ENTRY]),
   ];
 
   for (const entry of entries) {
@@ -100,15 +96,17 @@ export const findDeclaredRecompilationEntry = async (
 export const findRecompilationExecutable = async (
   installDirectory: string,
   portName: string,
-  override: string | null
+  override: string | null,
+  platform: string = process.platform
 ) => {
   const declared = await findDeclaredRecompilationEntry(
     installDirectory,
-    override
+    override,
+    platform
   );
   if (declared) return declared;
 
-  const candidates = await collectExecutables(installDirectory);
+  const candidates = await collectExecutables(installDirectory, platform);
   if (candidates.length === 0) return null;
 
   const words = portName

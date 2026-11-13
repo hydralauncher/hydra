@@ -60,7 +60,7 @@ before(async () => {
           pluginBuild.onResolve(
             {
               filter:
-                /^@main\/level$|recompilation-installer$|get-downloads-path$|^@types$/,
+                /^@main\/level$|recompilation-installer$|recompilation-proton$|get-downloads-path$|^@types$/,
             },
             (args) => ({ path: args.path, namespace: "stub" })
           );
@@ -71,6 +71,10 @@ before(async () => {
               "export const recompilationInstallsSublevel = {};",
               "export const getRecompilationInstallState = async () => null;",
               "export const getDownloadsPath = async () => '';",
+              "export const runsThroughProton = () => false;",
+              "export const getPortWinePrefix = () => null;",
+              "export const getPrefixFolders = () => null;",
+              "export const rememberPortRuntime = () => undefined;",
             ].join("\n"),
             loader: "js",
           }));

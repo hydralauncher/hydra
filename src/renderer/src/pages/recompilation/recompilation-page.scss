@@ -119,6 +119,21 @@
     min-width: 260px;
   }
 
+  &__progress--clickable {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+
+    &:hover .setup-modal__progress-status {
+      color: globals.$muted-color;
+    }
+  }
+
   &__tabs {
     position: relative;
     display: flex;
@@ -274,7 +289,12 @@
     display: flex;
     flex-direction: column;
     gap: calc(globals.$spacing-unit * 1.5);
+    scroll-margin-top: calc(globals.$spacing-unit * 2);
     animation: recompilation-tab-fade 300ms ease-out both;
+
+    & + & {
+      margin-top: calc(globals.$spacing-unit * 5);
+    }
   }
 
   &__empty {

@@ -8,6 +8,7 @@ export {
 export {
   assertPs4UpdateFits,
   installPs4Pkg,
+  isPs4AddonInstalled,
   readPs4FolderParam,
   isPs4PkgPath,
   type Ps4PkgInstallResult,

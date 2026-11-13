@@ -131,6 +131,9 @@ export const loadState = async () => {
 
   void watchSteamLibraries();
   void reconcileRecompilationDiscs();
+  void import("@main/events/recompilation/recompilation-session").then(
+    ({ startExternalRecompilationWatch }) => startExternalRecompilationWatch()
+  );
   void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {

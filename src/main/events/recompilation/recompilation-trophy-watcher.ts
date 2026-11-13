@@ -16,6 +16,7 @@ import {
 } from "./recompilation-paths";
 import recompilationMeta from "./recompilation-meta.json";
 import { getRecompilationChosenTitleId } from "./recompilation-rom";
+import { getPortPlatform } from "./recompilation-proton";
 import {
   getTrophySourcePath,
   keepCatalogueTrophies,
@@ -218,13 +219,13 @@ export const resolveRecompilationTrophyFiles = async (
   ref: RecompilationRef,
   titleIdOverride?: string
 ) => {
+  const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const source = getTrophySource(ref.slug);
-  const template = source && getTrophySourcePath(source, process.platform);
+  const template =
+    source && getTrophySourcePath(source, getPortPlatform(ref.slug));
   if (!source || !template) return null;
 
-  const baseDirectory = await getRecompilationBaseDirectory(
-    await getRecompilationInstallDirectory(ref.slug)
-  );
+  const baseDirectory = await getRecompilationBaseDirectory(installDirectory);
   const needsTitleId = template.includes(TITLE_ID_TOKEN);
   const titleId = needsTitleId
     ? (titleIdOverride ?? (await getRecompilationChosenTitleId(ref)))
@@ -235,7 +236,7 @@ export const resolveRecompilationTrophyFiles = async (
       titleId ? value.replaceAll(TITLE_ID_TOKEN, titleId) : value,
       baseDirectory
     );
-  const platform = process.platform as keyof NonNullable<
+  const platform = getPortPlatform(ref.slug) as keyof NonNullable<
     RecompilationTrophySource["resetFiles"]
   >;
 
@@ -251,8 +252,10 @@ export const resolveRecompilationTrophyFiles = async (
 export const resolveAllRecompilationTrophyFiles = async (
   ref: RecompilationRef
 ) => {
+  await getRecompilationInstallDirectory(ref.slug).catch(() => null);
   const source = getTrophySource(ref.slug);
-  const template = source && getTrophySourcePath(source, process.platform);
+  const template =
+    source && getTrophySourcePath(source, getPortPlatform(ref.slug));
   const titleIds = template?.includes(TITLE_ID_TOKEN)
     ? (TROPHY_SOURCES[ref.slug]?.rom?.titleIds ?? [])
     : [];
@@ -406,7 +409,8 @@ export const startRecompilationTrophyWatcher = (
   gameKey: string
 ): RecompilationTrophyWatcher | null => {
   const source = getTrophySource(ref.slug);
-  if (!source || !getTrophySourcePath(source, process.platform)) return null;
+  if (!source || !getTrophySourcePath(source, getPortPlatform(ref.slug)))
+    return null;
 
   let files: Awaited<ReturnType<typeof resolveRecompilationTrophyFiles>> = null;
   let reader: TrophyReader | null = null;

@@ -1,6 +1,6 @@
-const Z64_HEADER = 0x80371240;
-const V64_HEADER = 0x37804012;
-const N64_HEADER = 0x40123780;
+export const Z64_HEADER = 0x80371240;
+export const V64_HEADER = 0x37804012;
+export const N64_HEADER = 0x40123780;
 
 export const toZ64 = (data: Buffer) => {
   const header = data.readUInt32BE(0);

@@ -470,7 +470,9 @@
     }
 
     &--wrong_platform,
-    &--unsupported_package {
+    &--unsupported_package,
+    &--update_package,
+    &--dlc_package {
       color: globals.$classics-washed;
     }
   }

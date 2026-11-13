@@ -16,7 +16,9 @@ import { getCloudSaveRetroArchPlatform } from "@shared";
 import {
   INSTALL_MARKER_FILE,
   type InstallMarker,
+  listDefaultRecompilationParents,
   readInstallMarker,
+  saveRecompilationInstallDirectory,
 } from "./recompilation-paths";
 
 const SHOP = "launchbox";
@@ -129,8 +131,106 @@ const isReachable = (directory: string) =>
     .then(() => true)
     .catch(() => false);
 
+const addBaseGameIfMissing = async (ref: RecompilationRef) => {
+  const { addBaseGameIfMissing: add } = await import(
+    "./recompilation-base-game"
+  );
+  await add(ref).catch((error) => {
+    logger.error(
+      "Failed to add the recompilation's game to the library",
+      error
+    );
+  });
+};
+
+const linksInProgress = new Map<string, Promise<void>>();
+
+export const linkInstalledRecompilation = (
+  slug: string,
+  installDirectory: string,
+  marker: InstallMarker
+) => {
+  const running = linksInProgress.get(slug);
+  if (running !== undefined) return running;
+
+  const ref = { objectId: marker.objectId, slug };
+  const link = (async () => {
+    if ((await readInstallMarker(installDirectory))?.slug !== slug) return;
+    const saved = await recompilationInstallsSublevel
+      .get(slug)
+      .catch(() => undefined);
+    if (saved !== installDirectory) {
+      await saveRecompilationInstallDirectory(slug, installDirectory);
+    }
+    await addBaseGameIfMissing(ref);
+    await addRecompilationDisc(
+      ref,
+      installDirectory,
+      await readDiscInfo(ref, installDirectory, marker)
+    );
+  })()
+    .catch((error) => {
+      logger.error("Failed to link an installed recompilation", error);
+    })
+    .finally(() => linksInProgress.delete(slug));
+  linksInProgress.set(slug, link);
+  return link;
+};
+
+export const waitForRecompilationLink = (slug: string) =>
+  linksInProgress.get(slug) ?? Promise.resolve();
+
+const adoptInstall = async (parent: string, name: string) => {
+  const known = await recompilationInstallsSublevel
+    .get(name)
+    .catch(() => undefined);
+  if (known) return;
+  const directory = path.join(parent, name);
+  const marker = await readInstallMarker(directory);
+  if (marker?.slug !== name) return;
+  await saveRecompilationInstallDirectory(name, directory);
+};
+
+const adoptInstallsIn = async (parent: string) => {
+  const entries = await fs.promises
+    .readdir(parent, { withFileTypes: true })
+    .catch(() => []);
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => adoptInstall(parent, entry.name))
+  );
+};
+
+const adoptDefaultInstalls = async () => {
+  const parents = await listDefaultRecompilationParents();
+  await Promise.all(parents.map(adoptInstallsIn));
+};
+
+export const linkRecompilationsOfGame = async (objectId: string) => {
+  for await (const [
+    slug,
+    directory,
+  ] of recompilationInstallsSublevel.iterator()) {
+    const marker = await readInstallMarker(directory);
+    if (marker?.slug !== slug || marker.objectId !== objectId) continue;
+    const ref = { objectId, slug };
+    await addRecompilationDisc(
+      ref,
+      directory,
+      await readDiscInfo(ref, directory, marker)
+    );
+  }
+};
+
 export const reconcileRecompilationDiscs = async () => {
   try {
+    await adoptDefaultInstalls().catch((error) => {
+      logger.error(
+        "Failed to look for recompilations in the default folders",
+        error
+      );
+    });
     const installed = new Map<string, RecompilationRef>();
     const unreachable = new Set<string>();
 
@@ -148,6 +248,7 @@ export const reconcileRecompilationDiscs = async () => {
 
       const ref = { objectId: marker.objectId, slug };
       installed.set(slug, ref);
+      await addBaseGameIfMissing(ref);
       await addRecompilationDisc(
         ref,
         directory,

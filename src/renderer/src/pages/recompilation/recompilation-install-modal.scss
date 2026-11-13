@@ -183,14 +183,11 @@
     font-size: globals.$hint-font-size;
   }
 
-  &__prepare-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: calc(globals.$spacing-unit * 2);
-    margin-top: 4px;
-    color: globals.$muted-color;
-    font-size: globals.$hint-font-size;
+  &__waiting-note {
+    margin: 4px 0 0;
+    color: globals.$subtle-color;
+    font-size: globals.$body-font-size;
+    line-height: 22px;
   }
 
   &__status-progress {

@@ -23,6 +23,7 @@ import {
   fetchShopDetailsForSkus,
   normalizeSku,
   type LaunchboxShopDetailsEntry,
+  type SkippedPackage,
 } from "@main/services/emulators";
 import {
   gamesShopAssetsSublevel,
@@ -342,9 +343,19 @@ export type ProgressPhase = "scanning" | "matching";
 
 export type UnmatchedReason = "wrong_platform" | "unmatched";
 
+const SKIPPED_PACKAGE_REASONS = {
+  update: "update_package",
+  dlc: "dlc_package",
+  other: "unsupported_package",
+} as const;
+
 export interface UnmatchedFile {
   name: string;
-  reason: UnmatchedReason | "unsupported_package";
+  reason:
+    | UnmatchedReason
+    | "unsupported_package"
+    | "update_package"
+    | "dlc_package";
 }
 
 export type LaunchboxImportProgress = {
@@ -454,7 +465,10 @@ const scanFolders = async (
   folders: FolderInput[],
   signal: CancelSignal,
   onScan?: ScanReporter
-): Promise<{ collected: ScannedGameInfo[]; unsupportedPackages: string[] }> => {
+): Promise<{
+  collected: ScannedGameInfo[];
+  unsupportedPackages: SkippedPackage[];
+}> => {
   const binary = emulators.KNOWN_BINARIES[system];
 
   const folderTotals: number[] = [];
@@ -476,7 +490,7 @@ const scanFolders = async (
 
   let scanBase = 0;
   let keptTotal = 0;
-  const unsupportedPackages: string[] = [];
+  const unsupportedPackages: SkippedPackage[] = [];
   const collected: ScannedGameInfo[] = [];
 
   for (let fi = 0; fi < folders.length; fi++) {
@@ -993,9 +1007,9 @@ export async function runLaunchboxImport(
     unmatched,
     unmatchedFiles: [
       ...unmatchedFiles,
-      ...unsupportedPackages.map((packagePath) => ({
-        name: path.basename(packagePath),
-        reason: "unsupported_package" as const,
+      ...unsupportedPackages.map((skipped) => ({
+        name: path.basename(skipped.path),
+        reason: SKIPPED_PACKAGE_REASONS[skipped.kind],
       })),
     ],
     unsupportedPackages: unsupportedPackages.length,

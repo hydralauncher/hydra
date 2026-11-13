@@ -13,24 +13,14 @@ import {
 } from "../../recompilation/recompilations-api";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { Button } from "@renderer/components/button/button";
+import {
+  RECOMPILATION_SIDEBAR_TIP,
+  dismissTip as dismissSavedTip,
+  isTipDismissed,
+} from "@renderer/dismissed-tips";
 import "./recompilations-section.scss";
 
-const TIP_STORAGE_KEY = "hydra-recompilation-tip-dismissed";
-
-const getTipDismissedGames = (): string[] => {
-  try {
-    const stored = JSON.parse(localStorage.getItem(TIP_STORAGE_KEY) ?? "[]");
-    return Array.isArray(stored) ? stored : [];
-  } catch {
-    return [];
-  }
-};
-
-const dismissTip = (objectId: string) => {
-  const games = getTipDismissedGames();
-  if (games.includes(objectId)) return;
-  localStorage.setItem(TIP_STORAGE_KEY, JSON.stringify([...games, objectId]));
-};
+const dismissTip = () => dismissSavedTip(RECOMPILATION_SIDEBAR_TIP);
 
 interface RecompilationsSectionProps {
   objectId: string;
@@ -56,7 +46,7 @@ export function RecompilationsSection({
         if (cancelled) return;
         const list = Array.isArray(items) ? items : [];
         setRecompilations(list);
-        if (list.length === 0 || getTipDismissedGames().includes(objectId)) {
+        if (list.length === 0 || isTipDismissed(RECOMPILATION_SIDEBAR_TIP)) {
           return;
         }
 
@@ -69,7 +59,7 @@ export function RecompilationsSection({
         );
         if (cancelled) return;
         if (states.some((state) => state?.installed)) {
-          dismissTip(objectId);
+          dismissTip();
           return;
         }
         if (states.some((state) => state?.isInstalling || state?.isPreparing)) {
@@ -92,10 +82,10 @@ export function RecompilationsSection({
 
     return window.electron.onRecompilationInstallProgress(({ slug, phase }) => {
       if (phase !== "done" || !slugs.has(slug)) return;
-      dismissTip(objectId);
+      dismissTip();
       setShowTip(false);
     });
-  }, [showTip, recompilations, objectId]);
+  }, [showTip, recompilations]);
 
   useEffect(() => {
     if (!showTip) return;
@@ -103,17 +93,17 @@ export function RecompilationsSection({
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      dismissTip(objectId);
+      dismissTip();
       setShowTip(false);
     };
     globalThis.addEventListener("keydown", closeOnEscape);
     return () => globalThis.removeEventListener("keydown", closeOnEscape);
-  }, [showTip, objectId]);
+  }, [showTip]);
 
   if (recompilations.length === 0) return null;
 
   const closeTip = () => {
-    dismissTip(objectId);
+    dismissTip();
     setShowTip(false);
   };
 

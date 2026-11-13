@@ -15,9 +15,20 @@ export interface RecompilationInstall {
   isPreparing: boolean;
   prepareFailed: boolean;
   install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
+  linkFolder: (
+    directory: string,
+    force?: boolean
+  ) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
+  unlink: () => Promise<RecompilationActionResult>;
   play: () => Promise<
-    boolean | "already_running" | "pkg_job_running" | "rom_update_required"
+    | boolean
+    | "already_running"
+    | "pkg_job_running"
+    | "rom_update_required"
+    | "port_update_required"
+    | "folder_missing"
+    | "program_missing"
   >;
   close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
@@ -28,6 +39,9 @@ export const getInstallErrorKey = (reason?: string) => {
   if (reason === "no_executable") return "install_no_executable";
   if (reason === "install_folder_unwritable")
     return "install_folder_unwritable";
+  if (reason === "other_port") return "link_folder_other_port";
+  if (reason === "invalid_folder") return "link_folder_invalid";
+  if (reason === "shared_folder") return "link_folder_shared";
   return "install_failed";
 };
 
@@ -84,6 +98,9 @@ export function useRecompilationInstall(
       slug,
     });
     setState(next);
+    if (next?.progress) {
+      setProgress((current) => current ?? next.progress ?? null);
+    }
   }, [objectId, slug]);
 
   useEffect(() => {
@@ -94,7 +111,12 @@ export function useRecompilationInstall(
     return window.electron.onRecompilationInstallProgress((payload) => {
       if (payload.slug !== slug) return;
 
-      if (payload.phase === "done" || payload.phase === "error") {
+      if (
+        payload.phase === "done" ||
+        payload.phase === "error" ||
+        payload.phase === "uninstalled" ||
+        payload.phase === "changed"
+      ) {
         setProgress(payload.phase === "error" ? payload : null);
         void refresh();
         return;
@@ -125,6 +147,19 @@ export function useRecompilationInstall(
     [objectId, slug, refresh]
   );
 
+  const linkFolder = useCallback(
+    async (directory: string, force = false) => {
+      const result = await window.electron.linkRecompilationFolder(
+        { objectId, slug },
+        directory,
+        { force }
+      );
+      if (currentSlug.current === slug) await refresh();
+      return result;
+    },
+    [objectId, slug, refresh]
+  );
+
   const uninstall = useCallback(async () => {
     const result = await window.electron.uninstallRecompilation({
       objectId,
@@ -132,6 +167,15 @@ export function useRecompilationInstall(
     });
     await refresh();
     return result.ok;
+  }, [objectId, slug, refresh]);
+
+  const unlink = useCallback(async () => {
+    const result = await window.electron.unlinkRecompilation({
+      objectId,
+      slug,
+    });
+    await refresh();
+    return result;
   }, [objectId, slug, refresh]);
 
   const play = useCallback(async () => {
@@ -143,6 +187,11 @@ export function useRecompilationInstall(
     if (result.reason === "already_running") return "already_running";
     if (result.reason === "pkg_job_running") return "pkg_job_running";
     if (result.reason === "rom_update_required") return "rom_update_required";
+    if (result.reason === "port_update_required") {
+      return "port_update_required";
+    }
+    if (result.reason === "folder_missing") return "folder_missing";
+    if (result.reason === "program_missing") return "program_missing";
     return (
       result.ok ||
       result.reason === "cloud_save_conflict" ||
@@ -179,7 +228,9 @@ export function useRecompilationInstall(
       (preparePhase === null && Boolean(state?.isPreparing)),
     prepareFailed: preparePhase === "error",
     install,
+    linkFolder,
     uninstall,
+    unlink,
     play,
     close,
     openFolder,
