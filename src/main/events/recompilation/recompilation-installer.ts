@@ -837,7 +837,7 @@ export const uninstallRecompilation = async (
         onProgress
       );
       await removeEmptyFolders(installDirectory, marker.installedFiles ?? []);
-      await removeHydraFiles(installDirectory);
+      await removeHydraFiles(installDirectory, HYDRA_FILES);
     } else {
       const entries = await fs.promises
         .readdir(installDirectory, { recursive: true, withFileTypes: true })
@@ -887,7 +887,7 @@ export const unlinkRecompilation = async (
 
   await waitForRecompilationLink(ref.slug);
   try {
-    await removeHydraFiles(installDirectory);
+    await removeHydraFiles(installDirectory, HYDRA_TRACKING_FILES);
   } catch (error) {
     logger.error(`Failed to unlink ${ref.slug}`, error);
     return { ok: false, reason: "uninstall_failed" };
@@ -910,14 +910,17 @@ const forgetMissingFolder = async (
   return { ok: true, folderMissing: true };
 };
 
-const HYDRA_FILES = [
+const HYDRA_TRACKING_FILES = [
   INSTALL_MARKER_FILE,
   RECOMPILATION_ROM_CHOICE_FILE,
+];
+const HYDRA_FILES = [
+  ...HYDRA_TRACKING_FILES,
   RECOMPILATION_EXTRACTED_ROM_FOLDER,
 ];
 
-const removeHydraFiles = async (directory: string) => {
-  for (const name of HYDRA_FILES) {
+const removeHydraFiles = async (directory: string, names: string[]) => {
+  for (const name of names) {
     await fs.promises.rm(path.join(directory, name), {
       recursive: true,
       force: true,

@@ -18,6 +18,7 @@ const ZIP_END_SIGNATURE = 0x06054b50;
 const ZIP64_END_SIGNATURE = 0x06064b50;
 const ZIP_ENTRY_SIGNATURE = 0x02014b50;
 const FOLDER_SCAN_DEPTH = 3;
+const MIN_NAME_WORD_LENGTH = 3;
 const INDEX_TIMEOUT_MS = 15_000;
 const SKIPPED_PROGRAM = /(unins|setup|install|crash|vc_?redist|dxsetup)/;
 // Words many recomps share say nothing about which one a program is.
@@ -188,7 +189,7 @@ const sha256File = (filePath: string) =>
 // Builds for other machines or packagings than the one Hydra installs.
 const OTHER_BUILD = /arm64|aarch64|flatpak|debug|symbols|source/i;
 
-const VERSION_IN_NAME = /v?\d+(?:[._]\d+)+(?:-[a-z0-9]+)?/gi;
+const VERSION_IN_NAME = /v?\d+(?:[._]\d+)+/gi;
 
 /** An asset's name without its version, to find the same file in other releases. */
 const assetKey = (name: string) =>
@@ -315,7 +316,9 @@ const nameWords = (name: string) =>
   name
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((word) => word.length > 2 && !GENERIC_WORDS.has(word));
+    .filter(
+      (word) => word.length >= MIN_NAME_WORD_LENGTH && !GENERIC_WORDS.has(word)
+    );
 
 const NOT_PROGRAMS = new Set(["license", "readme", "version", "changelog"]);
 
