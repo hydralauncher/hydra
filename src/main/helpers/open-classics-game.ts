@@ -295,10 +295,17 @@ export const openClassicsGame = async (
       (game.selectedDiscPath === null
         ? null
         : (game.selectedDiscPath ?? game.discs?.[0]?.path ?? null));
-    if (!resolvedRomPath || !existsSync(resolvedRomPath)) {
+    if (!resolvedRomPath) {
       throw codedLaunchError(
         "NO_DISC",
         `NO_DISC: No ROM available for game ${objectId}`,
+        { objectId, platform: retroArchPlatform, resolvedRomPath }
+      );
+    }
+    if (!existsSync(resolvedRomPath)) {
+      throw codedLaunchError(
+        "DISC_MISSING",
+        `DISC_MISSING: ROM not found for game ${objectId}`,
         { objectId, platform: retroArchPlatform, resolvedRomPath }
       );
     }
@@ -389,13 +396,17 @@ export const openClassicsGame = async (
     );
   }
 
-  if (
-    !resolvedDiscPath ||
-    !existsSync(resolveDiscBootPath(resolvedDiscPath, system))
-  ) {
+  if (!resolvedDiscPath) {
     throw codedLaunchError(
       "NO_DISC",
       `NO_DISC: No disc available for game ${objectId}`,
+      { objectId, system, resolvedDiscPath }
+    );
+  }
+  if (!existsSync(resolveDiscBootPath(resolvedDiscPath, system))) {
+    throw codedLaunchError(
+      "DISC_MISSING",
+      `DISC_MISSING: Disc not found for game ${objectId}`,
       { objectId, system, resolvedDiscPath }
     );
   }

@@ -101,6 +101,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       active = false;
     };
   }, [system, game.shop, game.objectId, discKey]);
+  const [isPortLinked, setIsPortLinked] = useState(false);
   const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
     null
   );
@@ -307,14 +308,27 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     setPortToUninstall(null);
     if (!slug) return;
 
-    const result = await window.electron.uninstallRecompilation({
-      objectId: game.objectId,
-      slug,
-    });
-    if (result.ok) {
-      showSuccessToast(t("uninstall_done", { ns: "recompilation", name }));
+    const ref = { objectId: game.objectId, slug };
+    const result = isPortLinked
+      ? await window.electron.unlinkRecompilation(ref)
+      : await window.electron.uninstallRecompilation(ref);
+    if (result.ok && result.folderMissing) {
+      showSuccessToast(
+        t("removed_folder_missing", { ns: "recompilation", name })
+      );
+    } else if (result.ok) {
+      showSuccessToast(
+        t(isPortLinked ? "unlink_done" : "uninstall_done", {
+          ns: "recompilation",
+          name,
+        })
+      );
     } else if (result.reason !== "not_installed") {
-      showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+      showErrorToast(
+        t(isPortLinked ? "unlink_failed" : "uninstall_failed", {
+          ns: "recompilation",
+        })
+      );
     }
     await updateGame();
   };
@@ -323,7 +337,14 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     const port = discs.find(
       (disc) => disc.path === path && disc.recompilationSlug
     );
-    if (port) {
+    if (port?.recompilationSlug) {
+      const state = await window.electron
+        .getRecompilationInstallState({
+          objectId: game.objectId,
+          slug: port.recompilationSlug,
+        })
+        .catch(() => null);
+      setIsPortLinked(state?.linked === true);
       setPortToUninstall(port);
       return;
     }
@@ -534,12 +555,17 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
       <ConfirmationModal
         visible={portToUninstall !== null}
-        title={t("uninstall_title", {
+        title={t(isPortLinked ? "unlink_title" : "uninstall_title", {
           ns: "recompilation",
           name: portToUninstall?.label,
         })}
-        descriptionText={t("uninstall_description", { ns: "recompilation" })}
-        confirmButtonLabel={t("uninstall", { ns: "recompilation" })}
+        descriptionText={t(
+          isPortLinked ? "unlink_description" : "uninstall_description",
+          { ns: "recompilation" }
+        )}
+        confirmButtonLabel={t(isPortLinked ? "unlink" : "uninstall", {
+          ns: "recompilation",
+        })}
         cancelButtonLabel={t("cancel", { ns: "recompilation" })}
         onClose={() => setPortToUninstall(null)}
         onConfirm={() => void uninstallPort()}

@@ -61,7 +61,17 @@ export interface InstallMarker {
   installedAt: string;
   name?: string;
   iconUrl?: string | null;
+  // A folder the user picked with "Select folder": Hydra never deletes it whole.
+  linked?: boolean;
+  // Files Hydra wrote into a linked folder, relative to it.
+  installedFiles?: string[];
+  // The linked folder's program was confirmed as this port's.
+  verified?: boolean;
 }
+
+/** Folders linked before the flag existed have no release file name. */
+export const isLinkedInstall = (marker: InstallMarker | null) =>
+  marker?.linked === true || marker?.assetName === "";
 
 export const readInstallMarker = async (
   installDirectory: string
@@ -100,6 +110,15 @@ export const saveRecompilationInstallDirectory = (
 
 export const forgetRecompilationInstallDirectory = (slug: string) =>
   recompilationInstallsSublevel.del(slug);
+
+export const isRecompilationFolderMissing = async (slug: string) => {
+  const saved = await readSavedInstallDirectory(slug);
+  if (!saved) return false;
+  return fs.promises
+    .stat(saved)
+    .then(() => false)
+    .catch((error: NodeJS.ErrnoException) => error.code === "ENOENT");
+};
 
 export const resolveRecompilationPath = (
   template: string,

@@ -122,6 +122,12 @@
   &__progress--clickable {
     cursor: pointer;
     border-radius: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
 
     &:hover .setup-modal__progress-status {
       color: globals.$muted-color;

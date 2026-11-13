@@ -820,9 +820,14 @@ declare global {
     ) => Promise<RecompilationActionResult>;
     linkRecompilationFolder: (
       ref: RecompilationRef,
-      directory: string
+      directory: string,
+      options?: { force?: boolean }
     ) => Promise<RecompilationActionResult>;
+    warmRecompilationFolderCheck: (ref: RecompilationRef) => Promise<void>;
     uninstallRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    unlinkRecompilation: (
       ref: RecompilationRef
     ) => Promise<RecompilationActionResult>;
     openRecompilationFolder: (

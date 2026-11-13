@@ -15,6 +15,8 @@ import type { RecompilationInstall } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import { formatRecompilationVersion } from "./recompilation-version";
+import { isIdentifyingVersion } from "./extraction-progress";
+import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
 import { isProtonAsset, isProtonInstall } from "./proton-build";
 import { usePs4FolderVersions } from "@renderer/hooks/use-ps4-folder-versions";
 import "./recompilation-install-section.scss";
@@ -129,7 +131,9 @@ export function RecompilationInstallSection({
   rom,
 }: Readonly<RecompilationInstallSectionProps>) {
   const { t } = useTranslation("recompilation");
-  const { state } = install;
+  const { state, progress } = install;
+  const isIdentifying =
+    isIdentifyingVersion(progress) || state?.isIdentifyingVersion === true;
 
   const isInstalled = state?.installed === true;
 
@@ -145,17 +149,30 @@ export function RecompilationInstallSection({
     details.game.libraryImageUrl ??
     details.game.iconUrl;
 
+  const getInstalledVersionLabel = () => {
+    if (state?.version) return formatRecompilationVersion(state.version);
+    if (state?.isIdentifyingVersion) return t("version_checking");
+    return t("version_unknown");
+  };
+
   const renderPort = () => {
+    if (isInstalled && isIdentifying) {
+      return (
+        <>
+          <p className="recompilation-install-section__sub">
+            {t("version_checking")}
+          </p>
+          <InstallProgressBar progress={{ phase: "extracting" }} />
+        </>
+      );
+    }
+
     if (isInstalled) {
       const hasUpdate = state.version !== details.version;
       return (
         <>
           <p className="recompilation-install-section__sub">
-            <strong>
-              {state.version
-                ? formatRecompilationVersion(state.version)
-                : t("version_unknown")}
-            </strong>
+            <strong>{getInstalledVersionLabel()}</strong>
             {" · "}
             {hasUpdate
               ? t("version_available", {

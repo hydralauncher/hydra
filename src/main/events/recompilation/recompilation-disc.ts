@@ -151,7 +151,7 @@ export const linkInstalledRecompilation = (
   marker: InstallMarker
 ) => {
   const running = linksInProgress.get(slug);
-  if (running) return running;
+  if (running !== undefined) return running;
 
   const ref = { objectId: marker.objectId, slug };
   const link = (async () => {

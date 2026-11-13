@@ -394,7 +394,9 @@ export const closeRecompilation = (ref: RecompilationRef) => {
 
   const { child } = session;
   if (!child || child.exitCode !== null || child.signalCode !== null) {
-    if (session.launchedPid) signalProcessGroup(session.launchedPid, "SIGTERM");
+    if (session.launchedPid !== undefined) {
+      signalProcessGroup(session.launchedPid, "SIGTERM");
+    }
     void closePortProcesses(ref.slug);
     return true;
   }
@@ -481,7 +483,7 @@ const detectExternalLaunches = async () => {
 
 export const startExternalRecompilationWatch = () => {
   const timer = setInterval(() => {
-    if (externalLaunchCheck) return;
+    if (externalLaunchCheck !== null) return;
     externalLaunchCheck = detectExternalLaunches()
       .catch((error) => {
         logger.error("Failed to look for recompilations opened outside", error);

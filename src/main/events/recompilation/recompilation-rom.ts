@@ -95,6 +95,8 @@ const EMPTY_ROM_KIND: RomKind = { extensions: [] };
 
 const ROM_CHOICE_FILE = ".hydra-recompilation-rom.json";
 const EXTRACTED_ROM_FOLDER = ".hydra-rom";
+export const RECOMPILATION_ROM_CHOICE_FILE = ROM_CHOICE_FILE;
+export const RECOMPILATION_EXTRACTED_ROM_FOLDER = EXTRACTED_ROM_FOLDER;
 const ARCHIVE_EXTENSIONS = new Set([".zip", ".7z", ".rar"]);
 const ROM_SCAN_DEPTH = 6;
 const ROM_SEARCH_DEPTH = 4;
@@ -451,7 +453,7 @@ const searchRomFoldersCached = (objectId: string, kind: RomKind) => {
 const getLibraryRomPath = async (
   objectId: string,
   kind: RomKind,
-  options: { search: boolean } = { search: true }
+  search = true
 ) => {
   if (!isFolderRom(kind) && !kind.extensions.length) return null;
   const key = levelKeys.game("launchbox", objectId);
@@ -487,20 +489,35 @@ const getLibraryRomPath = async (
     }
   }
 
-  if (!options.search) return null;
+  if (!search) return null;
   const found = await searchRomFoldersCached(objectId, kind);
   return found && (await romExists(found, kind)) ? found : null;
 };
+
+interface PortRuntime {
+  platform: MetaPlatform;
+  winePrefix: string | null;
+}
+
+const getPortRuntime = (slug: string): PortRuntime => ({
+  platform: getPortPlatform(slug) as MetaPlatform,
+  winePrefix: isProtonPort(slug) ? getPortWinePrefix(slug) : null,
+});
 
 const getCopyTarget = (
   meta: RecompilationRomMeta,
   baseDirectory: string,
   romName: string,
-  platform: MetaPlatform
+  runtime: PortRuntime
 ) => {
-  const template = meta.copyTo?.[platform];
+  const template = meta.copyTo?.[runtime.platform];
   return template
-    ? resolveRecompilationPath(template, baseDirectory, romName)
+    ? resolveRecompilationPath(
+        template,
+        baseDirectory,
+        romName,
+        runtime.winePrefix
+      )
     : null;
 };
 
@@ -508,18 +525,25 @@ const isPortReady = async (
   meta: RecompilationRomMeta,
   baseDirectory: string,
   choice: RomChoice | null,
-  platform: MetaPlatform
+  runtime: PortRuntime
 ) => {
-  const imported = meta.imported?.[platform] ?? [];
+  const imported = meta.imported?.[runtime.platform] ?? [];
   for (const template of imported) {
     if (
-      await fileExists(resolveRecompilationPath(template, baseDirectory, ""))
+      await fileExists(
+        resolveRecompilationPath(
+          template,
+          baseDirectory,
+          "",
+          runtime.winePrefix
+        )
+      )
     ) {
       return true;
     }
   }
   return (
-    getCopyTarget(meta, baseDirectory, "", platform) !== null &&
+    getCopyTarget(meta, baseDirectory, "", runtime) !== null &&
     (await fileExists(choice?.preparedTarget))
   );
 };
@@ -550,9 +574,11 @@ export const getRecompilationRomState = async (
   const [choice, libraryRomPath] = await Promise.all([
     readRomChoice(installDirectory),
     readRomChoice(installDirectory).then((saved) =>
-      getLibraryRomPath(ref.objectId, kind, {
-        search: !saved || saved.source === "library",
-      })
+      getLibraryRomPath(
+        ref.objectId,
+        kind,
+        !saved || saved.source === "library"
+      )
     ),
   ]);
 
@@ -575,7 +601,7 @@ export const getRecompilationRomState = async (
           meta,
           await getRecompilationBaseDirectory(installDirectory),
           choice,
-          getPortPlatform(ref.slug) as MetaPlatform
+          getPortRuntime(ref.slug)
         )) ||
         (await isPreparedForInstalledVersion(
           meta,
@@ -928,13 +954,13 @@ const getRomTarget = (
   installDirectory: string,
   baseDirectory: string,
   romPath: string,
-  platform: MetaPlatform
+  runtime: PortRuntime
 ) => {
   const copyTarget = getCopyTarget(
     meta,
     baseDirectory,
     path.basename(romPath),
-    platform
+    runtime
   );
   if (copyTarget) return copyTarget;
   if (meta.format !== "z64" || path.extname(romPath).toLowerCase() === ".z64") {
@@ -1080,12 +1106,17 @@ const refuseOutdatedGame = async (
 const writePortSettings = async (
   meta: RecompilationRomMeta,
   baseDirectory: string,
-  platform: MetaPlatform
+  runtime: PortRuntime
 ) => {
   for (const setting of meta.path?.settings ?? []) {
-    const template = pickPortFile(setting.file, platform);
+    const template = pickPortFile(setting.file, runtime.platform);
     if (!template) continue;
-    const file = resolveRecompilationPath(template, baseDirectory, "");
+    const file = resolveRecompilationPath(
+      template,
+      baseDirectory,
+      "",
+      runtime.winePrefix
+    );
     if (setting.seedFrom && !(await fileExists(file))) {
       const seed = resolveRecompilationPath(
         setting.seedFrom,
@@ -1181,13 +1212,13 @@ export const prepareRecompilationRom = async (
     }
 
     const baseDirectory = await getRecompilationBaseDirectory(installDirectory);
-    const platform = getPortPlatform(ref.slug) as MetaPlatform;
+    const runtime = getPortRuntime(ref.slug);
     const target = getRomTarget(
       meta,
       installDirectory,
       baseDirectory,
       romPath,
-      platform
+      runtime
     );
     if (target && (!isPrepared || !(await fileExists(target)))) {
       await copyRom(romPath, target, meta.format);
@@ -1217,11 +1248,17 @@ export const prepareRecompilationRom = async (
         ref.slug
       );
     }
-    await writePortSettings(meta, baseDirectory, platform);
+    await writePortSettings(meta, baseDirectory, runtime);
     if (meta.path?.online) {
       onlineEnv = await getOnlineLaunchEnv(
         meta.path.online,
-        (template) => resolveRecompilationPath(template, baseDirectory, ""),
+        (template) =>
+          resolveRecompilationPath(
+            template,
+            baseDirectory,
+            "",
+            runtime.winePrefix
+          ),
         await getHydraAccount()
       );
     }

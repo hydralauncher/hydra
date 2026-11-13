@@ -3,7 +3,11 @@ import type { LibraryGame } from "@types";
 export interface DownloadArtwork {
   url: string;
   isFitted: boolean;
+  fallbackUrl?: string;
 }
+
+const getSteamHeaderUrl = (objectId: string) =>
+  `https://shared.steamstatic.com/store_item_assets/steam/apps/${objectId}/header.jpg`;
 
 export const getDownloadArtwork = (
   game: LibraryGame,
@@ -37,7 +41,17 @@ export const getDownloadArtwork = (
     game.customCoverImageUrl,
     game.coverImageUrl,
   ];
-  return { url: candidates.find(Boolean) ?? "", isFitted: false };
+  const fittedUrl = candidates.find(Boolean) ?? "";
+
+  if (game.shop === "steam") {
+    return {
+      url: getSteamHeaderUrl(game.objectId),
+      fallbackUrl: fittedUrl,
+      isFitted: false,
+    };
+  }
+
+  return { url: fittedUrl, isFitted: false };
 };
 
 interface DownloadArtworkImageProps {
@@ -51,7 +65,20 @@ export function DownloadArtworkImage({
   alt,
   showForeground = true,
 }: Readonly<DownloadArtworkImageProps>) {
-  if (!artwork.isFitted) return <img src={artwork.url} alt={alt} />;
+  if (!artwork.isFitted) {
+    const { fallbackUrl } = artwork;
+    return (
+      <img
+        src={artwork.url}
+        alt={alt}
+        onError={(event) => {
+          if (fallbackUrl && event.currentTarget.src !== fallbackUrl) {
+            event.currentTarget.src = fallbackUrl;
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <>

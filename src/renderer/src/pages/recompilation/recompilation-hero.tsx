@@ -8,7 +8,7 @@ import {
   SyncIcon,
   TrashIcon,
 } from "@primer/octicons-react";
-import { Disc3, XCircle } from "lucide-react";
+import { Disc3, Unlink, XCircle } from "lucide-react";
 import type {
   LibraryGame,
   RecompilationDetails,
@@ -68,7 +68,9 @@ export function RecompilationHero({
   });
   const { showErrorToast, showSuccessToast } = useToast();
   const [isUninstallOpen, setIsUninstallOpen] = useState(false);
-  const [isUninstallStarting, setIsUninstalling] = useState(false);
+  const [isUninstallStarting, setIsUninstallStarting] = useState(false);
+  const [isUnlinkOpen, setIsUnlinkOpen] = useState(false);
+  const [uncertainFolder, setUncertainFolder] = useState<string | null>(null);
 
   const { state, progress } = install;
   const isUninstalling =
@@ -85,6 +87,9 @@ export function RecompilationHero({
     progress?.phase === "extracting" ||
     (Boolean(state?.isInstalling) && !isDownloading);
   const isInstalled = state?.installed === true;
+  const isLinked = state?.linked === true;
+  const hasHydraFiles = (state?.installedFileCount ?? 0) > 0;
+  const needsPortUpdate = isInstalled && isLinked && !state.verified;
   const hasUpdate = isInstalled && state.version !== details.version;
   const handlesRom = rom.state?.handlesRom === true;
   const needsRomChoice =
@@ -119,6 +124,9 @@ export function RecompilationHero({
   };
 
   const runLinkFolder = async () => {
+    void window.electron
+      .warmRecompilationFolderCheck({ objectId, slug: details.slug })
+      .catch(() => undefined);
     const { filePaths } = await window.electron.showOpenDialog({
       title: t("link_folder_title"),
       defaultPath: install.state?.installParentPath,
@@ -127,7 +135,15 @@ export function RecompilationHero({
     const [directory] = filePaths ?? [];
     if (!directory) return;
 
-    const result = await install.linkFolder(directory);
+    await linkFolder(directory, false);
+  };
+
+  const linkFolder = async (directory: string, force: boolean) => {
+    const result = await install.linkFolder(directory, force);
+    if (!result.ok && result.reason === "doesnt_look_right") {
+      setUncertainFolder(directory);
+      return;
+    }
     if (!result.ok) {
       showErrorToast(t(getInstallErrorKey(result.reason)));
       return;
@@ -139,8 +155,15 @@ export function RecompilationHero({
   const runPlay = async () => {
     const played = await install.play();
     if (played === "rom_update_required") onOpenUpdate();
+    if (played === "port_update_required") {
+      showErrorToast(t("link_folder_update_first"));
+    }
     if (played === "already_running") showErrorToast(t("already_running"));
-    if (played === "pkg_job_running") {
+    if (played === "folder_missing" || played === "program_missing") {
+      showErrorToast(
+        t(`recompilation_${played}_toast`, { ns: "game_details" })
+      );
+    } else if (played === "pkg_job_running") {
       showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
     } else if (!played) showErrorToast(t("play_failed"));
   };
@@ -150,12 +173,24 @@ export function RecompilationHero({
     if (!ok) showErrorToast(t("close_failed"));
   };
 
+  const runUnlink = async () => {
+    setIsUnlinkOpen(false);
+    const result = await install.unlink();
+    if (result.ok) {
+      showSuccessToast(
+        t(result.folderMissing ? "removed_folder_missing" : "unlink_done", {
+          name: details.name,
+        })
+      );
+    } else showErrorToast(t("unlink_failed"));
+  };
+
   const runUninstall = async () => {
     setIsUninstallOpen(false);
-    setIsUninstalling(true);
+    setIsUninstallStarting(true);
     const ok = await install
       .uninstall()
-      .finally(() => setIsUninstalling(false));
+      .finally(() => setIsUninstallStarting(false));
     if (ok) showSuccessToast(t("uninstall_done", { name: details.name }));
     else showErrorToast(t("uninstall_failed"));
   };
@@ -216,14 +251,10 @@ export function RecompilationHero({
 
     if (isRomDownloading && !install.isRunning) {
       return (
-        <div
+        <button
+          type="button"
           className="recompilation-page__progress recompilation-page__progress--clickable"
-          role="button"
-          tabIndex={0}
           onClick={onOpenInstall}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") onOpenInstall();
-          }}
         >
           <div className="setup-modal__progress-meta">
             <span className="setup-modal__progress-status">
@@ -238,7 +269,7 @@ export function RecompilationHero({
           <InstallProgressBar
             progress={{ phase: "downloading", loaded: romPercent, total: 100 }}
           />
-        </div>
+        </button>
       );
     }
 
@@ -288,7 +319,7 @@ export function RecompilationHero({
             {t("close")}
           </Button>
         )}
-        {!install.isRunning && !needsRomChoice && (
+        {!install.isRunning && !needsRomChoice && !needsPortUpdate && (
           <Button
             theme={hasUpdate ? "outline" : "primary"}
             onClick={runPlay}
@@ -336,13 +367,27 @@ export function RecompilationHero({
               label: t("download_options"),
               onClick: onDownloadRom,
             },
-            {
-              icon: <TrashIcon />,
-              label: t("uninstall"),
-              danger: true,
-              onClick: () => setIsUninstallOpen(true),
-              disabled: install.isRunning || install.isPreparing,
-            },
+            ...(isLinked
+              ? [
+                  {
+                    icon: <Unlink size={16} />,
+                    label: t("unlink"),
+                    onClick: () => setIsUnlinkOpen(true),
+                    disabled: install.isRunning || install.isPreparing,
+                  },
+                ]
+              : []),
+            ...(!isLinked || hasHydraFiles
+              ? [
+                  {
+                    icon: <TrashIcon />,
+                    label: t("uninstall"),
+                    danger: true,
+                    onClick: () => setIsUninstallOpen(true),
+                    disabled: install.isRunning || install.isPreparing,
+                  },
+                ]
+              : []),
           ]}
         >
           <Button
@@ -398,12 +443,38 @@ export function RecompilationHero({
       <ConfirmationModal
         visible={isUninstallOpen}
         title={t("uninstall_title", { name: details.name })}
-        descriptionText={t("uninstall_description")}
+        descriptionText={t(
+          isLinked ? "uninstall_linked_description" : "uninstall_description"
+        )}
         confirmButtonLabel={t("uninstall")}
         cancelButtonLabel={t("cancel")}
         confirmButtonTheme="danger"
         onConfirm={runUninstall}
         onClose={() => setIsUninstallOpen(false)}
+      />
+
+      <ConfirmationModal
+        visible={uncertainFolder !== null}
+        title={t("link_folder_unsure_title")}
+        descriptionText={t("link_folder_unsure_description")}
+        confirmButtonLabel={t("link_folder_use_anyway")}
+        cancelButtonLabel={t("cancel")}
+        onConfirm={() => {
+          const directory = uncertainFolder;
+          setUncertainFolder(null);
+          if (directory) void linkFolder(directory, true);
+        }}
+        onClose={() => setUncertainFolder(null)}
+      />
+
+      <ConfirmationModal
+        visible={isUnlinkOpen}
+        title={t("unlink_title", { name: details.name })}
+        descriptionText={t("unlink_description")}
+        confirmButtonLabel={t("unlink")}
+        cancelButtonLabel={t("cancel")}
+        onConfirm={runUnlink}
+        onClose={() => setIsUnlinkOpen(false)}
       />
     </section>
   );

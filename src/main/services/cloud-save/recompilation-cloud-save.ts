@@ -12,6 +12,10 @@ import { gamesSublevel, levelKeys } from "@main/level";
 import { getRecompilationInstallState } from "@main/events/recompilation/recompilation-installer";
 import { resolveRecompilationPath } from "@main/events/recompilation/recompilation-paths";
 import recompilationSaves from "@main/events/recompilation/recompilation-saves.json";
+import {
+  getPortWinePrefix,
+  runsThroughProton,
+} from "@main/events/recompilation/recompilation-proton";
 
 interface RecompilationSaveMapEntry {
   kind: string;
@@ -71,7 +75,10 @@ export const getRecompilationSaveRules = (
         when: Object.keys(entry.paths).map((os) => ({ os })),
       };
 
-      const template = entry.paths[pathContext.platform];
+      // A Windows build run through Proton keeps its saves where Windows would.
+      const viaProton = runsThroughProton(executablePath);
+      const template =
+        entry.paths[viaProton ? "windows" : pathContext.platform];
       if (!template) return [rule];
       if (template.includes("<base>") && !executablePath) return [];
 
@@ -79,7 +86,9 @@ export const getRecompilationSaveRules = (
       // included) and the folder of the port's executable, as a literal path.
       const preferredPath = resolveRecompilationPath(
         template,
-        path.dirname(executablePath ?? "")
+        path.dirname(executablePath ?? ""),
+        "",
+        viaProton ? getPortWinePrefix(port.slug) : null
       );
 
       return [{ ...rule, preferredPath }];

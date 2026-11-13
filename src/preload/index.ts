@@ -650,10 +650,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getRecompilationInstallState", ref),
   installRecompilation: (ref: RecompilationRef, parentDirectory?: string) =>
     ipcRenderer.invoke("installRecompilation", ref, parentDirectory),
-  linkRecompilationFolder: (ref: RecompilationRef, directory: string) =>
-    ipcRenderer.invoke("linkRecompilationFolder", ref, directory),
+  linkRecompilationFolder: (
+    ref: RecompilationRef,
+    directory: string,
+    options?: { force?: boolean }
+  ) => ipcRenderer.invoke("linkRecompilationFolder", ref, directory, options),
+  warmRecompilationFolderCheck: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("warmRecompilationFolderCheck", ref),
   uninstallRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("uninstallRecompilation", ref),
+  unlinkRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("unlinkRecompilation", ref),
   openRecompilationFolder: (ref: RecompilationRef) =>
     ipcRenderer.invoke("openRecompilationFolder", ref),
   playRecompilation: (ref: RecompilationRef) =>

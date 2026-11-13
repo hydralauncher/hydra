@@ -15,10 +15,20 @@ export interface RecompilationInstall {
   isPreparing: boolean;
   prepareFailed: boolean;
   install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
-  linkFolder: (directory: string) => Promise<RecompilationActionResult>;
+  linkFolder: (
+    directory: string,
+    force?: boolean
+  ) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
+  unlink: () => Promise<RecompilationActionResult>;
   play: () => Promise<
-    boolean | "already_running" | "pkg_job_running" | "rom_update_required"
+    | boolean
+    | "already_running"
+    | "pkg_job_running"
+    | "rom_update_required"
+    | "port_update_required"
+    | "folder_missing"
+    | "program_missing"
   >;
   close: () => Promise<boolean>;
   openFolder: () => Promise<void>;
@@ -31,6 +41,7 @@ export const getInstallErrorKey = (reason?: string) => {
     return "install_folder_unwritable";
   if (reason === "other_port") return "link_folder_other_port";
   if (reason === "invalid_folder") return "link_folder_invalid";
+  if (reason === "shared_folder") return "link_folder_shared";
   return "install_failed";
 };
 
@@ -103,7 +114,8 @@ export function useRecompilationInstall(
       if (
         payload.phase === "done" ||
         payload.phase === "error" ||
-        payload.phase === "uninstalled"
+        payload.phase === "uninstalled" ||
+        payload.phase === "changed"
       ) {
         setProgress(payload.phase === "error" ? payload : null);
         void refresh();
@@ -136,10 +148,11 @@ export function useRecompilationInstall(
   );
 
   const linkFolder = useCallback(
-    async (directory: string) => {
+    async (directory: string, force = false) => {
       const result = await window.electron.linkRecompilationFolder(
         { objectId, slug },
-        directory
+        directory,
+        { force }
       );
       if (currentSlug.current === slug) await refresh();
       return result;
@@ -156,6 +169,15 @@ export function useRecompilationInstall(
     return result.ok;
   }, [objectId, slug, refresh]);
 
+  const unlink = useCallback(async () => {
+    const result = await window.electron.unlinkRecompilation({
+      objectId,
+      slug,
+    });
+    await refresh();
+    return result;
+  }, [objectId, slug, refresh]);
+
   const play = useCallback(async () => {
     setIsLaunching(true);
     prepareErrorShown.current = false;
@@ -165,6 +187,11 @@ export function useRecompilationInstall(
     if (result.reason === "already_running") return "already_running";
     if (result.reason === "pkg_job_running") return "pkg_job_running";
     if (result.reason === "rom_update_required") return "rom_update_required";
+    if (result.reason === "port_update_required") {
+      return "port_update_required";
+    }
+    if (result.reason === "folder_missing") return "folder_missing";
+    if (result.reason === "program_missing") return "program_missing";
     return (
       result.ok ||
       result.reason === "cloud_save_conflict" ||
@@ -203,6 +230,7 @@ export function useRecompilationInstall(
     install,
     linkFolder,
     uninstall,
+    unlink,
     play,
     close,
     openFolder,

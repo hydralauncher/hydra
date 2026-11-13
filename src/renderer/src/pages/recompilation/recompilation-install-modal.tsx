@@ -26,7 +26,11 @@ import {
 import { useFormat, useLibrary, useToast } from "@renderer/hooks";
 import { RomSourcesPanel } from "./rom-source-list";
 import { isProtonAsset } from "./proton-build";
-import { getExtractionPercent, toExtractionBar } from "./extraction-progress";
+import {
+  getExtractionPercent,
+  isIdentifyingVersion,
+  toExtractionBar,
+} from "./extraction-progress";
 import { splitRomRequirement } from "./rom-requirement";
 import {
   getInstallErrorKey,
@@ -526,7 +530,13 @@ function InstallModalContent({
     onClose();
     const played = await install.play();
     if (played === "already_running") showErrorToast(t("already_running"));
-    if (played === "pkg_job_running") {
+    if (played === "port_update_required") {
+      showErrorToast(t("link_folder_update_first"));
+    } else if (played === "folder_missing" || played === "program_missing") {
+      showErrorToast(
+        t(`recompilation_${played}_toast`, { ns: "game_details" })
+      );
+    } else if (played === "pkg_job_running") {
       showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
     } else if (!played) showErrorToast(t("play_failed"));
   };
@@ -538,6 +548,15 @@ function InstallModalContent({
   }, [progress?.phase]);
 
   const renderPortStatus = () => {
+    if (isInstalled && !install.isBusy && isIdentifyingVersion(progress)) {
+      return (
+        <StatusLine
+          label={t("install_port_installed")}
+          detail={t("version_checking")}
+          progress={{ phase: "extracting" }}
+        />
+      );
+    }
     if (isInstalled && !install.isBusy) {
       return (
         <StatusLine
@@ -789,8 +808,11 @@ function InstallModalContent({
     </>
   );
 
+  const needsPortUpdate =
+    isInstalled && state.linked === true && !state.verified;
   const canPlay =
     isInstalled &&
+    !needsPortUpdate &&
     !install.isBusy &&
     (!handlesRom ||
       Boolean(romState?.isReady || (!needsPreparation && romState?.romPath)));
@@ -847,6 +869,12 @@ function InstallModalContent({
     </>
   );
 
+  const getDoneMessage = () => {
+    if (canPlay) return t("install_ready", { name: details.name });
+    if (needsPortUpdate) return t("link_folder_update_first");
+    return t("install_waiting");
+  };
+
   const renderDoneStep = () => (
     <div className="setup-modal__done">
       <div className="setup-modal__done-check recompilation-install__done-check">
@@ -855,11 +883,7 @@ function InstallModalContent({
       <h3 className="setup-modal__done-title">
         {canPlay ? t("install_done_title") : t("install_wait_title")}
       </h3>
-      <p className="setup-modal__done-body">
-        {canPlay
-          ? t("install_ready", { name: details.name })
-          : t("install_waiting")}
-      </p>
+      <p className="setup-modal__done-body">{getDoneMessage()}</p>
       {!handlesRom && (
         <p className="setup-modal__done-body">{t("install_port_asks_rom")}</p>
       )}

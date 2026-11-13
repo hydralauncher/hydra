@@ -165,12 +165,7 @@ export const checkPs4Pkg = async (
   pkgPath: string,
   accept: Ps4PkgAccept
 ): Promise<Ps4PkgCheck> => {
-  const wrongKind: Ps4PkgFailure =
-    accept === "update"
-      ? "not_update"
-      : accept === "dlc"
-        ? "not_dlc"
-        : "unsupported";
+  const wrongKind = WRONG_KIND_FAILURES[accept];
   const info = await readUsablePkg(pkgPath);
   if (!info) return { ok: false, reason: wrongKind };
 
@@ -396,7 +391,14 @@ export const extractPs4GamePkg = async (
   );
 };
 
+const WRONG_KIND_FAILURES: Record<Ps4PkgAccept, Ps4PkgFailure> = {
+  update: "not_update",
+  dlc: "not_dlc",
+  any: "unsupported",
+};
+
 const PS4_UPDATE_OVERLAY_SUFFIXES = ["-UPDATE", "-patch"];
+const MAX_VERSIONED_DISCS = 64;
 
 const readPs4GameFolderVersion = async (discPath: string) => {
   const folder =
@@ -421,7 +423,7 @@ const readPs4GameFolderVersion = async (discPath: string) => {
 export const getPs4FolderVersions = async (discPaths: unknown) => {
   const versions: Record<string, string | null> = {};
   if (!Array.isArray(discPaths)) return versions;
-  for (const discPath of discPaths.slice(0, 64)) {
+  for (const discPath of discPaths.slice(0, MAX_VERSIONED_DISCS)) {
     if (typeof discPath !== "string" || !path.isAbsolute(discPath)) continue;
     versions[discPath] = await readPs4GameFolderVersion(discPath);
   }

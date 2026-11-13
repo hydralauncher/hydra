@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { GameShop, Ps4PkgAccept, Ps4PkgFailure } from "@types";
+import type {
+  GameShop,
+  Ps4PkgAccept,
+  Ps4PkgFailure,
+  Ps4PkgJobMode,
+} from "@types";
 import { ConfirmationModal } from "../confirmation-modal/confirmation-modal";
 import { useAppDispatch, useToast } from "@renderer/hooks";
 import { setPs4PkgJob } from "@renderer/features";
@@ -179,6 +184,20 @@ export function Ps4PkgJobHost() {
   );
 }
 
+const runPs4PkgMode = (
+  mode: Ps4PkgJobMode,
+  shop: GameShop,
+  objectId: string,
+  pkgPath: string
+) => {
+  if (mode === "update") {
+    return window.electron.applyPs4Update(shop, objectId, pkgPath);
+  }
+  if (mode === "dlc")
+    return window.electron.applyPs4Dlc(shop, objectId, pkgPath);
+  return window.electron.extractPs4GamePkg(shop, objectId, pkgPath);
+};
+
 /**
  * Picks a PS4 PKG and starts the matching job: an update over the game
  * folder, or (with "any") extracting a game PKG into a new disc. With "any"
@@ -239,12 +258,7 @@ export function usePs4PkgPicker(
         return;
       }
 
-      const result =
-        check.mode === "update"
-          ? await window.electron.applyPs4Update(shop, objectId, pkgPath)
-          : check.mode === "dlc"
-            ? await window.electron.applyPs4Dlc(shop, objectId, pkgPath)
-            : await window.electron.extractPs4GamePkg(shop, objectId, pkgPath);
+      const result = await runPs4PkgMode(check.mode, shop, objectId, pkgPath);
       if (result.reason === "busy") showErrorToast(t("ps4_pkg_busy"));
     } finally {
       if (!isAsking) {

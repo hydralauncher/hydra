@@ -262,7 +262,7 @@ const installUpdate = async (
   }
 };
 
-const ENTITLEMENT_LABEL = /^[A-Za-z0-9_]{1,16}$/;
+const ENTITLEMENT_LABEL = /^\w{1,16}$/;
 
 export const getPs4AddonTarget = (addonDirectory: string, info: Ps4PkgInfo) => {
   const label = info.contentId.split("-")[2] ?? "";
@@ -281,8 +281,18 @@ const hasFiles = (directory: string) =>
     .then((entries) => entries.length > 0)
     .catch(() => false);
 
+const isDirectory = (target: string) =>
+  fs.promises
+    .stat(target)
+    .then((stats) => stats.isDirectory())
+    .catch(() => false);
+
+/** A DLC with no files (an unlock) is installed once its folder exists. */
+const isAddonPresent = (target: string, info: Ps4PkgInfo) =>
+  info.pfsImageSize === 0 ? isDirectory(target) : hasFiles(target);
+
 export const isPs4AddonInstalled = (addonDirectory: string, info: Ps4PkgInfo) =>
-  hasFiles(getPs4AddonTarget(addonDirectory, info));
+  isAddonPresent(getPs4AddonTarget(addonDirectory, info), info);
 
 const installAddon = async (
   pkgPath: string,
@@ -291,7 +301,7 @@ const installAddon = async (
   onProgress?: (fraction: number) => void,
   signal?: AbortSignal
 ) => {
-  if (await hasFiles(target)) return;
+  if (await isAddonPresent(target, info)) return;
   if (info.pfsImageSize === 0) {
     await fs.promises.mkdir(target, { recursive: true });
     return;

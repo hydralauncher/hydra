@@ -23,3 +23,6 @@ export const formatExtracting = (
   const percent = getExtractionPercent(progress);
   return percent === null ? label : `${label} · ${percent}%`;
 };
+
+export const isIdentifyingVersion = (progress?: InstallProgressLike | null) =>
+  progress?.phase === "identifying";
