@@ -77,6 +77,7 @@ import {
   resolvePickedFolder,
   warmFolderCheck,
 } from "./recompilation-folder-check";
+import { mapInBatches } from "./folder-walk";
 
 const MAX_NESTED_ARCHIVES = 3;
 
@@ -980,17 +981,12 @@ const removeEmptyFolders = async (directory: string, files: string[]) => {
   const deepestFirst = [...byDepth.entries()]
     .sort(([left], [right]) => right - left)
     .map(([, level]) => level);
-  await deepestFirst.reduce(
-    (previous, level) =>
-      previous.then(() =>
-        Promise.all(
-          level.map((folder) =>
-            fs.promises.rmdir(folder).catch(() => undefined)
-          )
-        ).then(() => undefined)
-      ),
-    Promise.resolve()
-  );
+  await deepestFirst.reduce(async (previous, level) => {
+    await previous;
+    await Promise.all(
+      level.map((folder) => fs.promises.rmdir(folder).catch(() => undefined))
+    );
+  }, Promise.resolve());
 };
 
 const DELETE_BATCH_SIZE = 16;
@@ -1009,21 +1005,8 @@ const deleteFilesWithProgress = async (
     lastPercent = percent;
     onProgress(deleted, files.length);
   };
-  const batches = Array.from(
-    { length: Math.ceil(files.length / DELETE_BATCH_SIZE) },
-    (_, index) =>
-      files.slice(index * DELETE_BATCH_SIZE, (index + 1) * DELETE_BATCH_SIZE)
-  );
-  await batches.reduce(
-    (previous, batch) =>
-      previous.then(() =>
-        Promise.all(
-          batch.map((file) =>
-            fs.promises.rm(file, { force: true }).then(countDeleted)
-          )
-        ).then(() => undefined)
-      ),
-    Promise.resolve()
+  await mapInBatches(files, DELETE_BATCH_SIZE, (file) =>
+    fs.promises.rm(file, { force: true }).then(countDeleted)
   );
 };
 

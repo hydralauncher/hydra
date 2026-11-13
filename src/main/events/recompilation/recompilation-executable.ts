@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import {
+  FILE_BATCH_SIZE,
+  listFolderFiles,
+  mapInBatches,
+} from "./folder-walk.js";
+
 const EXECUTABLE_SCAN_DEPTH = 3;
 const ELF_MAGIC = [0x7f, 0x45, 0x4c, 0x46];
 const APPIMAGE_ENTRY = "AppRun";
@@ -43,27 +49,14 @@ const isExecutableCandidate = async (filePath: string, platform: string) => {
   return looksLikeLinuxExecutable(filePath);
 };
 
-const collectExecutables = async (
-  directory: string,
-  platform: string,
-  depth = 0
-): Promise<string[]> => {
-  if (depth > EXECUTABLE_SCAN_DEPTH) return [];
-
-  const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-  const found = await Promise.all(
-    entries.map(async (entry): Promise<string[]> => {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        return collectExecutables(entryPath, platform, depth + 1);
-      }
-      return entry.isFile() &&
-        (await isExecutableCandidate(entryPath, platform))
-        ? [entryPath]
-        : [];
-    })
+const collectExecutables = async (directory: string, platform: string) => {
+  const files = await listFolderFiles(directory, {
+    maxDepth: EXECUTABLE_SCAN_DEPTH,
+  });
+  const checked = await mapInBatches(files, FILE_BATCH_SIZE, async (file) =>
+    (await isExecutableCandidate(file, platform)) ? file : null
   );
-  return found.flat();
+  return checked.filter((file): file is string => file !== null);
 };
 
 const isFile = (filePath: string) =>

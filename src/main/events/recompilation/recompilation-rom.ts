@@ -42,6 +42,7 @@ import {
   isPs4PkgJobRunning,
   runPs4PkgJob,
 } from "../emulators/ps4-pkg-job";
+import { findFirstInOrder, listFolderFiles } from "./folder-walk";
 import { N64_HEADER, V64_HEADER, toZ64 } from "./n64-rom";
 import {
   getPortPlatform,
@@ -387,40 +388,13 @@ const matchesRomHash = async (filePath: string, sha1: string[]) => {
   }
 };
 
-const listRomFiles = async (
-  directory: string,
-  extensions: string[],
-  depth = 0
-): Promise<string[]> => {
-  if (depth > ROM_SEARCH_DEPTH) return [];
-  const entries = await fs.promises
-    .readdir(directory, { withFileTypes: true })
-    .catch(() => []);
-  const files = entries
-    .filter((entry) => entry.isFile() && hasExtension(entry.name, extensions))
-    .map((entry) => path.join(directory, entry.name));
-  const nested = await Promise.all(
-    entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) =>
-        listRomFiles(path.join(directory, entry.name), extensions, depth + 1)
-      )
-  );
-  return [...files, ...nested.flat()].slice(0, MAX_SEARCHED_ROM_FILES);
-};
-
-const findFirstMatch = <T>(
-  items: T[],
-  matches: (item: T) => Promise<boolean>
-) =>
-  items.reduce<Promise<T | null>>(
-    (previous, item) =>
-      previous.then(async (found) => {
-        if (found !== null) return found;
-        return (await matches(item)) ? item : null;
-      }),
-    Promise.resolve(null)
-  );
+const listRomFiles = (directory: string, extensions: string[]) =>
+  listFolderFiles(directory, {
+    maxDepth: ROM_SEARCH_DEPTH,
+    includeFile: (name) => hasExtension(name, extensions),
+    limit: MAX_SEARCHED_ROM_FILES,
+    ignoreErrors: true,
+  });
 
 const searchRomFolders = async (kind: RomKind) => {
   if (isFolderRom(kind)) {
@@ -438,7 +412,9 @@ const searchRomFolders = async (kind: RomKind) => {
   const files = await Promise.all(
     roots.map((root) => listRomFiles(root, kind.extensions))
   );
-  return findFirstMatch(files.flat(), (file) => matchesRomHash(file, sha1));
+  return findFirstInOrder(files.flat(), async (file) =>
+    (await matchesRomHash(file, sha1)) ? file : null
+  );
 };
 
 const romSearches = new Map<
@@ -485,18 +461,8 @@ const getRomFromDiscs = async (key: string, kind: RomKind) => {
   ].filter(
     (disc): disc is string => Boolean(disc) && !portDiscs.has(disc as string)
   );
-  return findFirstFound(candidates, (disc) => findDiscRom(disc, kind));
+  return findFirstInOrder(candidates, (disc) => findDiscRom(disc, kind));
 };
-
-const findFirstFound = <T, R>(
-  items: T[],
-  find: (item: T) => Promise<R | null>
-) =>
-  items.reduce<Promise<R | null>>(
-    (previous, item) =>
-      previous.then((found) => (found === null ? find(item) : found)),
-    Promise.resolve(null)
-  );
 
 const getLibraryRomPath = async (
   objectId: string,
