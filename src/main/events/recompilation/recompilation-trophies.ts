@@ -2,6 +2,7 @@ import type { UnlockedAchievement } from "@types";
 
 export type RecompilationTrophyKind =
   | "bitmask"
+  | "earned-json"
   | "id-time-lines"
   | "jsonl"
   | "log";
@@ -199,4 +200,46 @@ export const removeTrophiesFromIdLines = (
     .split("\n")
     .filter((line) => !remove.has(line.trim().toUpperCase()))
     .join("\n");
+};
+
+interface EarnedLedger {
+  earned?: Array<{ id?: unknown; time?: unknown }>;
+  [key: string]: unknown;
+}
+
+const parseEarnedLedger = (contents: string): EarnedLedger | null => {
+  try {
+    const ledger = JSON.parse(contents) as EarnedLedger;
+    return ledger && typeof ledger === "object" && Array.isArray(ledger.earned)
+      ? ledger
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+export const parseTrophyEarnedJson = (
+  contents: string
+): UnlockedAchievement[] => {
+  const unlocks = new Map<string, number>();
+  for (const entry of parseEarnedLedger(contents)?.earned ?? []) {
+    if (Number.isInteger(entry.id) && typeof entry.time === "number") {
+      keepEarliest(unlocks, entry.id as number, entry.time * 1000);
+    }
+  }
+  return toUnlockedAchievements(unlocks);
+};
+
+export const removeTrophiesFromEarnedJson = (
+  contents: string,
+  ids: Iterable<string>
+) => {
+  const ledger = parseEarnedLedger(contents);
+  if (!ledger) return contents;
+  const remove = toIdSet(ids);
+  const earned = ledger.earned!.filter(
+    (entry) => !remove.has(String(entry.id).toUpperCase())
+  );
+  if (earned.length === ledger.earned!.length) return contents;
+  return `${JSON.stringify({ ...ledger, earned }, null, 2)}\n`;
 };

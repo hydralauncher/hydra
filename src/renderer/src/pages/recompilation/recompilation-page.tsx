@@ -58,6 +58,7 @@ export default function RecompilationPage() {
   const rom = useRecompilationRom(objectId, slug);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const [openInstallOnUpdate, setOpenInstallOnUpdate] = useState(false);
   const [isRomDownloadOpen, setIsRomDownloadOpen] = useState(false);
 
   useEffect(() => {
@@ -66,7 +67,9 @@ export default function RecompilationPage() {
   }, [objectId, slug]);
 
   useEffect(() => {
-    if (searchParams.get("rom") !== "1") return;
+    const rom = searchParams.get("rom");
+    if (rom !== "1" && rom !== "update") return;
+    setOpenInstallOnUpdate(rom === "update");
     setIsInstallOpen(true);
     setSearchParams({}, { replace: true });
   }, [searchParams, setSearchParams]);
@@ -228,7 +231,14 @@ export default function RecompilationPage() {
           installAsset={installAsset}
           install={install}
           rom={rom}
-          onOpenInstall={() => setIsInstallOpen(true)}
+          onOpenInstall={() => {
+            setOpenInstallOnUpdate(false);
+            setIsInstallOpen(true);
+          }}
+          onOpenUpdate={() => {
+            setOpenInstallOnUpdate(true);
+            setIsInstallOpen(true);
+          }}
           onDownloadRom={() => setIsRomDownloadOpen(true)}
         />
 
@@ -238,6 +248,7 @@ export default function RecompilationPage() {
           installAsset={installAsset}
           install={install}
           rom={rom}
+          openOnUpdate={openInstallOnUpdate}
           onClose={() => setIsInstallOpen(false)}
         />
 

@@ -145,6 +145,20 @@ export interface RecompilationRomMeta {
       file: string | Partial<Record<"win32" | "linux", string>>;
       key: string[];
     };
+    settings?: Array<{
+      file: string | Partial<Record<"win32" | "linux", string>>;
+      values: Record<string, string>;
+      seedFrom?: string;
+    }>;
+    online?: {
+      enabledEnv: string;
+      nameEnv: string;
+      nameConfig: {
+        file: string | Partial<Record<"win32" | "linux", string>>;
+        keys: string[];
+      };
+      reservedNames: string[];
+    };
   };
   once?: boolean;
   /** Runs the installer again after every port update, for ports that rebuild the game per version. */
@@ -159,6 +173,7 @@ export interface RecompilationRomMeta {
   titleIds?: string[];
   /** PS4 game versions (APP_VER in sce_sys/param.sfo) the port runs; others get a warning. */
   appVersions?: string[];
+  requireAppVersion?: boolean;
   extensions: string[];
 }
 
@@ -191,6 +206,8 @@ export interface RecompilationActionResult {
   ok: boolean;
   reason?: string;
   warning?: string;
+  requiredVersion?: string;
+  isUpdate?: boolean;
   /** Set when an update finished and the port started preparing again. */
   preparing?: boolean;
   /** The game folder a picked file resolves to, for the folder ports. */

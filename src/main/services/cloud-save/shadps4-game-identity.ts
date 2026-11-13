@@ -17,6 +17,7 @@ import {
   normalizeShadps4Serial,
   readShadps4DiscIds,
   shadps4GameFolders,
+  withShadps4OtherVersionIds,
   type Shadps4DiscIds,
 } from "./shadps4-save-layout.js";
 
@@ -68,7 +69,8 @@ export const assertShadps4DiscIdentity = async (game: Game) => {
       `cloud_save_shadps4_disc_${status.status.replaceAll("-", "_")}`
     );
   }
-  return saveTitleIds;
+  // A save from another version of the game goes to its own folder.
+  return withShadps4OtherVersionIds(game, saveTitleIds);
 };
 
 const saveTitleIdForSegments = (segments: string[]) => {

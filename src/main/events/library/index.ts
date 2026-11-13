@@ -51,6 +51,7 @@ import "./scan-installed-games";
 import "./add-scanned-game";
 import "./select-game-proton-path";
 import "./select-game-wine-prefix";
+import "./set-collection-game-order";
 import "./set-game-hydra-playtime-enabled";
 import "./set-game-visibility";
 import "./toggle-automatic-cloud-sync";

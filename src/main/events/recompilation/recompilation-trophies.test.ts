@@ -7,10 +7,12 @@ import {
   getTrophySourcePath,
   keepCatalogueTrophies,
   parseTrophyBitmask,
+  parseTrophyEarnedJson,
   parseTrophyIdTimeLines,
   parseTrophyJsonLines,
   parseTrophyLogLines,
   removeTrophiesFromBitmask,
+  removeTrophiesFromEarnedJson,
   removeTrophiesFromIdLines,
   removeTrophiesFromIdTimeLines,
   removeTrophiesFromJsonLines,
@@ -230,5 +232,50 @@ describe("removing trophies after a reset with the port open", () => {
       ["7"]
     );
     assert.equal(kept, "# the trophies unlocked here\n9\n");
+  });
+});
+
+describe("iss_pc earned.json trophies", () => {
+  const ledger = JSON.stringify({
+    schema: 1,
+    title_id: "CUSA00223",
+    package_fingerprint: "abc123",
+    save_identity: "",
+    earned: [
+      { id: 12, time: 1794490457 },
+      { id: 3, time: 1794490000 },
+    ],
+    recovered: [],
+  });
+
+  it("reads the earned trophies and their unlock times", () => {
+    assert.deepEqual(parseTrophyEarnedJson(ledger), [
+      { name: "12", unlockTime: 1794490457000 },
+      { name: "3", unlockTime: 1794490000000 },
+    ]);
+    assert.deepEqual(parseTrophyEarnedJson("not json"), []);
+  });
+
+  it("removes reset trophies and keeps the rest of the ledger", () => {
+    const changed = JSON.parse(removeTrophiesFromEarnedJson(ledger, ["12"]));
+    assert.deepEqual(changed.earned, [{ id: 3, time: 1794490000 }]);
+    assert.equal(changed.package_fingerprint, "abc123");
+    assert.equal(changed.title_id, "CUSA00223");
+    assert.equal(removeTrophiesFromEarnedJson(ledger, ["40"]), ledger);
+  });
+});
+
+describe("new PS4 port trophy sources", () => {
+  it("keeps CTR trophies per game ID and inFAMOUS in its ledger", () => {
+    const sources = meta as Record<
+      string,
+      { trophies?: RecompilationTrophySource }
+    >;
+    assert.equal(
+      getTrophySourcePath(sources["octr-nitrofueled-pc"].trophies!, "linux"),
+      "<xdgData>/sacredfire/user/trophies/{titleId}/unlocked.txt"
+    );
+    assert.equal(sources["iss-pc"].trophies!.kind, "earned-json");
+    assert.equal(sources["pt-pc"].trophies, undefined);
   });
 });

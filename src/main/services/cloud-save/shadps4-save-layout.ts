@@ -4,6 +4,7 @@ import path from "node:path";
 import type { ClassicsDisc, Game } from "@types";
 
 import { parseParamSfoRawValue } from "../emulators/param-sfo.js";
+import { getShadps4CatalogueTitleIds } from "./shadps4-catalogue-title-ids.js";
 
 const SERIAL = /^[A-Z]{4}\d{5}$/;
 
@@ -70,15 +71,41 @@ export const shadps4GameFolders = (game: Pick<Game, "discs">) =>
       disc.path.trim() && !disc.isExecutable && !disc.recompilationSlug
   );
 
+/**
+ * The save folders of the game: the installed disc's, plus those of the game's
+ * other versions, so a save made on another region is kept and restored too.
+ * Without a readable disc there are none.
+ */
+export const withShadps4OtherVersionIds = async (
+  game: Game,
+  discSaveTitleIds: readonly string[],
+  readCatalogue: (game: Game) => Promise<string[]> = getShadps4CatalogueTitleIds
+): Promise<string[]> => {
+  if (!discSaveTitleIds.length) return [];
+  const catalogue = await readCatalogue(game).catch(() => []);
+  return [
+    ...new Set([
+      ...discSaveTitleIds,
+      ...catalogue.flatMap((id) => {
+        const serial = normalizeShadps4Serial(id);
+        return serial ? [serial] : [];
+      }),
+    ]),
+  ].sort((a, b) => a.localeCompare(b));
+};
+
 export const getShadps4SavedataTitleIds = async (
-  game: Pick<Game, "discs">
+  game: Game,
+  readCatalogue?: (game: Game) => Promise<string[]>
 ): Promise<string[]> => {
   const ids = await Promise.all(
     shadps4GameFolders(game).map((disc) => readShadps4DiscIds(disc.path))
   );
-  return [
-    ...new Set(ids.flatMap((entry) => (entry ? [entry.saveTitleId] : []))),
-  ].sort((a, b) => a.localeCompare(b));
+  return withShadps4OtherVersionIds(
+    game,
+    ids.flatMap((entry) => (entry ? [entry.saveTitleId] : [])),
+    readCatalogue
+  );
 };
 
 export const isShadps4GameSaveFile = (
