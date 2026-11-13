@@ -6,11 +6,14 @@ import {
   clearExecutableRealPathCache,
   doesSteamCompatDataPathMatchWinePrefix,
   getExecutablePathAliases,
+  getWinePrefixAliases,
   hasLaunchedPidMatch,
   hasLinuxNativeOrAppImageMatch,
   isLinuxGameWindowProcess,
   processReferencesExecutable,
   refreshExecutableRealPaths,
+  refreshWinePrefixRealPaths,
+  resolveExecutableRealPath,
   type LinuxProcessInfo,
 } from "./linux-process-match.js";
 
@@ -304,5 +307,124 @@ describe("executable real path cache", () => {
     assert.deepEqual(getExecutablePathAliases(storedPath), [storedPath]);
     await refreshExecutableRealPaths([storedPath], resolve, 1);
     assert.equal(resolve.mock.callCount(), 1);
+  });
+
+  it("keeps the last resolved path when a later refresh fails", async () => {
+    let calls = 0;
+    const resolve = mock.fn(async () => {
+      calls += 1;
+      if (calls > 1) throw new Error("ENOENT");
+      return resolvedPath;
+    });
+
+    await refreshExecutableRealPaths([storedPath], resolve, 0);
+    await refreshExecutableRealPaths(
+      [storedPath],
+      resolve,
+      REAL_PATH_CACHE_TTL_MS
+    );
+
+    assert.equal(resolve.mock.callCount(), 2);
+    assert.deepEqual(getExecutablePathAliases(storedPath), [
+      storedPath,
+      resolvedPath,
+    ]);
+  });
+});
+
+describe("executable symlink resolution", () => {
+  const realpath = mock.fn(async (value: string) => {
+    if (value === "/home/user/Games/Game") return "/var/home/user/Games/Game";
+    if (value === "/home/user/Games/Game/start") return "/usr/bin/python3.12";
+    if (value === "/home/user/Games") return "/var/home/user/Games";
+    return value;
+  });
+
+  it("resolves only the parent directory of the executable", async () => {
+    assert.equal(
+      await resolveExecutableRealPath("/home/user/Games/Game/start", realpath),
+      "/var/home/user/Games/Game/start"
+    );
+    assert.equal(
+      realpath.mock.calls.some(
+        (call) => call.arguments[0] === "/home/user/Games/Game/start"
+      ),
+      false
+    );
+  });
+
+  it("does not alias a symlinked executable to its target", async () => {
+    clearExecutableRealPathCache();
+    await refreshExecutableRealPaths(
+      ["/home/user/Games/Game/start"],
+      (value) => resolveExecutableRealPath(value, realpath),
+      0
+    );
+
+    const aliases = getExecutablePathAliases("/home/user/Games/Game/start");
+
+    assert.deepEqual(aliases, [
+      "/home/user/Games/Game/start",
+      "/var/home/user/Games/Game/start",
+    ]);
+    assert.equal(
+      processReferencesExecutable(
+        { cwd: "/usr/bin", exe: "/usr/bin/python3.12" },
+        "/home/user/Games/Game/start"
+      ),
+      false
+    );
+  });
+});
+
+describe("wine prefix real path matching", () => {
+  const storedPrefix = "/home/user/.config/hydralauncher/wine-prefixes/10";
+  const resolvedPrefix =
+    "/var/home/user/.config/hydralauncher/wine-prefixes/10";
+
+  beforeEach(() => {
+    clearExecutableRealPathCache();
+  });
+
+  it("matches a process whose prefix is reported under the resolved path", async () => {
+    const processes = [
+      {
+        pid: 20,
+        exe: "/usr/bin/wine64-preloader",
+        cwd: "/tmp",
+        environ: { STEAM_COMPAT_DATA_PATH: resolvedPrefix },
+      },
+    ];
+
+    assert.equal(
+      isLinuxGameWindowProcess(
+        processes,
+        20,
+        undefined,
+        ["/games/game.exe"],
+        storedPrefix
+      ),
+      false
+    );
+
+    await refreshWinePrefixRealPaths(
+      [storedPrefix],
+      async () => resolvedPrefix
+    );
+
+    assert.deepEqual(getWinePrefixAliases(storedPrefix), [
+      storedPrefix,
+      resolvedPrefix,
+    ]);
+    assert.equal(
+      isLinuxGameWindowProcess(
+        processes,
+        20,
+        undefined,
+        ["/games/game.exe"],
+        storedPrefix
+      ),
+      true
+    );
   });
 });

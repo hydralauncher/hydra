@@ -31,8 +31,10 @@ import {
   doesSteamCompatDataPathMatchWinePrefix,
   hasLaunchedPidMatch,
   getExecutablePathAliases,
+  getWinePrefixAliases,
   hasLinuxNativeOrAppImageMatch,
   refreshExecutableRealPaths,
+  refreshWinePrefixRealPaths,
   type LinuxProcessInfo,
 } from "./linux-process-match";
 import { isWindowsBatchFile } from "@main/helpers/windows-batch-command";
@@ -300,10 +302,13 @@ const hasLinuxCompatibilityProcessMatch = (
       path.dirname(alias).toLowerCase()
     )
   );
-  const expectedWinePrefix = Wine.getEffectivePrefixPath(
+  const storedWinePrefix = Wine.getEffectivePrefixPath(
     game.winePrefixPath,
     game.objectId
-  )?.toLowerCase();
+  );
+  const expectedWinePrefixes = storedWinePrefix
+    ? getWinePrefixAliases(storedWinePrefix).map((alias) => alias.toLowerCase())
+    : [];
 
   return linuxProcesses.some((process) => {
     if (!executableDirectories.has(process.cwd)) {
@@ -311,11 +316,13 @@ const hasLinuxCompatibilityProcessMatch = (
     }
 
     if (
-      expectedWinePrefix &&
+      expectedWinePrefixes.length > 0 &&
       process.steamCompatDataPath &&
-      !doesSteamCompatDataPathMatchWinePrefix(
-        process.steamCompatDataPath,
-        expectedWinePrefix
+      !expectedWinePrefixes.some((expectedWinePrefix) =>
+        doesSteamCompatDataPathMatchWinePrefix(
+          process.steamCompatDataPath,
+          expectedWinePrefix
+        )
       )
     ) {
       return false;
@@ -352,12 +359,22 @@ export const watchProcesses = async () => {
   if (!games.length) return;
 
   if (platform === "linux") {
-    await refreshExecutableRealPaths(
+    void refreshExecutableRealPaths(
       games.flatMap((game) =>
         [game.executablePath, ...(game.trackingExecutablePaths ?? [])].filter(
           (value): value is string => Boolean(value)
         )
       )
+    );
+    void refreshWinePrefixRealPaths(
+      games.flatMap((game) => {
+        const prefix = Wine.getEffectivePrefixPath(
+          game.winePrefixPath,
+          game.objectId
+        );
+
+        return prefix ? [prefix] : [];
+      })
     );
   }
 

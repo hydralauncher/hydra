@@ -16,78 +16,103 @@ type AsyncRealPathResolver = (value: string) => Promise<string>;
 
 export const REAL_PATH_CACHE_TTL_MS = 30_000;
 
-const realPathCache = new Map<
-  string,
-  { resolved: string; expiresAt: number }
->();
-const pendingRealPaths = new Map<string, Promise<void>>();
+export const resolveExecutableRealPath = async (
+  value: string,
+  realpath: AsyncRealPathResolver = fs.promises.realpath
+) =>
+  path.posix.join(
+    await realpath(path.posix.dirname(value)),
+    path.posix.basename(value)
+  );
 
-const lookupCachedRealPath: RealPathResolver = (value) =>
-  realPathCache.get(value)?.resolved ?? value;
+const resolveDirectoryRealPath: AsyncRealPathResolver = (value) =>
+  fs.promises.realpath(value);
+
+const createRealPathCache = (defaultResolve: AsyncRealPathResolver) => {
+  const entries = new Map<string, { resolved: string; expiresAt: number }>();
+  const pending = new Map<string, Promise<void>>();
+
+  const lookup: RealPathResolver = (value) =>
+    entries.get(value)?.resolved ?? value;
+
+  const clear = () => {
+    entries.clear();
+    pending.clear();
+  };
+
+  const start = (
+    value: string,
+    resolve: AsyncRealPathResolver,
+    now: number
+  ) => {
+    const refresh = resolve(value)
+      .catch(() => entries.get(value)?.resolved ?? value)
+      .then((resolved) => {
+        entries.set(value, {
+          resolved,
+          expiresAt: now + REAL_PATH_CACHE_TTL_MS,
+        });
+      })
+      .finally(() => {
+        pending.delete(value);
+      });
+
+    pending.set(value, refresh);
+    return refresh;
+  };
+
+  const refreshOne = (
+    value: string,
+    resolve: AsyncRealPathResolver,
+    now: number
+  ): Promise<void> => {
+    const cached = entries.get(value);
+    if (cached && cached.expiresAt > now) return Promise.resolve();
+
+    return pending.get(value) ?? start(value, resolve, now);
+  };
+
+  const refresh = async (
+    values: Iterable<string>,
+    resolve: AsyncRealPathResolver = defaultResolve,
+    now = Date.now()
+  ) => {
+    const refreshes = new Set<Promise<void>>();
+
+    for (const value of new Set(values)) {
+      refreshes.add(refreshOne(value, resolve, now));
+    }
+
+    await Promise.all(refreshes);
+  };
+
+  return { lookup, clear, refresh };
+};
+
+const executableRealPaths = createRealPathCache(resolveExecutableRealPath);
+const winePrefixRealPaths = createRealPathCache(resolveDirectoryRealPath);
 
 export const clearExecutableRealPathCache = () => {
-  realPathCache.clear();
-  pendingRealPaths.clear();
+  executableRealPaths.clear();
+  winePrefixRealPaths.clear();
 };
 
-const startRealPathRefresh = (
-  value: string,
-  resolve: AsyncRealPathResolver,
-  now: number
-) => {
-  const refresh = resolve(value)
-    .catch(() => value)
-    .then((resolved) => {
-      realPathCache.set(value, {
-        resolved,
-        expiresAt: now + REAL_PATH_CACHE_TTL_MS,
-      });
-    })
-    .finally(() => {
-      pendingRealPaths.delete(value);
-    });
+export const refreshExecutableRealPaths = executableRealPaths.refresh;
 
-  pendingRealPaths.set(value, refresh);
-  return refresh;
-};
+export const refreshWinePrefixRealPaths = winePrefixRealPaths.refresh;
 
-const refreshRealPath = (
-  value: string,
-  resolve: AsyncRealPathResolver,
-  now: number
-): Promise<void> => {
-  const cached = realPathCache.get(value);
-  if (cached && cached.expiresAt > now) return Promise.resolve();
-
-  return (
-    pendingRealPaths.get(value) ?? startRealPathRefresh(value, resolve, now)
-  );
-};
-
-export const refreshExecutableRealPaths = async (
-  executablePaths: Iterable<string>,
-  resolve: AsyncRealPathResolver = fs.promises.realpath,
-  now = Date.now()
-) => {
-  const refreshes = new Set<Promise<void>>();
-
-  for (const executablePath of new Set(executablePaths)) {
-    refreshes.add(refreshRealPath(executablePath, resolve, now));
-  }
-
-  await Promise.all(refreshes);
-};
+const toAliases = (value: string, resolved: string) =>
+  resolved === value ? [value] : [value, resolved];
 
 export const getExecutablePathAliases = (
   executablePath: string,
-  resolve: RealPathResolver = lookupCachedRealPath
-) => {
-  const resolved = resolve(executablePath);
+  resolve: RealPathResolver = executableRealPaths.lookup
+) => toAliases(executablePath, resolve(executablePath));
 
-  return resolved === executablePath
-    ? [executablePath]
-    : [executablePath, resolved];
-};
+export const getWinePrefixAliases = (
+  winePrefixPath: string,
+  resolve: RealPathResolver = winePrefixRealPaths.lookup
+) => toAliases(winePrefixPath, resolve(winePrefixPath));
 
 export const hasLinuxNativeOrAppImageMatch = (
   executablePath: string,
@@ -175,14 +200,17 @@ const processMatchesWinePrefix = (
 
   const winePrefix = process.environ?.WINEPREFIX;
   const steamCompatDataPath = process.environ?.STEAM_COMPAT_DATA_PATH;
-  const expectedPrefix = path.normalize(winePrefixPath).toLowerCase();
 
-  return (
-    Boolean(
-      winePrefix && path.normalize(winePrefix).toLowerCase() === expectedPrefix
-    ) ||
-    doesSteamCompatDataPathMatchWinePrefix(steamCompatDataPath, winePrefixPath)
-  );
+  return getWinePrefixAliases(winePrefixPath).some((alias) => {
+    const expectedPrefix = path.normalize(alias).toLowerCase();
+
+    return (
+      Boolean(
+        winePrefix &&
+          path.normalize(winePrefix).toLowerCase() === expectedPrefix
+      ) || doesSteamCompatDataPathMatchWinePrefix(steamCompatDataPath, alias)
+    );
+  });
 };
 
 export const isLinuxGameWindowProcess = (
