@@ -22,11 +22,10 @@ const readStringValue = (
   const decoded = data.subarray(valueStart, valueEnd).toString("ascii");
   const nullOffset = decoded.indexOf("\0");
   const rawValue = nullOffset === -1 ? decoded : decoded.slice(0, nullOffset);
-  const normalizedValue = rawValue.trim();
-  return normalizedValue ? normalize(normalizedValue) : null;
+  return rawValue.trim() || null;
 };
 
-export const parseParamSfoValue = (
+export const parseParamSfoRawValue = (
   data: Buffer,
   requestedKey: string
 ): string | null => {
@@ -53,6 +52,14 @@ export const parseParamSfoValue = (
     }
   }
   return null;
+};
+
+export const parseParamSfoValue = (
+  data: Buffer,
+  requestedKey: string
+): string | null => {
+  const value = parseParamSfoRawValue(data, requestedKey);
+  return value ? normalize(value) : null;
 };
 
 export const parseParamSfo = (data: Buffer): string | null =>

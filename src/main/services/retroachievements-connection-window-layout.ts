@@ -13,20 +13,21 @@ export interface RetroAchievementsConnectionWindowLayout {
 }
 
 export const getRetroAchievementsConnectionWindowLayout = (
-  platform: NodeJS.Platform
+  platform: NodeJS.Platform,
+  hasNativeWindowDecorations = false
 ): RetroAchievementsConnectionWindowLayout => {
-  const isLinux = platform === "linux";
+  const hasCustomTitleBar = platform === "linux" && !hasNativeWindowDecorations;
 
   return {
     width:
       AUTH_WINDOW_CONTENT_WIDTH +
-      (isLinux ? CUSTOM_WINDOW_BORDER_WIDTH * 2 : 0),
+      (hasCustomTitleBar ? CUSTOM_WINDOW_BORDER_WIDTH * 2 : 0),
     height:
       AUTH_WINDOW_CONTENT_HEIGHT +
-      (isLinux
+      (hasCustomTitleBar
         ? CUSTOM_WINDOW_TITLE_BAR_HEIGHT + CUSTOM_WINDOW_BORDER_WIDTH * 2
         : 0),
-    frame: !isLinux,
-    minimizable: isLinux,
+    frame: !hasCustomTitleBar,
+    minimizable: hasCustomTitleBar,
   };
 };

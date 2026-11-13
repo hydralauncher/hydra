@@ -15,7 +15,12 @@ import {
 import { registerEvent } from "../register-event";
 import { collectGameAchievementFiles } from "@main/services/achievements/collect-game-achievement-files";
 import fs from "fs";
-import { achievementsLogger, HydraApi, WindowManager } from "@main/services";
+import {
+  achievementsLogger,
+  emulators,
+  HydraApi,
+  WindowManager,
+} from "@main/services";
 import { getUnlockedAchievements } from "../user/get-unlocked-achievements";
 import { gamesSublevel, levelKeys } from "@main/level";
 import type { GameShop } from "@types";
@@ -28,6 +33,9 @@ import {
 } from "@main/services/achievements/grouped-souvenir-worker";
 import { AchievementWatcherManager } from "@main/services/achievements/achievement-watcher-manager";
 import { updateGameRecord } from "@main/services/game-record-updater";
+import { removeShadps4TrophyFile } from "@main/services/emulators/shadps4-trophy-watcher";
+import { removeRpcs3TrophyFiles } from "@main/services/emulators/rpcs3-trophy-sources";
+import { resetRecompilationTrophies } from "../recompilation/recompilation-trophy-reset";
 
 const deleteRemoteAchievements = async (
   levelKey: string,
@@ -111,6 +119,10 @@ const resetGameAchievementsNow = async (
       });
     }
 
+    await removeShadps4TrophyFile(game);
+    await removeRpcs3TrophyFiles(game);
+    await resetRecompilationTrophies(game);
+
     assertCurrent();
     AchievementWatcherManager.forgetAchievementFiles(
       levelKey,
@@ -173,6 +185,12 @@ const resetGameAchievements = (
 ) => {
   const context = HydraApi.getAuthContext();
   if (!context) return Promise.reject(new AchievementSyncCancelledError());
+  if (
+    emulators.emulatorSessions.get(levelKeys.game(shop, objectId))?.system ===
+    "ps3"
+  ) {
+    return Promise.reject(new Error("reset_achievements_game_running"));
+  }
   UnlockedAchievementsCache.invalidate(shop, objectId);
   return achievementSyncCoordinator.resetGame(
     levelKeys.game(shop, objectId),

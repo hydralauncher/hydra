@@ -4,13 +4,15 @@ import type {
   AchievementNotificationRequest,
 } from "@types";
 
-export const ACHIEVEMENT_NOTIFICATION_HOST_READY_TIMEOUT = 5_000;
+export const ACHIEVEMENT_NOTIFICATION_HOST_READY_TIMEOUT = 7_000;
 export const ACHIEVEMENT_NOTIFICATION_CONTENT_READY_TIMEOUT = 5_000;
-export const ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT = 6_450;
+export const ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT = 8_500;
 
 export type AchievementNotificationRendererEvent =
   | { type: "host-ready" }
   | { type: "content-ready"; requestId: string }
+  | { type: "started"; requestId: string }
+  | { type: "sound-played"; requestId: string; batchId: string }
   | { type: "finished"; requestId: string }
   | { type: "failed"; requestId?: string; reason?: string };
 
@@ -19,7 +21,9 @@ export interface AchievementNotificationHost {
   load(): Promise<void>;
   send(channel: string, ...args: unknown[]): void;
   setPosition(position: AchievementCustomNotificationPosition): Promise<void>;
+  setContentProtection(isProtected: boolean): void;
   showInactive(): void;
+  isVisible(): boolean;
   hide(): void;
   destroy(): void;
   isDestroyed(): boolean;
@@ -27,16 +31,21 @@ export interface AchievementNotificationHost {
 }
 
 type TimeoutHandle = ReturnType<typeof setTimeout>;
-type NotificationFallback = () => void | Promise<void>;
+type NotificationFallback = (
+  requests: AchievementNotificationRequest[],
+  soundPlayed: boolean
+) => void | Promise<void>;
 
 interface FallbackReference {
   callback?: NotificationFallback;
   invoked: boolean;
+  soundPlayed: boolean;
 }
 
 interface QueueItem {
   request: AchievementNotificationRequest;
   fallback: FallbackReference;
+  shown: boolean;
 }
 
 export interface AchievementNotificationPresenterDependencies {
@@ -63,10 +72,13 @@ export class AchievementNotificationPresenter {
   private host: AchievementNotificationHost | null = null;
   private stage: PresenterStage = "idle";
   private requestSequence = 0;
+  private batchSequence = 0;
   private generation = 0;
   private creatingHost = false;
   private watchdog: TimeoutHandle | null = null;
   private warmPosition: AchievementCustomNotificationPosition | null = null;
+  private warmHostWaiters: (() => void)[] = [];
+  private shutdownRequested = false;
 
   constructor(
     private readonly dependencies: AchievementNotificationPresenterDependencies
@@ -77,22 +89,26 @@ export class AchievementNotificationPresenter {
     achievements: AchievementNotificationInfo[],
     fallback?: NotificationFallback
   ): void {
-    if (!achievements.length) return;
+    if (this.shutdownRequested || !achievements.length) return;
 
     const fallbackReference: FallbackReference = {
       callback: fallback,
       invoked: false,
+      soundPlayed: false,
     };
+    const batchId = this.nextBatchId();
 
     this.queue.push(
       ...achievements.map((achievement) => ({
         request: {
           id: this.nextRequestId(),
+          batchId,
           type: "achievement" as const,
           position,
           achievement,
         },
         fallback: fallbackReference,
+        shown: false,
       }))
     );
 
@@ -105,17 +121,21 @@ export class AchievementNotificationPresenter {
     achievementCount: number,
     fallback?: NotificationFallback
   ): void {
-    if (gameCount <= 0 || achievementCount <= 0) return;
+    if (this.shutdownRequested || gameCount <= 0 || achievementCount <= 0) {
+      return;
+    }
 
     this.queue.push({
       request: {
         id: this.nextRequestId(),
+        batchId: this.nextBatchId(),
         type: "combined",
         position,
         gameCount,
         achievementCount,
       },
-      fallback: { callback: fallback, invoked: false },
+      fallback: { callback: fallback, invoked: false, soundPlayed: false },
+      shown: false,
     });
 
     this.present();
@@ -126,30 +146,50 @@ export class AchievementNotificationPresenter {
     notification: AchievementNotificationInfo,
     fallback?: NotificationFallback
   ): void {
+    if (this.shutdownRequested) return;
+
+    const variant = notification.variant ?? "screenshot";
     this.queue = this.queue.filter(
-      (item) => item.request.type !== "screenshot"
+      ({ request }) =>
+        request.type !== "screenshot" || request.achievement.variant !== variant
     );
     this.queue.push({
       request: {
         id: this.nextRequestId(),
+        batchId: this.nextBatchId(),
         type: "screenshot",
         position,
-        achievement: { ...notification, variant: "screenshot" },
+        achievement: { ...notification, variant },
       },
-      fallback: { callback: fallback, invoked: false },
+      fallback: { callback: fallback, invoked: false, soundPlayed: false },
+      shown: false,
     });
 
     this.present();
   }
 
-  public keepWarm(position: AchievementCustomNotificationPosition): void {
+  public keepWarm(
+    position: AchievementCustomNotificationPosition
+  ): Promise<void> {
+    if (this.shutdownRequested) return Promise.resolve();
     this.warmPosition = position;
     this.ensureHost();
+    if (!this.creatingHost && this.stage !== "loading") {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => this.warmHostWaiters.push(resolve));
+  }
+
+  private settleWarmHostWaiters(): void {
+    const waiters = this.warmHostWaiters;
+    this.warmHostWaiters = [];
+    for (const resolve of waiters) resolve();
   }
 
   public releaseWarm(): void {
     if (!this.warmPosition) return;
     this.warmPosition = null;
+    this.settleWarmHostWaiters();
     if (!this.activeItem && !this.queue.length && this.stage === "ready") {
       this.destroyHost();
     }
@@ -182,11 +222,29 @@ export class AchievementNotificationPresenter {
       return;
     }
 
+    if (event.type === "sound-played") {
+      if (this.activeItem?.request.batchId !== event.batchId) return;
+      this.activeItem.fallback.soundPlayed = true;
+      if (this.activeItem.request.id === event.requestId) {
+        this.activeItem.shown = true;
+      }
+      return;
+    }
+
     if (this.activeItem?.request.id !== event.requestId) return;
     const activeRequest = this.activeItem.request;
 
     if (event.type === "content-ready") {
       this.handleContentReadyEvent(host, activeRequest.id);
+      return;
+    }
+
+    if (event.type === "started") {
+      if (this.stage !== "visible") return;
+      this.dependencies.log(
+        `Achievement notification started: ${event.requestId}`
+      );
+      this.activeItem.shown = true;
       return;
     }
 
@@ -197,6 +255,7 @@ export class AchievementNotificationPresenter {
     if (this.stage !== "loading") return;
     this.clearWatchdog();
     this.stage = "ready";
+    this.settleWarmHostWaiters();
     this.processNext();
   }
 
@@ -217,18 +276,21 @@ export class AchievementNotificationPresenter {
     if (this.stage !== "preparing") return;
 
     this.clearWatchdog();
+    this.stage = "visible";
 
     try {
+      this.dependencies.log(`Achievement notification showing: ${requestId}`);
+      host.setContentProtection(this.activeItem?.request.type === "screenshot");
       host.showInactive();
-      this.stage = "visible";
-      this.dependencies.log(`Achievement notification started: ${requestId}`);
-      host.send("start-achievement-notification", requestId);
+      host.send("start-achievement-notification", requestId, host.isVisible());
       this.startWatchdog(
         ACHIEVEMENT_NOTIFICATION_COMPLETION_TIMEOUT,
         "notification animation timed out"
       );
     } catch (error) {
-      this.failHost("failed to show notification window", error);
+      if (this.host === host) {
+        this.failHost("failed to start notification", error);
+      }
     }
   }
 
@@ -269,11 +331,22 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
     this.destroyCurrentHost();
     this.stage = "idle";
+    this.settleWarmHostWaiters();
+  }
+
+  public shutdown(): void {
+    this.shutdownRequested = true;
+    this.dispose();
   }
 
   private nextRequestId(): string {
     this.requestSequence += 1;
     return `achievement-notification-${this.requestSequence}`;
+  }
+
+  private nextBatchId(): string {
+    this.batchSequence += 1;
+    return `achievement-notification-batch-${this.batchSequence}`;
   }
 
   private ensureHost(): void {
@@ -396,17 +469,40 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
     this.destroyCurrentHost();
     this.stage = "idle";
+    this.settleWarmHostWaiters();
 
-    const fallbacks = new Set(failedItems.map((item) => item.fallback));
-    for (const fallback of fallbacks) {
-      if (!fallback.callback || fallback.invoked) continue;
+    const fallbacks = new Map<
+      FallbackReference,
+      {
+        callback: NotificationFallback;
+        requests: AchievementNotificationRequest[];
+      }
+    >();
+
+    for (const item of failedItems) {
+      const callback = item.fallback.callback;
+      if (!callback || item.fallback.invoked || item.shown) {
+        continue;
+      }
+
+      const group = fallbacks.get(item.fallback) ?? {
+        callback,
+        requests: [],
+      };
+      group.requests.push(item.request);
+      fallbacks.set(item.fallback, group);
+    }
+
+    for (const [fallback, { callback, requests }] of fallbacks) {
       fallback.invoked = true;
-      void Promise.resolve(fallback.callback()).catch((fallbackError) => {
-        this.dependencies.logError(
-          "Achievement notification fallback failed",
-          fallbackError
-        );
-      });
+      void Promise.resolve()
+        .then(() => callback(requests, fallback.soundPlayed))
+        .catch((fallbackError) => {
+          this.dependencies.logError(
+            "Achievement notification fallback failed",
+            fallbackError
+          );
+        });
     }
   }
 
@@ -415,6 +511,7 @@ export class AchievementNotificationPresenter {
     this.clearWatchdog();
     this.destroyCurrentHost();
     this.stage = "idle";
+    this.settleWarmHostWaiters();
     this.dependencies.log("Achievement notification window destroyed");
   }
 

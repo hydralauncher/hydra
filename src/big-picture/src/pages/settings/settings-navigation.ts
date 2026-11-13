@@ -77,6 +77,7 @@ export const EMULATION_OVERVIEW_CARD_FOCUS_IDS = {
   ps1: "emulation-overview-ps1-card",
   ps2: "emulation-overview-ps2-card",
   ps3: "emulation-overview-ps3-card",
+  ps4: "emulation-overview-ps4-card",
   psp: "emulation-overview-psp-card",
   dolphin: "emulation-overview-dolphin-card",
   retroarch: "emulation-overview-retroarch-card",
@@ -95,8 +96,8 @@ export const EMULATION_DETAIL_EXECUTABLE_BUTTON_ID =
   "emulation-detail-executable-button";
 export const EMULATION_DETAIL_REDETECT_BUTTON_ID =
   "emulation-detail-redetect-button";
-export const EMULATION_DETAIL_RPCS3_ROOT_BROWSE_BUTTON_ID =
-  "emulation-detail-rpcs3-root-browse";
+export const EMULATION_DETAIL_SAVE_LOCATION_BROWSE_BUTTON_ID =
+  "emulation-detail-save-location-browse";
 export const EMULATION_DETAIL_ADD_FOLDER_BUTTON_ID =
   "emulation-detail-add-folder";
 export const EMULATION_DETAIL_RESCAN_BUTTON_ID = "emulation-detail-rescan";

@@ -1090,6 +1090,7 @@ dependencies = [
 name = "hydra-native"
 version = "0.1.0"
 dependencies = [
+ "aes",
  "anyhow",
  "blake3",
  "evdev",
@@ -1119,6 +1120,7 @@ dependencies = [
  "unicode-normalization",
  "uuid",
  "walkdir",
+ "windows",
  "windows-sys 0.61.2",
  "x11rb",
  "zbus",

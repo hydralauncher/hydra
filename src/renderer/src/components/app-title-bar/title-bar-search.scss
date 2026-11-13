@@ -1,0 +1,64 @@
+@use "../../scss/globals.scss";
+
+.title-bar-search {
+  display: flex;
+  align-items: center;
+  gap: globals.$spacing-unit;
+  width: 100%;
+  max-width: 440px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid globals.$border-color;
+  border-radius: 6px;
+  background-color: globals.$background-color;
+  -webkit-app-region: no-drag;
+  transition: border-color ease 0.2s;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &--focused,
+  &--focused:hover {
+    border-color: #dadbe1;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    color: globals.$subtle-color;
+  }
+
+  &__input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    color: #dadbe1;
+    font-family: inherit;
+    font-size: globals.$hint-font-size;
+    text-overflow: ellipsis;
+    cursor: default;
+
+    &::placeholder {
+      color: globals.$subtle-color;
+    }
+
+    &:focus {
+      cursor: text;
+    }
+  }
+
+  &__clear {
+    display: flex;
+    flex-shrink: 0;
+    color: globals.$subtle-color;
+    cursor: pointer;
+
+    &:hover {
+      color: globals.$muted-color;
+    }
+  }
+}

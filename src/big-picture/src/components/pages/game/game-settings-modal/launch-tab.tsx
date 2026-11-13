@@ -1,13 +1,13 @@
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   isSteamImportedGame,
   type SkuRegion,
 } from "@renderer/helpers";
 import type { LibraryGame, ShortcutLocation } from "@types";
 import { FileIcon } from "@phosphor-icons/react";
-import { getClassicsDiscLabel } from "@shared";
+import { getClassicsDiscLabel, platformToSystem } from "@shared";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
 import { Disc3, FolderOpen, Monitor, Trash } from "lucide-react";
 import { useCallback, type ReactNode, useState } from "react";
@@ -23,6 +23,7 @@ import {
   type FileFilter,
   VerticalFocusGroup,
 } from "../../../common";
+import { ConfirmationModal } from "../../../modals";
 import { SettingsSection } from "../../../../pages/settings/settings-section";
 
 import "./launch-tab.scss";
@@ -87,6 +88,7 @@ export interface GameLaunchSettingsProps {
   onProcessDiscExecutablePath: (path: string) => Promise<void>;
   onRemoveSelectedDisc: () => Promise<void>;
   onRemoveAllDiscs: () => Promise<void>;
+  onUninstallPort: (slug: string) => Promise<void>;
   onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
 }
 
@@ -99,6 +101,7 @@ interface LaunchboxDiscsSectionProps {
   onAddExecutableFile: () => void;
   onRemoveSelectedDisc: () => Promise<void>;
   onRemoveAllDiscs: () => Promise<void>;
+  onUninstallPort: (slug: string) => Promise<void>;
   onToggleDontAskDiscSelection: (checked: boolean) => Promise<void>;
 }
 
@@ -111,9 +114,13 @@ function LaunchboxDiscsSection({
   onAddExecutableFile,
   onRemoveSelectedDisc,
   onRemoveAllDiscs,
+  onUninstallPort,
   onToggleDontAskDiscSelection,
 }: Readonly<LaunchboxDiscsSectionProps>) {
   const { t } = useTranslation("game_details");
+  const [portToUninstall, setPortToUninstall] = useState<
+    NonNullable<LibraryGame["discs"]>[number] | null
+  >(null);
   const hasDiscs = discs && discs.length > 0;
   const executableIcons = useFileIcons(
     (discs ?? []).filter((disc) => disc.isExecutable).map((disc) => disc.path)
@@ -132,7 +139,7 @@ function LaunchboxDiscsSection({
             ariaLabel={t("discs_section_title")}
             value={selectedDisc.path}
             options={discs.map((disc) => {
-              const region = disc.sku ? getSkuRegion(disc.sku) : null;
+              const region = getDiscRegion(disc);
 
               const executableIcon = executableIcons[disc.path];
               let icon: ReactNode = <Disc3 size={20} />;
@@ -220,6 +227,10 @@ function LaunchboxDiscsSection({
                 variant="danger"
                 icon={<Trash size={16} />}
                 onClick={() => {
+                  if (selectedDisc.recompilationSlug) {
+                    setPortToUninstall(selectedDisc);
+                    return;
+                  }
                   void onRemoveSelectedDisc();
                 }}
               >
@@ -251,6 +262,24 @@ function LaunchboxDiscsSection({
           />
         ) : null}
       </div>
+
+      <ConfirmationModal
+        visible={portToUninstall !== null}
+        title={t("uninstall_title", {
+          ns: "recompilation",
+          name: portToUninstall?.label,
+        })}
+        description={t("uninstall_description", { ns: "recompilation" })}
+        confirmLabel={t("uninstall", { ns: "recompilation" })}
+        cancelLabel={t("cancel", { ns: "recompilation" })}
+        danger
+        onClose={() => setPortToUninstall(null)}
+        onConfirm={async () => {
+          const slug = portToUninstall?.recompilationSlug;
+          setPortToUninstall(null);
+          if (slug) await onUninstallPort(slug);
+        }}
+      />
     </SettingsSection>
   );
 }
@@ -597,6 +626,7 @@ export function GameLaunchSettingsTab({
   onProcessDiscExecutablePath,
   onRemoveSelectedDisc,
   onRemoveAllDiscs,
+  onUninstallPort,
   onToggleHydraPlaytimeEnabled,
 }: Readonly<GameLaunchSettingsProps>) {
   const { t } = useTranslation("game_details");
@@ -671,6 +701,7 @@ export function GameLaunchSettingsTab({
             onAddExecutableFile={handleOpenDiscExecutablePicker}
             onRemoveSelectedDisc={onRemoveSelectedDisc}
             onRemoveAllDiscs={onRemoveAllDiscs}
+            onUninstallPort={onUninstallPort}
             onToggleDontAskDiscSelection={onToggleDontAskDiscSelection}
           />
         ) : (
@@ -733,6 +764,7 @@ export function GameLaunchSettingsTab({
         onSelect={handleDiscPicked}
         title={t("add_disc")}
         filters={discPickerFilters}
+        selectDirectory={platformToSystem(game.platform) === "ps4"}
       />
 
       <FileExplorerModal

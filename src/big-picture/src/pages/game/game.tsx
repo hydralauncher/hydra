@@ -189,6 +189,11 @@ const CLASSICS_LAUNCH_NOTICES: Partial<
     message: "Hydra could not identify an emulator for this platform.",
     kind: "error",
   },
+  RECOMPILATION_NEEDS_SETUP: {
+    title: "PC version not ready",
+    message: "Open this game in Hydra to choose the ROM for its PC version.",
+    kind: "error",
+  },
   NO_DISC: {
     title: "No disc found",
     message: "Add or rescan discs for this Classics game before launching.",
@@ -1182,6 +1187,9 @@ export default function Game() {
           setPendingClassicsLaunch({ discPath });
           return;
         }
+
+        // The port is already open: nothing failed.
+        if (code === "RECOMPILATION_ALREADY_RUNNING") return;
 
         const notice =
           (code && CLASSICS_LAUNCH_NOTICES[code]) ?? CLASSICS_LAUNCH_FALLBACK;

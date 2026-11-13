@@ -1,7 +1,9 @@
+@use "../../scss/globals.scss";
+
 .reward-chips {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(globals.$spacing-unit / 2);
   white-space: nowrap;
 
   &__xp,
@@ -11,27 +13,27 @@
     align-items: center;
     height: 20px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     letter-spacing: 0.02em;
   }
 
   &__xp {
-    padding: 0 6px;
+    padding: 0 globals.$spacing-unit;
     background-color: rgba(164, 99, 255, 0.2);
     color: #cda9ff;
   }
 
   &__coins {
     gap: 4px;
-    padding: 0 6px 0 3px;
+    padding: 0 globals.$spacing-unit 0 calc(globals.$spacing-unit / 2);
     background-color: rgba(47, 155, 255, 0.16);
     color: #8dc8ff;
   }
 
   &__boost {
     gap: 4px;
-    padding: 0 6px 0 3px;
+    padding: 0 globals.$spacing-unit 0 calc(globals.$spacing-unit / 2);
     background-color: rgba(22, 177, 149, 0.18);
     color: #7fe3cf;
   }

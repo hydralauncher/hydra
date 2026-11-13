@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { getDownloadsPath } from "../helpers/get-downloads-path";
 import {
   DownloadManager,
+  GameFilesManager,
   DownloadOrchestrator,
   logger,
   retroarch,
@@ -32,6 +33,7 @@ const deleteGameFolder = async (
   options: { deleteSourceArchive?: boolean; keepEpicUpdateFiles?: boolean } = {}
 ): Promise<void> => {
   const gameKey = levelKeys.game(shop, objectId);
+  GameFilesManager.cancelPs4Extraction(shop, objectId);
   const download = await downloadsSublevel.get(gameKey);
 
   if (!download) return;

@@ -7,10 +7,11 @@ import type {
 } from "@types";
 import {
   getCloudSaveEmulatorProvider,
-  hasRpcs3CloudSaveDisc,
+  getDiscCloudSaveEmulatorProvider,
+  hasCloudSaveDisc,
   isCloudSaveV2Eligible,
 } from "@shared";
-import { gamesSublevel, levelKeys } from "@main/level";
+import { getEmulatorDiscIdentityStatus } from "./emulator-disc-identity.js";
 
 import { HydraApi } from "../hydra-api";
 import { isGameRunning } from "../game-running-state";
@@ -20,6 +21,7 @@ import { getCloudSaveAutomaticSyncEnabled } from "./automatic-sync-settings";
 import { canAccessCloudSaves } from "./cloud-save-access";
 import { syncGameCloudSave } from "./sync-game-cloud-save";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
+import { getCloudSaveGameRecord } from "./recompilation-cloud-save";
 import { getCloudSaveErrorDetails } from "./cloud-save-error-details";
 import { isCloudSaveEnvironmentChangedError } from "./environment-guard";
 import { isCloudSaveExecutableMissingError } from "./executable-path-guard";
@@ -75,16 +77,13 @@ export const canRunAutomaticCloudSaveSync = async (
     return false;
   }
 
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch(() => null);
-  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) return false;
-  if (shop === "steam" || shop === "epic") return Boolean(game.executablePath);
-  if (
-    getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
-    !hasRpcs3CloudSaveDisc(game)
-  )
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(() => null);
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform, objectId)) {
     return false;
+  }
+  if (shop === "steam" || shop === "epic") return Boolean(game.executablePath);
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, game.platform);
+  if (discProvider && !hasCloudSaveDisc(game)) return false;
   if (getCloudSaveEmulatorProvider(shop, game.platform) === "retroarch") {
     const { getSelectedRetroArchRom } = await import(
       "./retroarch-save-provider"
@@ -95,11 +94,8 @@ export const canRunAutomaticCloudSaveSync = async (
     () => null
   );
   if (!context?.pathContext.executablePath) return false;
-  if (getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3") {
-    const { getRpcs3DiscIdentityStatus } = await import(
-      "./rpcs3-game-identity.js"
-    );
-    return (await getRpcs3DiscIdentityStatus(game)).status === "ready";
+  if (discProvider) {
+    return (await getEmulatorDiscIdentityStatus(game))?.status === "ready";
   }
   return true;
 };
@@ -146,9 +142,8 @@ export const runAutomaticCloudSaveSyncDetailed = async (
   }
 
   let gameReadFailed = false;
-  const game = await gamesSublevel
-    .get(levelKeys.game(shop, objectId))
-    .catch((error: unknown) => {
+  const game = await getCloudSaveGameRecord(shop, objectId).catch(
+    (error: unknown) => {
       logger.error("[Cloud Save] Failed to inspect automatic sync game", {
         shop,
         objectId,
@@ -157,8 +152,9 @@ export const runAutomaticCloudSaveSyncDetailed = async (
       });
       gameReadFailed = true;
       return null;
-    });
-  if (!game || !isCloudSaveV2Eligible(shop, game.platform)) {
+    }
+  );
+  if (!game || !isCloudSaveV2Eligible(shop, game.platform, objectId)) {
     return {
       status: gameReadFailed
         ? classifyAutomaticCloudSaveFailure(trigger)
@@ -170,8 +166,8 @@ export const runAutomaticCloudSaveSyncDetailed = async (
     return { status: "skipped", result: null };
   }
   if (
-    getCloudSaveEmulatorProvider(shop, game.platform) === "rpcs3" &&
-    !hasRpcs3CloudSaveDisc(game)
+    getDiscCloudSaveEmulatorProvider(shop, game.platform) &&
+    !hasCloudSaveDisc(game)
   ) {
     return { status: "skipped", result: null };
   }

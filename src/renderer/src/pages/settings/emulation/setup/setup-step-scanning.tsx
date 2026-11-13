@@ -25,7 +25,10 @@ interface Props {
   discovered: number;
   matched: number;
   sizeBytes: number;
-  unmatchedFiles: { name: string; reason: "wrong_platform" | "unmatched" }[];
+  unmatchedFiles: {
+    name: string;
+    reason: "wrong_platform" | "unmatched" | "unsupported_package";
+  }[];
 }
 
 const formatBytes = (bytes: number): string => {
@@ -38,6 +41,12 @@ const formatBytes = (bytes: number): string => {
   const value = bytes / Math.pow(1024, i);
   return `${value.toFixed(value >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
 };
+
+const REASON_LABEL_KEYS = {
+  wrong_platform: "setup_match_wrong_platform",
+  unmatched: "setup_match_unmatched",
+  unsupported_package: "setup_match_unsupported_package",
+} as const;
 
 export function SetupStepScanning({
   systemLabel,
@@ -68,10 +77,8 @@ export function SetupStepScanning({
 
   const gamesValue = isDone || matched > 0 ? matched : discovered;
 
-  const reasonLabel = (reason: "wrong_platform" | "unmatched") =>
-    reason === "wrong_platform"
-      ? t("setup_match_wrong_platform")
-      : t("setup_match_unmatched");
+  const reasonLabel = (reason: keyof typeof REASON_LABEL_KEYS) =>
+    t(REASON_LABEL_KEYS[reason]);
 
   return (
     <>

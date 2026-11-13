@@ -278,13 +278,13 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
     opacity: 0.5;
 
     &--unlocked {
-      color: #fff;
+      color: globals.$muted-color;
       opacity: 1;
     }
 
     small {
       color: globals.$body-color;
-      font-size: 11px;
+      font-size: globals.$tiny-font-size;
       text-align: center;
     }
   }
@@ -596,7 +596,7 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
     &-title {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: globals.$spacing-unit;
       color: globals.$muted-color;
       font-weight: 600;
     }
@@ -617,9 +617,9 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
     &-hardcore-badge {
       display: inline-flex;
       align-items: center;
-      padding: 2px 6px;
+      padding: 2px globals.$spacing-unit;
       border-radius: 4px;
-      font-size: 10px;
+      font-size: globals.$tiny-font-size;
       font-weight: 700;
       letter-spacing: 0.5px;
       text-transform: uppercase;
@@ -656,7 +656,7 @@ $compare-gutter: (globals.$spacing-unit * 3.5 + 1px) * 2;
       grid-template-columns: auto auto;
       justify-content: start;
       align-items: center;
-      gap: 6px;
+      gap: globals.$spacing-unit;
       width: 88px;
       font-variant-numeric: tabular-nums;
     }

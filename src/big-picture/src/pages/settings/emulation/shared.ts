@@ -5,6 +5,7 @@ import { KNOWN_BINARY_LABELS } from "@renderer/pages/settings/emulation/known-bi
 import ps1Art from "@renderer/assets/emulation/ps1.png";
 import ps2Art from "@renderer/assets/emulation/ps2.png";
 import ps3Art from "@renderer/assets/emulation/ps3.png";
+import ps4Art from "@renderer/assets/emulation/ps4.png";
 import pspArt from "@renderer/assets/emulation/icons/ppsspp.png";
 import dolphinArt from "@renderer/assets/emulation/icons/dolphin.png";
 
@@ -14,18 +15,13 @@ export const SETTINGS_TOAST_OPTIONS = {
   fallbackVisual: "settings" as const,
 };
 
-export const EMULATION_SYSTEMS: EmulatorSystem[] = [
-  "ps1",
-  "ps2",
-  "ps3",
-  "psp",
-  "dolphin",
-];
+export { EMULATOR_SYSTEMS as EMULATION_SYSTEMS } from "@shared";
 
 export const EMULATION_SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps1: "PlayStation 1",
   ps2: "PlayStation 2",
   ps3: "PlayStation 3",
+  ps4: "PlayStation 4",
   psp: "PlayStation Portable",
   dolphin: "GameCube & Wii",
 };
@@ -34,6 +30,7 @@ export const EMULATION_SYSTEM_ART: Record<EmulatorSystem, string> = {
   ps1: ps1Art,
   ps2: ps2Art,
   ps3: ps3Art,
+  ps4: ps4Art,
   psp: pspArt,
   dolphin: dolphinArt,
 };

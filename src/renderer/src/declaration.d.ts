@@ -60,6 +60,17 @@ import type {
   EmulationBackupProgress,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RecompilationActionResult,
+  RecompilationInstallProgress,
+  RecompilationPrepareProgress,
+  Ps4PkgAccept,
+  Ps4PkgCheck,
+  Ps4PkgJobEvent,
+  Ps4PkgResult,
+  RecompilationInstallState,
+  RecompilationRef,
+  RecompilationRomSource,
+  RecompilationRomState,
   EmulatorInstallResult,
   ResolvedInstallOption,
   DetectedRom,
@@ -507,6 +518,10 @@ declare global {
       objectId: string,
       collectionIds: string[]
     ) => Promise<void>;
+    setCollectionGameOrder: (
+      collectionId: string,
+      games: { shop: GameShop; objectId: string }[]
+    ) => Promise<void>;
     clearNewDownloadOptions: (
       shop: GameShop,
       objectId: string
@@ -618,11 +633,17 @@ declare global {
       objectId: string
     ) => Promise<number>;
     getGamesRunning: () => Promise<
-      Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      Pick<
+        GameRunning,
+        "id" | "sessionDurationInMillis" | "recompilationSlug"
+      >[]
     >;
     onGamesRunning: (
       cb: (
-        gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+        gamesRunning: Pick<
+          GameRunning,
+          "id" | "sessionDurationInMillis" | "recompilationSlug"
+        >[]
       ) => void
     ) => () => Electron.IpcRenderer;
     onGameSessionSynced: (cb: () => void) => () => Electron.IpcRenderer;
@@ -670,13 +691,14 @@ declare global {
               type: "done" | "cancelled";
               requestId: string;
               system: EmulatorSystem;
+              unsupportedPackages: number;
               fileCount: number;
               sizeBytes: number;
               matched: number;
               unmatched: number;
               unmatchedFiles: {
                 name: string;
-                reason: "wrong_platform" | "unmatched";
+                reason: "wrong_platform" | "unmatched" | "unsupported_package";
               }[];
             }
           | {
@@ -708,11 +730,15 @@ declare global {
     getRpcs3ConfigRootStatus: () => Promise<
       import("@types").Rpcs3ConfigRootStatus
     >;
-    getRpcs3DiscIdentityStatus: (
+    getEmulatorDiscIdentityStatus: (
       objectId: string,
       shop: GameShop
-    ) => Promise<import("@types").Rpcs3DiscIdentityStatus>;
+    ) => Promise<import("@types").EmulatorDiscIdentityStatus>;
     setRpcs3ConfigRoot: (root: string) => Promise<EmulatorConfig>;
+    getShadps4DataDirStatus: () => Promise<
+      import("@types").EmulatorSaveLocationStatus
+    >;
+    setShadps4DataDir: (dir: string | null) => Promise<EmulatorConfig>;
     detectEmulators: () => Promise<EmulatorConfigMap>;
     detectEmulator: (
       system: EmulatorSystem,
@@ -738,7 +764,7 @@ declare global {
       folderPath: string,
       scanSubfolders: boolean,
       language?: string
-    ) => Promise<EmulatorConfig>;
+    ) => Promise<{ config: EmulatorConfig; unsupportedPackages: number }>;
     registerRomFolder: (
       system: EmulatorSystem,
       folderPath: string,
@@ -757,8 +783,12 @@ declare global {
     rescanEmulator: (
       system: EmulatorSystem,
       language?: string
-    ) => Promise<EmulatorConfig>;
-    checkPs3Firmware: (
+    ) => Promise<{ config: EmulatorConfig; unsupportedPackages: number }>;
+    checkShadps4TrophyKey: (
+      executablePath: string | null
+    ) => Promise<{ installed: boolean; path: string }>;
+    checkEmulatorFirmware: (
+      system: EmulatorSystem,
       executablePath: string | null
     ) => Promise<{ installed: boolean; path: string | null }>;
     checkEmulatorBios: (
@@ -775,6 +805,68 @@ declare global {
     ) => Promise<EmulatorInstallResult>;
     onEmulatorInstallProgress: (
       cb: (payload: EmulatorInstallProgress) => void
+    ) => () => void;
+    getRecompilationInstallState: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationInstallState | null>;
+    installRecompilation: (
+      ref: RecompilationRef,
+      parentDirectory?: string
+    ) => Promise<RecompilationActionResult>;
+    uninstallRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    openRecompilationFolder: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    playRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    closeRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    getRecompilationRomState: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationRomState | null>;
+    setRecompilationRom: (
+      ref: RecompilationRef,
+      choice: { source: RecompilationRomSource; path?: string }
+    ) => Promise<RecompilationActionResult>;
+    checkRecompilationRom: (
+      ref: RecompilationRef,
+      path: string
+    ) => Promise<RecompilationActionResult>;
+    extractRecompilationRomPkg: (
+      ref: RecompilationRef,
+      pkgPath: string
+    ) => Promise<RecompilationActionResult>;
+    hasPs4GameFolder: (shop: GameShop, objectId: string) => Promise<boolean>;
+    checkPs4Pkg: (
+      shop: GameShop,
+      objectId: string,
+      pkgPath: string,
+      accept: Ps4PkgAccept
+    ) => Promise<Ps4PkgCheck>;
+    applyPs4Update: (
+      shop: GameShop,
+      objectId: string,
+      pkgPath: string
+    ) => Promise<Ps4PkgResult>;
+    extractPs4GamePkg: (
+      shop: GameShop,
+      objectId: string,
+      pkgPath?: string | null
+    ) => Promise<Ps4PkgResult>;
+    cancelPs4PkgJob: () => Promise<void>;
+    onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => () => void;
+    onRecompilationInstallProgress: (
+      cb: (payload: RecompilationInstallProgress) => void
+    ) => () => void;
+    prepareRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    onRecompilationPrepareProgress: (
+      cb: (payload: RecompilationPrepareProgress) => void
     ) => () => void;
     /* RetroArch */
     getRetroArchConfig: () => Promise<RetroArchConfig>;
@@ -1303,6 +1395,7 @@ declare global {
     deleteTempFile: (filePath: string) => Promise<void>;
     platform: NodeJS.Platform;
     isWayland: boolean;
+    hasNativeWindowDecorations: boolean;
 
     /* Auto update */
     onAutoUpdaterEvent: (
@@ -1317,7 +1410,6 @@ declare global {
     openAuthWindow: (page: AuthPage) => Promise<void>;
     minimizeAuthWindow: () => Promise<void>;
     closeAuthWindow: () => Promise<void>;
-    getSessionHash: () => Promise<string | null>;
     onSignIn: (cb: () => void) => () => Electron.IpcRenderer;
     onAccountUpdated: (cb: () => void) => () => Electron.IpcRenderer;
     onSteamConnected: (cb: () => void) => () => Electron.IpcRenderer;
@@ -1469,10 +1561,7 @@ declare global {
       cb: (notification: LocalNotification) => void
     ) => () => Electron.IpcRenderer;
     onAchievementUnlocked: (
-      cb: (
-        position?: AchievementCustomNotificationPosition,
-        achievements?: AchievementNotificationInfo[]
-      ) => void
+      cb: (suppressSound?: boolean) => void
     ) => () => Electron.IpcRenderer;
     onInAppAchievementUnlocked?: (
       cb: (
@@ -1484,10 +1573,15 @@ declare global {
       cb: (request: AchievementNotificationRequest) => void
     ) => () => Electron.IpcRenderer;
     onStartAchievementNotification: (
-      cb: (requestId: string) => void
+      cb: (requestId: string, visible: boolean) => void
     ) => () => Electron.IpcRenderer;
     achievementNotificationHostReady: () => Promise<void>;
     achievementNotificationContentReady: (requestId: string) => Promise<void>;
+    achievementNotificationStarted: (requestId: string) => Promise<void>;
+    achievementNotificationSoundPlayed: (
+      requestId: string,
+      batchId: string
+    ) => Promise<void>;
     achievementNotificationFinished: (requestId: string) => Promise<void>;
     achievementNotificationFailed: (
       requestId?: string,
@@ -1559,12 +1653,14 @@ declare global {
     minimizeChatWindow: () => Promise<void>;
     closeChatWindow: () => Promise<void>;
     openGameInMainWindow: (gamePath: string) => Promise<void>;
+    openChatNotificationSettings: () => Promise<void>;
     consumePendingChatFriends: () => Promise<PendingChatFriend[]>;
     onChatFriendsPending: (cb: () => void) => () => Electron.IpcRenderer;
     setChatWindowState: (state: ChatWindowState) => Promise<void>;
     getChatUnreadState: () => Promise<ChatUnreadState>;
     /** Resolves to false when the read could not be saved. */
     markChatRead: (friendId: string, seq: number) => Promise<boolean>;
+    refreshOfficialChat: () => Promise<void>;
     onChatMessage: (
       cb: (sync: ChatMessageSync) => void
     ) => () => Electron.IpcRenderer;

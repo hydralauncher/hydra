@@ -27,7 +27,7 @@
     display: flex;
     flex-direction: column;
     gap: globals.$spacing-unit;
-    padding: calc(globals.$spacing-unit * 2) calc(globals.$spacing-unit * 1.75);
+    padding: calc(globals.$spacing-unit * 2);
     border-right: 1px solid globals.$border-color;
     background: globals.$dark-background-color;
     overflow-y: auto;
@@ -43,8 +43,7 @@
     background: transparent;
     color: globals.$muted-color;
     text-align: left;
-    padding: calc(globals.$spacing-unit * 1.25)
-      calc(globals.$spacing-unit * 1.5);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     border-radius: 4px;
     cursor: pointer;
     font-size: globals.$body-font-size;
@@ -78,7 +77,7 @@
   &__sidebar-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     padding-top: 8px;
   }
 
@@ -89,9 +88,9 @@
   }
 
   &__sidebar-group-label {
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
-    color: #71717a;
+    color: globals.$subtle-color;
     letter-spacing: 0.8px;
     padding: 0 calc(globals.$spacing-unit * 1.5);
   }
@@ -104,27 +103,6 @@
     min-width: 0;
     padding: calc(globals.$spacing-unit * 2.5);
     overflow: auto;
-  }
-
-  @media (max-width: 860px) {
-    &__content {
-      flex-direction: column;
-    }
-
-    &__sidebar {
-      width: 100%;
-      min-width: 0;
-      padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2)
-        globals.$spacing-unit;
-      border-right: none;
-      border-bottom: 1px solid globals.$border-color;
-      flex-direction: row;
-      flex-wrap: wrap;
-    }
-
-    &__panel {
-      padding-top: globals.$spacing-unit;
-    }
   }
 }
 

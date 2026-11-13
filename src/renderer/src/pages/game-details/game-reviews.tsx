@@ -38,6 +38,7 @@ interface GameReviewsProps {
   hasUserReviewed: boolean;
   isCheckingUserReview: boolean;
   onUserReviewedChange: (hasReviewed: boolean) => void;
+  recompilationSlug?: string;
 }
 
 const MAX_REVIEW_CHARS = 1000;
@@ -50,6 +51,7 @@ export function GameReviews({
   hasUserReviewed,
   isCheckingUserReview,
   onUserReviewedChange,
+  recompilationSlug,
 }: Readonly<GameReviewsProps>) {
   const { t, i18n } = useTranslation("game_details");
   const { showSuccessToast, showErrorToast } = useToast();
@@ -151,6 +153,9 @@ export function GameReviews({
           skip: skip.toString(),
           sortBy: reviewsSortBy,
         });
+        if (recompilationSlug) {
+          params.set("recompilationSlug", recompilationSlug);
+        }
 
         const response = await window.electron.hydraApi.get(
           `/games/${shop}/${objectId}/reviews?${params.toString()}`,
@@ -186,7 +191,14 @@ export function GameReviews({
         }
       }
     },
-    [objectId, shop, reviewsPage, reviewsSortBy, i18n.language]
+    [
+      objectId,
+      shop,
+      reviewsPage,
+      reviewsSortBy,
+      i18n.language,
+      recompilationSlug,
+    ]
   );
 
   const handleVoteReview = async (
@@ -312,6 +324,7 @@ export function GameReviews({
           data: {
             reviewHtml,
             score: reviewScore,
+            ...(recompilationSlug ? { recompilationSlug } : {}),
           },
         }
       );
@@ -401,8 +414,14 @@ export function GameReviews({
 
   return (
     <div className="game-details__reviews-section">
-      {!isCheckingUserReview && !hasUserReviewed && (
-        <>
+      {/* Kept in the layout (hidden) while the review check runs: most
+          visitors haven't reviewed, so the form usually stays and the list
+          below it doesn't jump when the answer arrives. */}
+      {!hasUserReviewed && (
+        <div
+          className={`game-details__leave-review${isCheckingUserReview ? " game-details__leave-review--pending" : ""}`}
+          aria-hidden={isCheckingUserReview}
+        >
           <div className="game-details__reviews-header">
             <h3 className="game-details__reviews-title">
               {t("leave_a_review")}
@@ -423,7 +442,7 @@ export function GameReviews({
             />
           )}
           <div className="game-details__reviews-separator"></div>
-        </>
+        </div>
       )}
 
       <div className="game-details__reviews-list-header">

@@ -6,13 +6,20 @@ import {
   useState,
   useCallback,
   useRef,
+  useSyncExternalStore,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+import {
+  dropTargetForElements,
+  monitorForElements,
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
   useLibrary,
   useAppDispatch,
   useAppSelector,
   useGameCollections,
+  useToast,
   useUserDetails,
 } from "@renderer/hooks";
 import {
@@ -24,14 +31,21 @@ import {
   HeartIcon,
   TelescopeIcon,
   FileDirectoryIcon,
+  PlusIcon,
   SearchIcon,
   SyncIcon,
 } from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { AuthPage, groupLibraryGames, removeDiacritics } from "@shared";
 import { GameCollection, LibraryGame } from "@types";
-import { CreateCollectionModal, GameContextMenu } from "@renderer/components";
-import { useCollectionContextMenu } from "@renderer/context";
+import {
+  Button,
+  ConfirmationModal,
+  CreateCollectionModal,
+  GameContextMenu,
+} from "@renderer/components";
+import { SidebarAddingCustomGameModal } from "@renderer/components/sidebar/sidebar-adding-custom-game-modal";
+import { useCollectionContextMenu, useScanGames } from "@renderer/context";
 import {
   getGameCollectionIds,
   isGameInstalled,
@@ -40,14 +54,52 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { LibraryGameCard } from "./library-game-card";
 import { LibraryGameCardLarge } from "./library-game-card-large";
-import { ViewOptions, ViewMode } from "./view-options";
-import { FilterOptions, SortOption } from "./filter-options";
+import {
+  LibraryDisplayMenu,
+  type SortOption,
+  type ViewMode,
+} from "./library-display-menu";
 import { CategoryFilter, LibraryCategory } from "./category-filter";
-import { InstalledFilter } from "./installed-filter";
-import { PlatformFilter } from "./platform-filter";
-import { SourceFilter } from "./source-filter";
-import { CollectionsFilter } from "./collections-filter";
+import { LibraryFiltersMenu } from "./library-filters-menu";
 import { LibraryGamesSkeleton } from "./library-games-skeleton";
+import {
+  getLibraryGameOrderKey,
+  moveLibraryGameInCustomOrder,
+  readLibraryCustomOrder,
+  sortLibraryGamesByCustomOrder,
+  writeLibraryCustomOrder,
+} from "./library-custom-order";
+import {
+  buildLibraryCollectionOrder,
+  expandLibraryCollectionOrder,
+  getLibraryCollectionGames,
+  hasLibraryCollectionOrder,
+  isSameLibraryOrder,
+} from "./library-collection-order";
+import {
+  beginCollectionOrderSave,
+  clearSettledCollectionOrders,
+  finishCollectionOrderSave,
+  getCollectionOrderSaves,
+  subscribeCollectionOrderSaves,
+} from "./library-collection-order-saves";
+import {
+  LibrarySortableGame,
+  isLibraryGameDragData,
+} from "./library-sortable-game";
+import {
+  createLibraryDragOverlay,
+  settleLibraryCard,
+  SETTLE_DURATION_MS,
+  type LibraryDragOverlay,
+} from "./library-drag-overlay";
+import {
+  findLibraryGridKeyAt,
+  getLibraryPlacementBox,
+  layoutLibraryGrid,
+  type LibraryGridMetrics,
+} from "./library-grid-layout";
+import { createLibraryDragAutoscroll } from "./library-drag-autoscroll";
 import {
   categoryShowsPlatforms,
   categoryShowsSources,
@@ -73,6 +125,8 @@ const EMPTY_HIDDEN_GAMES: LibraryGame[] = [];
 const GAP = 16;
 const LARGE_CARD_ESTIMATED_HEIGHT = 300;
 const FALLBACK_ITEM_WIDTH = 150;
+const LIBRARY_GRID_DROP_TYPE = "library-grid";
+const DRAG_MOVE_MIN_DISTANCE = 12;
 
 const COLUMN_BREAKPOINTS = [3000, 2600, 2000, 1300, 900] as const;
 const COLUMNS: Record<"grid" | "compact", readonly number[]> = {
@@ -100,6 +154,17 @@ const readStoredPlatforms = (): string[] => {
   }
 };
 
+const getContentWidth = (element: HTMLElement) => {
+  const style = window.getComputedStyle(element);
+  const scrollbarWidth = element.offsetWidth - element.clientWidth;
+  return (
+    element.getBoundingClientRect().width -
+    scrollbarWidth -
+    (Number.parseFloat(style.paddingLeft) || 0) -
+    (Number.parseFloat(style.paddingRight) || 0)
+  );
+};
+
 const SORT_OPTIONS: SortOption[] = [
   "title_asc",
   "recently_played",
@@ -107,10 +172,12 @@ const SORT_OPTIONS: SortOption[] = [
   "achievements",
   "installed_first",
   "title_desc",
+  "custom",
 ];
 
 export default function Library() {
   const { library, updateLibrary } = useLibrary();
+  const { showErrorToast, showSuccessToast } = useToast();
   const { userDetails } = useUserDetails();
   const accountId = userDetails?.id ?? null;
   const activeAccountIdRef = useRef(accountId);
@@ -184,6 +251,24 @@ export default function Library() {
 
     return "title_asc";
   });
+  const [customOrder, setCustomOrder] = useState<string[]>(() =>
+    readLibraryCustomOrder(localStorage, accountId)
+  );
+  useEffect(() => {
+    setCustomOrder(readLibraryCustomOrder(localStorage, accountId));
+  }, [accountId]);
+  const [dragPreview, setDragPreview] = useState<{
+    sourceKey: string;
+    order: string[];
+    restingIndex: ReadonlyMap<string, number>;
+  } | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
+  const collectionOrderSaves = useSyncExternalStore(
+    subscribeCollectionOrderSaves,
+    getCollectionOrderSaves
+  );
+  const [showResetCustomOrderModal, setShowResetCustomOrderModal] =
+    useState(false);
   const [gameContextMenu, setGameContextMenu] = useState<{
     game: LibraryGame | null;
     visible: boolean;
@@ -191,6 +276,8 @@ export default function Library() {
   }>({ game: null, visible: false, position: { x: 0, y: 0 } });
   const [showCreateCollectionModal, setShowCreateCollectionModal] =
     useState(false);
+  const [showAddGameModal, setShowAddGameModal] = useState(false);
+  const { isScanSupported, isScanning, openScanModal } = useScanGames();
 
   const [storedFilters] = useState(() =>
     readStoredLibraryFilters(
@@ -261,7 +348,7 @@ export default function Library() {
     const el = gamesScrollRef.current;
     if (!el) return;
 
-    setContainerWidth(el.getBoundingClientRect().width);
+    setContainerWidth(getContentWidth(el));
 
     const ro = new ResizeObserver(([entry]) =>
       setContainerWidth(entry.contentRect.width)
@@ -357,11 +444,6 @@ export default function Library() {
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
     localStorage.setItem("library-view-mode", mode);
-  }, []);
-
-  const handleSortChange = useCallback((nextSortBy: SortOption) => {
-    setSortBy(nextSortBy);
-    localStorage.setItem("library-sort-by", nextSortBy);
   }, []);
 
   useEffect(() => {
@@ -496,10 +578,195 @@ export default function Library() {
     () => groupLibraryGames(hiddenGames, runningGameId ? [runningGameId] : []),
     [hiddenGames, runningGameId]
   );
-  const sortedLibrary = useMemo(
-    () => sortLibraryGames(groupedLibrary, sortBy),
-    [groupedLibrary, sortBy]
+  const orderCollectionId =
+    selectedCollectionId &&
+    selectedCollectionId !== FAVORITES_COLLECTION_ID &&
+    selectedCollectionId !== HIDDEN_COLLECTION_ID
+      ? selectedCollectionId
+      : null;
+  const collectionGames = useMemo(
+    () =>
+      orderCollectionId
+        ? getLibraryCollectionGames(
+            [...library, ...hiddenGames],
+            orderCollectionId
+          )
+        : [],
+    [library, hiddenGames, orderCollectionId]
   );
+  const activePendingCollectionOrder = orderCollectionId
+    ? (collectionOrderSaves.orders[orderCollectionId] ?? null)
+    : null;
+  const collectionOrder = useMemo(() => {
+    if (!orderCollectionId) return null;
+
+    const sortUnplaced = (unplaced: LibraryGame[]) =>
+      sortLibraryGamesByCustomOrder(unplaced, customOrder, (rest) =>
+        sortLibraryGames(rest, "title_asc")
+      );
+
+    return activePendingCollectionOrder
+      ? sortLibraryGamesByCustomOrder(
+          collectionGames,
+          activePendingCollectionOrder,
+          sortUnplaced
+        ).map(getLibraryGameOrderKey)
+      : buildLibraryCollectionOrder(
+          collectionGames,
+          orderCollectionId,
+          sortUnplaced
+        );
+  }, [
+    collectionGames,
+    orderCollectionId,
+    customOrder,
+    activePendingCollectionOrder,
+  ]);
+  const savedOrder = collectionOrder ?? customOrder;
+  const effectiveOrder = dragPreview?.order ?? savedOrder;
+  const canResetOrder = (() => {
+    if (!orderCollectionId) return customOrder.length > 0;
+    if (activePendingCollectionOrder) {
+      return activePendingCollectionOrder.length > 0;
+    }
+    return hasLibraryCollectionOrder(collectionGames, orderCollectionId);
+  })();
+
+  const orderLibraryGames = useCallback(
+    (games: LibraryGame[]) =>
+      sortBy === "custom"
+        ? sortLibraryGamesByCustomOrder(games, effectiveOrder, (unplaced) =>
+            sortLibraryGames(unplaced, "title_asc")
+          )
+        : sortLibraryGames(games, sortBy),
+    [sortBy, effectiveOrder]
+  );
+  const sortedLibrary = useMemo(
+    () => orderLibraryGames(groupedLibrary),
+    [groupedLibrary, orderLibraryGames]
+  );
+  const sortedHiddenGames = useMemo(
+    () => orderLibraryGames(groupedHiddenGames),
+    [groupedHiddenGames, orderLibraryGames]
+  );
+
+  const saveCustomOrder = useCallback(
+    (order: string[]) => {
+      const knownKeys = new Set(
+        [...library, ...hiddenGames].map(getLibraryGameOrderKey)
+      );
+      const hasCurrentHiddenGames =
+        !accountId ||
+        (hiddenGamesState.ownerId === accountId && !hiddenGamesLoadFailed);
+      const nextOrder = hasCurrentHiddenGames
+        ? order.filter((key) => knownKeys.has(key))
+        : order;
+
+      setCustomOrder(nextOrder);
+      writeLibraryCustomOrder(localStorage, accountId, nextOrder);
+    },
+    [
+      library,
+      hiddenGames,
+      hiddenGamesState.ownerId,
+      hiddenGamesLoadFailed,
+      accountId,
+    ]
+  );
+
+  const handleSortChange = useCallback((nextSortBy: SortOption) => {
+    setSortBy(nextSortBy);
+    localStorage.setItem("library-sort-by", nextSortBy);
+  }, []);
+
+  const commitCollectionOrder = useCallback(
+    (collectionId: string, games: Pick<LibraryGame, "shop" | "objectId">[]) => {
+      beginCollectionOrderSave(collectionId, games.map(getLibraryGameOrderKey));
+      return window.electron
+        .setCollectionGameOrder(collectionId, games)
+        .then(
+          () => true,
+          () => {
+            showErrorToast(t("custom_order_save_failed"));
+            return false;
+          }
+        )
+        .finally(finishCollectionOrderSave);
+    },
+    [showErrorToast, t]
+  );
+
+  const hasSettledCollectionOrders =
+    collectionOrderSaves.pending === 0 &&
+    Object.keys(collectionOrderSaves.orders).length > 0;
+  useEffect(() => {
+    if (!hasSettledCollectionOrders) return;
+
+    void Promise.allSettled([updateLibrary(), updateHiddenGames()]).then(
+      clearSettledCollectionOrders
+    );
+  }, [hasSettledCollectionOrders, updateLibrary, updateHiddenGames]);
+
+  const commitOrder = useCallback(
+    (order: string[]) => {
+      if (!orderCollectionId) {
+        saveCustomOrder(order);
+        return;
+      }
+
+      const groups = [...groupedLibrary, ...groupedHiddenGames];
+      const nextGames = expandLibraryCollectionOrder(
+        order,
+        collectionGames,
+        groups
+      );
+      const currentGames = expandLibraryCollectionOrder(
+        collectionOrder ?? [],
+        collectionGames,
+        groups
+      );
+      if (
+        isSameLibraryOrder(
+          nextGames.map(getLibraryGameOrderKey),
+          currentGames.map(getLibraryGameOrderKey)
+        )
+      ) {
+        return;
+      }
+
+      commitCollectionOrder(orderCollectionId, nextGames);
+    },
+    [
+      orderCollectionId,
+      saveCustomOrder,
+      commitCollectionOrder,
+      collectionGames,
+      collectionOrder,
+      groupedLibrary,
+      groupedHiddenGames,
+    ]
+  );
+
+  const handleResetCustomOrder = useCallback(() => {
+    setShowResetCustomOrderModal(false);
+
+    if (orderCollectionId) {
+      void commitCollectionOrder(orderCollectionId, []).then((saved) => {
+        if (saved) showSuccessToast(t("custom_order_reset"));
+      });
+      return;
+    }
+
+    setCustomOrder([]);
+    writeLibraryCustomOrder(localStorage, accountId, []);
+    showSuccessToast(t("custom_order_reset"));
+  }, [
+    orderCollectionId,
+    commitCollectionOrder,
+    accountId,
+    showSuccessToast,
+    t,
+  ]);
 
   const {
     platforms: uniquePlatforms,
@@ -529,7 +796,7 @@ export default function Library() {
     let filtered =
       selectedCollectionId === HIDDEN_COLLECTION_ID
         ? userDetails
-          ? sortLibraryGames(groupedHiddenGames, sortBy)
+          ? sortedHiddenGames
           : []
         : sortedLibrary;
 
@@ -577,9 +844,8 @@ export default function Library() {
     });
   }, [
     sortedLibrary,
-    groupedHiddenGames,
+    sortedHiddenGames,
     userDetails,
-    sortBy,
     deferredSearchQuery,
     selectedCollectionId,
     effectiveCategory,
@@ -646,25 +912,235 @@ export default function Library() {
     [containerWidth, viewMode]
   );
 
-  const rows = useMemo(() => {
-    const result: LibraryGame[][] = [];
-    for (let i = 0; i < filteredLibrary.length; i += columnsCount) {
-      result.push(filteredLibrary.slice(i, i + columnsCount));
-    }
-    return result;
-  }, [filteredLibrary, columnsCount]);
+  const isCustomOrder = sortBy === "custom";
+  const gridRef = useRef<HTMLDivElement>(null);
+  const pendingSettleRef = useRef<{ key: string; fromRect: DOMRect } | null>(
+    null
+  );
 
-  const estimatedRowHeight = useMemo(() => {
-    if (viewMode === "large") return LARGE_CARD_ESTIMATED_HEIGHT + GAP;
-    const itemWidth =
+  const gridMetrics = useMemo<LibraryGridMetrics>(() => {
+    const availableWidth =
       containerWidth > 0
-        ? (containerWidth - GAP * (columnsCount - 1)) / columnsCount
-        : FALLBACK_ITEM_WIDTH;
-    return Math.round((itemWidth * 3) / 2) + GAP;
-  }, [viewMode, containerWidth, columnsCount]);
+        ? containerWidth - GAP
+        : FALLBACK_ITEM_WIDTH * columnsCount;
+    const cellWidth =
+      (availableWidth - GAP * (columnsCount - 1)) / columnsCount;
+    const cellHeight =
+      viewMode === "large"
+        ? LARGE_CARD_ESTIMATED_HEIGHT
+        : Math.round((cellWidth * 3) / 2);
+    return { cellWidth, cellHeight, gap: GAP };
+  }, [containerWidth, columnsCount, viewMode]);
+  const estimatedRowHeight = gridMetrics.cellHeight + GAP;
+
+  const gamesByKey = useMemo(
+    () =>
+      new Map(
+        filteredLibrary.map((game) => [getLibraryGameOrderKey(game), game])
+      ),
+    [filteredLibrary]
+  );
+
+  const gridLayout = useMemo(
+    () =>
+      layoutLibraryGrid(
+        filteredLibrary.map(getLibraryGameOrderKey),
+        columnsCount
+      ),
+    [filteredLibrary, columnsCount]
+  );
+
+  const dragStateRef = useRef({
+    savedOrder,
+    commitOrder,
+    dragPreview,
+    displayedGames: sortedLibrary,
+    gridLayout,
+    gridMetrics,
+  });
+  dragStateRef.current = {
+    savedOrder,
+    commitOrder,
+    dragPreview,
+    displayedGames:
+      selectedCollectionId === HIDDEN_COLLECTION_ID
+        ? sortedHiddenGames
+        : sortedLibrary,
+    gridLayout,
+    gridMetrics,
+  };
+
+  useEffect(() => {
+    const scrollElement = gamesScrollRef.current;
+    if (!isCustomOrder || !scrollElement) return;
+
+    let overlay: LibraryDragOverlay | null = null;
+    let lastMovePoint: { x: number; y: number } | null = null;
+    const removeOverlay = () => {
+      const rect = overlay?.getRect() ?? null;
+      overlay?.remove();
+      overlay = null;
+      return rect;
+    };
+    const autoscroll = createLibraryDragAutoscroll(
+      () => gamesScrollRef.current
+    );
+
+    let pointer: { clientX: number; clientY: number } | null = null;
+    let activeSourceKey: string | null = null;
+    let reorderEndTimeout: number | undefined;
+    let dragStartGames: LibraryGame[] = [];
+
+    const previewMoveOnto = (sourceKey: string, targetKey: string) => {
+      const {
+        savedOrder: committedOrder,
+        dragPreview: preview,
+        displayedGames,
+      } = dragStateRef.current;
+      const sourceIndex = displayedGames.findIndex(
+        (game) => getLibraryGameOrderKey(game) === sourceKey
+      );
+      const targetIndex = displayedGames.findIndex(
+        (game) => getLibraryGameOrderKey(game) === targetKey
+      );
+      if (sourceIndex === -1 || targetIndex === -1) return false;
+
+      const order = moveLibraryGameInCustomOrder(
+        preview?.order ?? committedOrder,
+        displayedGames,
+        sourceKey,
+        targetKey,
+        sourceIndex < targetIndex ? "after" : "before"
+      );
+      setDragPreview((current) =>
+        current ? { ...current, sourceKey, order } : current
+      );
+      return true;
+    };
+
+    const updateHoveredSlot = () => {
+      const grid = gridRef.current;
+      if (!pointer || !activeSourceKey || !grid) return;
+
+      const rect = grid.getBoundingClientRect();
+      const point = {
+        x: pointer.clientX - rect.left,
+        y: pointer.clientY - rect.top,
+      };
+      if (
+        lastMovePoint &&
+        Math.hypot(point.x - lastMovePoint.x, point.y - lastMovePoint.y) <
+          DRAG_MOVE_MIN_DISTANCE
+      ) {
+        return;
+      }
+
+      const { gridLayout: layout, gridMetrics: metrics } = dragStateRef.current;
+      const hoveredKey = findLibraryGridKeyAt(
+        layout,
+        metrics,
+        point.x,
+        point.y
+      );
+      if (
+        hoveredKey &&
+        hoveredKey !== activeSourceKey &&
+        previewMoveOnto(activeSourceKey, hoveredKey)
+      ) {
+        lastMovePoint = point;
+      }
+    };
+
+    scrollElement.addEventListener("scroll", updateHoveredSlot, {
+      passive: true,
+    });
+
+    return combine(
+      dropTargetForElements({
+        element: scrollElement,
+        canDrop: ({ source }) => isLibraryGameDragData(source.data),
+        getData: () => ({ type: LIBRARY_GRID_DROP_TYPE }),
+      }),
+      monitorForElements({
+        canMonitor: ({ source }) => isLibraryGameDragData(source.data),
+        onDragStart: ({ source, location }) => {
+          if (!isLibraryGameDragData(source.data)) return;
+          removeOverlay();
+          lastMovePoint = null;
+          activeSourceKey = source.data.orderKey;
+          window.clearTimeout(reorderEndTimeout);
+          setIsReordering(true);
+          dragStartGames = dragStateRef.current.displayedGames;
+          pointer = location.current.input;
+          overlay = createLibraryDragOverlay(
+            source.element,
+            location.current.input
+          );
+          setDragPreview({
+            sourceKey: source.data.orderKey,
+            order: dragStateRef.current.savedOrder,
+            restingIndex: new Map(
+              dragStateRef.current.gridLayout.placements.map(
+                (placement, index) => [placement.key, index]
+              )
+            ),
+          });
+        },
+        onDrag: ({ location }) => {
+          pointer = location.current.input;
+          overlay?.move(location.current.input);
+          autoscroll.update(location.current.input.clientY);
+          updateHoveredSlot();
+        },
+        onDrop: ({ source, location }) => {
+          activeSourceKey = null;
+          pointer = null;
+          autoscroll.stop();
+          const overlayRect = removeOverlay();
+          const { dragPreview: preview, commitOrder: commit } =
+            dragStateRef.current;
+          const isInsideGrid = location.current.dropTargets.length > 0;
+          const hasMoved =
+            preview !== null &&
+            !isSameLibraryOrder(
+              sortLibraryGamesByCustomOrder(
+                dragStartGames,
+                preview.order,
+                (games) => sortLibraryGames(games, "title_asc")
+              ).map(getLibraryGameOrderKey),
+              dragStartGames.map(getLibraryGameOrderKey)
+            );
+
+          if (preview && isInsideGrid && hasMoved) {
+            commit(preview.order);
+
+            if (isLibraryGameDragData(source.data) && overlayRect) {
+              pendingSettleRef.current = {
+                key: source.data.orderKey,
+                fromRect: overlayRect,
+              };
+            }
+          }
+          setDragPreview(null);
+          reorderEndTimeout = window.setTimeout(
+            () => setIsReordering(false),
+            SETTLE_DURATION_MS
+          );
+        },
+      }),
+      () => {
+        scrollElement.removeEventListener("scroll", updateHoveredSlot);
+        autoscroll.stop();
+        removeOverlay();
+        window.clearTimeout(reorderEndTimeout);
+        setDragPreview(null);
+        setIsReordering(false);
+      }
+    );
+  }, [isCustomOrder]);
 
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: gridLayout.rowCount,
     getScrollElement: () => gamesScrollRef.current,
     estimateSize: () => estimatedRowHeight,
     overscan: 3,
@@ -673,6 +1149,33 @@ export default function Library() {
   useEffect(() => {
     rowVirtualizer.measure();
   }, [rowVirtualizer, estimatedRowHeight]);
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const firstVisibleRow = virtualRows[0]?.index ?? 0;
+  const lastVisibleRow = virtualRows[virtualRows.length - 1]?.index ?? -1;
+  const visiblePlacements = gridLayout.placements.slice(
+    firstVisibleRow * gridLayout.columnCount,
+    (lastVisibleRow + 1) * gridLayout.columnCount
+  );
+
+  const renderedPlacements = dragPreview
+    ? [...visiblePlacements].sort(
+        (a, b) =>
+          (dragPreview.restingIndex.get(a.key) ?? Number.MAX_SAFE_INTEGER) -
+          (dragPreview.restingIndex.get(b.key) ?? Number.MAX_SAFE_INTEGER)
+      )
+    : visiblePlacements;
+
+  useLayoutEffect(() => {
+    const settle = pendingSettleRef.current;
+    if (!settle || dragPreview) return;
+    pendingSettleRef.current = null;
+
+    const element = gridRef.current?.querySelector<HTMLElement>(
+      `[data-library-order-key="${CSS.escape(settle.key)}"]`
+    );
+    if (element) settleLibraryCard(element, settle.fromRect);
+  }, [dragPreview]);
 
   useEffect(() => {
     gamesScrollRef.current?.scrollTo({ top: 0 });
@@ -733,55 +1236,89 @@ export default function Library() {
     <section
       className={`library__content${hasGames && isHeaderHidden ? " library__content--header-hidden" : ""}`}
     >
-      {showControls && (
-        <div
-          className={`library__page-header${isHeaderHidden ? " library__page-header--hidden" : ""}`}
-        >
-          <div className="library__controls-row">
-            <div className="library__controls-left">
+      {/* Hides on scroll down and comes back on scroll up. Without games
+          there is nothing to scroll, so adding one stays in reach. */}
+      <div
+        className={`library__page-header${hasGames && isHeaderHidden ? " library__page-header--hidden" : ""}`}
+      >
+        <div className="library__toolbar">
+          {showControls && (
+            <>
               <CategoryFilter
                 category={effectiveCategory}
                 onCategoryChange={handleCategoryChange}
               />
-              <CollectionsFilter
+
+              <LibraryFiltersMenu
                 collections={libraryCollections}
                 selectedCollectionId={selectedCollectionId}
                 favoritesCollectionId={FAVORITES_COLLECTION_ID}
                 hiddenCollectionId={HIDDEN_COLLECTION_ID}
-                onSelect={handleCollectionSelect}
-                onCreate={handleCreateCollectionButtonClick}
+                onCollectionSelect={handleCollectionSelect}
+                onCollectionCreate={handleCreateCollectionButtonClick}
                 onCollectionContextMenu={openCollectionContextMenu}
-              />
-              {showSourceFilter && (
-                <SourceFilter
-                  sources={availableSources}
-                  selectedSources={effectiveSources}
-                  onSourcesChange={handleSourcesChange}
-                />
-              )}
-              {showPlatformFilter && (
-                <PlatformFilter
-                  selectedPlatforms={selectedPlatforms}
-                  platforms={uniquePlatforms}
-                  onPlatformsChange={handlePlatformsChange}
-                />
-              )}
-              <InstalledFilter
+                showSources={showSourceFilter}
+                sources={availableSources}
+                selectedSources={effectiveSources}
+                onSourcesChange={handleSourcesChange}
+                showPlatforms={showPlatformFilter}
+                platforms={uniquePlatforms}
+                selectedPlatforms={selectedPlatforms}
+                onPlatformsChange={handlePlatformsChange}
                 showInstalledOnly={showInstalledOnly}
                 onShowInstalledOnlyChange={handleShowInstalledOnlyChange}
               />
-            </div>
+            </>
+          )}
 
-            <div className="library__controls-right">
-              <FilterOptions sortBy={sortBy} onSortChange={handleSortChange} />
-              <ViewOptions
+          <div className="library__actions">
+            {showControls && (
+              <LibraryDisplayMenu
+                sortBy={sortBy}
+                onSortChange={handleSortChange}
                 viewMode={viewMode}
                 onViewModeChange={handleViewModeChange}
+                canResetCustomOrder={canResetOrder}
+                onResetCustomOrder={() => setShowResetCustomOrderModal(true)}
               />
-            </div>
+            )}
+
+            {isScanSupported ? (
+              <>
+                <Button
+                  theme="outline"
+                  className="library__action library__action--icon"
+                  onClick={() => setShowAddGameModal(true)}
+                  aria-label={t("add_custom_game_tooltip", { ns: "sidebar" })}
+                  tooltip={t("add_custom_game_tooltip", { ns: "sidebar" })}
+                  tooltipPlace="bottom"
+                  tooltipInPortal
+                >
+                  <PlusIcon size={16} />
+                </Button>
+
+                <Button
+                  theme="primary"
+                  className={`library__action${isScanning ? " library__action--scanning" : ""}`}
+                  onClick={openScanModal}
+                >
+                  <SyncIcon size={16} />
+                  {t("scan_games", { ns: "header" })}
+                </Button>
+              </>
+            ) : (
+              <Button
+                theme="primary"
+                className="library__action"
+                onClick={() => setShowAddGameModal(true)}
+              >
+                <PlusIcon size={16} />
+                {t("add_game", { ns: "header" })}
+              </Button>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {!hasGames && !shouldShowClassicsImporting && !isLibraryLoading && (
         <div className="library__no-games">
@@ -890,42 +1427,46 @@ export default function Library() {
           !shouldShowClassicsImporting &&
           !shouldShowNoResultsEmptyState && (
             <div
+              ref={gridRef}
               style={{
                 height: `${rowVirtualizer.getTotalSize()}px`,
                 position: "relative",
+                marginRight: GAP,
               }}
             >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => (
-                <div
-                  key={virtualRow.key}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: GAP,
-                    transform: `translateY(${virtualRow.start}px)`,
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
-                    gap: `${GAP}px`,
-                  }}
-                >
-                  {rows[virtualRow.index].map((game) =>
-                    viewMode === "large" ? (
+              {renderedPlacements.map((placement) => {
+                const game = gamesByKey.get(placement.key);
+                if (!game) return null;
+
+                const box = getLibraryPlacementBox(placement, gridMetrics);
+
+                return (
+                  <LibrarySortableGame
+                    key={placement.key}
+                    orderKey={placement.key}
+                    enabled={isCustomOrder}
+                    animated={isReordering}
+                    isDragSource={dragPreview?.sourceKey === placement.key}
+                    style={{
+                      transform: `translate3d(${box.left}px, ${box.top}px, 0)`,
+                      width: box.width,
+                      height: box.height,
+                    }}
+                  >
+                    {viewMode === "large" ? (
                       <LibraryGameCardLarge
-                        key={`${game.shop}-${game.objectId}`}
                         game={game}
                         onContextMenu={handleOpenContextMenu}
                       />
                     ) : (
                       <LibraryGameCard
-                        key={`${game.shop}-${game.objectId}`}
                         game={game}
                         onContextMenu={handleOpenContextMenu}
                       />
-                    )
-                  )}
-                </div>
-              ))}
+                    )}
+                  </LibrarySortableGame>
+                );
+              })}
             </div>
           )}
       </div>
@@ -940,9 +1481,29 @@ export default function Library() {
         />
       )}
 
+      <ConfirmationModal
+        visible={showResetCustomOrderModal}
+        title={t("reset_custom_order_title")}
+        descriptionText={
+          orderCollectionId
+            ? t("reset_collection_order_description")
+            : t("reset_custom_order_description")
+        }
+        confirmButtonLabel={t("reset_custom_order_confirm")}
+        cancelButtonLabel={t("cancel", { ns: "sidebar" })}
+        confirmButtonTheme="danger"
+        onClose={() => setShowResetCustomOrderModal(false)}
+        onConfirm={handleResetCustomOrder}
+      />
+
       <CreateCollectionModal
         visible={showCreateCollectionModal}
         onClose={() => setShowCreateCollectionModal(false)}
+      />
+
+      <SidebarAddingCustomGameModal
+        visible={showAddGameModal}
+        onClose={() => setShowAddGameModal(false)}
       />
 
       <ClassicsOnboardingModal

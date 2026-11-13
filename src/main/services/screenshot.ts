@@ -19,7 +19,13 @@ import {
   isWindowsWindowSource,
 } from "./windows-game-window-match";
 import { captureWindowsGameWindowFrame } from "./windows-game-capture";
-import { cropToWindowClientArea } from "./windows-window-bounds";
+import { BlankScreenshotFrameError } from "./screenshots/screenshot-frame-script";
+import { ScreenshotFrameWorker } from "./screenshots/screenshot-frame-worker";
+import {
+  cropToWindowClientArea,
+  getSourceClientAreaCrop,
+  getSourceWindowSize,
+} from "./windows-window-bounds";
 import {
   getBitmapColorRange,
   isMostlyBlackScreenshot,
@@ -31,6 +37,7 @@ import {
 } from "./achievements/grouped-souvenir-store";
 
 const SCREENSHOT_QUALITY = 80;
+const HELD_WORKER_JPEG_QUALITY = 1;
 const CAPTURE_THUMBNAIL_SIZE = { width: 3840, height: 2160 };
 const MAX_STORED_SCREENSHOTS = 50;
 const WINDOWS_SOURCE_RESOLUTION_ATTEMPTS = 3;
@@ -201,7 +208,7 @@ const captureNonBlankX11Frame = async (
     attempt,
   });
   if (attempt >= X11_CAPTURE_ATTEMPTS) {
-    throw new Error("X11 game-window capture returned only blank frames");
+    throw new BlankScreenshotFrameError();
   }
 
   await wait(X11_CAPTURE_RETRY_DELAY_MS);
@@ -380,6 +387,19 @@ export const resolveGameCaptureSourceId = async (
   return null;
 };
 
+const captureWithHeldWorker = async (
+  sourceId: string,
+  cropToClientArea: boolean | undefined
+) => {
+  const frame = await ScreenshotFrameWorker.grab(sourceId, {
+    waitForNextFrame: false,
+    crop: cropToClientArea ? getSourceClientAreaCrop(sourceId) : null,
+    expectedSize: getSourceWindowSize(sourceId),
+  });
+  const { jpeg } = await frame.encode(HELD_WORKER_JPEG_QUALITY);
+  return nativeImage.createFromBuffer(jpeg);
+};
+
 const captureGameImage = async (
   captureTarget: GameScreenshotCaptureTarget
 ): Promise<Electron.NativeImage> => {
@@ -393,6 +413,9 @@ const captureGameImage = async (
 
   if (process.platform === "win32") {
     const source = await getGameWindowSource(captureTarget);
+    if (ScreenshotFrameWorker.isHeld()) {
+      return captureWithHeldWorker(source.id, captureTarget.cropToClientArea);
+    }
     const image = await captureWindowsGameWindowFrame(source.id);
     return captureTarget.cropToClientArea
       ? cropToWindowClientArea(image, source.id)

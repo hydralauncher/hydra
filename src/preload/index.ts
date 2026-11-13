@@ -32,6 +32,12 @@ import type {
   EmulatorSystem,
   EmulatorBinary,
   EmulatorInstallProgress,
+  RecompilationInstallProgress,
+  RecompilationPrepareProgress,
+  Ps4PkgAccept,
+  Ps4PkgJobEvent,
+  RecompilationRef,
+  RecompilationRomSource,
   RetroArchCoreName,
   RetroArchCoreInstallProgress,
   RetroArchInstallProgress,
@@ -111,6 +117,7 @@ import type {
   ScreenshotUploadProgress,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
+import { NATIVE_WINDOW_DECORATIONS_ARGUMENT } from "../shared/window-layout";
 import type { AxiosProgressEvent } from "axios";
 
 const fileExplorerApi = {
@@ -551,10 +558,13 @@ contextBridge.exposeInMainWorld("electron", {
   getEmulatorConfigs: () => ipcRenderer.invoke("getEmulatorConfigs"),
   getRpcs3ConfigRootStatus: () =>
     ipcRenderer.invoke("getRpcs3ConfigRootStatus"),
-  getRpcs3DiscIdentityStatus: (objectId: string, shop: GameShop) =>
-    ipcRenderer.invoke("getRpcs3DiscIdentityStatus", objectId, shop),
+  getEmulatorDiscIdentityStatus: (objectId: string, shop: GameShop) =>
+    ipcRenderer.invoke("getEmulatorDiscIdentityStatus", objectId, shop),
   setRpcs3ConfigRoot: (root: string) =>
     ipcRenderer.invoke("setRpcs3ConfigRoot", root),
+  getShadps4DataDirStatus: () => ipcRenderer.invoke("getShadps4DataDirStatus"),
+  setShadps4DataDir: (dir: string | null) =>
+    ipcRenderer.invoke("setShadps4DataDir", dir),
   detectEmulators: () => ipcRenderer.invoke("detectEmulators"),
   detectEmulator: (
     system: EmulatorSystem,
@@ -606,8 +616,12 @@ contextBridge.exposeInMainWorld("electron", {
     ),
   rescanEmulator: (system: EmulatorSystem, language?: string) =>
     ipcRenderer.invoke("rescanEmulator", system, language),
-  checkPs3Firmware: (executablePath: string | null) =>
-    ipcRenderer.invoke("checkPs3Firmware", executablePath),
+  checkEmulatorFirmware: (
+    system: EmulatorSystem,
+    executablePath: string | null
+  ) => ipcRenderer.invoke("checkEmulatorFirmware", system, executablePath),
+  checkShadps4TrophyKey: (executablePath: string | null) =>
+    ipcRenderer.invoke("checkShadps4TrophyKey", executablePath),
   checkEmulatorBios: (
     system: EmulatorSystem,
     executablePath: string | null,
@@ -631,6 +645,69 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("on-emulator-install-progress", listener);
     return () =>
       ipcRenderer.removeListener("on-emulator-install-progress", listener);
+  },
+  getRecompilationInstallState: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("getRecompilationInstallState", ref),
+  installRecompilation: (ref: RecompilationRef, parentDirectory?: string) =>
+    ipcRenderer.invoke("installRecompilation", ref, parentDirectory),
+  uninstallRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("uninstallRecompilation", ref),
+  openRecompilationFolder: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("openRecompilationFolder", ref),
+  playRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("playRecompilation", ref),
+  closeRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("closeRecompilation", ref),
+  getRecompilationRomState: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("getRecompilationRomState", ref),
+  setRecompilationRom: (
+    ref: RecompilationRef,
+    choice: { source: RecompilationRomSource; path?: string }
+  ) => ipcRenderer.invoke("setRecompilationRom", ref, choice),
+  checkRecompilationRom: (ref: RecompilationRef, path: string) =>
+    ipcRenderer.invoke("checkRecompilationRom", ref, path),
+  extractRecompilationRomPkg: (ref: RecompilationRef, pkgPath: string) =>
+    ipcRenderer.invoke("extractRecompilationRomPkg", ref, pkgPath),
+  hasPs4GameFolder: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("hasPs4GameFolder", shop, objectId),
+  checkPs4Pkg: (
+    shop: GameShop,
+    objectId: string,
+    pkgPath: string,
+    accept: Ps4PkgAccept
+  ) => ipcRenderer.invoke("checkPs4Pkg", shop, objectId, pkgPath, accept),
+  applyPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
+    ipcRenderer.invoke("applyPs4Update", shop, objectId, pkgPath),
+  extractPs4GamePkg: (
+    shop: GameShop,
+    objectId: string,
+    pkgPath?: string | null
+  ) => ipcRenderer.invoke("extractPs4GamePkg", shop, objectId, pkgPath),
+  cancelPs4PkgJob: () => ipcRenderer.invoke("cancelPs4PkgJob"),
+  onPs4PkgJob: (cb: (event: Ps4PkgJobEvent) => void) => {
+    const listener = (_event: unknown, payload: Ps4PkgJobEvent) => cb(payload);
+    ipcRenderer.on("on-ps4-pkg-job", listener);
+    return () => ipcRenderer.removeListener("on-ps4-pkg-job", listener);
+  },
+  prepareRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("prepareRecompilation", ref),
+  onRecompilationPrepareProgress: (
+    cb: (payload: RecompilationPrepareProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationPrepareProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-prepare-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-prepare-progress", listener);
+  },
+  onRecompilationInstallProgress: (
+    cb: (payload: RecompilationInstallProgress) => void
+  ) => {
+    const listener = (_event: unknown, payload: RecompilationInstallProgress) =>
+      cb(payload);
+    ipcRenderer.on("on-recompilation-install-progress", listener);
+    return () =>
+      ipcRenderer.removeListener("on-recompilation-install-progress", listener);
   },
   /* RetroArch */
   getRetroArchConfig: () => ipcRenderer.invoke("getRetroArchConfig"),
@@ -921,13 +998,14 @@ contextBridge.exposeInMainWorld("electron", {
             type: "done" | "cancelled";
             requestId: string;
             system: EmulatorSystem;
+            unsupportedPackages: number;
             fileCount: number;
             sizeBytes: number;
             matched: number;
             unmatched: number;
             unmatchedFiles: {
               name: string;
-              reason: "wrong_platform" | "unmatched";
+              reason: "wrong_platform" | "unmatched" | "unsupported_package";
             }[];
           }
         | {
@@ -1150,6 +1228,10 @@ contextBridge.exposeInMainWorld("electron", {
     collectionIds: string[]
   ) =>
     ipcRenderer.invoke("assignGameToCollection", shop, objectId, collectionIds),
+  setCollectionGameOrder: (
+    collectionId: string,
+    games: { shop: GameShop; objectId: string }[]
+  ) => ipcRenderer.invoke("setCollectionGameOrder", collectionId, games),
   setGameVisibility: (
     shop: GameShop,
     objectId: string,
@@ -1325,7 +1407,10 @@ contextBridge.exposeInMainWorld("electron", {
   getGamesRunning: () => ipcRenderer.invoke("getGamesRunning"),
   onGamesRunning: (
     cb: (
-      gamesRunning: Pick<GameRunning, "id" | "sessionDurationInMillis">[]
+      gamesRunning: Pick<
+        GameRunning,
+        "id" | "sessionDurationInMillis" | "recompilationSlug"
+      >[]
     ) => void
   ) => {
     const listener = (_event: Electron.IpcRendererEvent, gamesRunning) =>
@@ -1796,6 +1881,9 @@ contextBridge.exposeInMainWorld("electron", {
     process.platform === "linux" &&
     (process.env.XDG_SESSION_TYPE?.toLowerCase() === "wayland" ||
       Boolean(process.env.WAYLAND_DISPLAY)),
+  hasNativeWindowDecorations: process.argv.includes(
+    NATIVE_WINDOW_DECORATIONS_ARGUMENT
+  ),
 
   /* Auto update */
   onAutoUpdaterEvent: (cb: (value: AppUpdaterEvent) => void) => {
@@ -2106,7 +2194,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("openAuthWindow", page),
   minimizeAuthWindow: () => ipcRenderer.invoke("minimizeAuthWindow"),
   closeAuthWindow: () => ipcRenderer.invoke("closeAuthWindow"),
-  getSessionHash: () => ipcRenderer.invoke("getSessionHash"),
   onSignIn: (cb: () => void) => {
     const listener = (_event: Electron.IpcRendererEvent) => cb();
     ipcRenderer.on("on-signin", listener);
@@ -2161,17 +2248,11 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("on-local-notification-created", listener);
   },
-  onAchievementUnlocked: (
-    cb: (
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
-    ) => void
-  ) => {
+  onAchievementUnlocked: (cb: (suppressSound?: boolean) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
-      position?: AchievementCustomNotificationPosition,
-      achievements?: AchievementNotificationInfo[]
-    ) => cb(position, achievements);
+      suppressSound?: boolean
+    ) => cb(suppressSound);
     ipcRenderer.on("on-achievement-unlocked", listener);
     return () =>
       ipcRenderer.removeListener("on-achievement-unlocked", listener);
@@ -2202,9 +2283,14 @@ contextBridge.exposeInMainWorld("electron", {
     return () =>
       ipcRenderer.removeListener("prepare-achievement-notification", listener);
   },
-  onStartAchievementNotification: (cb: (requestId: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, requestId: string) =>
-      cb(requestId);
+  onStartAchievementNotification: (
+    cb: (requestId: string, visible: boolean) => void
+  ) => {
+    const listener = (
+      _event: Electron.IpcRendererEvent,
+      requestId: string,
+      visible: boolean
+    ) => cb(requestId, visible);
     ipcRenderer.on("start-achievement-notification", listener);
     return () =>
       ipcRenderer.removeListener("start-achievement-notification", listener);
@@ -2213,6 +2299,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("achievementNotificationHostReady"),
   achievementNotificationContentReady: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationContentReady", requestId),
+  achievementNotificationStarted: (requestId: string) =>
+    ipcRenderer.invoke("achievementNotificationStarted", requestId),
+  achievementNotificationSoundPlayed: (requestId: string, batchId: string) =>
+    ipcRenderer.invoke(
+      "achievementNotificationSoundPlayed",
+      requestId,
+      batchId
+    ),
   achievementNotificationFinished: (requestId: string) =>
     ipcRenderer.invoke("achievementNotificationFinished", requestId),
   achievementNotificationFailed: (requestId?: string, reason?: string) =>
@@ -2341,6 +2435,8 @@ contextBridge.exposeInMainWorld("electron", {
   closeChatWindow: () => ipcRenderer.invoke("closeChatWindow"),
   openGameInMainWindow: (gamePath: string) =>
     ipcRenderer.invoke("openGameInMainWindow", gamePath),
+  openChatNotificationSettings: () =>
+    ipcRenderer.invoke("openChatNotificationSettings"),
   consumePendingChatFriends: () =>
     ipcRenderer.invoke("consumePendingChatFriends") as Promise<
       PendingChatFriend[]
@@ -2357,6 +2453,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getChatUnreadState") as Promise<ChatUnreadState>,
   markChatRead: (friendId: string, seq: number) =>
     ipcRenderer.invoke("markChatRead", friendId, seq),
+  refreshOfficialChat: () =>
+    ipcRenderer.invoke("refreshOfficialChat") as Promise<void>,
   onChatMessage: (cb: (sync: ChatMessageSync) => void) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
