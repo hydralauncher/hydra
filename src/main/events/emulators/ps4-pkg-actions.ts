@@ -159,6 +159,59 @@ export const isPs4GameRunning = async (shop: GameShop, objectId: string) => {
   return findRunningRecompilation(objectId) !== null;
 };
 
+type UsablePkg = NonNullable<Awaited<ReturnType<typeof readUsablePkg>>>;
+
+const checkDlcPkg = async (
+  shop: GameShop,
+  objectId: string,
+  info: UsablePkg
+): Promise<Ps4PkgCheck> => {
+  if (await isPs4GameRunning(shop, objectId)) {
+    return { ok: false, reason: "game_running" };
+  }
+  const problem = await checkDlcFits(shop, objectId, info).catch(
+    () => "failed" as const
+  );
+  if (problem) return { ok: false, reason: problem };
+  return { ok: true, mode: "dlc", version: null, currentVersion: null };
+};
+
+const checkUpdatePkg = async (
+  shop: GameShop,
+  objectId: string,
+  info: UsablePkg
+): Promise<Ps4PkgCheck> => {
+  if (await isPs4GameRunning(shop, objectId)) {
+    return { ok: false, reason: "game_running" };
+  }
+  const targets = await findUpdateTargets(shop, objectId, info);
+  if (typeof targets === "string") return { ok: false, reason: targets };
+  return {
+    ok: true,
+    mode: "update",
+    version: formatPs4Version(info.appVersion),
+    currentVersion: formatPs4Version(
+      await readPs4FolderParam(targets[0], "APP_VER")
+    ),
+  };
+};
+
+const checkGamePkg = async (
+  shop: GameShop,
+  objectId: string,
+  info: UsablePkg
+): Promise<Ps4PkgCheck> => {
+  if (!(await getPs4Game(shop, objectId))) {
+    return { ok: false, reason: "failed" };
+  }
+  return {
+    ok: true,
+    mode: "extract",
+    version: formatPs4Version(info.appVersion),
+    currentVersion: null,
+  };
+};
+
 export const checkPs4Pkg = async (
   shop: GameShop,
   objectId: string,
@@ -170,44 +223,14 @@ export const checkPs4Pkg = async (
   if (!info) return { ok: false, reason: wrongKind };
 
   if (info.kind === "addon" && accept !== "update") {
-    if (await isPs4GameRunning(shop, objectId)) {
-      return { ok: false, reason: "game_running" };
-    }
-    const problem = await checkDlcFits(shop, objectId, info).catch(
-      () => "failed" as const
-    );
-    if (problem) return { ok: false, reason: problem };
-    return { ok: true, mode: "dlc", version: null, currentVersion: null };
+    return checkDlcPkg(shop, objectId, info);
   }
-
   if (info.kind === "patch" && accept !== "dlc") {
-    if (await isPs4GameRunning(shop, objectId)) {
-      return { ok: false, reason: "game_running" };
-    }
-    const targets = await findUpdateTargets(shop, objectId, info);
-    if (typeof targets === "string") return { ok: false, reason: targets };
-    return {
-      ok: true,
-      mode: "update",
-      version: formatPs4Version(info.appVersion),
-      currentVersion: formatPs4Version(
-        await readPs4FolderParam(targets[0], "APP_VER")
-      ),
-    };
+    return checkUpdatePkg(shop, objectId, info);
   }
-
   if (info.kind === "game" && accept === "any") {
-    if (!(await getPs4Game(shop, objectId))) {
-      return { ok: false, reason: "failed" };
-    }
-    return {
-      ok: true,
-      mode: "extract",
-      version: formatPs4Version(info.appVersion),
-      currentVersion: null,
-    };
+    return checkGamePkg(shop, objectId, info);
   }
-
   return { ok: false, reason: wrongKind };
 };
 
@@ -264,7 +287,7 @@ export const applyPs4Dlc = async (
   pkgPath: string
 ): Promise<Ps4PkgResult> => {
   const info = await readUsablePkg(pkgPath);
-  if (!info || info.kind !== "addon") return { ok: false, reason: "not_dlc" };
+  if (info?.kind !== "addon") return { ok: false, reason: "not_dlc" };
   if (await isPs4GameRunning(shop, objectId)) {
     return { ok: false, reason: "game_running" };
   }
@@ -421,13 +444,17 @@ const readPs4GameFolderVersion = async (discPath: string) => {
 
 /** The game version of each PS4 folder disc, update folders included. */
 export const getPs4FolderVersions = async (discPaths: unknown) => {
-  const versions: Record<string, string | null> = {};
-  if (!Array.isArray(discPaths)) return versions;
-  for (const discPath of discPaths.slice(0, MAX_VERSIONED_DISCS)) {
-    if (typeof discPath !== "string" || !path.isAbsolute(discPath)) continue;
-    versions[discPath] = await readPs4GameFolderVersion(discPath);
-  }
-  return versions;
+  if (!Array.isArray(discPaths)) return {};
+  const paths = discPaths
+    .slice(0, MAX_VERSIONED_DISCS)
+    .filter(
+      (discPath): discPath is string =>
+        typeof discPath === "string" && path.isAbsolute(discPath)
+    );
+  const found = await Promise.all(paths.map(readPs4GameFolderVersion));
+  return Object.fromEntries(
+    paths.map((discPath, index) => [discPath, found[index]])
+  ) as Record<string, string | null>;
 };
 
 registerEvent(

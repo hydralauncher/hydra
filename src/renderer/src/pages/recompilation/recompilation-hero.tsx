@@ -200,206 +200,206 @@ export function RecompilationHero({
       ? Math.min(100, Math.round((progress.loaded / progress.total) * 100))
       : null;
 
-  const renderPrimary = () => {
-    if (isUninstalling) {
-      return (
-        <div className="recompilation-page__progress">
-          <div className="setup-modal__progress-meta">
-            <span className="setup-modal__progress-status">
-              {uninstallPercent === null
-                ? t("uninstalling")
-                : t("uninstalling_percent", { percent: uninstallPercent })}
-            </span>
-          </div>
-          <InstallProgressBar
-            progress={
-              uninstallPercent === null
-                ? { phase: "extracting" }
-                : { phase: "downloading", loaded: uninstallPercent, total: 100 }
-            }
-          />
-        </div>
-      );
-    }
+  const renderUninstallProgress = () => (
+    <div className="recompilation-page__progress">
+      <div className="setup-modal__progress-meta">
+        <span className="setup-modal__progress-status">
+          {uninstallPercent === null
+            ? t("uninstalling")
+            : t("uninstalling_percent", { percent: uninstallPercent })}
+        </span>
+      </div>
+      <InstallProgressBar
+        progress={
+          uninstallPercent === null
+            ? { phase: "extracting" }
+            : { phase: "downloading", loaded: uninstallPercent, total: 100 }
+        }
+      />
+    </div>
+  );
 
-    if (isDownloading || isExtracting) {
-      return (
-        <div className="recompilation-page__progress">
-          <div className="setup-modal__progress-meta">
-            <span className="setup-modal__progress-status">
-              {isExtracting
-                ? formatExtracting(t("extracting"), progress)
-                : t("downloading_percent", { percent: percent ?? 0 })}
+  const renderPortProgress = () => (
+    <div className="recompilation-page__progress">
+      <div className="setup-modal__progress-meta">
+        <span className="setup-modal__progress-status">
+          {isExtracting
+            ? formatExtracting(t("extracting"), progress)
+            : t("downloading_percent", { percent: percent ?? 0 })}
+        </span>
+        {isDownloading &&
+          progress.total !== undefined &&
+          progress.loaded !== undefined && (
+            <span>
+              {t("size_of_total", {
+                loaded: formatBytes(progress.loaded),
+                total: formatBytes(progress.total),
+              })}
             </span>
-            {isDownloading &&
-              progress.total !== undefined &&
-              progress.loaded !== undefined && (
-                <span>
-                  {t("size_of_total", {
-                    loaded: formatBytes(progress.loaded),
-                    total: formatBytes(progress.total),
-                  })}
-                </span>
-              )}
-          </div>
-          <InstallProgressBar
-            progress={isDownloading ? progress : toExtractionBar(progress)}
-          />
-        </div>
-      );
-    }
+          )}
+      </div>
+      <InstallProgressBar
+        progress={isDownloading ? progress : toExtractionBar(progress)}
+      />
+    </div>
+  );
 
-    if (isRomDownloading && !install.isRunning) {
-      return (
-        <button
-          type="button"
-          className="recompilation-page__progress recompilation-page__progress--clickable"
+  const renderRomProgress = () => (
+    <button
+      type="button"
+      className="recompilation-page__progress recompilation-page__progress--clickable"
+      onClick={onOpenInstall}
+    >
+      <div className="setup-modal__progress-meta">
+        <span className="setup-modal__progress-status">
+          {t(
+            rom.downloadPhase === "extracting"
+              ? "rom_extracting_button"
+              : "rom_downloading_button",
+            { percent: romPercent }
+          )}
+        </span>
+      </div>
+      <InstallProgressBar
+        progress={{ phase: "downloading", loaded: romPercent, total: 100 }}
+      />
+    </button>
+  );
+
+  const renderInstallButtons = () => (
+    <>
+      <Button onClick={onOpenInstall} disabled={!installAsset}>
+        <DownloadIcon />
+        {t("install")}
+      </Button>
+      <Button
+        theme="outline"
+        onClick={() => void runLinkFolder()}
+        disabled={install.isBusy}
+        title={t("link_folder_hint")}
+      >
+        <FileDirectoryIcon />
+        {t("link_folder")}
+      </Button>
+    </>
+  );
+
+  const isPortBusy = install.isRunning || install.isPreparing;
+
+  const getMenuItems = () => [
+    ...(handlesRom && !needsRomChoice
+      ? [
+          {
+            icon: <Disc3 size={16} />,
+            label: t("change_rom"),
+            onClick: onOpenInstall,
+            disabled: isPortBusy,
+          },
+        ]
+      : []),
+    ...(canApplyPs4Update
+      ? [
+          {
+            icon: <SyncIcon />,
+            label: t("apply_ps4_update", { ns: "game_details" }),
+            onClick: () => void ps4Update.pick(),
+            disabled: isPortBusy || ps4Update.isBusy,
+          },
+        ]
+      : []),
+    {
+      icon: <FileDirectoryIcon />,
+      label: t("open_folder"),
+      onClick: () => void install.openFolder(),
+    },
+    {
+      icon: <DownloadIcon />,
+      label: t("download_options"),
+      onClick: onDownloadRom,
+    },
+    ...(isLinked
+      ? [
+          {
+            icon: <Unlink size={16} />,
+            label: t("unlink"),
+            onClick: () => setIsUnlinkOpen(true),
+            disabled: isPortBusy,
+          },
+        ]
+      : []),
+    ...(!isLinked || hasHydraFiles
+      ? [
+          {
+            icon: <TrashIcon />,
+            label: t("uninstall"),
+            danger: true,
+            onClick: () => setIsUninstallOpen(true),
+            disabled: isPortBusy,
+          },
+        ]
+      : []),
+  ];
+
+  const showsUpdate =
+    hasUpdate &&
+    !install.isRunning &&
+    !install.isLaunching &&
+    !install.isPreparing;
+  const showsPlay = !install.isRunning && !needsRomChoice && !needsPortUpdate;
+
+  const renderInstalledButtons = () => (
+    <>
+      {showsUpdate && (
+        <Button onClick={runUpdate}>
+          <SyncIcon />
+          {t("update")}
+        </Button>
+      )}
+      {needsRomChoice && !install.isRunning && (
+        <Button
+          theme={hasUpdate ? "outline" : "primary"}
           onClick={onOpenInstall}
         >
-          <div className="setup-modal__progress-meta">
-            <span className="setup-modal__progress-status">
-              {t(
-                rom.downloadPhase === "extracting"
-                  ? "rom_extracting_button"
-                  : "rom_downloading_button",
-                { percent: romPercent }
-              )}
-            </span>
-          </div>
-          <InstallProgressBar
-            progress={{ phase: "downloading", loaded: romPercent, total: 100 }}
-          />
-        </button>
-      );
-    }
-
-    if (!isInstalled) {
-      return (
-        <>
-          <Button onClick={onOpenInstall} disabled={!installAsset}>
-            <DownloadIcon />
-            {t("install")}
-          </Button>
-          <Button
-            theme="outline"
-            onClick={() => void runLinkFolder()}
-            disabled={install.isBusy}
-            title={t("link_folder_hint")}
-          >
-            <FileDirectoryIcon />
-            {t("link_folder")}
-          </Button>
-        </>
-      );
-    }
-
-    return (
-      <>
-        {hasUpdate &&
-          !install.isRunning &&
-          !install.isLaunching &&
-          !install.isPreparing && (
-            <Button onClick={runUpdate}>
-              <SyncIcon />
-              {t("update")}
-            </Button>
-          )}
-        {needsRomChoice && !install.isRunning && (
-          <Button
-            theme={hasUpdate ? "outline" : "primary"}
-            onClick={onOpenInstall}
-          >
-            <Disc3 size={16} />
-            {t("choose_rom")}
-          </Button>
-        )}
-        {install.isRunning && (
-          <Button theme="outline" onClick={runClose}>
-            <XCircle size={16} />
-            {t("close")}
-          </Button>
-        )}
-        {!install.isRunning && !needsRomChoice && !needsPortUpdate && (
-          <Button
-            theme={hasUpdate ? "outline" : "primary"}
-            onClick={runPlay}
-            disabled={
-              install.isLaunching || install.isPreparing || isPs4PkgJobRunning
-            }
-          >
-            <PlayIcon />
-            {install.isPreparing ? t("prepare_title") : t("play")}
-          </Button>
-        )}
-        <DropdownMenu
-          align="end"
-          items={[
-            ...(handlesRom && !needsRomChoice
-              ? [
-                  {
-                    icon: <Disc3 size={16} />,
-                    label: t("change_rom"),
-                    onClick: onOpenInstall,
-                    disabled: install.isRunning || install.isPreparing,
-                  },
-                ]
-              : []),
-            ...(canApplyPs4Update
-              ? [
-                  {
-                    icon: <SyncIcon />,
-                    label: t("apply_ps4_update", { ns: "game_details" }),
-                    onClick: () => void ps4Update.pick(),
-                    disabled:
-                      install.isRunning ||
-                      install.isPreparing ||
-                      ps4Update.isBusy,
-                  },
-                ]
-              : []),
-            {
-              icon: <FileDirectoryIcon />,
-              label: t("open_folder"),
-              onClick: () => void install.openFolder(),
-            },
-            {
-              icon: <DownloadIcon />,
-              label: t("download_options"),
-              onClick: onDownloadRom,
-            },
-            ...(isLinked
-              ? [
-                  {
-                    icon: <Unlink size={16} />,
-                    label: t("unlink"),
-                    onClick: () => setIsUnlinkOpen(true),
-                    disabled: install.isRunning || install.isPreparing,
-                  },
-                ]
-              : []),
-            ...(!isLinked || hasHydraFiles
-              ? [
-                  {
-                    icon: <TrashIcon />,
-                    label: t("uninstall"),
-                    danger: true,
-                    onClick: () => setIsUninstallOpen(true),
-                    disabled: install.isRunning || install.isPreparing,
-                  },
-                ]
-              : []),
-          ]}
+          <Disc3 size={16} />
+          {t("choose_rom")}
+        </Button>
+      )}
+      {install.isRunning && (
+        <Button theme="outline" onClick={runClose}>
+          <XCircle size={16} />
+          {t("close")}
+        </Button>
+      )}
+      {showsPlay && (
+        <Button
+          theme={hasUpdate ? "outline" : "primary"}
+          onClick={runPlay}
+          disabled={
+            install.isLaunching || install.isPreparing || isPs4PkgJobRunning
+          }
         >
-          <Button
-            theme="outline"
-            className="recompilation-page__icon-button"
-            aria-label={t("more_actions")}
-          >
-            <KebabHorizontalIcon />
-          </Button>
-        </DropdownMenu>
-      </>
-    );
+          <PlayIcon />
+          {install.isPreparing ? t("prepare_title") : t("play")}
+        </Button>
+      )}
+      <DropdownMenu align="end" items={getMenuItems()}>
+        <Button
+          theme="outline"
+          className="recompilation-page__icon-button"
+          aria-label={t("more_actions")}
+        >
+          <KebabHorizontalIcon />
+        </Button>
+      </DropdownMenu>
+    </>
+  );
+
+  const renderPrimary = () => {
+    if (isUninstalling) return renderUninstallProgress();
+    if (isDownloading || isExtracting) return renderPortProgress();
+    if (isRomDownloading && !install.isRunning) return renderRomProgress();
+    if (!isInstalled) return renderInstallButtons();
+    return renderInstalledButtons();
   };
 
   return (

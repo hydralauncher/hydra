@@ -390,45 +390,55 @@ const matchesRomHash = async (filePath: string, sha1: string[]) => {
 const listRomFiles = async (
   directory: string,
   extensions: string[],
-  found: string[],
   depth = 0
-) => {
-  if (depth > ROM_SEARCH_DEPTH || found.length >= MAX_SEARCHED_ROM_FILES) {
-    return;
-  }
+): Promise<string[]> => {
+  if (depth > ROM_SEARCH_DEPTH) return [];
   const entries = await fs.promises
     .readdir(directory, { withFileTypes: true })
     .catch(() => []);
-  for (const entry of entries) {
-    if (found.length >= MAX_SEARCHED_ROM_FILES) return;
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      await listRomFiles(entryPath, extensions, found, depth + 1);
-    } else if (entry.isFile() && hasExtension(entry.name, extensions)) {
-      found.push(entryPath);
-    }
-  }
+  const files = entries
+    .filter((entry) => entry.isFile() && hasExtension(entry.name, extensions))
+    .map((entry) => path.join(directory, entry.name));
+  const nested = await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) =>
+        listRomFiles(path.join(directory, entry.name), extensions, depth + 1)
+      )
+  );
+  return [...files, ...nested.flat()].slice(0, MAX_SEARCHED_ROM_FILES);
 };
+
+const findFirstMatch = <T>(
+  items: T[],
+  matches: (item: T) => Promise<boolean>
+) =>
+  items.reduce<Promise<T | null>>(
+    (previous, item) =>
+      previous.then(async (found) => {
+        if (found !== null) return found;
+        return (await matches(item)) ? item : null;
+      }),
+    Promise.resolve(null)
+  );
 
 const searchRomFolders = async (kind: RomKind) => {
   if (isFolderRom(kind)) {
     if (!kind.titleIds?.length) return null;
-    for (const root of await listRomSearchRoots(kind)) {
-      const found = await findGameFolder(root, kind, 0, ROM_SEARCH_DEPTH);
-      if (found) return found;
-    }
-    return null;
+    const roots = await listRomSearchRoots(kind);
+    const found = await Promise.all(
+      roots.map((root) => findGameFolder(root, kind, 0, ROM_SEARCH_DEPTH))
+    );
+    return found.find(Boolean) ?? null;
   }
 
-  if (!kind.sha1?.length || !kind.extensions.length) return null;
-  for (const root of await listRomSearchRoots(kind)) {
-    const files: string[] = [];
-    await listRomFiles(root, kind.extensions, files);
-    for (const file of files) {
-      if (await matchesRomHash(file, kind.sha1)) return file;
-    }
-  }
-  return null;
+  const sha1 = kind.sha1;
+  if (!sha1?.length || !kind.extensions.length) return null;
+  const roots = await listRomSearchRoots(kind);
+  const files = await Promise.all(
+    roots.map((root) => listRomFiles(root, kind.extensions))
+  );
+  return findFirstMatch(files.flat(), (file) => matchesRomHash(file, sha1));
 };
 
 const romSearches = new Map<
@@ -450,6 +460,44 @@ const searchRomFoldersCached = (objectId: string, kind: RomKind) => {
   return result;
 };
 
+const getRomFromDownload = async (key: string, kind: RomKind) => {
+  const download = await downloadsSublevel.get(key).catch(() => null);
+  if (!download) return undefined;
+  if (isCompletedLikeDownload(download)) {
+    if (download.extracting) return null;
+    return (await getDownloadedRomPath(download, kind)) ?? undefined;
+  }
+  const isActive = download.status !== "error" && download.status !== "removed";
+  return isActive ? null : undefined;
+};
+
+const getRomFromDiscs = async (key: string, kind: RomKind) => {
+  const game = await gamesSublevel.get(key).catch(() => null);
+  if (!game || game.isDeleted) return null;
+  const portDiscs = new Set(
+    (game.discs ?? [])
+      .filter((disc) => disc.recompilationSlug)
+      .map((disc) => disc.path)
+  );
+  const candidates = [
+    game.selectedDiscPath,
+    ...(game.discs ?? []).map((disc) => disc.path),
+  ].filter(
+    (disc): disc is string => Boolean(disc) && !portDiscs.has(disc as string)
+  );
+  return findFirstFound(candidates, (disc) => findDiscRom(disc, kind));
+};
+
+const findFirstFound = <T, R>(
+  items: T[],
+  find: (item: T) => Promise<R | null>
+) =>
+  items.reduce<Promise<R | null>>(
+    (previous, item) =>
+      previous.then((found) => (found === null ? find(item) : found)),
+    Promise.resolve(null)
+  );
+
 const getLibraryRomPath = async (
   objectId: string,
   kind: RomKind,
@@ -458,36 +506,11 @@ const getLibraryRomPath = async (
   if (!isFolderRom(kind) && !kind.extensions.length) return null;
   const key = levelKeys.game("launchbox", objectId);
 
-  const download = await downloadsSublevel.get(key).catch(() => null);
-  if (download && isCompletedLikeDownload(download)) {
-    if (download.extracting) return null;
-    const downloaded = await getDownloadedRomPath(download, kind);
-    if (downloaded) return downloaded;
-  } else if (
-    download &&
-    download.status !== "error" &&
-    download.status !== "removed"
-  ) {
-    return null;
-  }
+  const fromDownload = await getRomFromDownload(key, kind);
+  if (fromDownload !== undefined) return fromDownload;
 
-  const game = await gamesSublevel.get(key).catch(() => null);
-  if (game && !game.isDeleted) {
-    const portDiscs = new Set(
-      (game.discs ?? [])
-        .filter((disc) => disc.recompilationSlug)
-        .map((disc) => disc.path)
-    );
-    const candidates = [
-      game.selectedDiscPath,
-      ...(game.discs ?? []).map((disc) => disc.path),
-    ].filter((disc) => disc && !portDiscs.has(disc));
-    for (const disc of candidates) {
-      if (!disc) continue;
-      const found = await findDiscRom(disc, kind);
-      if (found) return found;
-    }
-  }
+  const fromDiscs = await getRomFromDiscs(key, kind);
+  if (fromDiscs) return fromDiscs;
 
   if (!search) return null;
   const found = await searchRomFoldersCached(objectId, kind);

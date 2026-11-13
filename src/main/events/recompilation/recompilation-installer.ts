@@ -701,91 +701,77 @@ const findFolderConflict = async (slug: string, directory: string) => {
   return null;
 };
 
-export const linkRecompilationFolder = async (
-  rawRef: unknown,
-  rawDirectory: unknown,
-  rawOptions?: unknown
-): Promise<RecompilationActionResult> => {
-  const ref = parseRef(rawRef);
-  if (!ref) return { ok: false, reason: "invalid_port" };
-  if (typeof rawDirectory !== "string" || !path.isAbsolute(rawDirectory)) {
-    return { ok: false, reason: "invalid_folder" };
-  }
-  const force =
-    typeof rawOptions === "object" &&
-    rawOptions !== null &&
-    (rawOptions as { force?: unknown }).force === true;
-  const picked = path.resolve(rawDirectory);
-  if (!(await isDirectory(picked))) {
-    return { ok: false, reason: "invalid_folder" };
-  }
-  const directory = await resolvePickedFolder(picked);
-  const conflict = await findFolderConflict(ref.slug, directory);
-  if (conflict) return { ok: false, reason: conflict };
-  if (isRecompilationBusy(ref.slug)) {
-    return { ok: false, reason: "already_installing" };
-  }
+type LinkFailure = { ok: false; reason: string };
 
+const failLink = (reason: string): LinkFailure => ({ ok: false, reason });
+
+const readLinkOptions = (rawOptions: unknown) =>
+  typeof rawOptions === "object" &&
+  rawOptions !== null &&
+  (rawOptions as { force?: unknown }).force === true;
+
+const resolveLinkDirectory = async (rawDirectory: unknown) => {
+  if (typeof rawDirectory !== "string" || !path.isAbsolute(rawDirectory)) {
+    return null;
+  }
+  const picked = path.resolve(rawDirectory);
+  return (await isDirectory(picked)) ? resolvePickedFolder(picked) : null;
+};
+
+const findLinkBlocker = async (ref: RecompilationRef, directory: string) => {
+  const conflict = await findFolderConflict(ref.slug, directory);
+  if (conflict) return conflict;
+  if (isRecompilationBusy(ref.slug)) return "already_installing";
   const current = await getRecompilationInstallState(ref);
   if (await isPortRunning(ref, current?.executablePath ?? null)) {
-    return { ok: false, reason: "running" };
+    return "running";
   }
+  return null;
+};
 
-  const existing = await readInstallMarker(directory);
-  if (existing && existing.slug !== ref.slug) {
-    return { ok: false, reason: "other_port" };
-  }
-
+const buildLinkedMarker = async (
+  ref: RecompilationRef,
+  directory: string,
+  force: boolean
+): Promise<InstallMarker | LinkFailure> => {
   const details = await fetchDetailsQuietly(ref);
-  let marker: InstallMarker;
-  if (existing) {
-    marker = { ...existing, objectId: ref.objectId };
-  } else {
-    const findIn = (platform: PortPlatform) =>
-      findRecompilationExecutable(
-        directory,
-        details?.name ?? ref.slug,
-        getRecompilationExecutableOverride(ref.slug, platform),
-        platform
-      ).catch(() => null);
-    const platforms = getLinkPlatforms(details);
-    const check = await checkPickedFolder(
-      ref,
+  const portName = details?.name ?? ref.slug;
+  const platforms = getLinkPlatforms(details);
+  const check = await checkPickedFolder(ref, directory, portName, platforms);
+  if (!check.fits && !force) return failLink("doesnt_look_right");
+
+  const findIn = (platform: PortPlatform) =>
+    findRecompilationExecutable(
       directory,
-      details?.name ?? ref.slug,
-      platforms
-    );
-    if (!check.fits && !force) {
-      return { ok: false, reason: "doesnt_look_right" };
-    }
-    let executablePath = check.executablePath;
-    for (const platform of platforms) {
-      executablePath ??= await findIn(platform);
-    }
-    if (!executablePath) return { ok: false, reason: "no_executable" };
-    marker = {
-      slug: ref.slug,
-      objectId: ref.objectId,
-      version: "",
-      assetName: "",
-      executablePath,
-      installedAt: new Date().toISOString(),
-      name: details?.name,
-      iconUrl: details?.iconUrl ?? null,
-      linked: true,
-      verified: check.fits,
-    };
-  }
+      portName,
+      getRecompilationExecutableOverride(ref.slug, platform),
+      platform
+    ).catch(() => null);
+  const executablePath =
+    check.executablePath ??
+    (await Promise.all(platforms.map(findIn))).find(Boolean) ??
+    null;
+  if (!executablePath) return failLink("no_executable");
 
-  try {
-    await fs.promises.writeFile(
-      path.join(directory, INSTALL_MARKER_FILE),
-      JSON.stringify(marker, null, 2)
-    );
-  } catch {
-    return { ok: false, reason: "install_folder_unwritable" };
-  }
+  return {
+    slug: ref.slug,
+    objectId: ref.objectId,
+    version: "",
+    assetName: "",
+    executablePath,
+    installedAt: new Date().toISOString(),
+    name: details?.name,
+    iconUrl: details?.iconUrl ?? null,
+    linked: true,
+    verified: check.fits,
+  };
+};
 
+const saveLinkedFolder = async (
+  ref: RecompilationRef,
+  directory: string,
+  marker: InstallMarker
+) => {
   await saveRecompilationInstallDirectory(ref.slug, directory);
   const { getOrAddBaseGame } = await import("./recompilation-base-game");
   await getOrAddBaseGame(ref).catch((error) => {
@@ -800,6 +786,38 @@ export const linkRecompilationFolder = async (
     versionRechecks.add(ref.slug);
     void identifyLinkedVersion(ref, directory, marker.executablePath);
   }
+};
+
+export const linkRecompilationFolder = async (
+  rawRef: unknown,
+  rawDirectory: unknown,
+  rawOptions?: unknown
+): Promise<RecompilationActionResult> => {
+  const ref = parseRef(rawRef);
+  if (!ref) return failLink("invalid_port");
+  const directory = await resolveLinkDirectory(rawDirectory);
+  if (!directory) return failLink("invalid_folder");
+  const blocker = await findLinkBlocker(ref, directory);
+  if (blocker) return failLink(blocker);
+
+  const existing = await readInstallMarker(directory);
+  if (existing && existing.slug !== ref.slug) return failLink("other_port");
+
+  const marker = existing
+    ? { ...existing, objectId: ref.objectId }
+    : await buildLinkedMarker(ref, directory, readLinkOptions(rawOptions));
+  if ("ok" in marker) return marker;
+
+  try {
+    await fs.promises.writeFile(
+      path.join(directory, INSTALL_MARKER_FILE),
+      JSON.stringify(marker, null, 2)
+    );
+  } catch {
+    return failLink("install_folder_unwritable");
+  }
+
+  await saveLinkedFolder(ref, directory, marker);
   return { ok: true };
 };
 
@@ -920,12 +938,14 @@ const HYDRA_FILES = [
 ];
 
 const removeHydraFiles = async (directory: string, names: string[]) => {
-  for (const name of names) {
-    await fs.promises.rm(path.join(directory, name), {
-      recursive: true,
-      force: true,
-    });
-  }
+  await Promise.all(
+    names.map((name) =>
+      fs.promises.rm(path.join(directory, name), {
+        recursive: true,
+        force: true,
+      })
+    )
+  );
 };
 
 const resolveInstalledFiles = (directory: string, files: string[]) =>
@@ -952,29 +972,59 @@ const removeEmptyFolders = async (directory: string, files: string[]) => {
       folders.add(folder);
     }
   }
-  const deepestFirst = [...folders].sort(
-    (left, right) => right.length - left.length
-  );
-  for (const folder of deepestFirst) {
-    await fs.promises.rmdir(folder).catch(() => undefined);
+  const byDepth = new Map<number, string[]>();
+  for (const folder of folders) {
+    const depth = folder.split(path.sep).length;
+    byDepth.set(depth, [...(byDepth.get(depth) ?? []), folder]);
   }
+  const deepestFirst = [...byDepth.entries()]
+    .sort(([left], [right]) => right - left)
+    .map(([, level]) => level);
+  await deepestFirst.reduce(
+    (previous, level) =>
+      previous.then(() =>
+        Promise.all(
+          level.map((folder) =>
+            fs.promises.rmdir(folder).catch(() => undefined)
+          )
+        ).then(() => undefined)
+      ),
+    Promise.resolve()
+  );
 };
 
-/** Deletes the files one by one, so the uninstall can show how far it is. */
+const DELETE_BATCH_SIZE = 16;
+
 const deleteFilesWithProgress = async (
   files: string[],
   onProgress: (loaded: number, total: number) => void
 ) => {
+  let deleted = 0;
   let lastPercent = -1;
   onProgress(0, files.length || 1);
-  for (const [index, file] of files.entries()) {
-    await fs.promises.rm(file, { force: true });
-    const percent = Math.floor(((index + 1) / files.length) * 100);
-    if (percent !== lastPercent) {
-      lastPercent = percent;
-      onProgress(index + 1, files.length);
-    }
-  }
+  const countDeleted = () => {
+    deleted += 1;
+    const percent = Math.floor((deleted / files.length) * 100);
+    if (percent === lastPercent) return;
+    lastPercent = percent;
+    onProgress(deleted, files.length);
+  };
+  const batches = Array.from(
+    { length: Math.ceil(files.length / DELETE_BATCH_SIZE) },
+    (_, index) =>
+      files.slice(index * DELETE_BATCH_SIZE, (index + 1) * DELETE_BATCH_SIZE)
+  );
+  await batches.reduce(
+    (previous, batch) =>
+      previous.then(() =>
+        Promise.all(
+          batch.map((file) =>
+            fs.promises.rm(file, { force: true }).then(countDeleted)
+          )
+        ).then(() => undefined)
+      ),
+    Promise.resolve()
+  );
 };
 
 export const openRecompilationFolder = async (
@@ -1067,9 +1117,11 @@ const launchPortWithProton = async (
   }
 };
 
-const launchRecompilation = async (
+type LaunchFailure = { ok: false; reason: string };
+
+const resolveLaunchProgram = async (
   ref: RecompilationRef
-): Promise<RecompilationActionResult> => {
+): Promise<{ installPath: string; executablePath: string } | LaunchFailure> => {
   const state = await getRecompilationInstallState(ref);
   if (!state?.installPath) {
     return {
@@ -1080,7 +1132,6 @@ const launchRecompilation = async (
     };
   }
   if (!state.executablePath) return { ok: false, reason: "no_executable" };
-  // A folder the user picked runs once Hydra confirmed it is this port.
   if (state.linked && !state.verified) {
     return { ok: false, reason: "port_update_required" };
   }
@@ -1097,55 +1148,45 @@ const launchRecompilation = async (
   if (!fs.existsSync(executablePath)) {
     return { ok: false, reason: "program_missing" };
   }
+  return { installPath: state.installPath, executablePath };
+};
 
-  const {
-    clearRecompilationCloudSaveGuard,
-    isRecompilationRunning,
-    prepareRecompilationCloudSave,
-    startRecompilationSession,
-  } = await loadSession();
+const findLaunchBlocker = async (
+  ref: RecompilationRef,
+  executablePath: string,
+  isRecompilationRunning: (ref: RecompilationRef) => boolean
+) => {
   if (
     isRecompilationRunning(ref) ||
     (await isExecutableInUse(executablePath))
   ) {
-    return { ok: false, reason: "already_running" };
+    return "already_running";
   }
   const { isPs4PkgJobRunningFor } = await import("../emulators/ps4-pkg-job");
-  if (isPs4PkgJobRunningFor(ref.objectId)) {
-    return { ok: false, reason: "pkg_job_running" };
-  }
+  return isPs4PkgJobRunningFor(ref.objectId) ? "pkg_job_running" : null;
+};
 
+const prepareLaunch = async (ref: RecompilationRef, installPath: string) => {
   let prepared = false;
-  const launch = await prepareRecompilationRom(
-    ref,
-    state.installPath,
-    (step) => {
-      prepared = true;
-      sendPrepareProgress({ slug: ref.slug, phase: "running", ...step });
-    }
-  );
+  const launch = await prepareRecompilationRom(ref, installPath, (step) => {
+    prepared = true;
+    sendPrepareProgress({ slug: ref.slug, phase: "running", ...step });
+  });
   if (prepared) {
     sendPrepareProgress({
       slug: ref.slug,
       phase: launch.ok ? "done" : "error",
     });
   }
-  if (!launch.ok) return { ok: false, reason: launch.reason };
+  return launch;
+};
 
-  if (!(await prepareRecompilationCloudSave(ref))) {
-    return { ok: false, reason: "cloud_save_conflict" };
-  }
-
-  const consoleHider = shouldHideRecompilationConsole(ref.slug)
-    ? startConsoleHider()
-    : null;
-  const { applyPendingTrophyReset } = await import(
-    "./recompilation-trophy-watcher"
-  );
-  await applyPendingTrophyReset(ref).catch((error) =>
-    logger.error("Failed to apply a saved trophy reset", error)
-  );
-
+const startPort = async (
+  ref: RecompilationRef,
+  executablePath: string,
+  launch: { args: string[]; env: Record<string, string> },
+  session: Awaited<ReturnType<typeof loadSession>>
+): Promise<RecompilationActionResult> => {
   if (runsThroughProton(executablePath)) {
     const launched = await launchPortWithProton(
       ref.slug,
@@ -1153,14 +1194,16 @@ const launchRecompilation = async (
       launch
     );
     if (!launched) {
-      clearRecompilationCloudSaveGuard(ref);
+      session.clearRecompilationCloudSaveGuard(ref);
       return { ok: false, reason: "launch_failed" };
     }
-    void markRecompilationRomLaunched(state.installPath);
-    void startRecompilationSession(ref, null, launched);
+    void session.startRecompilationSession(ref, null, launched);
     return { ok: true };
   }
 
+  const consoleHider = shouldHideRecompilationConsole(ref.slug)
+    ? startConsoleHider()
+    : null;
   const spawned = await spawnPort(executablePath, launch);
   if (spawned.ok && spawned.child.pid) {
     consoleHider?.stdin?.end(`${spawned.child.pid}\n`);
@@ -1169,13 +1212,45 @@ const launchRecompilation = async (
   }
   if (!spawned.ok) {
     logger.error("Failed to launch recompilation", spawned.error);
-    clearRecompilationCloudSaveGuard(ref);
+    session.clearRecompilationCloudSaveGuard(ref);
     return { ok: false, reason: "launch_failed" };
   }
-
-  void markRecompilationRomLaunched(state.installPath);
-  void startRecompilationSession(ref, spawned.child);
+  void session.startRecompilationSession(ref, spawned.child);
   return { ok: true };
+};
+
+const launchRecompilation = async (
+  ref: RecompilationRef
+): Promise<RecompilationActionResult> => {
+  const program = await resolveLaunchProgram(ref);
+  if ("ok" in program) return program;
+  const { installPath, executablePath } = program;
+
+  const session = await loadSession();
+  const blocker = await findLaunchBlocker(
+    ref,
+    executablePath,
+    session.isRecompilationRunning
+  );
+  if (blocker) return { ok: false, reason: blocker };
+
+  const launch = await prepareLaunch(ref, installPath);
+  if (!launch.ok) return { ok: false, reason: launch.reason };
+
+  if (!(await session.prepareRecompilationCloudSave(ref))) {
+    return { ok: false, reason: "cloud_save_conflict" };
+  }
+
+  const { applyPendingTrophyReset } = await import(
+    "./recompilation-trophy-watcher"
+  );
+  await applyPendingTrophyReset(ref).catch((error) =>
+    logger.error("Failed to apply a saved trophy reset", error)
+  );
+
+  const result = await startPort(ref, executablePath, launch, session);
+  if (result.ok) void markRecompilationRomLaunched(installPath);
+  return result;
 };
 
 export const playRecompilation = async (

@@ -457,19 +457,28 @@ const readPs4FolderTitleId = async (directory: string) => {
 const keepPs4GamePkgs = async (candidates: Candidate[]) => {
   const kept: Candidate[] = [];
   const skipped: SkippedPackage[] = [];
-  const installedTitleIds = new Set<string>();
-  for (const candidate of candidates) {
-    if (!candidate.isMarkerDir) continue;
-    const titleId = await readPs4FolderTitleId(candidate.fullPath);
-    if (titleId) installedTitleIds.add(titleId);
-  }
+  const folderTitleIds = await Promise.all(
+    candidates
+      .filter((candidate) => candidate.isMarkerDir)
+      .map((candidate) => readPs4FolderTitleId(candidate.fullPath))
+  );
+  const installedTitleIds = new Set(
+    folderTitleIds.filter((titleId): titleId is string => titleId !== null)
+  );
 
-  for (const candidate of candidates) {
+  const infos = await Promise.all(
+    candidates.map((candidate) =>
+      candidate.isMarkerDir
+        ? null
+        : readPs4PkgInfo(candidate.fullPath).catch(() => null)
+    )
+  );
+  for (const [index, candidate] of candidates.entries()) {
     if (candidate.isMarkerDir) {
       kept.push(candidate);
       continue;
     }
-    const info = await readPs4PkgInfo(candidate.fullPath).catch(() => null);
+    const info = infos[index];
     if (
       info?.kind === "patch" ||
       (info?.kind === "game" && info.isDeltaPatch)

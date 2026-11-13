@@ -189,11 +189,15 @@ const sha256File = (filePath: string) =>
 // Builds for other machines or packagings than the one Hydra installs.
 const OTHER_BUILD = /arm64|aarch64|flatpak|debug|symbols|source/i;
 
-const VERSION_IN_NAME = /v?\d+(?:[._]\d+)+/gi;
+const isVersionPart = (part: string) => /^v?\d+$/.test(part);
 
 /** An asset's name without its version, to find the same file in other releases. */
 const assetKey = (name: string) =>
-  name.toLowerCase().replaceAll(VERSION_IN_NAME, "");
+  name
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((part) => part !== "" && !isVersionPart(part))
+    .join("-");
 
 /**
  * The files of a release that may hold the build Hydra installs. Only the

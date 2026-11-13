@@ -70,12 +70,21 @@ import { MoreVertical, FileArchive, FolderOpen } from "lucide-react";
 import { average } from "color.js";
 import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
 import { DownloadArtworkImage, getDownloadArtwork } from "./download-artwork";
+import type { ExtractionInfo } from "@renderer/features";
 
 const EXTRACTION_STAGE_LABEL_KEYS = {
   install: "installing",
   update: "applying_update",
   dlc: "applying_dlc",
 } as const;
+
+const getExtractingText = (
+  t: (key: string) => string,
+  extraction: ExtractionInfo | null
+) =>
+  extraction?.stage
+    ? t(EXTRACTION_STAGE_LABEL_KEYS[extraction.stage])
+    : t("extracting");
 
 function hexToRgb(hex: string): [number, number, number] {
   let h = hex.replace("#", "");
@@ -1381,11 +1390,7 @@ export function DownloadGroup({
           game={game}
           isGameDownloading={isGameDownloading}
           isGameExtracting={isGameExtracting}
-          extractingLabel={
-            isGameExtracting && extraction.stage
-              ? t(EXTRACTION_STAGE_LABEL_KEYS[extraction.stage])
-              : undefined
-          }
+          extractingLabel={getExtractingText(t, extraction)}
           downloadSpeed={downloadSpeed}
           finalDownloadSize={finalDownloadSize}
           peakSpeed={peakSpeed}
@@ -1473,10 +1478,8 @@ export function DownloadGroup({
                     <div className="download-group__simple-meta-row">
                       {extraction?.visibleId === game.id ? (
                         <span className="download-group__simple-extracting">
-                          {extraction.stage
-                            ? t(EXTRACTION_STAGE_LABEL_KEYS[extraction.stage])
-                            : t("extracting")}{" "}
-                          ({Math.round(extraction.progress * 100)}%)
+                          {getExtractingText(t, extraction)} (
+                          {Math.round(extraction.progress * 100)}%)
                         </span>
                       ) : (
                         <span className="download-group__simple-size">

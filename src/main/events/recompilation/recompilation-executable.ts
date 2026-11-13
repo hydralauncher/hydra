@@ -51,21 +51,19 @@ const collectExecutables = async (
   if (depth > EXECUTABLE_SCAN_DEPTH) return [];
 
   const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-  const found: string[] = [];
-
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      found.push(...(await collectExecutables(entryPath, platform, depth + 1)));
-    } else if (
-      entry.isFile() &&
-      (await isExecutableCandidate(entryPath, platform))
-    ) {
-      found.push(entryPath);
-    }
-  }
-
-  return found;
+  const found = await Promise.all(
+    entries.map(async (entry): Promise<string[]> => {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        return collectExecutables(entryPath, platform, depth + 1);
+      }
+      return entry.isFile() &&
+        (await isExecutableCandidate(entryPath, platform))
+        ? [entryPath]
+        : [];
+    })
+  );
+  return found.flat();
 };
 
 const isFile = (filePath: string) =>

@@ -5,7 +5,9 @@ import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
 import type {
   RecompilationActionResult,
   RecompilationDetails,
+  RecompilationInstallState,
   RecompilationPrepareProgress,
+  RecompilationRomState,
   RecompilationReleaseAsset,
 } from "@types";
 import { formatBytes } from "@shared";
@@ -151,6 +153,28 @@ function ChoiceRow({
     </button>
   );
 }
+
+const STEPS_WITH_CONTINUE = new Set<InstallStep>(["rom", "location", "done"]);
+
+const needsLinkedUpdate = (state: RecompilationInstallState | null) =>
+  state?.installed === true && state.linked === true && !state.verified;
+
+const isRomReadyToPlay = (
+  romState: RecompilationRomState | null,
+  handlesRom: boolean,
+  needsPreparation: boolean
+) =>
+  !handlesRom ||
+  Boolean(romState?.isReady || (!needsPreparation && romState?.romPath));
+
+const canCloseAtStep = (
+  step: InstallStep,
+  isRomDownloading: boolean,
+  prepare: RecompilationPrepareProgress | null
+) =>
+  step === "done" ||
+  (step === "rom" && isRomDownloading) ||
+  (step === "prepare" && prepare?.phase !== "error");
 
 function InstallModalContent({
   details,
@@ -547,62 +571,66 @@ function InstallModalContent({
     }
   }, [progress?.phase]);
 
+  const renderInstalledStatus = () =>
+    isIdentifyingVersion(progress) ? (
+      <StatusLine
+        label={t("install_port_installed")}
+        detail={t("version_checking")}
+        progress={{ phase: "extracting" }}
+      />
+    ) : (
+      <StatusLine
+        label={t("install_port_installed")}
+        detail={
+          state?.version
+            ? formatRecompilationVersion(state.version)
+            : t("version_unknown")
+        }
+        isDone
+      />
+    );
+
+  const renderExtractingStatus = (extracting: InstallProgressLike) => {
+    const percent = getExtractionPercent(extracting);
+    return (
+      <StatusLine
+        label={t("install_port_extracting")}
+        detail={percent === null ? undefined : `${percent}%`}
+        progress={extracting}
+      />
+    );
+  };
+
+  const renderDownloadingStatus = (downloading: InstallProgressLike) => {
+    const { loaded, total } = downloading;
+    const percent =
+      total && loaded !== undefined
+        ? Math.min(100, Math.round((loaded / total) * 100))
+        : 0;
+    const detail =
+      total !== undefined && loaded !== undefined
+        ? t("downloading_value", {
+            loaded: formatBytes(loaded),
+            total: formatBytes(total),
+            percent,
+          })
+        : `${percent}%`;
+    return (
+      <StatusLine
+        label={t("install_port_downloading")}
+        detail={detail}
+        progress={downloading}
+      />
+    );
+  };
+
   const renderPortStatus = () => {
-    if (isInstalled && !install.isBusy && isIdentifyingVersion(progress)) {
-      return (
-        <StatusLine
-          label={t("install_port_installed")}
-          detail={t("version_checking")}
-          progress={{ phase: "extracting" }}
-        />
-      );
-    }
-    if (isInstalled && !install.isBusy) {
-      return (
-        <StatusLine
-          label={t("install_port_installed")}
-          detail={
-            state.version
-              ? formatRecompilationVersion(state.version)
-              : t("version_unknown")
-          }
-          isDone
-        />
-      );
-    }
+    if (isInstalled && !install.isBusy) return renderInstalledStatus();
     if (progress?.phase === "extracting") {
-      return (
-        <StatusLine
-          label={t("install_port_extracting")}
-          detail={
-            getExtractionPercent(progress) === null
-              ? undefined
-              : `${getExtractionPercent(progress)}%`
-          }
-          progress={progress}
-        />
-      );
+      return renderExtractingStatus(progress);
     }
     if (progress?.phase === "downloading") {
-      const percent =
-        progress.total && progress.loaded !== undefined
-          ? Math.min(100, Math.round((progress.loaded / progress.total) * 100))
-          : 0;
-      return (
-        <StatusLine
-          label={t("install_port_downloading")}
-          detail={
-            progress.total !== undefined && progress.loaded !== undefined
-              ? t("downloading_value", {
-                  loaded: formatBytes(progress.loaded),
-                  total: formatBytes(progress.total),
-                  percent,
-                })
-              : `${percent}%`
-          }
-          progress={progress}
-        />
-      );
+      return renderDownloadingStatus(progress);
     }
     if (hasSeenPortProgress && progress?.phase !== "error") {
       return <StatusLine label={t("install_port_extracting")} />;
@@ -808,14 +836,12 @@ function InstallModalContent({
     </>
   );
 
-  const needsPortUpdate =
-    isInstalled && state.linked === true && !state.verified;
+  const needsPortUpdate = needsLinkedUpdate(state);
   const canPlay =
     isInstalled &&
     !needsPortUpdate &&
     !install.isBusy &&
-    (!handlesRom ||
-      Boolean(romState?.isReady || (!needsPreparation && romState?.romPath)));
+    isRomReadyToPlay(romState, handlesRom, needsPreparation);
 
   const renderPrepareStatus = () => {
     if (prepare?.phase === "error") {
@@ -896,6 +922,14 @@ function InstallModalContent({
     </div>
   );
 
+  const getContinueLabel = () =>
+    step === "done" ? (
+      <>
+        <PlayIcon />
+        {t("play")}
+      </>
+    ) : undefined;
+
   const getContinueDisabled = () => {
     if (step === "location") return !parentDirectory || !hasEnoughSpace;
     if (step === "done") return !canPlay || install.isLaunching;
@@ -933,22 +967,11 @@ function InstallModalContent({
         totalSteps={stepOrder.length}
         showBack={step === "sources" || (step === "update" && !openOnUpdate)}
         showSkip={false}
-        continueHidden={
-          step !== "rom" && step !== "location" && step !== "done"
-        }
-        continueLabel={
-          step === "done" ? (
-            <>
-              <PlayIcon />
-              {t("play")}
-            </>
-          ) : undefined
-        }
+        continueHidden={!STEPS_WITH_CONTINUE.has(step)}
+        continueLabel={getContinueLabel()}
         continueDisabled={getContinueDisabled()}
         secondaryAction={
-          step === "done" ||
-          (step === "rom" && isRomDownloading) ||
-          (step === "prepare" && prepare?.phase !== "error")
+          canCloseAtStep(step, isRomDownloading, prepare)
             ? { label: t("close"), onClick: onClose }
             : null
         }

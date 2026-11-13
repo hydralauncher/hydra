@@ -393,7 +393,7 @@ export const closeRecompilation = (ref: RecompilationRef) => {
   if (!session) return false;
 
   const { child } = session;
-  if (!child || child.exitCode !== null || child.signalCode !== null) {
+  if (child?.exitCode !== null || child.signalCode !== null) {
     if (session.launchedPid !== undefined) {
       signalProcessGroup(session.launchedPid, "SIGTERM");
     }

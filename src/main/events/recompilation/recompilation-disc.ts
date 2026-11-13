@@ -180,23 +180,31 @@ export const linkInstalledRecompilation = (
 export const waitForRecompilationLink = (slug: string) =>
   linksInProgress.get(slug) ?? Promise.resolve();
 
+const adoptInstall = async (parent: string, name: string) => {
+  const known = await recompilationInstallsSublevel
+    .get(name)
+    .catch(() => undefined);
+  if (known) return;
+  const directory = path.join(parent, name);
+  const marker = await readInstallMarker(directory);
+  if (marker?.slug !== name) return;
+  await saveRecompilationInstallDirectory(name, directory);
+};
+
+const adoptInstallsIn = async (parent: string) => {
+  const entries = await fs.promises
+    .readdir(parent, { withFileTypes: true })
+    .catch(() => []);
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => adoptInstall(parent, entry.name))
+  );
+};
+
 const adoptDefaultInstalls = async () => {
-  for (const parent of await listDefaultRecompilationParents()) {
-    const entries = await fs.promises
-      .readdir(parent, { withFileTypes: true })
-      .catch(() => []);
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const known = await recompilationInstallsSublevel
-        .get(entry.name)
-        .catch(() => undefined);
-      if (known) continue;
-      const directory = path.join(parent, entry.name);
-      const marker = await readInstallMarker(directory);
-      if (marker?.slug !== entry.name) continue;
-      await saveRecompilationInstallDirectory(entry.name, directory);
-    }
-  }
+  const parents = await listDefaultRecompilationParents();
+  await Promise.all(parents.map(adoptInstallsIn));
 };
 
 export const linkRecompilationsOfGame = async (objectId: string) => {
