@@ -1,4 +1,5 @@
 import type { GameShop, SteamAchievement, UnlockedAchievement } from "@types";
+import { platformToSystem } from "../../../shared/platform-to-system.js";
 
 export type AchievementMemoryEntry = {
   achievements: SteamAchievement[];
@@ -76,12 +77,15 @@ export const resolveUnlockedAchievementCount = (
     ) ?? []
   );
   const hasCatalogue = validNames.size > 0;
-  const localCount =
-    achievements?.unlockedAchievements.filter((unlocked) => {
-      if (unlocked.unlockTime <= 0) return false;
-      if (!hasCatalogue) return true;
-      return validNames.has((unlocked.name ?? "").toUpperCase());
-    }).length ?? 0;
+  const hasEmptyCatalogue =
+    shop !== "epic" && achievements?.language !== undefined && !hasCatalogue;
+  const localCount = hasEmptyCatalogue
+    ? 0
+    : (achievements?.unlockedAchievements.filter((unlocked) => {
+        if (unlocked.unlockTime <= 0) return false;
+        if (!hasCatalogue) return true;
+        return validNames.has((unlocked.name ?? "").toUpperCase());
+      }).length ?? 0);
 
   return Math.max(localCount, remoteCount ?? 0);
 };
@@ -92,6 +96,7 @@ export const mergePersistedAchievementTotals = (
   local: {
     achievementCount?: number | null;
     unlockedAchievementCount?: number | null;
+    platform?: string | null;
   },
   remote: {
     achievementCount?: number | null;
@@ -116,9 +121,11 @@ export const mergePersistedAchievementTotals = (
         unlockedAchievementCount: resolveUnlockedAchievementCount(
           shop,
           objectId,
-          Math.max(
-            local.unlockedAchievementCount ?? 0,
-            remote.unlockedAchievementCount ?? 0
-          )
+          platformToSystem(local.platform) === "ps3"
+            ? (remote.unlockedAchievementCount ?? 0)
+            : Math.max(
+                local.unlockedAchievementCount ?? 0,
+                remote.unlockedAchievementCount ?? 0
+              )
         ),
       };

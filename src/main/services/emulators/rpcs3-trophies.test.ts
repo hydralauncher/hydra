@@ -9,8 +9,10 @@ import type { Game } from "@types";
 
 import {
   listRpcs3TropUsrFiles,
-  npCommIdsFromAchievementIcons,
+  matchRpcs3UnlocksToCatalogue,
+  npCommIdsFromCatalogue,
   parseRpcs3TropUsr,
+  pickRpcs3TrophySets,
   readRpcs3UnlockedTrophies,
   resolveRpcs3NpCommIds,
 } from "./rpcs3-trophies.js";
@@ -123,11 +125,11 @@ it("merges unlocks from every RPCS3 user and keeps the earliest time", async () 
 
     const unlocked = await readRpcs3UnlockedTrophies(files);
     assert.deepEqual(
-      unlocked?.toSorted((a, b) => Number(a.name) - Number(b.name)),
+      unlocked?.toSorted((a, b) => Number(a.id) - Number(b.id)),
       [
-        { name: "1", unlockTime: 1_000 },
-        { name: "9", unlockTime: 3_000 },
-        { name: "25", unlockTime: 5_000 },
+        { npCommId: "NPWR00160_00", id: "1", unlockTime: 1_000 },
+        { npCommId: "NPWR00160_00", id: "9", unlockTime: 3_000 },
+        { npCommId: "NPWR00160_00", id: "25", unlockTime: 5_000 },
       ]
     );
   } finally {
@@ -137,7 +139,7 @@ it("merges unlocks from every RPCS3 user and keeps the earliest time", async () 
 
 it("reads trophy set ids from catalogue icon urls", () => {
   assert.deepEqual(
-    npCommIdsFromAchievementIcons([
+    npCommIdsFromCatalogue([
       {
         icon: "https://cdn.example/psn/trophies/NPWR00160_00/0.webp",
         icongray: "https://cdn.example/psn/trophies/NPWR00160_00/0_lock.webp",
@@ -157,4 +159,112 @@ it("reads a TROPUSR.DAT written by RPCS3", async () => {
     { name: "25", unlockTime: Date.UTC(2020, 0, 1, 0, 0, 0, 0) },
     { name: "29", unlockTime: Date.UTC(2020, 0, 1, 0, 5, 0, 500) },
   ]);
+});
+
+const trophyIcon = (npCommId: string, id: number) => ({
+  icon: `https://cdn.example/psn/trophies/${npCommId}/${id}.webp`,
+  icongray: `https://cdn.example/psn/trophies/${npCommId}/${id}_lock.webp`,
+});
+
+it("keeps trophies with the same id apart across trophy sets", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "hydra-rpcs3-trophy-"));
+  try {
+    const homeRoot = path.join(root, "dev_hdd0", "home");
+    const writeSet = async (
+      npCommId: string,
+      unlocked: Record<number, number>
+    ) => {
+      const directory = path.join(homeRoot, "00000001", "trophy", npCommId);
+      await fs.mkdir(directory, { recursive: true });
+      await fs.writeFile(
+        path.join(directory, "TROPUSR.DAT"),
+        buildTropUsr(10, unlocked)
+      );
+    };
+    await writeSet("NPWR01435_00", { 0: 1_000, 5: 2_000 });
+    await writeSet("NPWR01433_00", { 5: 3_000 });
+    await writeSet("NPWR01341_00", { 1: 4_000 });
+
+    const setIds = ["NPWR01435_00", "NPWR01433_00", "NPWR01341_00"];
+    const files = await listRpcs3TropUsrFiles([homeRoot], setIds);
+    const unlocks = await readRpcs3UnlockedTrophies(files);
+    assert.equal(unlocks?.length, 4);
+
+    const catalogue = [
+      { name: "SLY1_0", ...trophyIcon("NPWR01435_00", 0) },
+      { name: "SLY1_5", ...trophyIcon("NPWR01435_00", 5) },
+      { name: "SLY2_5", ...trophyIcon("NPWR01433_00", 5) },
+    ];
+    const matched = matchRpcs3UnlocksToCatalogue(
+      unlocks ?? [],
+      catalogue,
+      pickRpcs3TrophySets(npCommIdsFromCatalogue(catalogue), setIds)
+    );
+    assert.deepEqual(
+      matched.toSorted((a, b) => a.unlockTime - b.unlockTime),
+      [
+        { name: "SLY1_0", unlockTime: 1_000 },
+        { name: "SLY1_5", unlockTime: 2_000 },
+        { name: "SLY2_5", unlockTime: 3_000 },
+      ]
+    );
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+it("ignores unlocks the catalogue does not list", () => {
+  const unlocks = [
+    { npCommId: "NPWR00160_00", id: "1", unlockTime: 1_000 },
+    { npCommId: "NPWR00160_00", id: "70", unlockTime: 2_000 },
+  ];
+  assert.deepEqual(
+    matchRpcs3UnlocksToCatalogue(
+      unlocks,
+      [{ name: "1", ...trophyIcon("NPWR00160_00", 1) }],
+      { NPWR00160_00: "NPWR00160_00" }
+    ),
+    [{ name: "1", unlockTime: 1_000 }]
+  );
+  assert.deepEqual(matchRpcs3UnlocksToCatalogue(unlocks, [], {}), []);
+});
+
+it("reads the disc's regional trophy set as the catalogue's only set", () => {
+  const catalogueSets = pickRpcs3TrophySets(["NPWR00160_00"], ["NPWR00195_00"]);
+  assert.deepEqual(catalogueSets, { NPWR00195_00: "NPWR00160_00" });
+  assert.deepEqual(
+    matchRpcs3UnlocksToCatalogue(
+      [{ npCommId: "NPWR00195_00", id: "3", unlockTime: 1_000 }],
+      [{ name: "3", ...trophyIcon("NPWR00160_00", 3) }],
+      catalogueSets
+    ),
+    [{ name: "3", unlockTime: 1_000 }]
+  );
+});
+
+it("picks trophy sets only when they can be told apart", () => {
+  const sly = ["NPWR01435_00", "NPWR01433_00", "NPWR01490_00"];
+  assert.deepEqual(pickRpcs3TrophySets([], sly), {});
+  assert.deepEqual(pickRpcs3TrophySets([], ["NPWR00160_00"]), {
+    NPWR00160_00: "NPWR00160_00",
+  });
+  assert.deepEqual(pickRpcs3TrophySets(["NPWR01435_00"], sly), {
+    NPWR01435_00: "NPWR01435_00",
+  });
+  assert.deepEqual(pickRpcs3TrophySets(["NPWR09999_00"], sly), {});
+  assert.deepEqual(pickRpcs3TrophySets(["NPWR00160_00"], []), {
+    NPWR00160_00: "NPWR00160_00",
+  });
+});
+
+it("matches by trophy id when the catalogue has no set ids and one set was read", () => {
+  const catalogue = [{ name: "2", icon: "", icongray: "" }];
+  assert.deepEqual(
+    matchRpcs3UnlocksToCatalogue(
+      [{ npCommId: "NPWR00160_00", id: "2", unlockTime: 1_000 }],
+      catalogue,
+      { NPWR00160_00: "NPWR00160_00" }
+    ),
+    [{ name: "2", unlockTime: 1_000 }]
+  );
 });

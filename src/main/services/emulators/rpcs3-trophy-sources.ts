@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 
-import type { Game, UnlockedAchievement } from "@types";
+import type { Game, SteamAchievement, UnlockedAchievement } from "@types";
 import { platformToSystem } from "@shared";
 
 import { levelKeys } from "@main/level";
@@ -11,7 +11,9 @@ import { achievementsLogger } from "../logger";
 import { getEmulatorConfig } from "./emulators-repository";
 import {
   listRpcs3TropUsrFiles,
-  npCommIdsFromAchievementIcons,
+  matchRpcs3UnlocksToCatalogue,
+  npCommIdsFromCatalogue,
+  pickRpcs3TrophySets,
   readRpcs3UnlockedTrophies,
   resolveRpcs3HomeRoots,
   resolveRpcs3NpCommIds,
@@ -23,6 +25,7 @@ const nextCatalogueFetchAt = new Map<string, number>();
 export interface Rpcs3TrophySources {
   homeRoots: string[];
   npCommIds: string[];
+  catalogueSetIds: Record<string, string>;
 }
 
 const resolveGameDiscPaths = (game: Game, discPath?: string): string[] => [
@@ -35,14 +38,17 @@ const resolveGameDiscPaths = (game: Game, discPath?: string): string[] => [
   ),
 ];
 
-const resolveCatalogueNpCommIds = async (game: Game): Promise<string[]> => {
+export const loadRpcs3TrophyCatalogue = async (
+  game: Game,
+  force = false
+): Promise<SteamAchievement[]> => {
   const cached = AchievementMemoryStore.get(game.shop, game.objectId);
-  if (cached?.achievements.length) {
-    return npCommIdsFromAchievementIcons(cached.achievements);
-  }
+  if (cached?.achievements.length) return cached.achievements;
 
   const gameKey = levelKeys.game(game.shop, game.objectId);
-  if (Date.now() < (nextCatalogueFetchAt.get(gameKey) ?? 0)) return [];
+  if (!force && Date.now() < (nextCatalogueFetchAt.get(gameKey) ?? 0)) {
+    return [];
+  }
 
   const catalogue = await getGameAchievementData(
     game.objectId,
@@ -57,14 +63,16 @@ const resolveCatalogueNpCommIds = async (game: Game): Promise<string[]> => {
       Date.now() + RPCS3_CATALOGUE_RETRY_INTERVAL_MS
     );
   }
-
-  return npCommIdsFromAchievementIcons(catalogue);
+  return catalogue;
 };
 
 export const resolveRpcs3TrophySources = async (
   game: Game,
+  catalogue: SteamAchievement[],
   discPath?: string
 ): Promise<Rpcs3TrophySources | null> => {
+  if (!catalogue.length) return null;
+
   const config = await getEmulatorConfig("ps3");
   const homeRoots = await resolveRpcs3HomeRoots(
     config.executablePath,
@@ -77,34 +85,58 @@ export const resolveRpcs3TrophySources = async (
     resolveGameDiscPaths(game, discPath),
     homeRoots
   );
-  const npCommIds = discNpCommIds.length
-    ? discNpCommIds
-    : await resolveCatalogueNpCommIds(game);
+  const catalogueSetIds = pickRpcs3TrophySets(
+    npCommIdsFromCatalogue(catalogue),
+    discNpCommIds
+  );
+  const npCommIds = Object.keys(catalogueSetIds);
   if (!npCommIds.length) return null;
 
-  return { homeRoots, npCommIds };
+  return { homeRoots, npCommIds, catalogueSetIds };
 };
 
-const listGameTropUsrFiles = async (game: Game): Promise<string[]> => {
-  if (platformToSystem(game.platform) !== "ps3") return [];
+export const readRpcs3TrophySourceUnlocks = async (
+  files: string[],
+  sources: Rpcs3TrophySources,
+  catalogue: SteamAchievement[]
+): Promise<UnlockedAchievement[] | null> => {
+  const unlocks = await readRpcs3UnlockedTrophies(files);
+  return unlocks
+    ? matchRpcs3UnlocksToCatalogue(unlocks, catalogue, sources.catalogueSetIds)
+    : null;
+};
 
-  const sources = await resolveRpcs3TrophySources(game);
-  if (!sources) return [];
+const resolveGameTrophyFiles = async (game: Game) => {
+  if (platformToSystem(game.platform) !== "ps3") return null;
 
-  return listRpcs3TropUsrFiles(sources.homeRoots, sources.npCommIds);
+  const catalogue = await loadRpcs3TrophyCatalogue(game);
+  const sources = await resolveRpcs3TrophySources(game, catalogue);
+  if (!sources) return null;
+
+  const files = await listRpcs3TropUsrFiles(
+    sources.homeRoots,
+    sources.npCommIds
+  );
+  return { catalogue, sources, files };
 };
 
 export const readRpcs3TrophyUnlocks = async (
   game: Game
 ): Promise<UnlockedAchievement[]> => {
-  const files = await listGameTropUsrFiles(game);
-  if (!files.length) return [];
+  const resolved = await resolveGameTrophyFiles(game);
+  if (!resolved?.files.length) return [];
 
-  return (await readRpcs3UnlockedTrophies(files)) ?? [];
+  return (
+    (await readRpcs3TrophySourceUnlocks(
+      resolved.files,
+      resolved.sources,
+      resolved.catalogue
+    )) ?? []
+  );
 };
 
 export const removeRpcs3TrophyFiles = async (game: Game): Promise<void> => {
-  const files = await listGameTropUsrFiles(game);
+  const files = (await resolveGameTrophyFiles(game))?.files ?? [];
   await Promise.all(
     files.map((file) => {
       achievementsLogger.log(`deleting ${file}`);

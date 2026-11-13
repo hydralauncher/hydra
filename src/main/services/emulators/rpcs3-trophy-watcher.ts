@@ -4,22 +4,18 @@ import type { Game } from "@types";
 
 import { INTERVALS } from "@main/constants";
 import { gamesSublevel } from "@main/level";
-import { AchievementMemoryStore } from "../achievements/achievement-memory-store";
-import { getGameAchievementData } from "../achievements/get-game-achievement-data";
 import { mergeAchievements } from "../achievements/merge-achievements";
 import { HydraApi } from "../hydra-api";
 import { prepareLinuxGameCaptureSession } from "../linux-game-capture-session";
 import { achievementsLogger } from "../logger";
 import { loadEmulatorAchievementTracking } from "./load-emulator-achievement-tracking";
 import {
-  RPCS3_CATALOGUE_RETRY_INTERVAL_MS,
+  loadRpcs3TrophyCatalogue,
+  readRpcs3TrophySourceUnlocks,
   resolveRpcs3TrophySources,
   type Rpcs3TrophySources,
 } from "./rpcs3-trophy-sources";
-import {
-  listRpcs3TropUsrFiles,
-  readRpcs3UnlockedTrophies,
-} from "./rpcs3-trophies";
+import { listRpcs3TropUsrFiles } from "./rpcs3-trophies";
 
 export interface Rpcs3TrophyWatcher {
   finish: () => Promise<void>;
@@ -29,18 +25,6 @@ interface StartRpcs3TrophyWatcherOptions {
   gameKey: string;
   discPath: string;
 }
-
-const hasTrophyCatalogue = async (game: Game): Promise<boolean> => {
-  const cached = AchievementMemoryStore.get(game.shop, game.objectId);
-  if (cached?.achievements.length) return true;
-
-  const catalogue = await getGameAchievementData(
-    game.objectId,
-    game.shop,
-    false
-  );
-  return catalogue.length > 0;
-};
 
 const prepareCaptureOnce = async (gameKey: string, game: Game) => {
   const tracking = await loadEmulatorAchievementTracking();
@@ -70,7 +54,6 @@ export const startRpcs3TrophyWatcher = ({
   let hasFoundTrophies = false;
   let hasImportedExistingUnlocks = false;
   let hasPreparedCapture = false;
-  let nextCatalogueAttemptAt = 0;
   let inFlightRead: Promise<void> | null = null;
 
   const readTrophies = async (isFinalRead: boolean) => {
@@ -79,7 +62,9 @@ export const startRpcs3TrophyWatcher = ({
     const game = await gamesSublevel.get(gameKey);
     if (!game) return;
 
-    sources ??= await resolveRpcs3TrophySources(game, discPath);
+    const catalogue = await loadRpcs3TrophyCatalogue(game, isFinalRead);
+    if (!catalogue.length) return;
+    sources ??= await resolveRpcs3TrophySources(game, catalogue, discPath);
     if (!sources) return;
 
     const files = await listRpcs3TropUsrFiles(
@@ -103,17 +88,14 @@ export const startRpcs3TrophyWatcher = ({
       });
     }
 
-    const unlockedTrophies = await readRpcs3UnlockedTrophies(files);
+    const unlockedTrophies = await readRpcs3TrophySourceUnlocks(
+      files,
+      sources,
+      catalogue
+    );
     if (!unlockedTrophies) return;
 
     if (unlockedTrophies.length > 0) {
-      if (!isFinalRead && Date.now() < nextCatalogueAttemptAt) return;
-
-      if (!(await hasTrophyCatalogue(game))) {
-        nextCatalogueAttemptAt = Date.now() + RPCS3_CATALOGUE_RETRY_INTERVAL_MS;
-        return;
-      }
-
       await mergeAchievements(
         game,
         unlockedTrophies,

@@ -21,6 +21,8 @@ const RTC_TICKS_PER_MS = 1000n;
 const RTC_EPOCH_OFFSET_MS = 62_135_596_800_000n;
 const NP_COMM_ID_RE = /^NPWR\d{5}_\d{2}$/i;
 const NP_COMM_ID_PATH_SEGMENT_RE = /\/(NPWR\d{5}_\d{2})\//i;
+const TROPHY_ICON_RE = /\/(NPWR\d{5}_\d{2})\/(\d+)(?:_lock)?\.\w+(?:[?#].*)?$/i;
+const TROPHY_ID_RE = /^\d+$/;
 const RPCS3_USER_ID_RE = /^\d{8}$/;
 const TROPUSR_FILE = "TROPUSR.DAT";
 
@@ -144,18 +146,68 @@ export const resolveRpcs3NpCommIds = async (
   ];
 };
 
-export const npCommIdsFromAchievementIcons = (
-  achievements: Pick<SteamAchievement, "icon" | "icongray">[]
+type CatalogueTrophy = Pick<
+  SteamAchievement,
+  "name" | "icon" | "icongray" | "externalSetId" | "externalId"
+>;
+
+const trophyKey = (npCommId: string, id: string) =>
+  `${npCommId.toUpperCase()}/${Number(id)}`;
+
+const catalogueTrophyKey = (trophy: CatalogueTrophy): string | null => {
+  const { externalSetId, externalId } = trophy;
+  if (
+    externalSetId &&
+    NP_COMM_ID_RE.test(externalSetId) &&
+    externalId &&
+    TROPHY_ID_RE.test(externalId)
+  ) {
+    return trophyKey(externalSetId, externalId);
+  }
+
+  for (const url of [trophy.icon, trophy.icongray]) {
+    const match = url ? TROPHY_ICON_RE.exec(url) : null;
+    if (match) return trophyKey(match[1], match[2]);
+  }
+  return null;
+};
+
+export const npCommIdsFromCatalogue = (
+  catalogue: Pick<SteamAchievement, "icon" | "icongray" | "externalSetId">[]
 ): string[] => [
   ...new Set(
-    achievements.flatMap(({ icon, icongray }) =>
-      [icon, icongray].flatMap((url) => {
+    catalogue.flatMap(({ icon, icongray, externalSetId }) => {
+      if (externalSetId && NP_COMM_ID_RE.test(externalSetId)) {
+        return [externalSetId.toUpperCase()];
+      }
+      return [icon, icongray].flatMap((url) => {
         const match = url ? NP_COMM_ID_PATH_SEGMENT_RE.exec(url) : null;
         return match ? [match[1].toUpperCase()] : [];
-      })
-    )
+      });
+    })
   ),
 ];
+
+export const pickRpcs3TrophySets = (
+  catalogueSetIds: string[],
+  discSetIds: string[]
+): Record<string, string> => {
+  const identity = (ids: string[]) =>
+    Object.fromEntries(ids.map((id) => [id, id]));
+
+  if (!catalogueSetIds.length) {
+    return discSetIds.length === 1 ? identity(discSetIds) : {};
+  }
+  if (!discSetIds.length) return identity(catalogueSetIds);
+
+  const shared = discSetIds.filter((id) => catalogueSetIds.includes(id));
+  if (shared.length) return identity(shared);
+
+  if (catalogueSetIds.length === 1 && discSetIds.length === 1) {
+    return { [discSetIds[0]]: catalogueSetIds[0] };
+  }
+  return {};
+};
 
 export const listRpcs3TropUsrFiles = async (
   homeRoots: string[],
@@ -183,25 +235,76 @@ export const listRpcs3TropUsrFiles = async (
   return existing.filter((file): file is string => file !== null).sort();
 };
 
+export interface Rpcs3TrophyUnlock {
+  npCommId: string;
+  id: string;
+  unlockTime: number;
+}
+
+const npCommIdOfTropUsr = (file: string) =>
+  path.basename(path.dirname(file)).toUpperCase();
+
 export const readRpcs3UnlockedTrophies = async (
   files: string[]
-): Promise<UnlockedAchievement[] | null> => {
+): Promise<Rpcs3TrophyUnlock[] | null> => {
   const unlockLists = await Promise.all(
     files.map(async (file) => {
       const [data, stats] = await Promise.all([
         fs.readFile(file).catch(() => null),
         fs.stat(file).catch(() => null),
       ]);
-      return data && stats ? parseRpcs3TropUsr(data, stats.mtimeMs) : null;
+      const unlocked =
+        data && stats ? parseRpcs3TropUsr(data, stats.mtimeMs) : null;
+      return unlocked?.map(({ name, unlockTime }) => ({
+        npCommId: npCommIdOfTropUsr(file),
+        id: name,
+        unlockTime,
+      }));
     })
   );
-  if (unlockLists.includes(null)) return null;
+  if (unlockLists.some((unlocked) => !unlocked)) return null;
+
+  const earliest = new Map<string, Rpcs3TrophyUnlock>();
+  for (const trophy of (unlockLists as Rpcs3TrophyUnlock[][]).flat()) {
+    const key = trophyKey(trophy.npCommId, trophy.id);
+    const known = earliest.get(key);
+    if (!known || trophy.unlockTime < known.unlockTime) {
+      earliest.set(key, trophy);
+    }
+  }
+  return [...earliest.values()];
+};
+
+export const matchRpcs3UnlocksToCatalogue = (
+  unlocks: Rpcs3TrophyUnlock[],
+  catalogue: CatalogueTrophy[],
+  catalogueSetIds: Record<string, string>
+): UnlockedAchievement[] => {
+  const namesByKey = new Map<string, string>();
+  const namesById = new Map<string, string>();
+  for (const trophy of catalogue) {
+    const key = catalogueTrophyKey(trophy);
+    if (key) namesByKey.set(key, trophy.name);
+    else if (TROPHY_ID_RE.test(trophy.name)) {
+      namesById.set(String(Number(trophy.name)), trophy.name);
+    }
+  }
+  const readSets = new Set(unlocks.map(({ npCommId }) => npCommId));
+
+  const findName = ({ npCommId, id }: Rpcs3TrophyUnlock) => {
+    const catalogueSetId = catalogueSetIds[npCommId];
+    if (!catalogueSetId) return undefined;
+    if (namesByKey.size) return namesByKey.get(trophyKey(catalogueSetId, id));
+    return readSets.size === 1 ? namesById.get(String(Number(id))) : undefined;
+  };
 
   const earliest = new Map<string, UnlockedAchievement>();
-  for (const trophy of (unlockLists as UnlockedAchievement[][]).flat()) {
-    const known = earliest.get(trophy.name);
-    if (!known || trophy.unlockTime < known.unlockTime) {
-      earliest.set(trophy.name, trophy);
+  for (const unlock of unlocks) {
+    const name = findName(unlock);
+    if (!name) continue;
+    const known = earliest.get(name);
+    if (!known || unlock.unlockTime < known.unlockTime) {
+      earliest.set(name, { name, unlockTime: unlock.unlockTime });
     }
   }
   return [...earliest.values()];

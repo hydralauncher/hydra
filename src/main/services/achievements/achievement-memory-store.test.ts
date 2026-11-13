@@ -128,6 +128,63 @@ describe("AchievementMemoryStore", () => {
   });
 });
 
+describe("unlock counts without catalogue entries", () => {
+  afterEach(() => AchievementMemoryStore.clear());
+
+  const unlocks = Array.from({ length: 11 }, (_, index) => ({
+    name: String(index),
+    unlockTime: index + 1,
+  }));
+
+  it("ignores local unlocks when the API has no achievements for the game", () => {
+    AchievementMemoryStore.set("steam", "20", {
+      achievements: [],
+      unlockedAchievements: unlocks,
+      language: "en",
+    });
+
+    assert.equal(resolveUnlockedAchievementCount("steam", "20", 0), 0);
+    assert.equal(resolveUnlockedAchievementCount("steam", "20", 4), 4);
+  });
+
+  it("still counts local unlocks while the catalogue has not loaded", () => {
+    AchievementMemoryStore.set("steam", "20", {
+      achievements: [],
+      unlockedAchievements: unlocks,
+    });
+
+    assert.equal(resolveUnlockedAchievementCount("steam", "20", 0), 11);
+  });
+
+  it("replaces a stored PS3 unlock count with the server's", () => {
+    assert.deepEqual(
+      mergePersistedAchievementTotals(
+        "steam",
+        "20",
+        {
+          achievementCount: 0,
+          unlockedAchievementCount: 11,
+          platform: "PlayStation 3",
+        },
+        { achievementCount: 0, unlockedAchievementCount: 0 }
+      ),
+      { achievementCount: 0, unlockedAchievementCount: 0 }
+    );
+  });
+
+  it("keeps the stored unlock count for other platforms", () => {
+    assert.deepEqual(
+      mergePersistedAchievementTotals(
+        "steam",
+        "20",
+        { achievementCount: 30, unlockedAchievementCount: 5, platform: "PC" },
+        { achievementCount: 30, unlockedAchievementCount: 3 }
+      ),
+      { achievementCount: 30, unlockedAchievementCount: 5 }
+    );
+  });
+});
+
 describe("withSteamAchievementCatalogue", () => {
   const achievement = (name: string, points?: number) => ({
     name,

@@ -7,7 +7,10 @@ import {
 import type { EmulatorSessionSystem } from "./emulator-session-tracker";
 import { getEmulatorConfig } from "./emulators-repository";
 import { createRpcs3SessionConfig } from "./rpcs3-session-config";
-import { resolveRpcs3TrophySources } from "./rpcs3-trophy-sources";
+import {
+  loadRpcs3TrophyCatalogue,
+  resolveRpcs3TrophySources,
+} from "./rpcs3-trophy-sources";
 import { logger } from "../logger";
 import { HydraApi } from "../hydra-api";
 import { db, levelKeys } from "@main/level";
@@ -61,7 +64,10 @@ const createRpcs3Session = async (
 ) => {
   try {
     if (!game || !(await shouldKeepRpcs3Borderless())) return null;
-    if (!(await resolveRpcs3TrophySources(game, bootTarget))) return null;
+    const catalogue = await loadRpcs3TrophyCatalogue(game);
+    if (!(await resolveRpcs3TrophySources(game, catalogue, bootTarget))) {
+      return null;
+    }
 
     const config = await getEmulatorConfig("ps3");
     const sessionConfig = await createRpcs3SessionConfig(
