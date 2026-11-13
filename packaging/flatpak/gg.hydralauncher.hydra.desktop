@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Hydra Launcher
+Comment=Manage your game library
+Exec=hydra %U
+Icon=gg.hydralauncher.hydra
+Terminal=false
+Type=Application
+Categories=Game;
+StartupWMClass=Hydra
+MimeType=x-scheme-handler/hydralauncher;

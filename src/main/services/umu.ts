@@ -49,6 +49,24 @@ const getUmuLogPath = (gameId?: string | null) =>
     ? path.join(logsPath, `umu-${gameId.replaceAll(/[^\w.-]/g, "_")}.log`)
     : getSharedUmuLogPath();
 
+
+const getUmuHomeEnvironment = (): NodeJS.ProcessEnv => {
+  // Keep UMU's managed Proton installation in Hydra's private Flatpak data.
+  if (process.env.FLATPAK_ID !== "gg.hydralauncher.hydra") return {};
+
+  const umuHomePath = path.join(SystemPath.getPath("userData"), "umu-home");
+  fs.mkdirSync(umuHomePath, { recursive: true });
+  return { HOME: umuHomePath };
+};
+
+const isHydraFlatpak = () =>
+  process.env.FLATPAK_ID === "gg.hydralauncher.hydra";
+
+const getHydraManagedSteamRoot = () =>
+  path.join(SystemPath.getPath("userData"), "umu-home", ".local", "share", "Steam");
+
+
+
 const appendUmuLogHeader = (umuLogPath: string, header: string) => {
   fs.appendFileSync(umuLogPath, header);
   const sharedLogPath = getSharedUmuLogPath();
@@ -195,10 +213,15 @@ export class Umu {
 
   public static async getInstalledProtonVersions(): Promise<ProtonVersion[]> {
     const homePath = SystemPath.getPath("home");
-    const steamRoots = STEAM_ROOT_SEGMENTS.map((segments) =>
+    const isFlatpak = isHydraFlatpak();
+    const steamRoots = isFlatpak
+      ? [getHydraManagedSteamRoot()]
+      : STEAM_ROOT_SEGMENTS.map((segments) =>
       path.join(homePath, ...segments)
     );
-    const libraryFolders = await getSteamLibraryFolders().catch(() => []);
+    const libraryFolders = isFlatpak
+      ? []
+      : await getSteamLibraryFolders().catch(() => []);
 
     const steamCommonPaths = [
       ...new Set(
@@ -308,10 +331,15 @@ export class Umu {
       ? [umuBinaryPath, "createprefix"]
       : ["createprefix"];
     const launchEnv = {
+      ...getUmuHomeEnvironment(),
       PROTON_LOG: "1",
       WINEPREFIX: options.winePrefixPath,
       ...(options.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
-      ...(options.protonPath ? { PROTONPATH: options.protonPath } : {}),
+      ...(options.protonPath
+        ? { PROTONPATH: options.protonPath }
+        : isHydraFlatpak()
+          ? { PROTONPATH: "UMU-Proton" }
+          : {}),
     };
 
     fs.mkdirSync(path.dirname(umuLogPath), { recursive: true });
@@ -458,14 +486,20 @@ export class Umu {
     ensureExecutablePermission(umuBinaryPath);
 
     const launchEnv = {
+      ...getUmuHomeEnvironment(),
       PROTON_LOG: "1",
       ...(options?.gameId ? { GAMEID: `umu-${options.gameId}` } : {}),
       ...(options?.winePrefixPath
         ? { WINEPREFIX: options.winePrefixPath }
         : {}),
-      ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
+      ...(options?.protonPath
+        ? { PROTONPATH: options.protonPath }
+        : !options?.protonPath && isHydraFlatpak()
+          ? { PROTONPATH: "UMU-Proton" }
+          : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
       ...resolvedLaunchCommand.env,
+      ...getUmuHomeEnvironment(),
     };
 
     const envCommandPart = Object.entries(launchEnv)
