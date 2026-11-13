@@ -1,0 +1,303 @@
+// The main window: src/renderer/src/app.tsx + app.scss.
+// Title bar on top, sidebar on the left, the routed page in `.container`.
+import "fonts/NotoSans-Regular.ttf";
+import "fonts/NotoSans-Medium.ttf";
+// Electron bundles Noto Sans 400/500/700 only (@fontsource): CSS weight 600
+// resolves to Bold there, so the Slint UI uses 700 wherever the scss says 600.
+import "fonts/NotoSans-Bold.ttf";
+import "fonts/NotoSans-Italic.ttf";
+import "fonts/NotoSans-BoldItalic.ttf";
+
+import { Theme, Icons, Tip } from "theme.slint";
+import { TooltipHost } from "components/widgets.slint";
+import { ContextMenuHost, ContextMenu, MenuEntry, MenuLeaf } from "components/context-menu.slint";
+import { SecondaryMenuHost, SecondaryMenu } from "components/secondary-menu.slint";
+import { ToastHost, Toast } from "components/toast.slint";
+import { DialogHost, Dialogs } from "components/dialogs.slint";
+import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewReply, RepackRow, RepackSource } from "types.slint";
+import { ReviewEditor, Reviews, FormatEdit, Marks } from "pages/game-details/reviews.slint";
+import { Playback } from "components/video.slint";
+import { T, Nav, Session, Chrome, SidebarState, SidebarGame, Popup, SidebarFilterOption } from "globals.slint";
+import { GameData, Input } from "pages/game-details/state.slint";
+import { SmoothScroll } from "components/smooth-scroll.slint";
+import { GameOptions, OptionsCategory, GameProtonOption } from "pages/game-details/options.slint";
+import { PlaytimeModals, PlaytimeColumn } from "pages/game-details/playtime.slint";
+import { OptionModals } from "pages/game-details/option-modals.slint";
+import { GameAssets, ArtworkTile } from "pages/game-details/assets.slint";
+import { AuthWindow } from "auth-window.slint";
+import { HosterBrowserWindow } from "hoster-browser-window.slint";
+import { FriendsWindow, FriendsData, FriendRow } from "friends-window.slint";
+import { ChatWindow, ChatData, ChatConversationRow, ChatPickerRow, ChatReactionPill, ChatImageCell, ChatItem, ChatDraftImage, ChatEmoji } from "chat-window.slint";
+import { AchievementNotificationWindow, NotificationCard, NotificationFrame } from "achievement-notification.slint";
+import { SidebarFilterMenu } from "shell/filter-menu.slint";
+import { AchievementsPage, AchievementsData, AchievementRow, SouvenirLightbox } from "pages/achievements/page.slint";
+import { SearchDropdown, SearchData, SearchPart, SearchSuggestionRow } from "shell/search-dropdown.slint";
+import { NotificationsPage, NotificationsData, NotificationRow } from "pages/notifications/page.slint";
+import { SettingsPage, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow } from "pages/settings/page.slint";
+import { SettingsModalsHost, SettingsModals } from "pages/settings/modals.slint";
+import { IntegrationsData, IntegrationCard, IntegrationAction } from "pages/settings/integrations.slint";
+import { RetroAchievementsWindow, RaWindowStrings } from "retroachievements-window.slint";
+import { WebWindow } from "web-window.slint";
+import { ScreenshotsData } from "pages/settings/screenshots.slint";
+import { CompatibilityData, ProtonOption } from "pages/settings/compatibility.slint";
+import { EmulationData, ConsoleCard, ConsoleRow } from "pages/settings/emulation.slint";
+import { Bookmark } from "pages/game-details/bookmark.slint";
+import { GameModalsHost } from "pages/game-details/modals.slint";
+import { DownloadSettings, DownloaderRow } from "pages/game-details/download-settings.slint";
+import { TorrentStep, TorrentRow } from "pages/game-details/torrent-step.slint";
+import { RealDebridInfo } from "pages/game-details/real-debrid-info.slint";
+import { GameDetailsPage } from "pages/game-details/page.slint";
+import { LibraryPage } from "pages/library/page.slint";
+import { HomePage } from "pages/home/page.slint";
+import { CataloguePage } from "pages/catalogue/page.slint";
+import { DownloadsPage, DownloadsData, DownloadCard } from "pages/downloads/page.slint";
+import { DropdownHost, Dropdown, DropdownItem } from "components/dropdown.slint";
+import { FlightHost, Flight } from "shell/flight.slint";
+import { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup } from "pages/catalogue/state.slint";
+import { SelectPopupHost, SelectPopup, SelectOption } from "components/fields.slint";
+import { HomeData, CatalogueCard } from "pages/home/state.slint";
+import { Gifs } from "components/animated.slint";
+import { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar } from "pages/library/state.slint";
+import { LibraryModalsHost, LibraryModals, ScanGameRow, ScanChoice, ScanAmbiguousRow } from "pages/library/modals.slint";
+import { TitleBar } from "shell/title-bar.slint";
+import { LeaderboardsPage, LeaderboardsData } from "pages/leaderboards/page.slint";
+import { LbMetric, LbSideGame, LbPodiumCard, LbRow, LbOption, LbMineRow, LbFriendStreak, LbHeatCell, LbMonth, LbBadge } from "pages/leaderboards/state.slint";
+import { SelectorTipHost } from "pages/leaderboards/tip.slint";
+import { GameLeaderboard } from "pages/game-details/leaderboard.slint";
+import { Sidebar } from "shell/sidebar.slint";
+import { ProfilePage } from "pages/profile/page.slint";
+import { ProfileData, ProfileGameCard, ProfileBadge, ProfileFriend, ProfileRecentGame, ProfileReview, ProfileSouvenirCard, ProfileSouvenirGroup } from "pages/profile/state.slint";
+import { ProfileModalsHost, ProfileModals } from "pages/profile/modals.slint";
+import { ResizeEdges } from "shell/resize-edges.slint";
+
+export { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, Review, ReviewEditor, FormatEdit, Marks, Playback, RepackRow, RepackSource, ReviewReply, Reviews }
+export { T, Nav, Session, Chrome, SidebarState, SidebarGame, SidebarFilterOption, GameData, Input, SmoothScroll, GameOptions, OptionsCategory, PlaytimeModals, PlaytimeColumn, SettingsData, SettingsCategory, SourceCard, CheckRow, BlockedUser, DebridRow, AuthWindow, HosterBrowserWindow, NotificationsData, NotificationRow, Popup, Bookmark, DownloadSettings, DownloaderRow, TorrentStep, TorrentRow, RealDebridInfo, DownloadCard, Dropdown, DropdownItem, Flight, GameProtonOption, OptionModals, GameAssets, ArtworkTile }
+export { LibraryData, LibraryCard, LibraryMenuItem, LibrarySizeBar }
+export { LibraryModals, ScanGameRow, ScanChoice, ScanAmbiguousRow }
+export { SearchData, SearchPart, SearchSuggestionRow }
+export { AchievementsData, AchievementRow }
+export { AchievementNotificationWindow, NotificationCard, NotificationFrame }
+export { ContextMenu, MenuEntry, MenuLeaf, Toast }
+export { SecondaryMenu }
+export { HomeData, CatalogueCard, Gifs, Dialogs, DownloadsData }
+export { SettingsModals, IntegrationsData, IntegrationCard, IntegrationAction, RetroAchievementsWindow, RaWindowStrings, WebWindow }
+export { ScreenshotsData, CompatibilityData, ProtonOption, EmulationData, ConsoleCard, ConsoleRow }
+export { CatalogueData, CatalogueItem, FilterOption, FilterSectionData, FilterChip, FilterGroup, SelectPopup, SelectOption }
+export { FriendsWindow, FriendsData, FriendRow, ChatWindow }
+export { ChatData, ChatConversationRow, ChatPickerRow, ChatReactionPill, ChatImageCell, ChatItem, ChatDraftImage, ChatEmoji }
+export { ProfileData, ProfileGameCard, ProfileBadge, ProfileFriend, ProfileRecentGame, ProfileReview, ProfileSouvenirCard, ProfileSouvenirGroup, ProfileModals }
+export { LeaderboardsData, LbMetric, LbSideGame, LbPodiumCard, LbRow, LbOption, LbMineRow, LbFriendStreak, LbHeatCell, LbMonth, LbBadge, GameLeaderboard }
+
+export component AppWindow inherits Window {
+    title: GameData.game-title != "" && Nav.route == "game" ? "Hydra — " + GameData.game-title : "Hydra";
+    preferred-width: 1200px;
+    preferred-height: 860px;
+    min-width: 1024px;
+    min-height: 600px;
+    background: Theme.background;
+    default-font-family: "Noto Sans";
+    default-font-size: Theme.body-size;
+    // Hydra draws its own title bar and window controls (Windows; frameless Linux).
+    no-frame: Chrome.platform == "windows" || (Chrome.platform == "linux" && !Chrome.native-decorations);
+
+    callback search-submitted(string);
+    callback search-changed(string);
+
+    VerticalLayout {
+        TitleBar {
+            search-submitted(text) => {
+                root.search-submitted(text);
+            }
+            search-changed(text) => {
+                root.search-changed(text);
+            }
+        }
+
+        // <main>: sidebar + .container
+        HorizontalLayout {
+            vertical-stretch: 1;
+            Sidebar {
+                min-width: SidebarState.width;
+                max-width: SidebarState.width;
+                wheel-scale: Input.wheel-scale;
+            }
+
+            // .container__content: linear-gradient(0deg, dark 50%, background 100%)
+            container := Rectangle {
+                horizontal-stretch: 1;
+                background: @linear-gradient(0deg, Theme.dark-background 50%, Theme.background 100%);
+                clip: true;
+
+                if Nav.route == "game": GameDetailsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "library": LibraryPage {
+                    width: parent.width;
+                    height: parent.height;
+                    wheel-scale: Input.wheel-scale;
+                }
+
+                if Nav.route == "home": HomePage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "catalogue": CataloguePage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "downloads": DownloadsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "achievements": AchievementsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "notifications": NotificationsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "leaderboards": LeaderboardsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "settings": SettingsPage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route == "profile": ProfilePage {
+                    width: parent.width;
+                    height: parent.height;
+                }
+
+                if Nav.route != "game" && Nav.route != "library" && Nav.route != "home" && Nav.route != "catalogue" && Nav.route != "downloads" && Nav.route != "settings" && Nav.route != "notifications" && Nav.route != "achievements" && Nav.route != "profile" && Nav.route != "leaderboards": Text {
+                    text: "TODO(" + Nav.route + "): not ported yet";
+                    color: Theme.subtle;
+                    font-size: Theme.small-size;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+
+    // Stacking like the renderer's z-indexes: the context menu drops behind an
+    // open modal (context-menu--modal-open), toasts (150) sit above modals (5).
+    ContextMenuHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // The collection context menu, stacked on the first one.
+    SecondaryMenuHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Game page modals (z-index 5, like the dialogs).
+    GameModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // The profile's modals (pages/profile), under the confirmation dialogs.
+    ProfileModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Add custom game and scan games (library/sidebar), under the confirmations.
+    LibraryModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    DialogHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Settings modals with their own layout (z-index 5, like the dialogs).
+    SettingsModalsHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // the achievements page's souvenir (FullscreenMediaModal, portaled to the body)
+    if AchievementsData.souvenir-open: SouvenirLightbox {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Radix dropdowns (above modals: modal z-index + 1)
+    DropdownHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // .download-flight (z-index 160)
+    FlightHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    ToastHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    SelectPopupHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    if SearchData.visible: SearchDropdown {
+        room-width: root.width;
+        room-height: root.height;
+    }
+
+    // Radix modal menu: outside presses only dismiss it, and nothing below
+    // hovers or scrolls while it is open (pointer-events: none on the body).
+    if Popup.open == "sidebar-filters": TouchArea {
+        width: root.width;
+        height: root.height;
+        mouse-cursor: default;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                Popup.open = "";
+            }
+        }
+        scroll-event(event) => {
+            accept
+        }
+    }
+    if Popup.open == "sidebar-filters": SidebarFilterMenu {
+        room-height: root.height;
+    }
+
+    TooltipHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // leaderboard selector names (use-selector-tooltip.tsx portals them to the body)
+    SelectorTipHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    // Frameless Linux: resize from the window edges (frameless_view.cc).
+    if Chrome.platform == "linux" && !Chrome.native-decorations && !Chrome.maximized: ResizeEdges {
+        width: root.width;
+        height: root.height;
+    }
+}

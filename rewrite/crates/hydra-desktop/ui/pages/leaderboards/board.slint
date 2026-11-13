@@ -1,0 +1,555 @@
+// A board of pages/leaderboards: board-header.tsx, board-insight.tsx,
+// leaderboard-podium.tsx and the table (board-view.tsx with
+// game-details/leaderboard/leaderboard-row.tsx in its strip/table form).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { LeaderboardsData, LbPodiumCard, LbRow } from "state.slint";
+import { LbAvatar, MetricIcon, MetalStrip, RankDelta, Selector } from "parts.slint";
+
+// .leaderboards__report: a 24px icon button, rgba(0,0,0,0.45) -> 0.7.
+component ReportButton inherits Rectangle {
+    in property <string> user-id;
+    out property <bool> hovered: touch.has-hover;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(0, 0, 0, 0.7) : rgba(0, 0, 0, 0.45);
+    animate background { duration: 200ms; easing: ease; }
+    Icon {
+        width: 12px;
+        height: 12px;
+        source: @image-url("../../icons/report-12.svg");
+        color: touch.has-hover ? Theme.muted : Theme.body;
+        animate color { duration: 200ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            LeaderboardsData.report(root.user-id);
+        }
+    }
+}
+
+// board-header.tsx: a 44px icon or cover, the title (20px/28 700) and
+// description (13px/18), and the count or the metric selector beside them.
+export component BoardHeader inherits Rectangle {
+    // the game board's metric selector shows only icons below 900px
+    property <bool> collapsed: root.width <= 900px;
+    callback option-hover(string, bool, length, length, length);
+    height: bar.preferred-height;
+    bar := HorizontalLayout {
+        spacing: 16px;
+        // no metric yet: BoardImage without a url, an empty #1a1a1a cover
+        if !LeaderboardsData.board-is-game && LeaderboardsData.board-icon == "": Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            background: #1a1a1a;
+        }
+        if !LeaderboardsData.board-is-game && LeaderboardsData.board-icon != "": Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            MetricIcon {
+                metric: LeaderboardsData.board-icon;
+                size: 20px;
+                tint: Theme.muted;
+            }
+        }
+        // .leaderboards__board-media-link: the cover opens the game page (opacity 0.8 on hover)
+        if LeaderboardsData.board-is-game: Rectangle {
+            y: (parent.height - self.height) / 2;
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            background: #1a1a1a;
+            clip: true;
+            opacity: cover-touch.has-hover ? 0.8 : 1;
+            animate opacity { duration: 150ms; easing: ease; }
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: LeaderboardsData.board-cover;
+                image-fit: cover;
+            }
+            cover-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    LeaderboardsData.open-game-page();
+                }
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 2px;
+            alignment: center;
+            title := Text {
+                text: LeaderboardsData.board-title;
+                height: 28px;
+                font-size: 20px;
+                font-weight: 700;
+                color: Theme.muted;
+                vertical-alignment: center;
+                overflow: elide;
+                // .leaderboards__board-title-link:hover: underline
+                if LeaderboardsData.board-is-game && title-touch.has-hover: Rectangle {
+                    x: 0;
+                    y: 24px;
+                    width: Math.min(title.preferred-width, title.width);
+                    height: 1px;
+                    background: Theme.muted;
+                }
+                title-touch := TouchArea {
+                    x: 0;
+                    width: Math.min(title.preferred-width, title.width);
+                    enabled: LeaderboardsData.board-is-game;
+                    mouse-cursor: LeaderboardsData.board-is-game ? pointer : default;
+                    clicked => {
+                        LeaderboardsData.open-game-page();
+                    }
+                }
+            }
+            if LeaderboardsData.board-description != "": Text {
+                text: LeaderboardsData.board-description;
+                height: 18px;
+                font-size: Theme.hint-size;
+                color: Theme.body;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        if !LeaderboardsData.board-is-game && LeaderboardsData.board-count != "": Text {
+            text: LeaderboardsData.board-count;
+            font-size: Theme.small-size;
+            color: Theme.body;
+            vertical-alignment: center;
+        }
+        if LeaderboardsData.board-is-game && LeaderboardsData.board-state != "no_metrics" && LeaderboardsData.game-metrics.length > 0: VerticalLayout {
+            alignment: center;
+            Selector {
+                show-label: false;
+                collapsed: root.collapsed;
+                icons: true;
+                options: LeaderboardsData.game-metrics;
+                value: LeaderboardsData.game-metric;
+                changed(id) => {
+                    LeaderboardsData.set-game-metric(id);
+                }
+                option-hover(label, on, x, y, w) => {
+                    root.option-hover(label, on, x, y, w);
+                }
+            }
+        }
+    }
+}
+
+// board-insight.tsx: a star, the sentence (14px/20, bold parts muted) and the
+// next goal (12px/16).
+export component Insight inherits Rectangle {
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    height: bar.preferred-height;
+    bar := HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 24px;
+                height: 24px;
+                source: @image-url("../../icons/star-24.svg");
+                color: Theme.body;
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 2px;
+            alignment: center;
+            StyledText {
+                text: LeaderboardsData.insight-main;
+                default-color: Theme.body;
+                default-font-size: Theme.body-size;
+            }
+            if LeaderboardsData.has-insight-detail: StyledText {
+                text: LeaderboardsData.insight-detail;
+                default-color: Theme.body;
+                default-font-size: Theme.small-size;
+            }
+        }
+    }
+}
+
+// A podium card: the metal band (rank and metal name) and the body (avatar,
+// name, value). Hover is filter: brightness(1.12): the metal crossfades to
+// stops multiplied by 1.12, the shade over a banner thins by the same factor
+// and the text turns white.
+component PodiumCard inherits Rectangle {
+    in property <LbPodiumCard> card;
+    in property <length> card-height;
+    in property <length> avatar-big: 64px;
+    in property <length> avatar-small: 56px;
+    property <float> lit: touch.has-hover ? 1 : 0;
+    animate lit { duration: 200ms; easing: ease; }
+    height: root.card-height;
+    border-radius: 4px;
+    background: #1a1a1a.mix(#1d1d1d, 1 - root.lit);
+    clip: true;
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            LeaderboardsData.select-entry(root.card.user-id);
+        }
+    }
+    HorizontalLayout {
+        padding: 1px;
+        band := MetalStrip {
+            width: 48px;
+            tier: root.card.tier;
+            // brightness(1.12) of the metal
+            Rectangle {
+                opacity: root.lit;
+                background: root.card.tier == "gold" ? @linear-gradient(189.58deg, rgb(255, 194, 24) 0.6%, rgb(239, 161, 17) 11.31%, rgb(255, 194, 24) 16.44%, rgb(255, 190, 24) 29.24%, rgb(226, 153, 16) 34.32%, rgb(226, 152, 16) 40.3%, rgb(255, 213, 29) 45.31%, rgb(255, 212, 29) 50.2%, rgb(200, 136, 15) 55.81%, rgb(114, 80, 11) 82.04%, rgb(183, 137, 21) 85.71%, rgb(170, 127, 20) 87.27%, rgb(90, 63, 9) 93.47%, rgb(69, 50, 9) 96.6%)
+                    : root.card.tier == "silver" ? @linear-gradient(189.58deg, rgb(254, 254, 254) 0.6%, rgb(230, 230, 230) 11.31%, rgb(255, 255, 255) 16.44%, rgb(253, 253, 253) 29.24%, rgb(213, 213, 213) 34.32%, rgb(212, 212, 212) 40.3%, rgb(255, 255, 255) 45.31%, rgb(253, 253, 253) 50.2%, rgb(187, 187, 187) 55.81%, rgb(110, 110, 110) 82.04%, rgb(196, 196, 196) 85.71%, rgb(169, 169, 169) 87.27%, rgb(78, 78, 78) 93.47%, rgb(60, 60, 60) 96.6%)
+                    : @linear-gradient(189.65deg, rgb(255, 114, 24) 0.6%, rgb(239, 136, 17) 11.31%, rgb(255, 142, 24) 16.44%, rgb(255, 140, 24) 29.24%, rgb(226, 104, 16) 34.32%, rgb(226, 90, 16) 40.3%, rgb(255, 147, 29) 45.31%, rgb(199, 124, 49) 50.2%, rgb(200, 71, 15) 55.81%, rgb(114, 47, 11) 82.04%, rgb(183, 69, 21) 85.71%, rgb(170, 83, 20) 87.27%, rgb(90, 30, 9) 93.47%, rgb(69, 22, 9) 96.6%);
+            }
+            // __band: padding 16 0, the rank on top and the metal name at the bottom
+            Text {
+                y: 16px;
+                height: 32px;
+                text: root.card.rank;
+                font-size: 32px;
+                font-weight: 700;
+                color: rgba(0, 0, 0, 0.9);
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            // writing-mode: vertical-rl + rotate(180deg): reads bottom to top
+            metal := Text {
+                property <length> run: self.preferred-width;
+                width: self.run;
+                height: 15px;
+                x: (parent.width - self.run) / 2;
+                y: parent.height - 16px - self.run / 2 - 7.5px;
+                text: (root.card.tier == "gold" ? T.tr("leaderboards.metal_gold") : root.card.tier == "silver" ? T.tr("leaderboards.metal_silver") : T.tr("leaderboards.metal_bronze")).to-uppercase();
+                font-size: Theme.tiny-size;
+                font-weight: 700;
+                letter-spacing: 0.24 * 11px;
+                color: rgba(0, 0, 0, 0.9);
+                vertical-alignment: center;
+                transform-rotation: -90deg;
+            }
+        }
+        body := Rectangle {
+            horizontal-stretch: 1;
+            background: root.card.has-banner ? transparent : @linear-gradient(180deg, #1f1f1f.mix(#232323, 1 - root.lit) 0%, #161616.mix(#181818, 1 - root.lit) 100%);
+            if root.card.has-banner: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.card.banner;
+                image-fit: cover;
+            }
+            // rgba(18,18,18,0.45) -> 0.96; brightened: a' = 1.12a - 0.12
+            if root.card.has-banner: Rectangle {
+                background: @linear-gradient(180deg, #121212.with-alpha(0.45 - 0.066 * root.lit) 0%, #121212.with-alpha(0.96 - 0.0048 * root.lit) 100%);
+            }
+            VerticalLayout {
+                padding-top: 16px;
+                padding-bottom: 16px;
+                padding-left: 12px;
+                padding-right: 12px;
+                spacing: 8px;
+                alignment: center;
+                HorizontalLayout {
+                    alignment: center;
+                    Rectangle {
+                        property <length> size: root.card.rank == 1 ? root.avatar-big : root.avatar-small;
+                        width: self.size;
+                        height: self.size;
+                        LbAvatar {
+                            size: parent.size;
+                            source: root.card.avatar;
+                            inner-border: 2px;
+                        }
+                        // __you: centered on the avatar's bottom edge
+                        if root.card.viewer: Rectangle {
+                            width: you.preferred-width + 16px;
+                            height: 18px;
+                            x: (parent.width - self.width) / 2;
+                            y: parent.height - 9px;
+                            border-radius: 9px;
+                            background: Theme.muted;
+                            you := Text {
+                                text: T.tr("leaderboard.you");
+                                font-size: Theme.tiny-size;
+                                font-weight: 700;
+                                color: Theme.dark-background;
+                            }
+                        }
+                    }
+                }
+                Text {
+                    text: root.card.name;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.muted.mix(#ffffff, 1 - root.lit);
+                    horizontal-alignment: center;
+                    overflow: elide;
+                }
+                HorizontalLayout {
+                    alignment: center;
+                    spacing: 8px;
+                    Text {
+                        text: root.card.value;
+                        font-size: 20px;
+                        font-weight: 700;
+                        color: Theme.muted.mix(#ffffff, 1 - root.lit);
+                        vertical-alignment: center;
+                    }
+                    if root.card.has-delta: RankDelta {
+                        delta: root.card.delta;
+                    }
+                }
+            }
+        }
+    }
+    // the 1px border (viewer: rgba(255,255,255,0.4)), and the selected review's
+    // inset 2px gold ring
+    Rectangle {
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: root.card.viewer ? rgba(255, 255, 255, 0.4) : Theme.border;
+    }
+    if root.card.selected: Rectangle {
+        border-radius: 4px;
+        border-width: 2px;
+        border-color: #f3c611;
+    }
+    // __action: the report button in the corner, shown on hover
+    if root.card.reportable: ReportButton {
+        x: parent.width - 32px;
+        y: 8px;
+        user-id: root.card.user-id;
+        opacity: touch.has-hover || self.hovered ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease; }
+    }
+}
+
+// leaderboard-podium.tsx: three columns sized 320:296:272 with matching card
+// heights; fewer entries center at up to 420px; one column when narrow.
+export component Podium inherits Rectangle {
+    in property <bool> wide;
+    property <int> count: LeaderboardsData.podium.length;
+    // @container (max-width: 520px)
+    property <bool> stacked: root.width <= 520px;
+    property <length> gold: root.stacked ? 180px : root.wide ? 400px : 320px;
+    property <length> silver: root.stacked ? 180px : root.wide ? 370px : 296px;
+    property <length> bronze: root.stacked ? 180px : root.wide ? 340px : 272px;
+    property <length> sparse-max: root.wide ? 530px : 420px;
+    property <length> sparse-width: Math.min(root.sparse-max, (root.width - 12px * (root.count - 1)) / Math.max(1, root.count));
+    property <length> unit: (root.width - 24px) / 888;
+    height: root.stacked ? root.count * 180px + Math.max(0, root.count - 1) * 12px : root.gold;
+    for card[i] in LeaderboardsData.podium: PodiumCard {
+        card: card;
+        card-height: card.tier == "gold" ? root.gold : card.tier == "silver" ? root.silver : root.bronze;
+        x: root.stacked ? 0 : root.count < 3 ? (root.width - root.count * root.sparse-width - (root.count - 1) * 12px) / 2 + i * (root.sparse-width + 12px) : i == 0 ? 0 : i == 1 ? root.unit * 320 + 12px : root.unit * 616 + 24px;
+        width: root.stacked ? root.width : root.count < 3 ? root.sparse-width : root.unit * (i == 0 ? 320 : i == 1 ? 296 : 272);
+        y: root.stacked ? i * 192px : root.height - self.card-height;
+    }
+}
+
+// The table header: 24px, 11px 500 uppercase with 0.04em tracking.
+export component TableHeader inherits HorizontalLayout {
+    height: 24px;
+    spacing: 12px;
+    padding-right: LeaderboardsData.can-report ? 36px : 16px;
+    Text {
+        width: 40px;
+        text: T.tr("leaderboards.column_position");
+        font-size: Theme.tiny-size;
+        font-weight: 500;
+        letter-spacing: 0.44px;
+        color: Theme.body;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    Text {
+        horizontal-stretch: 1;
+        text: T.tr("leaderboards.column_player").to-uppercase();
+        font-size: Theme.tiny-size;
+        font-weight: 500;
+        letter-spacing: 0.44px;
+        color: Theme.body;
+        vertical-alignment: center;
+    }
+    if LeaderboardsData.show-delta-column: Text {
+        width: 64px;
+        text: T.tr("leaderboards.column_change").to-uppercase();
+        font-size: Theme.tiny-size;
+        font-weight: 500;
+        letter-spacing: 0.44px;
+        color: Theme.body;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+    Text {
+        width: 96px;
+        text: LeaderboardsData.value-column.to-uppercase();
+        font-size: Theme.tiny-size;
+        font-weight: 500;
+        letter-spacing: 0.44px;
+        color: Theme.body;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+}
+
+// A table row: the rank strip (metal on the top three), the 40px avatar, the
+// name with the viewer's "You", the change and the value; a banner behind
+// it when the player has one.
+export component TableRow inherits VerticalLayout {
+    in property <LbRow> item;
+    spacing: 4px;
+    // __gap: three 3px dots before the viewer's own row
+    if root.item.gap-before: HorizontalLayout {
+        height: 20px;
+        alignment: center;
+        spacing: 4px;
+        for i in 3: Rectangle {
+            y: (parent.height - 3px) / 2;
+            width: 3px;
+            height: 3px;
+            border-radius: 1.5px;
+            background: Theme.muted.with-alpha(0.3);
+        }
+    }
+    line := Rectangle {
+        height: 56px;
+        border-radius: 4px;
+        clip: true;
+        property <bool> hovered: touch.has-hover;
+        // --table: #121212, #1a1a1a on hover; the viewer #222222
+        background: root.item.has-banner ? transparent : root.item.viewer ? #222222 : self.hovered ? #1a1a1a : Theme.background;
+        animate background { duration: 200ms; easing: ease; }
+        if root.item.has-banner: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.item.banner;
+            image-fit: cover;
+        }
+        // the banner shade: 0.9 / 0.65 / 0.35, lighter on hover (0.2s)
+        property <float> shade: line.hovered ? 1 : 0;
+        animate shade { duration: 200ms; easing: ease; }
+        if root.item.has-banner: Rectangle {
+            background: @linear-gradient(90deg, #0d0d0d.with-alpha(0.9 - 0.1 * line.shade) 0%, #0d0d0d.with-alpha(0.65 - 0.1 * line.shade) 55%, #0d0d0d.with-alpha(0.35 - 0.1 * line.shade) 100%);
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                LeaderboardsData.open-profile(root.item.user-id);
+            }
+        }
+        HorizontalLayout {
+            spacing: 12px;
+            padding-right: LeaderboardsData.can-report ? 36px : 16px;
+            if root.item.tier == "gold" || root.item.tier == "silver" || root.item.tier == "bronze": MetalStrip {
+                width: 40px;
+                tier: root.item.tier;
+                Text {
+                    text: root.item.rank;
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: rgba(0, 0, 0, 0.9);
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            if root.item.tier != "gold" && root.item.tier != "silver" && root.item.tier != "bronze": Rectangle {
+                width: 40px;
+                // overflow: visible, like the strip's text with long ranks
+                Text {
+                    width: Math.max(parent.width, self.preferred-width);
+                    x: (parent.width - self.width) / 2;
+                    text: root.item.rank;
+                    font-size: Theme.hint-size;
+                    font-weight: 500;
+                    color: root.item.viewer ? Theme.muted : Theme.body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                LbAvatar {
+                    size: 40px;
+                    source: root.item.avatar;
+                }
+            }
+            HorizontalLayout {
+                horizontal-stretch: 1;
+                spacing: 8px;
+                alignment: start;
+                name := Text {
+                    text: root.item.name;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if root.item.viewer: VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: you.preferred-width + 16px;
+                        height: 18px;
+                        border-radius: 9px;
+                        background: #ffffff;
+                        you := Text {
+                            text: T.tr("leaderboard.you");
+                            font-size: Theme.tiny-size;
+                            font-weight: 700;
+                            color: #000000;
+                        }
+                    }
+                }
+            }
+            if LeaderboardsData.show-delta-column: Rectangle {
+                width: 64px;
+                if root.item.has-delta: RankDelta {
+                    x: parent.width - self.preferred-width;
+                    width: self.preferred-width;
+                    delta: root.item.delta;
+                }
+            }
+            Text {
+                width: 96px;
+                text: root.item.value;
+                font-size: Theme.body-size;
+                font-weight: 700;
+                color: Theme.muted;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+        }
+        // ::after: the 1px border on top (0.04 on plain rows, 0.06 on banners)
+        Rectangle {
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: root.item.has-banner ? rgba(255, 255, 255, 0.06) : rgba(255, 255, 255, 0.04);
+        }
+        // __action: the report button, quiet until the row is hovered
+        if root.item.reportable: ReportButton {
+            x: parent.width - 32px;
+            y: (parent.height - self.height) / 2;
+            user-id: root.item.user-id;
+            opacity: line.hovered || self.hovered ? 1 : 0;
+            animate opacity { duration: 200ms; easing: ease; }
+        }
+    }
+}

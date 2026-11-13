@@ -1,0 +1,354 @@
+// search-dropdown.{tsx,scss}: recent searches and suggestions under the
+// title bar search. Rust fills `SearchData` (search.rs).
+import { Theme, Icons, Tip } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+import { T, Popup } from "../globals.slint";
+
+export struct SearchPart {
+    text: string,
+    highlight: bool,
+}
+
+export struct SearchSuggestionRow {
+    parts: [SearchPart],
+    title: string,
+    icon: image,
+    has-icon: bool,
+}
+
+export global SearchData {
+    // The field's text (synced from the library / catalogue query on navigation).
+    in-out property <string> text;
+    in-out property <bool> focused;
+    // isDropdownVisible: set on focus, cleared on Escape, a pick or a press outside
+    in-out property <bool> open;
+    in-out property <int> active-index: -1;
+    in property <[string]> history;
+    in property <[SearchSuggestionRow]> suggestions;
+    in property <bool> loading;
+    in property <string> shop: "steam";
+    in property <bool> show-shop-switch;
+    // The field, in window coordinates.
+    in-out property <length> anchor-x;
+    in-out property <length> anchor-y;
+    in-out property <length> anchor-width;
+    in-out property <length> anchor-height;
+    out property <int> total: self.history.length + self.suggestions.length;
+    out property <bool> visible: self.open && self.focused
+        && (self.text != "" || self.history.length > 0 || self.suggestions.length > 0 || self.loading);
+    callback text-edited(string);
+    callback select-history(string);
+    callback remove-history(string);
+    callback clear-history();
+    callback select-suggestion(int);
+    callback set-shop(string);
+    // focus / open / shop changed: the suggestions may need a refresh
+    callback state-changed();
+    // bumped by Rust to take the focus out of the field
+    in property <int> blur-request;
+}
+
+// __item: padding 8px 12px, gap 8, #dadbe1, background on hover/active
+component Row inherits Rectangle {
+    in property <bool> active;
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    height: 35px;
+    background: touch.has-hover || root.active ? Theme.background : transparent;
+    animate background { duration: 100ms; easing: ease; }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+    @children
+}
+
+// __section-header: padding 8px 12px, margin-bottom 4px
+component SectionHeader inherits HorizontalLayout {
+    in property <string> title;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 8px;
+    padding-bottom: 12px;
+    Text {
+        horizontal-stretch: 1;
+        text: root.title.to-uppercase();
+        color: Theme.muted;
+        font-size: Theme.small-size;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        vertical-alignment: center;
+    }
+    @children
+}
+
+// __shop-button: 24x20, radius 6, active: rgba(255,255,255,.06) + border
+component ShopButton inherits Rectangle {
+    in property <bool> active;
+    in property <image> icon;
+    in property <length> icon-size: 14px;
+    in property <bool> keep-colors;
+    in property <string> tip;
+    in property <int> tip-id;
+    callback clicked();
+    width: 24px;
+    height: 20px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.active ? Theme.border : transparent;
+    background: root.active ? rgba(255, 255, 255, 0.06) : transparent;
+    animate background, border-color { duration: 150ms; easing: ease; }
+    if !root.keep-colors: Icon {
+        width: root.icon-size;
+        height: root.icon-size;
+        source: root.icon;
+        color: root.active || touch.has-hover ? Theme.muted : Theme.body;
+        animate color { duration: 150ms; easing: ease; }
+    }
+    if root.keep-colors: Image {
+        width: root.icon-size;
+        height: root.icon-size;
+        source: root.icon;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, root.tip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "bottom");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+export component SearchDropdown inherits Rectangle {
+    in property <length> room-width;
+    in property <length> room-height;
+    // margin-top 4px under the field; kept 10px inside the window
+    x: Math.max(10px, Math.min(SearchData.anchor-x, root.room-width - root.width - 10px));
+    y: Math.max(10px, Math.min(SearchData.anchor-y + SearchData.anchor-height + 4px, root.room-height - root.height - 10px));
+    width: SearchData.anchor-width;
+    height: Math.min(350px, body.preferred-height + 2px);
+    background: Theme.dark-background;
+    border-width: 1px;
+    border-color: Theme.border;
+    border-radius: 8px;
+    // box-shadow: 0 4px 12px rgba(0,0,0,.3)
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.3);
+    clip: true;
+
+    init => {
+        root.publish-box();
+    }
+    changed height => {
+        root.publish-box();
+    }
+    changed width => {
+        root.publish-box();
+    }
+    function publish-box() {
+        Popup.box-x = root.absolute-position.x;
+        Popup.box-y = root.absolute-position.y;
+        Popup.box-width = root.width;
+        Popup.box-height = root.height;
+    }
+
+    TouchArea { }
+
+    Flickable {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        content-height: body.preferred-height;
+        body := VerticalLayout {
+            alignment: start;
+            if SearchData.history.length > 0: VerticalLayout {
+                padding-top: 4px;
+                padding-bottom: 4px;
+                SectionHeader {
+                    title: T.tr("header.recent_searches");
+                    // __clear-text-button: 11px bold uppercase, body -> muted on hover
+                    clear-text := Text {
+                        text: T.tr("header.clear_history").to-uppercase();
+                        color: clear-touch.has-hover ? Theme.muted : Theme.body;
+                        animate color { duration: 200ms; easing: ease; }
+                        font-size: Theme.tiny-size;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                        clear-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                SearchData.clear-history();
+                            }
+                        }
+                    }
+                }
+                for query[index] in SearchData.history: Row {
+                    active: SearchData.active-index == index;
+                    clicked => {
+                        SearchData.select-history(query);
+                    }
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        spacing: 8px;
+                        VerticalLayout {
+                            alignment: center;
+                            Icon {
+                                width: 16px;
+                                height: 16px;
+                                source: Icons.clock;
+                                color: Theme.muted;
+                            }
+                        }
+                        Text {
+                            horizontal-stretch: 1;
+                            text: query;
+                            color: #dadbe1;
+                            font-size: Theme.body-size;
+                            vertical-alignment: center;
+                            overflow: elide;
+                        }
+                    }
+                    // __item-remove: shown on row hover; error tint on its own hover
+                    Rectangle {
+                        x: parent.width - 8px - self.width;
+                        width: 20px;
+                        height: 20px;
+                        background: remove-touch.has-hover ? rgba(225, 29, 72, 0.18) : transparent;
+                        opacity: parent.hovered || remove-touch.has-hover ? 1 : 0;
+                        animate opacity { duration: 150ms; easing: ease; }
+                        Icon {
+                            width: 12px;
+                            height: 12px;
+                            source: Icons.x-small;
+                            color: remove-touch.has-hover ? Theme.error : Theme.muted;
+                        }
+                        remove-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                SearchData.remove-history(query);
+                            }
+                        }
+                    }
+                }
+            }
+            // __section:not(:last-child) border-bottom
+            if SearchData.history.length > 0 && (SearchData.suggestions.length > 0 || SearchData.loading): Rectangle {
+                height: 1px;
+                background: Theme.border;
+            }
+            if SearchData.suggestions.length > 0 || SearchData.loading: VerticalLayout {
+                padding-top: 4px;
+                padding-bottom: 4px;
+                SectionHeader {
+                    title: T.tr("header.suggestions");
+                    if SearchData.show-shop-switch: Rectangle {
+                        // __shop-switch: padding 2, gap 2, background, border, radius 8
+                        width: 56px;
+                        height: 26px;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        background: Theme.background;
+                        HorizontalLayout {
+                            padding: 3px;
+                            spacing: 2px;
+                            ShopButton {
+                                active: SearchData.shop == "steam";
+                                icon: @image-url("../icons/device-desktop-14.svg");
+                                tip: "PC";
+                                tip-id: 9201;
+                                clicked => {
+                                    SearchData.set-shop("steam");
+                                }
+                            }
+                            ShopButton {
+                                active: SearchData.shop == "launchbox";
+                                icon: @image-url("../icons/classics.svg");
+                                icon-size: 16px;
+                                keep-colors: true;
+                                tip: "Classics";
+                                tip-id: 9202;
+                                clicked => {
+                                    SearchData.set-shop("launchbox");
+                                }
+                            }
+                        }
+                    }
+                }
+                if SearchData.suggestions.length == 0: Text {
+                    // __loading: padding 16px 12px, centered
+                    height: 51px;
+                    text: T.tr("header.loading");
+                    color: Theme.muted;
+                    font-size: Theme.body-size;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                for item[index] in SearchData.suggestions: Row {
+                    active: SearchData.active-index == SearchData.history.length + index;
+                    clicked => {
+                        SearchData.select-suggestion(index);
+                    }
+                    HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        spacing: 8px;
+                        VerticalLayout {
+                            alignment: center;
+                            if item.has-icon: Rectangle {
+                                width: 16px;
+                                height: 16px;
+                                border-radius: 4px;
+                                clip: true;
+                                Image {
+                                    width: 16px;
+                                    height: 16px;
+                                    source: item.icon;
+                                    image-fit: cover;
+                                }
+                            }
+                            if !item.has-icon: Icon {
+                                width: 16px;
+                                height: 16px;
+                                source: Icons.search;
+                                color: Theme.muted;
+                            }
+                        }
+                        // HighlightText: whole-word matches in a <mark>
+                        HorizontalLayout {
+                            horizontal-stretch: 1;
+                            alignment: start;
+                            for part in item.parts: Rectangle {
+                                width: part-text.preferred-width + (part.highlight ? 4px : 0);
+                                // <mark>: the inline box (the text's content area), not the row
+                                if part.highlight: Rectangle {
+                                    height: 18px;
+                                    background: rgba(255, 193, 7, 0.4);
+                                    border-radius: 4px;
+                                }
+                                part-text := Text {
+                                    text: part.text;
+                                    color: part.highlight ? #ffa000 : #dadbe1;
+                                    font-weight: part.highlight ? 700 : 400;
+                                    font-size: Theme.body-size;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

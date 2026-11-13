@@ -1,0 +1,771 @@
+// chat-conversation.tsx (the composer, the read-only bar and the hint
+// line), chat-composer-images.tsx, chat-send-cooldown.tsx,
+// chat-emoji-picker.tsx and chat-zzz-icon.tsx with their scss rules.
+import { Theme } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+import { T } from "../globals.slint";
+import { SocialIcons, Css, TypingDots } from "../social/common.slint";
+import { ChatData, ChatDraftImage, ChatEmoji } from "state.slint";
+import { SearchBox, IconButton } from "sidebar.slint";
+
+// .chat-window__composer-emoji (and the image button): 32px.
+component ComposerButton inherits Rectangle {
+    in property <image> icon;
+    in property <bool> enabled: true;
+    in property <bool> open;
+    callback clicked();
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    property <bool> lit: root.enabled && (touch.has-hover || root.open);
+    background: root.lit ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    Icon {
+        width: 16px;
+        height: 16px;
+        source: root.icon;
+        color: !root.enabled ? rgba(208, 209, 215, 0.4) : root.lit ? Theme.muted : Theme.body;
+        animate color { duration: 200ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// chat-zzz-icon.tsx: the letters drift up one after another (2.4s).
+component Zzz inherits Rectangle {
+    width: 16px;
+    height: 16px;
+    for i in 3: Path {
+        property <float> phase: Math.mod((animation-tick() - i * 400ms) / 2400ms + 10, 1);
+        property <float> wave: 0.5 - 0.5 * Math.cos(root.phase-angle(self.phase));
+        width: 16px;
+        height: 16px;
+        y: -1px * self.wave;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        fill: transparent;
+        stroke: Theme.subtle;
+        stroke-width: 1.5px;
+        stroke-line-cap: round;
+        stroke-line-join: round;
+        opacity: 0.5 + 0.5 * self.wave;
+        commands: i == 0 ? "M1.25 11.5h2.5l-2.5 3h2.5" : i == 1 ? "M5.75 7h3l-3 3.5h3" : "M10.5 1.5h4l-4 4.5h4";
+    }
+    pure function phase-angle(p: float) -> angle {
+        return p * 360deg;
+    }
+}
+
+// chat-send-cooldown.tsx: a draining ring and the seconds left.
+component CooldownGauge inherits Rectangle {
+    property <duration> started;
+    init => {
+        self.started = animation-tick() - ChatData.cooldown-elapsed * 1ms;
+    }
+    property <float> progress: Math.clamp((animation-tick() - root.started) / (Math.max(1, ChatData.cooldown-total) * 1ms), 0, 1);
+    // r = 11 in a 32-unit box, from 12 o'clock, clockwise, shrinking
+    property <float> left: 1 - root.progress;
+    property <angle> end: -90deg + root.left * 360deg;
+    Path {
+        width: root.width;
+        height: root.height;
+        viewbox-width: 32;
+        viewbox-height: 32;
+        fill: transparent;
+        stroke: rgba(255, 255, 255, 0.12);
+        stroke-width: 2px * root.width / 32px;
+        commands: "M 16 5 A 11 11 0 1 1 15.999 5";
+    }
+    if root.left > 0.001: Path {
+        width: root.width;
+        height: root.height;
+        viewbox-width: 32;
+        viewbox-height: 32;
+        fill: transparent;
+        stroke: Theme.error;
+        stroke-width: 2px * root.width / 32px;
+        stroke-line-cap: round;
+        commands: "M 16 5 A 11 11 0 " + (root.left > 0.5 ? "1" : "0") + " 1 " + (16 + 11 * Math.cos(root.end)) + " " + (16 + 11 * Math.sin(root.end));
+    }
+    Text {
+        text: ChatData.cooldown-seconds;
+        font-size: Theme.tiny-size;
+        font-weight: 700;
+        color: Theme.error;
+    }
+}
+
+// chat-composer-images.tsx: 72px previews with spoiler and remove tools.
+component DraftImage inherits Rectangle {
+    in property <ChatDraftImage> image;
+    width: 72px;
+    height: 72px;
+    property <bool> popped;
+    init => {
+        self.popped = true;
+    }
+    opacity: self.popped ? 1 : 0;
+    animate opacity { duration: 220ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
+    Rectangle {
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: Theme.border;
+        clip: true;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.image.spoiler ? root.image.blurred : root.image.image;
+            image-fit: cover;
+        }
+        if root.image.spoiler: Text {
+            text: T.tr("chat_window.spoiler").to-uppercase();
+            font-size: Theme.tiny-size;
+            font-weight: 700;
+            letter-spacing: 0.66px;
+            color: Theme.muted;
+        }
+    }
+    // .chat-window__composer-image-tools: top/right -6px
+    Rectangle {
+        x: parent.width + 6px - self.width;
+        y: -6px;
+        width: 24px * 2 + 1px + 2px;
+        height: 24px;
+        border-radius: 4px;
+        background: #2d2d2f;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.16);
+        clip: true;
+        HorizontalLayout {
+            x: 1px;
+            y: 1px;
+            height: 22px;
+            Rectangle {
+                width: 24px;
+                background: root.image.spoiler ? Theme.muted : spoiler-touch.has-hover ? #3a3b40 : transparent;
+                animate background { duration: 150ms; easing: ease; }
+                Icon {
+                    width: 12px;
+                    height: 12px;
+                    source: SocialIcons.eye-closed-12;
+                    color: root.image.spoiler ? Theme.background : Theme.muted;
+                }
+                spoiler-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        ChatData.toggle-spoiler(root.image.id);
+                    }
+                }
+            }
+            Rectangle {
+                width: 1px;
+                background: rgba(255, 255, 255, 0.12);
+            }
+            Rectangle {
+                width: 24px;
+                background: remove-touch.has-hover ? #3a3b40 : transparent;
+                animate background { duration: 150ms; easing: ease; }
+                Icon {
+                    width: 12px;
+                    height: 12px;
+                    source: SocialIcons.x-12;
+                    color: Theme.muted;
+                }
+                remove-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        ChatData.remove-image(root.image.id);
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .chat-window__composer-hint: the most pressing thing to tell the user.
+component Hint inherits HorizontalLayout {
+    property <bool> error: ChatData.hint-kind == "error";
+    spacing: 4px;
+    alignment: start;
+    property <string> kind: ChatData.hint-kind;
+    property <bool> shown;
+    init => {
+        self.shown = true;
+    }
+    if ChatData.hint-kind == "typing": TypingDots {
+        small: true;
+        dot-color: Theme.body;
+    }
+    if ChatData.hint-kind == "offline": Zzz { }
+    if ChatData.hint-kind == "error": Rectangle {
+        width: 16px;
+        height: 16px;
+        Icon {
+            width: 12px;
+            height: 12px;
+            source: SocialIcons.alert-fill;
+            color: Theme.error;
+        }
+    }
+    Text {
+        horizontal-stretch: 1;
+        text: ChatData.hint;
+        font-size: Theme.small-size;
+        color: root.error ? Theme.error : Theme.subtle;
+        wrap: word-wrap;
+        // line-height 16px
+        line-height-factor: 16 / 16.34;
+    }
+}
+
+// .chat-window__emoji-picker: 328x376, search, category tabs, grid, footer.
+export component EmojiPicker inherits Rectangle {
+    in property <length> room-height: 376px;
+    property <bool> entered;
+    init => {
+        self.entered = true;
+    }
+    width: 328px;
+    height: Math.min(376px, root.room-height);
+    background: #1c1c1c;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    drop-shadow-blur: 32px;
+    drop-shadow-offset-y: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.55);
+    // chat-window-popover-in 0.2s
+    opacity: self.entered ? 1 : 0;
+    animate opacity { duration: 200ms; easing: cubic-bezier(0.2, 0.8, 0.2, 1); }
+    clip: true;
+    TouchArea { }
+    property <length> cell: (root.width - 2px - 16px - 7 * 2px) / 8;
+    property <[string]> tabs: ["recent", "people", "nature", "activity", "travel", "objects", "symbols"];
+    VerticalLayout {
+        x: 1px;
+        y: 1px;
+        width: root.width - 2px;
+        height: root.height - 2px;
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-top: 8px;
+            SearchBox {
+                placeholder: T.tr("chat_window.emoji_search");
+                value: ChatData.emoji-query;
+                focus-request: 1;
+                init => {
+                    self.focus-input();
+                }
+                edited(text) => {
+                    ChatData.emoji-query-edited(text);
+                }
+                key(event) => {
+                    if (event.text == Key.Return && ChatData.emoji-items.length > 0) {
+                        ChatData.emoji-picked(ChatData.emoji-items[0].emoji);
+                        return accept;
+                    }
+                    if (event.text == Key.Escape) {
+                        ChatData.emoji-closed();
+                        return accept;
+                    }
+                    reject
+                }
+            }
+        }
+        // .chat-window__emoji-tabs
+        Rectangle {
+            height: 28px + 16px + 1px;
+            HorizontalLayout {
+                padding: 8px;
+                height: 44px;
+                spacing: 2px;
+                for tab in root.tabs: Rectangle {
+                    horizontal-stretch: 1;
+                    height: 28px;
+                    border-radius: 6px;
+                    property <bool> active: ChatData.emoji-query == "" && ChatData.emoji-tab == tab;
+                    background: self.active ? rgba(255, 255, 255, 0.08) : transparent;
+                    animate background { duration: 150ms; easing: ease; }
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: tab == "recent" ? SocialIcons.clock : tab == "people" ? SocialIcons.smiley : tab == "nature" ? SocialIcons.squirrel : tab == "activity" ? SocialIcons.trophy : tab == "travel" ? SocialIcons.globe : tab == "objects" ? SocialIcons.light-bulb : SocialIcons.heart;
+                        color: parent.active ? Theme.muted : tab-touch.has-hover ? Theme.body : Theme.subtle;
+                        animate color { duration: 150ms; easing: ease; }
+                    }
+                    tab-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            ChatData.emoji-tab-picked(tab);
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                y: parent.height - 1px;
+                height: 1px;
+                background: Theme.border;
+            }
+        }
+        // .chat-window__emoji-body
+        Flickable {
+            vertical-stretch: 1;
+            content-height: body.preferred-height;
+            body := VerticalLayout {
+                padding-left: 8px;
+                padding-right: 8px;
+                padding-top: 4px;
+                padding-bottom: 8px;
+                alignment: start;
+                HorizontalLayout {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                    padding-left: 4px;
+                    padding-right: 4px;
+                    Text {
+                        text: ChatData.emoji-section.to-uppercase();
+                        font-size: Theme.small-size;
+                        font-weight: 700;
+                        letter-spacing: 0.48px;
+                        color: Theme.subtle;
+                    }
+                }
+                if ChatData.emoji-items.length > 0: Rectangle {
+                    height: Math.ceil(ChatData.emoji-items.length / 8) * 38px - 2px;
+                    for item[i] in ChatData.emoji-items: Rectangle {
+                        x: Math.mod(i, 8) * (root.cell + 2px);
+                        y: Math.floor(i / 8) * 38px;
+                        width: root.cell;
+                        height: 36px;
+                        border-radius: 6px;
+                        property <bool> selected: item.emoji == ChatData.emoji-selected;
+                        background: self.selected ? rgba(240, 241, 247, 0.14) : cell-touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+                        animate background { duration: 100ms; easing: ease; }
+                        border-width: self.selected ? 1px : 0;
+                        border-color: rgba(240, 241, 247, 0.4);
+                        Text {
+                            text: item.emoji;
+                            font-family: "Segoe UI Emoji";
+                            font-size: 22px;
+                        }
+                        cell-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            changed has-hover => {
+                                if (self.has-hover) {
+                                    ChatData.emoji-hover-index = i;
+                                }
+                            }
+                            clicked => {
+                                ChatData.emoji-picked(item.emoji);
+                            }
+                        }
+                    }
+                }
+                if ChatData.emoji-items.length == 0: VerticalLayout {
+                    padding-top: 48px;
+                    padding-bottom: 48px;
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    spacing: 4px;
+                    Text {
+                        text: T.tr("chat_window.emoji_no_results_title");
+                        font-size: Theme.hint-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: T.tr-with("chat_window.emoji_no_results_description", ["query", ChatData.emoji-query]);
+                        font-size: Theme.small-size;
+                        color: Theme.subtle;
+                        horizontal-alignment: center;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+        // .chat-window__emoji-footer: the hovered (or first) emoji and its name
+        Rectangle {
+            height: 44px;
+            Rectangle {
+                y: 0;
+                height: 1px;
+                background: Theme.border;
+            }
+            property <int> footer-index: ChatData.emoji-hover-index >= 0 && ChatData.emoji-hover-index < ChatData.emoji-items.length ? ChatData.emoji-hover-index : 0;
+            if ChatData.emoji-items.length > 0: HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 12px;
+                spacing: 8px;
+                property <ChatEmoji> shown: ChatData.emoji-items[parent.footer-index];
+                Text {
+                    text: parent.shown.emoji;
+                    font-family: "Segoe UI Emoji";
+                    font-size: 24px;
+                    vertical-alignment: center;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: ":" + parent.shown.name + ":";
+                    font-size: Theme.hint-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+// .chat-window__composer (the friend conversation) or the read-only bar
+// (the official one).
+export component Composer inherits Rectangle {
+    in property <bool> official;
+    height: column.preferred-height;
+    // the shake (chat-window-shake 0.4s): only for rejections after this mounted
+    property <int> seen-rejections;
+    property <duration> shake-start: -1s;
+    init => {
+        self.seen-rejections = ChatData.rejections;
+    }
+    property <int> rejections: ChatData.rejections;
+    changed rejections => {
+        if (self.rejections != self.seen-rejections) {
+            self.seen-rejections = self.rejections;
+            self.shake-start = animation-tick();
+        }
+    }
+    property <float> shake-t: (animation-tick() - root.shake-start) / 400ms;
+    property <bool> shaking: root.shake-t >= 0 && root.shake-t < 1;
+    property <length> shake-x: !root.shaking ? 0px : root.shake-t < 0.2 ? -6px * Css.ease(root.shake-t / 0.2) : root.shake-t < 0.4 ? -6px + 11px * Css.ease((root.shake-t - 0.2) / 0.2) : root.shake-t < 0.6 ? 5px - 8px * Css.ease((root.shake-t - 0.4) / 0.2) : root.shake-t < 0.8 ? -3px + 5px * Css.ease((root.shake-t - 0.6) / 0.2) : 2px - 2px * Css.ease((root.shake-t - 0.8) / 0.2);
+
+    column := VerticalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 12px;
+        padding-bottom: 8px;
+
+        if root.official: Rectangle {
+            height: Math.max(44px, read-only.preferred-height + 14px);
+            background: Theme.dark-background;
+            border-width: 1px;
+            border-color: Theme.border;
+            border-radius: 8px;
+            read-only := HorizontalLayout {
+                padding-left: 13px;
+                padding-right: 7px;
+                padding-top: 7px;
+                padding-bottom: 7px;
+                spacing: 8px;
+                Icon {
+                    y: (parent.height - 14px) / 2;
+                    width: 14px;
+                    height: 14px;
+                    source: SocialIcons.lock;
+                    color: Theme.subtle;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: T.tr("chat_window.official_read_only");
+                    font-size: Theme.hint-size;
+                    color: Theme.subtle;
+                    vertical-alignment: center;
+                    wrap: word-wrap;
+                }
+                settings := Rectangle {
+                    y: (parent.height - 28px) / 2;
+                    height: 28px;
+                    width: settings-row.preferred-width + 22px;
+                    border-radius: 6px;
+                    border-width: 1px;
+                    border-color: settings-touch.has-hover ? rgba(255, 255, 255, 0.5) : rgba(255, 255, 255, 0.12);
+                    animate border-color { duration: 200ms; easing: ease; }
+                    settings-row := HorizontalLayout {
+                        spacing: 6px;
+                        alignment: center;
+                        Icon {
+                            y: (parent.height - 12px) / 2;
+                            width: 12px;
+                            height: 12px;
+                            source: SocialIcons.bell;
+                            color: settings-touch.has-hover ? Theme.muted : Theme.body;
+                        }
+                        Text {
+                            text: T.tr("chat_window.notification_settings");
+                            font-size: Theme.small-size;
+                            font-weight: 700;
+                            color: settings-touch.has-hover ? Theme.muted : Theme.body;
+                            vertical-alignment: center;
+                        }
+                    }
+                    settings-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            ChatData.open-settings();
+                        }
+                    }
+                }
+            }
+        }
+
+        if !root.official: box := Rectangle {
+            x: root.shake-x;
+            height: box-column.preferred-height + 2px;
+            background: Theme.dark-background;
+            border-radius: 8px;
+            border-width: 1px;
+            property <bool> red: root.shaking || ChatData.invalid;
+            border-color: self.red ? Theme.error : input.has-focus ? #dadbe1 : box-touch.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+            animate border-color { duration: 200ms; easing: ease; }
+            clip: true;
+            box-touch := TouchArea {
+                mouse-cursor: ChatData.can-send ? MouseCursor.text : not-allowed;
+                clicked => {
+                    input.focus();
+                }
+            }
+            box-column := VerticalLayout {
+                x: 1px;
+                y: 1px;
+                width: parent.width - 2px;
+                // .chat-window__composer-reply
+                if ChatData.has-reply: Rectangle {
+                    property <bool> entered;
+                    init => {
+                        self.entered = true;
+                    }
+                    opacity: self.entered ? 1 : 0;
+                    animate opacity { duration: 150ms; easing: ease; }
+                    height: reply-row.preferred-height + 1px;
+                    background: #171717;
+                    reply-row := HorizontalLayout {
+                        padding-left: 12px;
+                        padding-right: 6px;
+                        padding-top: 6px;
+                        padding-bottom: 6px;
+                        spacing: 4px;
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Icon {
+                                    y: (parent.height - 16px) / 2;
+                                    width: 16px;
+                                    height: 16px;
+                                    source: SocialIcons.reply;
+                                    color: Theme.subtle;
+                                }
+                                VerticalLayout {
+                                    horizontal-stretch: 1;
+                                    alignment: center;
+                                    HorizontalLayout {
+                                        alignment: start;
+                                        for part[i] in ChatData.reply-label: Text {
+                                            text: part;
+                                            font-size: Theme.small-size;
+                                            font-weight: Math.mod(i, 2) == 1 ? 700 : 400;
+                                            color: Math.mod(i, 2) == 1 ? Theme.muted : Theme.subtle;
+                                            height: 16px;
+                                        }
+                                    }
+                                    Text {
+                                        text: ChatData.reply-text;
+                                        font-size: Theme.hint-size;
+                                        color: reply-touch.has-hover ? Theme.muted : Theme.body;
+                                        overflow: elide;
+                                        height: 18px;
+                                    }
+                                }
+                            }
+                            reply-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    ChatData.show-reply();
+                                }
+                            }
+                        }
+                        IconButton {
+                            y: (parent.height - 28px) / 2;
+                            width: 28px;
+                            height: 28px;
+                            icon: SocialIcons.x;
+                            clicked => {
+                                ChatData.cancel-reply();
+                            }
+                        }
+                    }
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: Theme.border;
+                    }
+                }
+                // .chat-window__composer-images (padding 12 12 4, gap 12)
+                if ChatData.draft-images.length > 0: HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    padding-top: 12px;
+                    padding-bottom: 4px;
+                    spacing: 12px;
+                    alignment: start;
+                    for image in ChatData.draft-images: DraftImage {
+                        image: image;
+                    }
+                }
+                // .chat-window__composer-row (padding 6 6 6 12, gap 8, bottom-aligned)
+                // the buttons' -6px / -4px margins: 6px from the edge, 4px apart
+                HorizontalLayout {
+                    padding-left: 6px;
+                    padding-right: 6px;
+                    padding-top: 6px;
+                    padding-bottom: 6px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 4px;
+                        if ChatData.images-enabled: VerticalLayout {
+                            alignment: end;
+                            ComposerButton {
+                                icon: SocialIcons.image;
+                                enabled: ChatData.attach-enabled;
+                                clicked => {
+                                    ChatData.add-images();
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                        alignment: end;
+                        ComposerButton {
+                            icon: SocialIcons.smiley;
+                            enabled: ChatData.can-send;
+                            open: ChatData.emoji-open;
+                            clicked => {
+                                ChatData.emoji-open = !ChatData.emoji-open;
+                                if (ChatData.emoji-open) {
+                                    ChatData.emoji-opened();
+                                }
+                            }
+                        }
+                    }
+                    }
+                    // .chat-window__composer-field: grows to five lines, then scrolls
+                    field := Flickable {
+                        horizontal-stretch: 1;
+                        height: Math.clamp(input.preferred-height, 30px, 110px);
+                        interactive: false;
+                        content-height: Math.max(input.preferred-height, self.height);
+                        property <length> cursor-y;
+                        Text {
+                            x: 0;
+                            y: 5px;
+                            width: parent.width;
+                            visible: input.text == "";
+                            text: ChatData.placeholder;
+                            color: Theme.body;
+                            opacity: 0.6;
+                            font-size: Theme.body-size;
+                            overflow: elide;
+                        }
+                        input := TextInput {
+                            x: 0;
+                            y: 5px;
+                            width: parent.width;
+                            text: ChatData.draft;
+                            enabled: ChatData.can-send;
+                            color: Theme.muted;
+                            font-size: Theme.body-size;
+                            wrap: word-wrap;
+                            single-line: false;
+                            selection-background-color: #3e62c0;
+                            edited => {
+                                ChatData.draft-edited(self.text);
+                            }
+                            key-pressed(event) => {
+                                if (ChatData.composer-key(event.text, event.modifiers.shift)) {
+                                    return accept;
+                                }
+                                reject
+                            }
+                            cursor-position-changed(position) => {
+                                // keep the caret inside the five visible lines
+                                if (position.y + 5px + 20px > field.height - field.content-y) {
+                                    field.content-y = -(position.y + 5px + 20px + 5px - field.height);
+                                } else if (position.y + 5px < -field.content-y) {
+                                    field.content-y = -position.y;
+                                }
+                            }
+                        }
+                        property <string> backend: ChatData.draft;
+                        changed backend => {
+                            if (input.text != self.backend) {
+                                input.text = self.backend;
+                            }
+                        }
+                        property <int> focus-request: ChatData.focus-composer;
+                        changed focus-request => {
+                            input.focus();
+                        }
+                    }
+                    // .chat-window__send (32px), the cooldown ring while rate limited
+                    VerticalLayout {
+                        alignment: end;
+                        send := Rectangle {
+                            width: 32px;
+                            height: 32px;
+                            border-radius: 6px;
+                            property <bool> enabled: ChatData.send-enabled && !ChatData.cooldown;
+                            background: !self.enabled ? rgba(255, 255, 255, 0.06) : send-touch.has-hover ? #dadbe1 : Theme.muted;
+                            animate background { duration: 200ms; easing: ease; }
+                            if !ChatData.cooldown: Icon {
+                                width: 16px;
+                                height: 16px;
+                                source: SocialIcons.send;
+                                color: send.enabled ? Theme.background : rgba(208, 209, 215, 0.4);
+                                animate color { duration: 200ms; easing: ease; }
+                            }
+                            if ChatData.cooldown: CooldownGauge {
+                                width: 32px;
+                                height: 32px;
+                            }
+                            send-touch := TouchArea {
+                                mouse-cursor: send.enabled ? pointer : default;
+                                clicked => {
+                                    if (send.enabled) {
+                                        ChatData.send();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // .chat-window__composer-meta: one line kept for the hint
+        if !root.official: HorizontalLayout {
+            padding-top: 8px;
+            spacing: 12px;
+            min-height: 24px;
+            if ChatData.hint-kind != "": Hint {
+                horizontal-stretch: 1;
+            }
+            if ChatData.hint-kind == "": Rectangle {
+                horizontal-stretch: 1;
+            }
+            if ChatData.counter != "": Text {
+                text: ChatData.counter;
+                font-size: Theme.small-size;
+                font-weight: ChatData.counter-over ? 700 : 400;
+                color: ChatData.counter-over ? Theme.error : Theme.subtle;
+                height: 16px;
+            }
+        }
+    }
+}

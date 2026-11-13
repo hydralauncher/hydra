@@ -1,0 +1,13 @@
+// Mounts the leaderboards page for headless tests (tests/leaderboards.rs).
+import { LeaderboardsPage, LeaderboardsData } from "../ui/pages/leaderboards/page.slint";
+import { LbPodiumCard, LbRow } from "../ui/pages/leaderboards/state.slint";
+export { LeaderboardsData, LbPodiumCard, LbRow }
+
+export component LeaderboardsHarness inherits Window {
+    width: 1200px;
+    height: 860px;
+    LeaderboardsPage {
+        width: root.width;
+        height: root.height;
+    }
+}

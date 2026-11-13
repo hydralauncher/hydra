@@ -1,0 +1,126 @@
+// Game page data and actions; the backend (game_page.rs) fills this.
+import { MediaItem, DescBlock, SimilarGame, Achievement, HltbCategory, Language, RepackRow, RepackSource } from "../../types.slint";
+
+export global GameData {
+    in property <string> game-title;
+    in property <bool> loaded;
+    in property <image> hero;
+    in property <image> hero-blur;
+    in property <image> logo;
+    in property <string> release-date;
+    in property <string> publisher;
+    // Library state
+    in-out property <bool> in-library;
+    in property <bool> has-executable;
+    // Empty when never played.
+    in property <string> playtime;
+    in property <string> last-played;
+    in property <[MediaItem]> media;
+    in property <[DescBlock]> description;
+    // similar-games.tsx: "hidden" | "loading" | "ready" | "empty"
+    in property <string> similar-state: "hidden";
+    in property <[SimilarGame]> similar;
+    callback similar-clicked(int);
+    in property <[Achievement]> achievements;
+    in property <int> achievements-unlocked;
+    in property <int> achievements-total;
+    // Hydra API data. Sections stay hidden until their data arrives.
+    in property <bool> has-stats;
+    in property <string> downloads;
+    in property <string> players;
+    in property <string> rating;
+    // "full" | "partial" | "none" (Steam appdetails `controller_support`).
+    in property <string> controller-support: "none";
+    // HowLongToBeat: skeleton rows while loading, hidden when empty.
+    in property <bool> hltb-loading;
+    in property <[HltbCategory]> hltb;
+    // No custom/launchbox requirements (shop !== "launchbox").
+    in property <bool> show-requirements: true;
+    in property <string> no-minimum-requirements;
+    in property <string> no-recommended-requirements;
+    in property <styled-text> requirements-minimum;
+    in property <styled-text> requirements-recommended;
+    in property <[Language]> languages;
+    // shop !== "custom": the reviews and the sidebar
+    in property <bool> show-reviews: true;
+    // Bumped to scroll the reviews into view (`?reviews=true`).
+    in property <int> scroll-reviews-request;
+    // -1 hidden (no cloud save info), 0 synced, 1 syncing
+    in property <int> cloud-state: -1;
+    in property <float> cloud-progress;
+    in-out property <bool> favorite;
+    in-out property <bool> pinned;
+    in-out property <bool> running;
+    // Rust snapshots + blurs the window so the modal backdrop can fake backdrop-filter: blur(2px).
+    in property <image> modal-backdrop;
+    // The page with a modal on it, under a second (stacked) modal.
+    in property <image> stacked-backdrop;
+    callback stacked-modal-opening();
+
+    callback media-window-changed(int, int);
+    callback reload();
+    callback add-to-library();
+    callback open-download-options();
+    callback play();
+    callback close-game();
+    callback cloud-sync();
+    callback modal-opening();
+    // Viewer fullscreen (the window goes fullscreen with it).
+    callback fullscreen-changed(bool);
+    // Game page modals (hosted in app.slint, see modals.slint)
+    in-out property <bool> options-open;
+    in-out property <bool> repacks-open;
+    in-out property <bool> cloud-open;
+    in-out property <bool> modals-mounted;
+    // Classics (launchbox) hero: game-details__hero--classics-wrapper
+    in property <bool> classics;
+    in property <image> classics-cover;
+    // Op::CoverBlur images: blur(24px) scale(1.1) backdrop, and the same under
+    // the panel's blur(10px) with the 0.48 overlay, over the page background.
+    in property <image> classics-backdrop;
+    in property <image> classics-frost;
+    // Their ceil(3σ) padding as a fraction of the 1.1 × hero width box.
+    in property <float> classics-pad-ratio;
+    in property <string> classics-title;
+    in property <string> classics-chip;
+    in property <int> classics-emulator;
+    // The game's download (hero-panel.tsx / hero-panel-playtime.tsx)
+    // has-download: active or paused and not finished
+    in property <bool> has-download;
+    in property <bool> download-active;
+    // formatDownloadProgress of the live packet or the saved record
+    in property <string> download-progress-text;
+    in property <bool> show-progress-bar;
+    // extraction?.visibleId === game.id
+    in property <bool> extracting;
+    in property <float> extraction-progress;
+    in property <string> extraction-progress-text;
+    in property <float> progress-bar-value;
+    // Download options (game-details.context repacks)
+    in property <int> repacks-count;
+    in property <string> repacks-updated;
+    in property <[RepackRow]> repack-rows;
+    in property <[RepackSource]> repack-sources;
+    callback repacks-opened();
+    callback repacks-closed();
+    // showSteamOption: a Steam-imported game without an executable, no source
+    // filter, and a filter term matching "steam" or the title.
+    in property <bool> steam-option;
+    callback steam-option-clicked();
+    callback repacks-filter(string);
+    callback repacks-toggle-source(string);
+    callback repack-selected(string);
+    // Review prompt: 0 hidden, 1 pending (keeps its space, invisible), 2 shown.
+    in property <int> review-prompt;
+    callback review-prompt-yes();
+    // "See all achievements"
+    callback open-achievements();
+    callback review-prompt-later();
+}
+
+// Set by the backend from the raw OS wheel event before Slint handles it:
+// mouse-wheel lines get Chromium's 40px (Slint's default is 60px), trackpad
+// pixel deltas stay 1:1.
+export global Input {
+    in property <float> wheel-scale: 1;
+}

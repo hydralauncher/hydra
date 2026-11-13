@@ -1,0 +1,114 @@
+// review-prompt-banner.{tsx,scss}
+import { Theme } from "../../theme.slint";
+import { HydraButton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+
+export component ReviewPromptBanner inherits Rectangle {
+    // Rendered invisible to hold the banner's space until it is confirmed.
+    in property <bool> pending;
+    // page-max-width(900px): stack the text over the buttons.
+    in property <bool> narrow;
+    callback yes-clicked();
+    callback later-clicked();
+
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.05);
+    // visibility: hidden while pending (no hit testing), opacity fades in over 0.2s.
+    visible: !root.pending;
+    opacity: root.pending ? 0 : 1;
+    animate opacity { duration: 200ms; easing: ease; }
+    accessible-role: groupbox;
+
+    min-height: inner.preferred-height;
+
+    // .review-prompt-banner__content
+    inner := VerticalLayout {
+    if !root.narrow: HorizontalLayout {
+        padding: 16px;
+        spacing: 20px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            horizontal-stretch: 1;
+            Text {
+                text: T.tr("game_details.you_seemed_to_enjoy_this_game");
+                color: Theme.body;
+                font-size: Theme.body-size;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                wrap: word-wrap;
+            }
+            Text {
+                text: T.tr("game_details.would_you_recommend_this_game");
+                color: Theme.muted;
+                font-size: Theme.small-size;
+                wrap: word-wrap;
+            }
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: end;
+            VerticalLayout {
+                alignment: center;
+                HydraButton {
+                    kind: "outline";
+                    text: T.tr("game_details.maybe_later");
+                    clicked => {
+                        root.later-clicked();
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                HydraButton {
+                    kind: "primary";
+                    text: T.tr("game_details.yes");
+                    clicked => {
+                        root.yes-clicked();
+                    }
+                }
+            }
+        }
+    }
+
+    if root.narrow: VerticalLayout {
+        padding: 16px;
+        spacing: 16px;
+        VerticalLayout {
+            spacing: 4px;
+            Text {
+                text: T.tr("game_details.you_seemed_to_enjoy_this_game");
+                color: Theme.body;
+                font-size: Theme.body-size;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                wrap: word-wrap;
+            }
+            Text {
+                text: T.tr("game_details.would_you_recommend_this_game");
+                color: Theme.muted;
+                font-size: Theme.small-size;
+                wrap: word-wrap;
+            }
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            HydraButton {
+                kind: "outline";
+                text: T.tr("game_details.maybe_later");
+                clicked => {
+                    root.later-clicked();
+                }
+            }
+            HydraButton {
+                kind: "primary";
+                text: T.tr("game_details.yes");
+                clicked => {
+                    root.yes-clicked();
+                }
+            }
+        }
+    }
+    }
+}

@@ -1,0 +1,477 @@
+// settings-context-screenshots.tsx (+ settings-screenshots-hotkey.tsx,
+// settings-screenshots-gamepad.tsx, settings-context-screenshots.scss).
+// Rust fills `ScreenshotsData` (settings_screenshots.rs).
+import { Theme } from "../../theme.slint";
+import { Icon, HydraButton } from "../../components/widgets.slint";
+import { TextField, CheckboxField, SelectField, SelectOption } from "../../components/fields.slint";
+import { T } from "../../globals.slint";
+
+export global ScreenshotsData {
+    in property <bool> enabled;
+    in property <string> hotkey-label;
+    in property <bool> hotkey-default;
+    in-out property <bool> recording;
+    in property <string> hotkey-error;
+    // ScreenshotInputStatusLine: "" hides it, else "idle" | "active" | "unavailable"
+    in property <string> input-state;
+    in property <string> input-hint;
+    in property <bool> gamepad-enabled;
+    in property <[string]> combo;
+    in property <[string]> combo-labels;
+    in property <[SelectOption]> button-options;
+    // the longest button label (the selects' max-content width)
+    in property <string> button-longest;
+    in property <bool> combo-default;
+    in property <string> combo-error;
+    in property <bool> capture-sound;
+    in property <bool> toast;
+    in property <[SelectOption]> visibility-options;
+    in property <string> visibility;
+    in property <string> visibility-label;
+    in property <string> visibility-longest;
+    in property <bool> hide-community;
+    in property <string> folder;
+    in property <bool> custom-folder;
+
+    callback toggle(string);
+    callback toggle-recording();
+    // Slint key text and modifiers (ctrl, alt, shift, meta), pressed or released
+    callback record-key(string, bool, bool, bool, bool, bool);
+    callback reset-hotkey();
+    callback combo-selected(int, string);
+    callback combo-add();
+    callback combo-remove(int);
+    callback combo-reset();
+    callback visibility-selected(string);
+    callback change-folder();
+    callback reset-folder();
+    callback open-folder();
+}
+
+// h3 (16.38px bold) inside settings-context-panel__group
+component GroupTitle inherits Text {
+    font-size: 16.38px;
+    font-weight: 700;
+    color: Theme.body;
+    height: 22px;
+    vertical-alignment: center;
+}
+
+component Group inherits VerticalLayout {
+    in property <string> title;
+    padding-top: 12px;
+    spacing: 12px;
+    GroupTitle {
+        text: root.title;
+    }
+    @children
+}
+
+component Check inherits CheckboxField {
+    in property <string> key;
+    toggled => {
+        ScreenshotsData.toggle(self.key);
+    }
+}
+
+// __keycap: a keyboard key (3px bottom border, 2px shadow) that presses
+// down 2px; it records the next key while pressed in.
+component Keycap inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> recording;
+    callback clicked();
+    property <bool> down: touch.pressed && root.enabled;
+    width: label.preferred-width + 24px + 2px;
+    height: 32px;
+    opacity: root.enabled ? 1 : Theme.disabled-opacity;
+    // transform: translateY(2px) on :active (0.08s)
+    face := Rectangle {
+        y: root.down ? 2px : 0;
+        height: root.height - (root.down ? 2px : 0);
+        animate y, height { duration: 80ms; easing: ease; }
+        // box-shadow: 0 2px 0 rgba(0, 0, 0, .35) (gone while pressed)
+        Rectangle {
+            y: 2px;
+            height: parent.height;
+            border-radius: 6px;
+            background: root.down ? transparent : rgba(0, 0, 0, 0.35);
+            animate background { duration: 80ms; easing: ease; }
+        }
+        // the border; the bottom edge is 3px (1px while pressed)
+        Rectangle {
+            border-radius: 6px;
+            background: root.recording ? #dadbe1 : touch.has-hover && root.enabled ? rgba(255, 255, 255, 0.5) : Theme.border;
+            animate background { duration: 200ms; easing: ease; }
+        }
+        Rectangle {
+            x: 1px;
+            y: 1px;
+            width: parent.width - 2px;
+            height: parent.height - 1px - (root.down ? 1px : 3px);
+            border-radius: 5px;
+            background: Theme.dark-background;
+            label := Text {
+                text: root.text;
+                font-size: Theme.body-size;
+                font-weight: 700; // 600 in scss
+                color: Theme.muted;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// A native <select> as wide as its longest option.
+component FitSelect inherits Rectangle {
+    in property <[SelectOption]> options;
+    in property <string> value;
+    in property <string> current-label;
+    in property <string> longest;
+    in property <string> popup-id;
+    in property <bool> enabled: true;
+    callback selected(string);
+    measure := Text {
+        visible: false;
+        text: root.longest;
+        font-size: Theme.body-size;
+    }
+    width: measure.preferred-width + 44px;
+    height: 40px;
+    SelectField {
+        width: root.width;
+        popup-id: root.popup-id;
+        options: root.options;
+        value: root.value;
+        current-label: root.current-label;
+        selected(value) => {
+            root.selected(value);
+        }
+    }
+    // a disabled <select>: no popup, not-allowed cursor
+    if !root.enabled: TouchArea {
+        mouse-cursor: not-allowed;
+    }
+}
+
+export component ScreenshotsPanel inherits Rectangle {
+    property <bool> capture-off: !ScreenshotsData.enabled;
+    property <bool> combo-locked: root.capture-off || !ScreenshotsData.gamepad-enabled;
+    min-height: column.preferred-height;
+    // window keydown/keyup listeners while recording (outside the layout)
+    recorder := FocusScope {
+        x: 0;
+        y: 0;
+        width: 0;
+        height: 0;
+        enabled: ScreenshotsData.recording;
+        key-pressed(event) => {
+            ScreenshotsData.record-key(event.text, event.modifiers.control, event.modifiers.alt, event.modifiers.shift, event.modifiers.meta, true);
+            accept
+        }
+        key-released(event) => {
+            ScreenshotsData.record-key(event.text, event.modifiers.control, event.modifiers.alt, event.modifiers.shift, event.modifiers.meta, false);
+            accept
+        }
+        changed has-focus => {
+            // focus went elsewhere: keys no longer reach the recorder
+            if (!self.has-focus && ScreenshotsData.recording) {
+                ScreenshotsData.recording = false;
+            }
+        }
+    }
+    column := VerticalLayout {
+        spacing: 16px;
+
+        Group {
+            title: T.tr("settings.screenshots_capture_group");
+            Check {
+                key: "screenshotsEnabled";
+                label: T.tr("settings.screenshots_enable");
+                checked: ScreenshotsData.enabled;
+            }
+            // SettingsScreenshotsHotkey: __field (gap 4)
+            VerticalLayout {
+                spacing: 4px;
+                Text {
+                    text: T.tr("settings.screenshots_hotkey");
+                    font-size: Theme.body-size;
+                    color: Theme.muted;
+                    height: 19px;
+                    vertical-alignment: center;
+                }
+                // __hotkey-row: gap 8
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    height: 32px;
+                    Keycap {
+                        text: ScreenshotsData.recording ? T.tr("settings.screenshots_hotkey_recording") : ScreenshotsData.hotkey-label;
+                        enabled: !root.capture-off;
+                        recording: ScreenshotsData.recording;
+                        clicked => {
+                            ScreenshotsData.toggle-recording();
+                            if (ScreenshotsData.recording) {
+                                recorder.focus();
+                            }
+                        }
+                    }
+                    if !ScreenshotsData.hotkey-default: VerticalLayout {
+                        alignment: center;
+                        HydraButton {
+                            kind: "outline";
+                            small: true;
+                            text: T.tr("settings.screenshots_hotkey_reset");
+                            enabled: !root.capture-off && !ScreenshotsData.recording;
+                            clicked => {
+                                ScreenshotsData.reset-hotkey();
+                            }
+                        }
+                    }
+                }
+                if ScreenshotsData.hotkey-error != "": Text {
+                    text: ScreenshotsData.hotkey-error;
+                    font-size: Theme.small-size;
+                    color: Theme.error;
+                    wrap: word-wrap;
+                }
+            }
+            // ScreenshotInputStatusLine (<small>, 12px)
+            if ScreenshotsData.input-state != "": VerticalLayout {
+                Text {
+                    text: ScreenshotsData.input-state == "unavailable" ? T.tr("settings.screenshots_input_unavailable") : ScreenshotsData.input-state == "active" ? T.tr("settings.screenshots_input_active") : T.tr("settings.screenshots_input_idle");
+                    font-size: Theme.small-size;
+                    color: ScreenshotsData.input-state == "unavailable" ? Theme.warning : ScreenshotsData.input-state == "active" ? Theme.brand-teal : Theme.body;
+                    height: 17px;
+                    vertical-alignment: center;
+                }
+                if ScreenshotsData.input-hint != "": Text {
+                    text: ScreenshotsData.input-hint;
+                    font-size: Theme.small-size;
+                    color: ScreenshotsData.input-state == "unavailable" ? Theme.warning : ScreenshotsData.input-state == "active" ? Theme.brand-teal : Theme.body;
+                    wrap: word-wrap;
+                }
+            }
+            Check {
+                key: "screenshotGamepadEnabled";
+                label: T.tr("settings.screenshots_gamepad_enable");
+                checked: ScreenshotsData.gamepad-enabled;
+                enabled: !root.capture-off;
+            }
+            // SettingsScreenshotsGamepad: __field (--disabled: opacity .5)
+            VerticalLayout {
+                spacing: 4px;
+                opacity: root.combo-locked ? Theme.disabled-opacity : 1;
+                Text {
+                    text: T.tr("settings.screenshots_gamepad_combo");
+                    font-size: Theme.body-size;
+                    color: Theme.muted;
+                    height: 19px;
+                    vertical-alignment: center;
+                }
+                // __hint: 12px, opacity .8
+                Text {
+                    text: T.tr("settings.screenshots_gamepad_combo_hint");
+                    font-size: Theme.small-size;
+                    color: Theme.body;
+                    opacity: 0.8;
+                    height: 17px;
+                    vertical-alignment: center;
+                }
+                // __combo: gap 8
+                combo-row := HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    height: 40px;
+                    for button[i] in ScreenshotsData.combo: HorizontalLayout {
+                        spacing: 8px;
+                        if i > 0: Text {
+                            text: "+";
+                            font-size: Theme.body-size;
+                            font-weight: 700; // 600 in scss
+                            color: Theme.body;
+                            vertical-alignment: center;
+                        }
+                        FitSelect {
+                            popup-id: "screenshots-combo-" + i;
+                            options: ScreenshotsData.button-options;
+                            value: button;
+                            current-label: ScreenshotsData.combo-labels[i];
+                            longest: ScreenshotsData.button-longest;
+                            enabled: !root.combo-locked;
+                            selected(value) => {
+                                ScreenshotsData.combo-selected(i, value);
+                            }
+                        }
+                        if i >= 2: HydraButton {
+                            width: 40px;
+                            kind: "outline";
+                            small: true;
+                            horizontal-padding: 0;
+                            icon: @image-url("../../icons/x-16.svg");
+                            icon-size: 14px;
+                            tooltip: T.tr("settings.screenshots_gamepad_remove");
+                            enabled: !root.combo-locked;
+                            clicked => {
+                                ScreenshotsData.combo-remove(i);
+                            }
+                        }
+                    }
+                    if ScreenshotsData.combo.length < 4: HydraButton {
+                        width: 40px;
+                        min-height: 40px;
+                        kind: "outline";
+                        small: true;
+                        horizontal-padding: 0;
+                        icon: @image-url("../../icons/plus.svg");
+                        icon-size: 14px;
+                        tooltip: T.tr("settings.screenshots_gamepad_add");
+                        enabled: !root.combo-locked;
+                        clicked => {
+                            ScreenshotsData.combo-add();
+                        }
+                    }
+                    // __combo-reset: margin-left 8
+                    if !ScreenshotsData.combo-default: HorizontalLayout {
+                        padding-left: 8px;
+                        VerticalLayout {
+                            alignment: center;
+                            HydraButton {
+                                kind: "outline";
+                                small: true;
+                                text: T.tr("settings.screenshots_gamepad_reset");
+                                enabled: !root.combo-locked;
+                                clicked => {
+                                    ScreenshotsData.combo-reset();
+                                }
+                            }
+                        }
+                    }
+                }
+                if ScreenshotsData.combo-error != "": Text {
+                    text: ScreenshotsData.combo-error;
+                    font-size: Theme.small-size;
+                    color: Theme.error;
+                    wrap: word-wrap;
+                }
+            }
+            Check {
+                key: "screenshotCaptureSoundEnabled";
+                label: T.tr("settings.screenshots_capture_sound");
+                checked: ScreenshotsData.capture-sound;
+                enabled: !root.capture-off;
+            }
+            Check {
+                key: "screenshotToastEnabled";
+                label: T.tr("settings.screenshots_toast");
+                checked: ScreenshotsData.toast;
+                enabled: !root.capture-off;
+            }
+        }
+
+        Group {
+            title: T.tr("settings.screenshots_upload_group");
+            // select-field with a label (margin-bottom 8)
+            VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: T.tr("settings.screenshots_default_visibility");
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    height: 19px;
+                    vertical-alignment: center;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    FitSelect {
+                        popup-id: "screenshots-visibility";
+                        options: ScreenshotsData.visibility-options;
+                        value: ScreenshotsData.visibility;
+                        current-label: ScreenshotsData.visibility-label;
+                        longest: ScreenshotsData.visibility-longest;
+                        selected(value) => {
+                            ScreenshotsData.visibility-selected(value);
+                        }
+                    }
+                }
+            }
+        }
+
+        Group {
+            title: T.tr("settings.screenshots_community_group");
+            Check {
+                key: "hideCommunityScreenshots";
+                label: T.tr("settings.screenshots_hide_community");
+                checked: ScreenshotsData.hide-community;
+            }
+        }
+
+        Group {
+            title: T.tr("settings.screenshots_folder_group");
+            // __folder: gap 8
+            VerticalLayout {
+                spacing: 8px;
+                VerticalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: T.tr("settings.screenshots_directory");
+                        font-size: Theme.body-size;
+                        color: Theme.body;
+                        height: 19px;
+                        vertical-alignment: center;
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        TextField {
+                            primary: true;
+                            text: ScreenshotsData.folder;
+                            read-only: true;
+                        }
+                        HydraButton {
+                            kind: "outline";
+                            icon: @image-url("../../icons/file-directory-14.svg");
+                            icon-size: 14px;
+                            text: T.tr("settings.change_screenshots_directory");
+                            clicked => {
+                                ScreenshotsData.change-folder();
+                            }
+                        }
+                        // __icon-button: min-width 34, padding-inline 8
+                        if ScreenshotsData.custom-folder: HydraButton {
+                            kind: "outline";
+                            horizontal-padding: 8px;
+                            min-width: 34px;
+                            icon: @image-url("../../icons/history-14.svg");
+                            icon-size: 14px;
+                            tooltip: T.tr("settings.reset_screenshots_directory");
+                            clicked => {
+                                ScreenshotsData.reset-folder();
+                            }
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    HydraButton {
+                        kind: "outline";
+                        icon: @image-url("../../icons/file-directory-14.svg");
+                        icon-size: 14px;
+                        text: T.tr("settings.open_screenshots_directory");
+                        clicked => {
+                            ScreenshotsData.open-folder();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

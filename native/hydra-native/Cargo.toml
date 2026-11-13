@@ -52,3 +52,7 @@ tempfile = "3.27"
 
 [build-dependencies]
 napi-build = "2.3.1"
+
+[lints.rust]
+# Set by rewrite/crates/hydra-torrent, which compiles src/torrent without napi.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(hydra_rewrite)"] }

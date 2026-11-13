@@ -1,0 +1,512 @@
+// The Hydra game details page (src/renderer/src/pages/game-details) in Slint.
+// Data and actions come from the GameData global (state.slint).
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { GameOptions } from "options.slint";
+import { Theme, Icons, Tip } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton, ScrollBar } from "../../components/widgets.slint";
+import { Hero } from "hero.slint";
+import { GallerySlider } from "gallery.slint";
+import { Lightbox } from "lightbox.slint";
+import { DescriptionHeader, Description } from "description.slint";
+import { SimilarGames } from "similar.slint";
+import { LeaderboardCard, GameLeaderboard } from "leaderboard.slint";
+import { SidebarSection, AchievementsSection, StatsSection, HowLongToBeatSection, ControllerSection, RequirementsSection, LanguageSection } from "sidebar.slint";
+import { GameReviews } from "reviews.slint";
+import { PlaybackDriver, Playback } from "../../components/video.slint";
+import { GameData, Input } from "state.slint";
+import { Nav, T } from "../../globals.slint";
+import { ReviewPromptBanner } from "review-prompt.slint";
+
+export component GameDetailsPage inherits Rectangle {
+
+    out property <bool> modal-open: GameData.options-open || GameData.repacks-open || GameData.cloud-open;
+    // Focus returns to the page once the last modal finished its exit.
+    property <bool> modals-mounted: GameData.modals-mounted;
+    changed modals-mounted => {
+        if (!self.modals-mounted) {
+            root.restore-page-focus();
+        }
+    }
+
+    // A modal finishing its exit animation must not steal focus from a modal
+    // or viewer that opened in the meantime.
+    function restore-page-focus() {
+        if (!GameData.modals-mounted && !lightbox.open) {
+            keys.focus();
+        }
+    }
+
+    property <length> scroll-y;
+    // Wheel tween (components/smooth-scroll.slint): root.scroll-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    public function scroll-to-top() {
+        root.scroll-y = 0;
+    }
+    // app.tsx: a new location (another game, back/forward) starts at the top.
+    property <int> location-key: Nav.location-key;
+    changed location-key => {
+        root.tween.active = false;
+        root.scroll-y = 0;
+    }
+
+    // reviewsRef.scrollIntoView({ behavior: "smooth" })
+    property <length> reviews-top;
+    property <int> scroll-reviews-request: GameData.scroll-reviews-request;
+    changed scroll-reviews-request => {
+        root.scroll-to-reviews();
+    }
+    public function scroll-to-reviews() {
+        root.scroll-by-key(-Math.min(root.reviews-top, root.max-scroll) - root.scroll-y);
+    }
+
+    // ---- page scrolling, the way Chromium scrolls a page:
+    // wheel/trackpad deltas are applied directly (macOS supplies acceleration
+    // and momentum; nothing is added on top); keyboard scrolls animate briefly.
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    function scroll-by-wheel(dy: length) {
+        root.kb-tweening = false;
+        root.wheel-by(dy);
+    }
+    property <length> kb-from;
+    property <length> kb-to;
+    property <duration> kb-start;
+    property <bool> kb-tweening;
+    function scroll-by-key(dy: length) {
+        let base = root.kb-tweening ? root.kb-to : root.scroll-y;
+        root.kb-from = page.viewport-y;
+        root.kb-to = Math.clamp(base + dy, -root.max-scroll, 0);
+        root.kb-start = animation-tick();
+        root.kb-tweening = true;
+    }
+    Timer {
+        interval: 8ms;
+        running: root.kb-tweening;
+        triggered => {
+            let t = Math.min(1, (animation-tick() - root.kb-start) / 200ms);
+            let eased = 1 - (1 - t) * (1 - t) * (1 - t);
+            root.scroll-y = root.kb-from + (root.kb-to - root.kb-from) * eased;
+            if (t >= 1) {
+                root.kb-tweening = false;
+            }
+        }
+    }
+
+    // ---- public API (also used by the headless tests)
+    public function open-game-options() {
+        GameData.modal-opening();
+        GameOptions.opened("general");
+        GameData.options-open = true;
+    }
+    public function open-cloud-save() {
+        GameData.modal-opening();
+        GameData.cloud-open = true;
+    }
+
+    // ---- layout (container queries: the page is the container, not the window)
+    property <length> vw: root.width;
+    // description container content box = page - scrollbar - 2 x $page-gutter
+    property <length> container-content: root.width - 9px - 2 * Theme.page-gutter;
+    // .content-sidebar: $page-rail-width = clamp(280px, 28%, 380px)
+    property <length> sidebar-width: Math.clamp(root.container-content * 0.28, 280px, 380px);
+    // .game-details__description-content (flex: 1)
+    property <length> content-width: root.container-content - Theme.page-gutter - root.sidebar-width;
+    // page-column: width 100%, max 800px, centered
+    property <length> column-width: Math.min(Theme.page-column-max-width, root.content-width);
+
+    property <int> gallery-index;
+    changed gallery-index => {
+        GameData.media-window-changed(root.gallery-index, lightbox.open ? lightbox.index : -1);
+    }
+
+    forward-focus: keys;
+    keys := FocusScope {
+        key-pressed(event) => {
+            // Cmd+R replays the load: skeleton -> content -> entrance animations.
+            if (event.modifiers.meta && (event.text == "r" || event.text == "R")) {
+                GameData.reload();
+                return accept;
+            }
+            // Gallery shortcuts (gallery-slider.tsx) while the gallery is on screen:
+            // F fullscreen; for a trailer also M mute, Space play/pause, arrows seek.
+            let gallery-in-view = -page.content-y < 1000px && -page.content-y + page.height > 450px;
+            if (!lightbox.open && GameData.loaded && gallery-in-view && !event.modifiers.meta) {
+                if (event.text == "f" || event.text == "F") {
+                    lightbox.show(root.gallery-index, true);
+                    return accept;
+                }
+                if (GameData.media[root.gallery-index].is-video && Playback.index == root.gallery-index) {
+                    if (event.text == "m" || event.text == "M") {
+                        Playback.toggle-mute();
+                        return accept;
+                    }
+                    if (event.text == " ") {
+                        Playback.toggle(true);
+                        return accept;
+                    }
+                    if (event.text == Key.LeftArrow) {
+                        Playback.seek-by(-5);
+                        return accept;
+                    }
+                    if (event.text == Key.RightArrow) {
+                        Playback.seek-by(5);
+                        return accept;
+                    }
+                }
+            }
+            // Chromium page keys: arrows 40px, Space/PageDown ~ a viewport, Home/End.
+            if (!lightbox.open && !root.modal-open) {
+                let viewport = page.height * 0.875;
+                if (event.text == Key.DownArrow) {
+                    root.scroll-by-key(-40px);
+                    return accept;
+                }
+                if (event.text == Key.UpArrow) {
+                    root.scroll-by-key(40px);
+                    return accept;
+                }
+                if (event.text == Key.PageDown || (event.text == " " && !event.modifiers.shift)) {
+                    root.scroll-by-key(-viewport);
+                    return accept;
+                }
+                if (event.text == Key.PageUp || (event.text == " " && event.modifiers.shift)) {
+                    root.scroll-by-key(viewport);
+                    return accept;
+                }
+                if (event.text == Key.Home) {
+                    root.scroll-by-key(root.max-scroll);
+                    return accept;
+                }
+                if (event.text == Key.End) {
+                    root.scroll-by-key(-root.max-scroll);
+                    return accept;
+                }
+            }
+            reject
+        }
+
+        page := Flickable {
+            x: 0;
+            width: root.width - scrollbar.width;
+            height: root.height;
+            content-width: self.width;
+            content-height: column.preferred-height;
+            // A web page has no mouse drag-to-pan and no extra inertia;
+            // wheel/trackpad scrolling is handled by page-wheel below.
+            interactive: false;
+        viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+
+            page-wheel := TouchArea {
+              width: page.width;
+              height: column.preferred-height;
+              // Children that don't scroll (or can't in this direction, like the
+              // horizontal preview strip) let the event bubble up to here.
+              scroll-event(event) => {
+                  root.scroll-by-wheel(event.delta-y);
+                  accept
+              }
+
+            column := VerticalLayout {
+                width: page.width;
+
+                Hero {
+                    hero: GameData.hero;
+                    hero-blur: GameData.hero-blur;
+                    logo: GameData.logo;
+                    // page-min-width(1000px): object-position center
+                    wide: root.vw >= 1000px;
+                    loaded: GameData.loaded;
+                    title: GameData.game-title;
+                    in-library: GameData.in-library;
+                    has-executable: GameData.has-executable;
+                    playtime: GameData.playtime;
+                    last-played: GameData.last-played;
+                    favorite <=> GameData.favorite;
+                    pinned <=> GameData.pinned;
+                    running <=> GameData.running;
+                    cloud-state: GameData.cloud-state;
+                    cloud-progress: GameData.cloud-progress;
+                    add-to-library-clicked => {
+                        GameData.add-to-library();
+                    }
+                    download-options-clicked => {
+                        GameData.modal-opening();
+                        GameData.repacks-opened();
+                        GameData.repacks-open = true;
+                    }
+                    play-clicked => {
+                        GameData.play();
+                    }
+                    close-clicked => {
+                        GameData.close-game();
+                    }
+                    cloud-clicked => {
+                        GameData.modal-opening();
+                        GameData.cloud-open = true;
+                    }
+                    options-clicked => {
+                        GameData.modal-opening();
+                        GameOptions.opened("general");
+                        GameData.options-open = true;
+                    }
+                    edit-clicked => {
+                        GameData.modal-opening();
+                        GameOptions.opened("assets");
+                        GameData.options-open = true;
+                    }
+                }
+
+                // .game-details__description-container
+                Rectangle {
+                    background: @linear-gradient(0deg, Theme.background 50%, Theme.dark-background 100%);
+
+                    HorizontalLayout {
+                        padding: Theme.page-gutter;
+                        spacing: Theme.page-gutter;
+                        alignment: stretch;
+
+                        content := VerticalLayout {
+                            horizontal-stretch: 1;
+                            spacing: 12px;
+                            alignment: start;
+
+                            DescriptionHeader {
+                                release-date: GameData.release-date;
+                                publisher: GameData.publisher;
+                                loaded: GameData.loaded;
+                            }
+
+                            if GameData.review-prompt > 0: HorizontalLayout {
+                                alignment: center;
+                                ReviewPromptBanner {
+                                    width: root.column-width;
+                                    pending: GameData.review-prompt == 1;
+                                    narrow: root.vw <= 900px;
+                                    yes-clicked => {
+                                        GameData.review-prompt-yes();
+                                        root.scroll-to-reviews();
+                                    }
+                                    later-clicked => {
+                                        GameData.review-prompt-later();
+                                    }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                alignment: center;
+                                if GameData.loaded: GallerySlider {
+                                    width: root.column-width;
+                                    media: GameData.media;
+                                    index <=> root.gallery-index;
+                                    wheel-scale: Input.wheel-scale;
+                                    // aspect-ratio 16 / 9, max-height: 60vh (the window, title bar included)
+                                    max-viewport-height: (root.height + 40px) * 0.6;
+                                    preview-width-fraction: 0.12;
+                                    open-viewer(i, fullscreen) => {
+                                        lightbox.show(i, fullscreen);
+                                    }
+                                }
+                                if !GameData.loaded: VerticalLayout {
+                                    padding-top: 12px;
+                                    padding-bottom: 12px;
+                                    Skeleton {
+                                        width: root.column-width;
+                                        height: 250px;
+                                        radius: 8px;
+                                    }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                alignment: center;
+                                Description {
+                                    width: root.column-width;
+                                    blocks: GameData.description;
+                                    loaded: GameData.loaded;
+                                }
+                            }
+
+                            if GameData.loaded && GameData.similar-state != "hidden": HorizontalLayout {
+                                alignment: center;
+                                SimilarGames {
+                                    width: root.column-width;
+                                    state: GameData.similar-state;
+                                    games: GameData.similar;
+                                    game-clicked(i) => {
+                                        GameData.similar-clicked(i);
+                                    }
+                                }
+                            }
+
+                            if GameData.loaded && GameData.show-reviews: HorizontalLayout {
+                                alignment: center;
+                                GameReviews {
+                                    width: root.column-width;
+                                    page-width: root.vw;
+                                    // Where the reviews start in the page, for the review prompt's "Yes".
+                                    init => {
+                                        root.reviews-top = self.absolute-position.y - column.absolute-position.y;
+                                    }
+                                    changed absolute-position => {
+                                        root.reviews-top = self.absolute-position.y - column.absolute-position.y;
+                                    }
+                                }
+                            }
+                        }
+
+                        // aside.content-sidebar
+                        VerticalLayout {
+                            width: root.sidebar-width;
+                            spacing: 12px;
+                            alignment: start;
+
+                            if GameData.loaded && GameData.achievements.length > 0: AchievementsSection {
+                                see-all => {
+                                    GameData.open-achievements();
+                                }
+                                achievements: GameData.achievements;
+                                unlocked: GameData.achievements-unlocked;
+                                total: GameData.achievements-total;
+                            }
+                            // leaderboard-section.tsx (GLOBAL_LEADERBOARDS)
+                            if GameData.loaded && GameLeaderboard.visible: LeaderboardCard { }
+                            if GameData.loaded && GameData.has-stats: StatsSection {
+                                downloads: GameData.downloads;
+                                players: GameData.players;
+                                rating: GameData.rating;
+                            }
+                            if GameData.loaded && (GameData.hltb-loading || GameData.hltb.length > 0): HowLongToBeatSection {
+                                loading: GameData.hltb-loading && GameData.hltb.length == 0;
+                                categories: GameData.hltb;
+                            }
+                            if GameData.loaded && GameData.controller-support != "none": ControllerSection {
+                                support: GameData.controller-support;
+                            }
+                            if GameData.loaded && GameData.show-requirements: RequirementsSection {
+                                minimum: GameData.requirements-minimum;
+                                recommended: GameData.requirements-recommended;
+                            }
+                            if GameData.loaded: LanguageSection {
+                                languages: GameData.languages;
+                            }
+
+                            // game-details-skeleton.tsx sidebar
+                            if !GameData.loaded: SidebarSection {
+                                skeleton-title: true;
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 8px;
+                                    for w in [[80px, 40px], [70px, 35px], [60px, 30px]]: HorizontalLayout {
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            alignment: start;
+                                            Skeleton {
+                                                width: 14px;
+                                                height: 14px;
+                                            }
+                                            Skeleton {
+                                                width: w[0];
+                                                height: 14px;
+                                            }
+                                        }
+                                        HorizontalLayout {
+                                            alignment: end;
+                                            Skeleton {
+                                                width: w[1];
+                                                height: 14px;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if !GameData.loaded: SidebarSection {
+                                skeleton-title: true;
+                                skeleton-title-width: 136px;
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 16px;
+                                    for i in 4: HorizontalLayout {
+                                        padding: 8px;
+                                        spacing: 16px;
+                                        alignment: start;
+                                        Skeleton {
+                                            width: 54px;
+                                            height: 54px;
+                                        }
+                                        VerticalLayout {
+                                            alignment: center;
+                                            spacing: 4px;
+                                            Skeleton {
+                                                width: 120px;
+                                                height: 14px;
+                                            }
+                                            Skeleton {
+                                                width: 80px;
+                                                height: 12px;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        }
+
+        scrollbar := ScrollBar {
+            x: root.width - self.width;
+            height: root.height;
+            content-height: page.content-height;
+            viewport-height: page.height;
+            content-y <=> root.scroll-y;
+            shown-offset: -page.viewport-y;
+        }
+
+        lightbox := Lightbox {
+            width: root.width;
+            height: root.height;
+            media: GameData.media;
+            wheel-scale: Input.wheel-scale;
+            changed index => {
+                GameData.media-window-changed(root.gallery-index, self.open ? self.index : -1);
+            }
+            changed open => {
+                GameData.media-window-changed(root.gallery-index, self.open ? self.index : -1);
+            }
+            changed fullscreen => {
+                GameData.fullscreen-changed(self.fullscreen);
+            }
+            closed(i) => {
+                root.gallery-index = i;
+                keys.focus();
+            }
+        }
+
+        PlaybackDriver { }
+    }
+}

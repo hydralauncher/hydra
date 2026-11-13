@@ -1,0 +1,67 @@
+// Data of the Downloads page (downloads.tsx + download-group.tsx), filled by
+// downloads_page.rs from the download records, the games and the live packet.
+
+// One row of the queued / completed lists (download-group__simple-card).
+export struct DownloadCard {
+    id: string,
+    title: string,
+    cover: image,
+    downloader: string,
+    // "6.9 GB" (getFinalDownloadSize), or "Extracting (12%)"
+    size: string,
+    extracting: bool,
+    progress: float,
+    // formatDownloadProgress, or "Waiting for debrid"
+    progress-text: string,
+    seeding: bool,
+    // Queued list: show the resume button. Completed list: the finished step
+    // ("open-folder", "play", "close", "extract", "install", "installing",
+    // "select-executable", "checking").
+    resumable: bool,
+    step: string,
+}
+
+export global DownloadsData {
+    in property <bool> has-downloads;
+
+    // ---- HeroDownloadView (the download in progress)
+    in property <bool> has-hero;
+    in property <string> hero-id;
+    in property <string> hero-title;
+    in property <image> hero-image;
+    in property <image> hero-blur;
+    in property <image> hero-logo;
+    in property <bool> hero-downloading;
+    in property <bool> hero-extracting;
+    // "EXTRACTING" / "CHECKING FILES" / "RECOVERING 40%" / "RECONNECTING"; empty shows the size
+    in property <string> hero-status;
+    in property <string> hero-size;
+    // "in 9 minutes", "Calculating time remaining…"; empty hides the clock
+    in property <string> hero-eta;
+    in property <float> hero-progress;
+    in property <string> hero-percentage;
+    // hero-percentage split into 8 slots for AnimatedPercentage
+    in property <[string]> hero-percentage-chars;
+    in property <string> hero-network;
+    in property <string> hero-peak;
+    in property <string> hero-downloader;
+    in property <string> hero-peers;
+    // Speed history scaled to the peak (0..1), oldest first.
+    in property <[float]> hero-speeds;
+    // pickChartColor(dominant color of the hero art)
+    in property <color> hero-color: #ffffff;
+
+    // ---- groups
+    in property <[DownloadCard]> queued;
+    in property <[DownloadCard]> completed;
+    in property <string> queued-title;
+    in property <string> completed-title;
+
+    callback pause(string);
+    callback resume(string);
+    callback cancel(string);
+    callback open-game(string);
+    // The "more" menu of a row at a window position.
+    callback menu(string, length, length);
+    callback completed-action(string, string);
+}

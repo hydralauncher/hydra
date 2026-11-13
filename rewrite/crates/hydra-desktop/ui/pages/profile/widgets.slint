@@ -1,0 +1,446 @@
+// Small pieces the profile screens share: components/button with the
+// profile's border overrides, components/avatar, profile-section and the
+// filter-dropdown trigger.
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+
+// components/button (button.scss) plus the profile's overrides:
+// `.profile-hero__button--outline` / `.upload-background-image-button`
+// (border-color: $body-color), the banner button's dark fill and glow.
+export component ProfileButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <length> icon-size: 16px;
+    // the icon after the text (change_banner + MoreVertical)
+    in property <bool> icon-after;
+    // "primary" | "outline" | "danger" | "cloud"
+    in property <string> kind: "primary";
+    in property <bool> enabled: true;
+    in property <bool> small;
+    in property <brush> outline-color: Theme.border;
+    in property <brush> rest-fill: transparent;
+    in property <brush> hover-fill: rgba(255, 255, 255, 0.1);
+    in property <brush> disabled-fill: transparent;
+    // The icon's color, when it differs from the text (gift: white).
+    in property <color> icon-color: root.foreground;
+    in property <bool> stretch-content;
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    property <color> foreground: root.kind == "primary" ? #000000 : Theme.muted;
+    property <bool> lit: touch.has-hover && root.enabled;
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if (root.enabled) {
+            root.clicked();
+        }
+    }
+
+    min-height: root.small ? 28px : 40px;
+    horizontal-stretch: 0;
+    border-radius: root.small ? 6px : 8px;
+    border-width: 1px;
+    border-color: root.kind == "outline" ? root.outline-color : root.kind == "cloud" ? #3dd6e9 : transparent;
+    inner-shadow-blur: root.kind == "cloud" ? (root.lit ? 18px : 14px) : 0;
+    inner-shadow-color: root.kind == "cloud" ? (root.lit ? #1debe14d : #1debe12b) : transparent;
+    drop-shadow-blur: root.kind == "cloud" && root.lit ? 10px : 0;
+    drop-shadow-color: root.kind == "cloud" && root.lit ? #1dcceb33 : transparent;
+    background: root.kind == "cloud" ? (root.lit ? @linear-gradient(133deg, #16cfd1 0%, #0b96f3 100%) : @linear-gradient(133deg, #14b9bb 0%, #0a86d9 100%))
+        : root.kind == "primary" ? (root.lit ? #dadbe1 : Theme.muted)
+        : root.kind == "outline" ? (!root.enabled ? root.disabled-fill : root.lit ? root.hover-fill : root.rest-fill)
+        : (touch.has-hover ? #b3203f : Theme.danger);
+    opacity: !root.enabled ? Theme.disabled-opacity : touch.pressed ? Theme.active-opacity : 1;
+    animate background, opacity, border-color { duration: 200ms; easing: ease; }
+
+    HorizontalLayout {
+        padding-left: (root.small ? 10px : 16px) + 1px;
+        padding-right: (root.small ? 10px : 16px) + 1px;
+        spacing: root.small ? 6px : 8px;
+        alignment: center;
+        if root.icon.width > 0 && !root.icon-after: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                color: root.icon-color;
+                width: root.icon-size;
+                height: root.icon-size;
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            color: root.foreground;
+            font-size: root.small ? Theme.small-size : Theme.button-size;
+            vertical-alignment: center;
+        }
+        if root.icon.width > 0 && root.icon-after: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                color: root.icon-color;
+                width: root.icon-size;
+                height: root.icon-size;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// components/avatar: a 4px-radius square with a 1px border; PersonIcon at
+// 70% when there is no picture.
+export component ProfileAvatar inherits Rectangle {
+    in property <image> source;
+    // profileImageUrl is set (the picture may still be loading)
+    in property <bool> has-source;
+    in property <length> size: 32px;
+    width: root.size;
+    height: root.size;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.background;
+    if root.has-source: Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        border-radius: 4px;
+        clip: true;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.source;
+            image-fit: cover;
+        }
+    }
+    if !root.has-source: Icon {
+        source: Icons.person;
+        width: root.size * 0.7;
+        height: root.size * 0.7;
+        color: Theme.muted;
+    }
+}
+
+// The 12px underlined text buttons ("View all", "Add Friends").
+export component LinkButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    width: row.preferred-width;
+    height: row.preferred-height;
+    row := HorizontalLayout {
+        spacing: 4px;
+        if root.icon.width > 0: VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: label.color;
+            }
+        }
+        label := Text {
+            text: root.text;
+            font-size: Theme.small-size;
+            color: touch.has-hover ? Theme.muted : Theme.body;
+            animate color { duration: 200ms; easing: ease; }
+            vertical-alignment: center;
+            // text-decoration: underline
+            Rectangle {
+                y: parent.height - 3px;
+                height: 1px;
+                background: label.color;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// profile-section.tsx: a 12px-radius card with a chevron header that
+// collapses its body (grid-template-rows 1fr -> 0fr over 0.3s).
+export component ProfileSection inherits Rectangle {
+    in property <string> title;
+    in property <int> count: -1;
+    in-out property <bool> open: true;
+    // The header's action (friends-box's "Add Friends"), drawn at its end.
+    in property <string> action-text;
+    in property <image> action-icon;
+    callback action-clicked();
+
+    background: Theme.background;
+    border-radius: 12px;
+    // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.1);
+
+    property <length> header-height: (root.count >= 0 ? 25px : 19px) + 40px;
+    property <float> openness: root.open ? 1 : 0;
+    animate openness { duration: 300ms; easing: ease; }
+    height: 2px + root.header-height + body.preferred-height * root.openness;
+
+    // __header (hover: rgba(255,255,255,.1)); the toggle fills it but the action
+    header := Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: root.header-height;
+        // overflow: hidden on the 12px card (11px inside the border)
+        border-top-left-radius: 11px;
+        border-top-right-radius: 11px;
+        border-bottom-left-radius: root.openness > 0 ? 0 : 11px;
+        border-bottom-right-radius: root.openness > 0 ? 0 : 11px;
+        background: header-touch.has-hover || (root.action-text != "" && action.hovered) ? rgba(255, 255, 255, 0.1) : Theme.background;
+        header-touch := TouchArea {
+            x: 0;
+            width: parent.width - (root.action-text != "" ? 16px + action.width : 0);
+            mouse-cursor: pointer;
+            clicked => {
+                root.open = !root.open;
+            }
+        }
+        // __button: padding 20px 16px, gap 8, 14px bold muted
+        HorizontalLayout {
+            x: 0;
+            width: header-touch.width;
+            padding-left: 16px;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            spacing: 8px;
+            alignment: start;
+            opacity: header-touch.pressed ? Theme.active-opacity : 1;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: Icons.chevron-down;
+                    color: Theme.muted;
+                    transform-rotation: root.open ? 180deg : 0deg;
+                    animate transform-rotation { duration: 200ms; easing: ease; }
+                }
+            }
+            Text {
+                text: root.title;
+                font-size: Theme.body-size;
+                font-weight: 700;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+            if root.count >= 0: Rectangle {
+                height: 25px;
+                width: Math.max(24px, count-text.preferred-width + 16px);
+                border-radius: 6px;
+                background: rgba(255, 255, 255, 0.1);
+                count-text := Text {
+                    text: root.count;
+                    font-size: Theme.small-size;
+                    font-weight: 700;
+                    color: rgba(255, 255, 255, 0.7);
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        action := LinkButton {
+            visible: root.action-text != "";
+            x: parent.width - 16px - self.width;
+            y: (parent.height - self.height) / 2;
+            text: root.action-text;
+            icon: root.action-icon;
+            clicked => {
+                root.action-clicked();
+            }
+        }
+    }
+
+    // __content: $dark-background-color, clipped while it collapses
+    Rectangle {
+        x: 1px;
+        y: 1px + root.header-height;
+        width: parent.width - 2px;
+        height: body.preferred-height * root.openness;
+        border-bottom-left-radius: 11px;
+        border-bottom-right-radius: 11px;
+        background: Theme.dark-background;
+        clip: true;
+        body := VerticalLayout {
+            y: 0;
+            height: self.preferred-height;
+            @children
+        }
+    }
+
+    // border: 1px solid rgba(255, 255, 255, 0.05), over the content
+    Rectangle {
+        border-radius: 12px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+}
+
+// react-tooltip on an element (data-tooltip-*): shows while hovered.
+export component TipArea inherits TouchArea {
+    in property <string> tip;
+    in property <string> place: "top";
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    changed has-hover => {
+        if (self.has-hover && root.tip != "") {
+            Tip.show(root.tip-id, root.tip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, root.place);
+        } else {
+            Tip.hide(root.tip-id);
+        }
+    }
+}
+
+// filter-dropdown.tsx trigger: placeholder, the selected icon + label, chevron.
+export component FilterTrigger inherits Rectangle {
+    in property <string> placeholder;
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> keep-colors;
+    in property <bool> open;
+    callback clicked();
+    height: 36px;
+    width: row.preferred-width;
+    border-radius: 8px;
+    border-width: 1px;
+    background: root.open || touch.has-hover ? rgba(255, 255, 255, 0.07) : rgba(255, 255, 255, 0.04);
+    border-color: root.open ? rgba(255, 255, 255, 0.2) : touch.has-hover ? rgba(255, 255, 255, 0.14) : Theme.border;
+    animate background, border-color { duration: 150ms; easing: ease; }
+    row := HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 13px;
+        spacing: 8px;
+        Text {
+            text: root.placeholder;
+            font-size: Theme.hint-size;
+            color: rgba(255, 255, 255, 0.45);
+            vertical-alignment: center;
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                // ClassicsIcon keeps its gradient stroke
+                if !root.keep-colors: Icon {
+                    width: 14px;
+                    height: 14px;
+                    source: root.icon;
+                    color: rgba(255, 255, 255, 0.95);
+                }
+                if root.keep-colors: Image {
+                    width: 14px;
+                    height: 14px;
+                    source: root.icon;
+                }
+            }
+            Text {
+                text: root.label;
+                font-size: Theme.hint-size;
+                font-weight: 500;
+                color: rgba(255, 255, 255, 0.95);
+                vertical-alignment: center;
+                overflow: elide;
+                max-width: 220px;
+            }
+        }
+        // margin-left: 2px; rotates 180deg while open (0.15s)
+        HorizontalLayout {
+            padding-left: 2px;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 14px;
+                    height: 14px;
+                    source: @image-url("../../icons/chevron-down-14.svg");
+                    color: rgba(255, 255, 255, 0.5);
+                    transform-rotation: root.open ? 180deg : 0deg;
+                    animate transform-rotation { duration: 150ms; easing: ease; }
+                }
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// filter-dropdown__option: 14px icon, label, check when active.
+export component FilterOption inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> keep-colors;
+    in property <bool> active;
+    callback activated();
+    height: row.preferred-height;
+    border-radius: 6px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.06) : transparent;
+    animate background { duration: 120ms; easing: ease; }
+    row := HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            if !root.keep-colors: Icon {
+                width: 14px;
+                height: 14px;
+                source: root.icon;
+                color: label-text.color;
+            }
+            if root.keep-colors: Image {
+                width: 14px;
+                height: 14px;
+                source: root.icon;
+            }
+        }
+        label-text := Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.hint-size;
+            font-weight: 500;
+            color: root.active || touch.has-hover ? rgba(255, 255, 255, 0.95) : rgba(255, 255, 255, 0.7);
+            animate color { duration: 120ms; easing: ease; }
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if root.active: VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 14px;
+                height: 14px;
+                source: Icons.check;
+                color: Theme.muted;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.activated();
+        }
+    }
+}

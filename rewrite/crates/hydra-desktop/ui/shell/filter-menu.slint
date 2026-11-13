@@ -1,0 +1,317 @@
+// sidebar-filter-menu.tsx: the sidebar's sort and filter dropdown (Radix,
+// side="right", align="start", sideOffset 8, collisionPadding 16).
+// Styles: sidebar-filter-menu.scss.
+import { Theme } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+import { T, Popup, SidebarState } from "../globals.slint";
+
+global FilterIcons {
+    out property <image> stack: @image-url("../icons/stack-14.svg");
+    out property <image> desktop: @image-url("../icons/device-desktop-14.svg");
+    out property <image> classics: @image-url("../icons/classics.svg");
+    out property <image> sort-desc: @image-url("../icons/sort-desc.svg");
+    out property <image> clock: @image-url("../icons/clock-14.svg");
+    out property <image> hourglass: @image-url("../icons/hourglass.svg");
+    out property <image> trophy: @image-url("../icons/trophy-14.svg");
+    out property <image> heart: @image-url("../icons/heart.svg");
+    out property <image> check: @image-url("../icons/check.svg");
+    out property <image> steam: @image-url("../icons/bi-steam.svg");
+    out property <image> epic: @image-url("../icons/epic-integration-logo.svg");
+    out property <image> hydra: @image-url("../icons/hydra-source.svg");
+}
+
+// __label: 11px, 700, uppercase, letter-spacing .04em, subtle; padding 4px 12px
+component GroupLabel inherits HorizontalLayout {
+    in property <string> text;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    Text {
+        // Chromium's line box for 11px Noto Sans
+        height: 15px;
+        text: root.text.to-uppercase();
+        font-size: Theme.tiny-size;
+        font-weight: 700;
+        letter-spacing: 0.44px;
+        color: Theme.subtle;
+    }
+}
+
+// __separator: 1px across the column
+component Separator inherits Rectangle {
+    height: 1px;
+    background: Theme.border;
+}
+
+// __item: padding 8px 32px 8px 12px, gap 8, radius 4; the check scales in
+component Item inherits Rectangle {
+    in property <image> icon;
+    // 0 recolored octicon, 1 keeps its own colors (classics), 2 the Hydra
+    // mark (bleeds 2px, source-icon.scss)
+    in property <int> icon-kind;
+    in property <string> label;
+    in property <bool> checked;
+    callback activated();
+    height: 35px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.15) : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    accessible-role: button;
+    accessible-checked: root.checked;
+    accessible-label: root.label;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 32px;
+        spacing: 8px;
+        if root.icon.width > 0 && root.icon-kind == 0: Icon {
+            y: (parent.height - self.height) / 2;
+            width: 14px;
+            height: 14px;
+            source: root.icon;
+            color: Theme.muted;
+        }
+        if root.icon.width > 0 && root.icon-kind == 1: Image {
+            y: (parent.height - self.height) / 2;
+            width: 14px;
+            height: 14px;
+            source: root.icon;
+        }
+        if root.icon-kind == 2: Rectangle {
+            width: 14px;
+            Icon {
+                x: 0;
+                y: (parent.height - self.height) / 2;
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: Theme.muted;
+            }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.muted;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    Icon {
+        x: parent.width - 12px - 14px;
+        y: (parent.height - self.height) / 2;
+        width: 14px;
+        height: 14px;
+        source: FilterIcons.check;
+        color: Theme.muted;
+        transform-scale: root.checked ? 1 : 0.4;
+        opacity: root.checked ? 1 : 0;
+        animate transform-scale, opacity { duration: 150ms; easing: ease-out; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.activated();
+        }
+    }
+}
+
+// __column: min-width 180, scrolls on its own
+component Column inherits Rectangle {
+    out property <length> natural-width: Math.max(180px, body.preferred-width);
+    out property <length> natural-height: body.preferred-height;
+    flick := Flickable {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        content-height: body.preferred-height;
+        body := VerticalLayout {
+            x: 0;
+            width: flick.width;
+            alignment: start;
+            @children
+        }
+    }
+}
+
+export component SidebarFilterMenu inherits Rectangle {
+    in property <length> room-height;
+    property <bool> entered;
+    property <bool> second-column: SidebarState.filter-show-sources || SidebarState.filter-show-platforms;
+    // $menu-row-height * $menu-visible-rows + 8px, and the viewport minus the collision padding
+    property <length> natural-height: Math.max(first.natural-height, second.natural-height) + 2px;
+    width: first.natural-width + (root.second-column ? second.natural-width + 1px : 0) + 2px;
+    height: Math.min(root.natural-height, 35px * 12 + 8px, root.room-height - 32px);
+    // side="right", align="start", sideOffset 8, shifted up to stay 16px inside the window
+    x: Popup.anchor-x + Popup.anchor-width + 8px + (root.entered ? 0 : -8px);
+    y: Math.max(16px, Math.min(Popup.anchor-y, root.room-height - 16px - root.height));
+    // sidebar-filter-menu-slide-in: 0.2s ease-out from translateX(-8px)
+    opacity: root.entered ? 1 : 0;
+    animate opacity, x { duration: 200ms; easing: ease-out; }
+    background: Theme.dark-background;
+    border-width: 1px;
+    border-color: Theme.border;
+    border-radius: 6px;
+    clip: true;
+
+    init => {
+        root.entered = true;
+        root.publish-box();
+    }
+    changed width => {
+        root.publish-box();
+    }
+    changed height => {
+        root.publish-box();
+    }
+    function publish-box() {
+        Popup.box-x = root.absolute-position.x + (root.entered ? 0 : 8px);
+        Popup.box-y = root.absolute-position.y;
+        Popup.box-width = root.width;
+        Popup.box-height = root.height;
+    }
+
+    // Presses inside the menu stay in it.
+    TouchArea { }
+
+    HorizontalLayout {
+        padding: 1px;
+        alignment: start;
+        first := Column {
+            width: self.natural-width;
+            // Platforms (category radio group)
+            VerticalLayout {
+                padding: 4px;
+                GroupLabel {
+                    text: T.tr("sidebar.platforms_label");
+                }
+                Item {
+                    icon: FilterIcons.stack;
+                    label: T.tr("library.category_all");
+                    checked: SidebarState.filter-category == "all";
+                    activated => {
+                        SidebarState.set-category("all");
+                    }
+                }
+                Item {
+                    icon: FilterIcons.desktop;
+                    label: T.tr("library.category_pc");
+                    checked: SidebarState.filter-category == "pc";
+                    activated => {
+                        SidebarState.set-category("pc");
+                    }
+                }
+                Item {
+                    icon: FilterIcons.classics;
+                    icon-kind: 1;
+                    label: T.tr("library.category_classics");
+                    checked: SidebarState.filter-category == "classics";
+                    activated => {
+                        SidebarState.set-category("classics");
+                    }
+                }
+            }
+            Separator { }
+            // Sort by: favorites first (checkbox) and the sort radio group
+            VerticalLayout {
+                padding: 4px;
+                GroupLabel {
+                    text: T.tr("library.sort_by");
+                }
+                Item {
+                    icon: FilterIcons.heart;
+                    label: T.tr("sidebar.show_favorites_first");
+                    checked: SidebarState.filter-favorites-first;
+                    activated => {
+                        SidebarState.set-favorites-first(!SidebarState.filter-favorites-first);
+                    }
+                }
+                Item {
+                    icon: FilterIcons.sort-desc;
+                    label: T.tr("library.sort_title");
+                    checked: SidebarState.filter-sort == "title_asc";
+                    activated => {
+                        SidebarState.set-sort("title_asc");
+                    }
+                }
+                Item {
+                    icon: FilterIcons.clock;
+                    label: T.tr("library.recently_played");
+                    checked: SidebarState.filter-sort == "recently_played";
+                    activated => {
+                        SidebarState.set-sort("recently_played");
+                    }
+                }
+                Item {
+                    icon: FilterIcons.hourglass;
+                    label: T.tr("library.sort_most_played");
+                    checked: SidebarState.filter-sort == "most_played";
+                    activated => {
+                        SidebarState.set-sort("most_played");
+                    }
+                }
+                Item {
+                    icon: FilterIcons.trophy;
+                    label: T.tr("library.sort_achievements");
+                    checked: SidebarState.filter-sort == "achievements";
+                    activated => {
+                        SidebarState.set-sort("achievements");
+                    }
+                }
+            }
+        }
+        // __divider
+        if root.second-column: Rectangle {
+            width: 1px;
+            background: Theme.border;
+        }
+        second := Column {
+            width: root.second-column ? self.natural-width : 0;
+            visible: root.second-column;
+            if SidebarState.filter-show-sources: VerticalLayout {
+                padding: 4px;
+                GroupLabel {
+                    text: T.tr("sidebar.libraries_label");
+                }
+                Item {
+                    label: T.tr("library.all_libraries");
+                    checked: !SidebarState.filter-sources-any;
+                    activated => {
+                        SidebarState.set-sources-all();
+                    }
+                }
+                for item in SidebarState.filter-sources: Item {
+                    icon: item.icon == 4 ? FilterIcons.steam : item.icon == 5 ? FilterIcons.epic : FilterIcons.hydra;
+                    icon-kind: item.icon == 3 ? 2 : 0;
+                    label: item.label;
+                    checked: item.checked;
+                    activated => {
+                        SidebarState.toggle-source(item.id);
+                    }
+                }
+            }
+            if SidebarState.filter-show-sources && SidebarState.filter-show-platforms: Separator { }
+            if SidebarState.filter-show-platforms: VerticalLayout {
+                padding: 4px;
+                GroupLabel {
+                    text: T.tr("sidebar.consoles_label");
+                }
+                Item {
+                    label: T.tr("library.all_consoles");
+                    checked: !SidebarState.filter-platforms-any;
+                    activated => {
+                        SidebarState.set-platforms-all();
+                    }
+                }
+                for item in SidebarState.filter-platforms: Item {
+                    label: item.label;
+                    checked: item.checked;
+                    activated => {
+                        SidebarState.toggle-platform(item.id);
+                    }
+                }
+            }
+        }
+    }
+}

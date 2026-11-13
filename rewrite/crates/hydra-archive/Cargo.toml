@@ -1,0 +1,12 @@
+[package]
+name = "hydra-archive"
+description = "Archive extraction for the Rust rewrite: hatchzip in place (shared with native/hydra-native) with 7-Zip as the fallback"
+version.workspace = true
+edition = "2021"
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# native/hydra-native/src/in_place_extraction.rs, compiled here without napi.
+# The `rar` feature compiles UnRAR's C++ source (LICENSE-UNRAR).
+hatchzip-core = { version = "=0.1.8", features = ["rar"] }

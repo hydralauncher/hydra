@@ -1,0 +1,35 @@
+[package]
+name = "hydra-core"
+description = "Hydra's main-process logic for the Rust rewrite: library, preferences, Hydra API, auth"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hydra-db = { path = "../hydra-db" }
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+# Intl.Collator(undefined, { sensitivity: "base" }) for title sorting.
+icu_collator = "2"
+icu_locale_core = "2"
+# new Date().toISOString()
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+# the realtime WebSocket (services/sse/websocket-client.ts) over rustls with the OS roots
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+rustls.workspace = true
+rustls-platform-verifier = "0.7"
+# screenshots: upload compression (sharp), souvenir path hashes, client ids
+image.workspace = true
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+# Extended_Pictographic for emoji-only chat messages (chat-emoji.ts); already in the
+# tree through icu_collator.
+icu_properties = "2"
+# the Steam Community stats pages (steam-community-achievements.ts)
+regex = "1"
+# (image also crops profile pictures: events/profile, sharp in Electron)
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,196 @@
+// description-header.tsx + the "About this game" block of game-details-content.tsx
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, Skeleton } from "../../components/widgets.slint";
+import { DescBlock } from "../../types.slint";
+import { T } from "../../globals.slint";
+
+export component DescriptionHeader inherits Rectangle {
+    in property <string> release-date;
+    in property <string> publisher;
+    in property <bool> loaded;
+    height: 72px;
+    background: Theme.background;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.05);
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.1);
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 4px;
+        alignment: center;
+        if root.loaded: Text {
+            text: T.tr-with("game_details.release_date", ["date", root.release-date]);
+            color: Theme.muted;
+            font-size: Theme.small-size;
+            font-weight: 700; // 600 in scss; Electron has no SemiBold face
+        }
+        if root.loaded: Text {
+            text: T.tr-with("game_details.publisher", ["publisher", root.publisher]);
+            color: Theme.muted;
+            font-size: Theme.small-size;
+        }
+        if !root.loaded: Skeleton {
+            width: 200px;
+            height: 16px;
+        }
+        if !root.loaded: Skeleton {
+            width: 150px;
+            height: 16px;
+        }
+    }
+}
+
+component Block inherits VerticalLayout {
+    in property <DescBlock> block;
+
+    // h2.bb_tag: 1.5em bold, 16px vertical margin
+    if root.block.kind == 0: VerticalLayout {
+        padding-top: 16px;
+        padding-bottom: 16px;
+        Text {
+            text: root.block.plain;
+            font-size: 21px;
+            font-weight: 700;
+            color: Theme.body;
+            wrap: word-wrap;
+        }
+    }
+    // p.bb_paragraph
+    if root.block.kind == 1: StyledText {
+        text: root.block.text;
+        default-color: Theme.body;
+        default-font-size: Theme.body-size;
+        link-color: Theme.body;
+    }
+    // ul.bb_ul > li (disc, 40px indent, 1em list margin collapses into neighbours)
+    if root.block.kind == 2: HorizontalLayout {
+        padding-left: 22px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: start;
+            padding-top: 8px;
+            Rectangle {
+                width: 5px;
+                height: 5px;
+                border-radius: 2.5px;
+                background: Theme.body;
+            }
+        }
+        StyledText {
+            text: root.block.text;
+            default-color: Theme.body;
+            default-font-size: Theme.body-size;
+            link-color: Theme.body;
+            horizontal-stretch: 1;
+        }
+    }
+    // img: margin 8px 0 24px, radius 5px, max-width 100%
+    if root.block.kind == 3: VerticalLayout {
+        padding-top: 8px;
+        padding-bottom: 24px;
+        alignment: start;
+        HorizontalLayout {
+            alignment: start;
+            Rectangle {
+                property <float> natural-width: root.block.img.width;
+                property <float> natural-height: root.block.img.height;
+                width: Math.min(root.width, self.natural-width * 1px);
+                height: self.natural-width <= 0 ? 0 : self.width * self.natural-height / self.natural-width;
+                border-radius: 5px;
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.block.img;
+                }
+            }
+        }
+    }
+    // empty p.bb_paragraph keeps min-height: 1lh
+    if root.block.kind == 4: Rectangle {
+        height: 22px;
+    }
+}
+
+export component Description inherits VerticalLayout {
+    in property <[DescBlock]> blocks;
+    in property <bool> loaded;
+    in-out property <bool> expanded;
+    spacing: 12px;
+
+    if root.loaded: Text {
+        text: T.tr("game_details.about_this_game");
+        font-size: 20px;
+        font-weight: 700; // 600 in scss; Electron has no SemiBold face
+        color: Theme.body;
+    }
+
+    body := Rectangle {
+        property <length> full-height: column.preferred-height;
+        out property <bool> overflowing: self.full-height > 300px;
+        visible: root.loaded;
+        // max-height: 300px <-> none. CSS can't transition to `none`, so this snaps
+        // exactly like Hydra does.
+        height: !root.loaded ? 0 : self.overflowing && !root.expanded ? 300px : self.full-height;
+        clip: true;
+
+        column := VerticalLayout {
+            y: 0;
+            height: self.preferred-height;
+            spacing: 0;
+            for block in root.blocks: Block {
+                block: block;
+            }
+        }
+
+        if body.overflowing && !root.expanded: Rectangle {
+            y: parent.height - 60px;
+            height: 60px;
+            background: @linear-gradient(180deg, rgba(18, 18, 18, 0) 0%, Theme.background 100%);
+        }
+    }
+
+    if root.loaded && body.overflowing: HorizontalLayout {
+        alignment: center;
+        padding-top: 0px;
+        toggle := Rectangle {
+            width: label.preferred-width + 24px + 2px;
+            height: label.preferred-height + 12px + 2px;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: toggle-touch.has-hover ? rgba(255, 255, 255, 0.1) : Theme.border;
+            background: toggle-touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+            animate background, border-color { duration: 200ms; easing: ease; }
+            label := Text {
+                text: root.expanded ? T.tr("game_details.show_less") : T.tr("game_details.show_more");
+                color: Theme.body;
+                font-size: Theme.body-size;
+            }
+            toggle-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.expanded = !root.expanded;
+                }
+            }
+        }
+    }
+
+    if !root.loaded: VerticalLayout {
+        spacing: 8px;
+        for i in 8: Skeleton {
+            height: 22px;
+        }
+        HorizontalLayout {
+            Skeleton {
+                height: 22px;
+                horizontal-stretch: 6;
+            }
+            Rectangle {
+                horizontal-stretch: 4;
+            }
+        }
+    }
+}

@@ -1,0 +1,10 @@
+// fuckingfast.ts's hidden BrowserWindow: an off-screen, frameless window
+// that hosts the webview (attached by hoster_browser.rs) which passes the
+// hoster's Cloudflare check. It is never shown to the user.
+export component HosterBrowserWindow inherits Window {
+    title: "Hydra";
+    no-frame: true;
+    width: 800px;
+    height: 600px;
+    background: #1c1c1c;
+}

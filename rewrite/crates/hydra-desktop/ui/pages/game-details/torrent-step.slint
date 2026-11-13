@@ -1,0 +1,457 @@
+// download-settings-modal.tsx's torrent step ("Torrent files"): search,
+// sort, the folder tree with checkboxes, select all, the selected count and
+// the download button. Opened for TorBox / Real-Debrid magnets (and
+// torrents). Rows are laid out by torrent_step.rs.
+import { Theme } from "../../theme.slint";
+import { Icon, HydraButton, ScrollBar } from "../../components/widgets.slint";
+import { TextField, SelectField, SelectOption } from "../../components/fields.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T } from "../../globals.slint";
+import { Flight } from "../../shell/flight.slint";
+import { DownloadSettings } from "download-settings.slint";
+
+export struct TorrentRow {
+    folder: bool,
+    // The folder's position in the tree, or the file's index.
+    key: int,
+    depth: int,
+    name: string,
+    size: string,
+    checked: bool,
+    indeterminate: bool,
+    expanded: bool,
+}
+
+export global TorrentStep {
+    in-out property <bool> open;
+    // The page with the settings modal, blurred (a third stacked level).
+    in property <image> backdrop;
+    in property <bool> loading;
+    // The translated error (DownloadError key), empty when none.
+    in property <string> error;
+    in property <[TorrentRow]> rows;
+    in property <bool> all-selected;
+    in property <bool> has-files;
+    in property <string> selected-size;
+    // "Selected files: 3/10"
+    in property <string> summary;
+    in property <string> space-error;
+    in property <bool> can-download;
+    in property <string> sort-value: "name_asc";
+    in property <string> sort-label;
+    in property <[SelectOption]> sort-options;
+    in-out property <string> search;
+    callback search-edited(string);
+    callback toggle(bool, int);
+    callback expand(int);
+    callback toggle-all();
+    callback retry();
+    callback download();
+}
+
+// .checkbox-field__checkbox at 14px (radius 4, 10px check); indeterminate
+// folders show a dark 8x2 bar on the white box.
+component TreeCheckbox inherits Rectangle {
+    in property <bool> checked;
+    in property <bool> indeterminate;
+    callback toggled();
+    property <bool> filled: root.checked || root.indeterminate;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border-width: 1px;
+    background: root.filled ? #ffffff : Theme.dark-background;
+    border-color: root.filled ? #ffffff : touch.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+    animate background, border-color { duration: 200ms; easing: ease; }
+    Icon {
+        width: 10px;
+        height: 10px;
+        source: @image-url("../../icons/check.svg");
+        color: Theme.dark-background;
+        opacity: root.checked && !root.indeterminate ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease; }
+    }
+    if root.indeterminate: Rectangle {
+        width: 8px;
+        height: 2px;
+        border-radius: 1px;
+        background: Theme.dark-background;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.toggled();
+        }
+    }
+}
+
+// __torrent-file-row: 36px, grid [1fr 120px] gap 8, padding 0 12px,
+// border-bottom rgba(255,255,255,.08), hover .04, selected .07.
+component TreeRow inherits Rectangle {
+    in property <TorrentRow> item;
+    height: 36px;
+    background: root.item.checked ? rgba(255, 255, 255, 0.07) : hover.has-hover ? rgba(255, 255, 255, 0.04) : transparent;
+    hover := TouchArea { }
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.08);
+    }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            padding-left: root.item.depth * 16px;
+            spacing: 4px;
+            alignment: start;
+            // the chevron (folders) or the 14px spacer (files)
+            Rectangle {
+                width: 14px;
+                if root.item.folder: Icon {
+                    width: 14px;
+                    height: 14px;
+                    source: @image-url("../../icons/chevron-down.svg");
+                    color: rgba(255, 255, 255, 0.65);
+                    transform-rotation: root.item.expanded ? 0deg : -90deg;
+                    animate transform-rotation { duration: 150ms; easing: ease; }
+                }
+                if root.item.folder: TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        TorrentStep.expand(root.item.key);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                TreeCheckbox {
+                    checked: root.item.checked;
+                    indeterminate: root.item.indeterminate;
+                    toggled => {
+                        TorrentStep.toggle(root.item.folder, root.item.key);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 14px;
+                    height: 14px;
+                    source: root.item.folder ? @image-url("../../icons/file-directory-14.svg") : @image-url("../../icons/file.svg");
+                    color: rgba(255, 255, 255, 0.7);
+                }
+            }
+            Text {
+                horizontal-stretch: 1;
+                text: root.item.name;
+                font-size: Theme.small-size;
+                font-weight: root.item.folder ? 700 : 400;
+                color: Theme.body;
+                overflow: elide;
+                vertical-alignment: center;
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (root.item.folder) {
+                            TorrentStep.expand(root.item.key);
+                        } else {
+                            TorrentStep.toggle(false, root.item.key);
+                        }
+                    }
+                }
+            }
+        }
+        Text {
+            width: 120px;
+            text: root.item.size;
+            font-size: Theme.small-size;
+            color: Theme.subtle;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// __torrent-files-list: dark, faint top/bottom borders, at most 460px
+// (36px rows); only the rows in view are built.
+component FileList inherits Rectangle {
+    property <length> row-height: 36px;
+    property <length> content-height: TorrentStep.rows.length * root.row-height;
+    height: Math.min(460px, Math.max(36px, root.content-height)) + 2px;
+    background: Theme.dark-background;
+    Rectangle {
+        y: 0;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    property <length> max-scroll: Math.max(0, root.content-height - list.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    changed max-scroll => {
+        root.scroll-y = Math.clamp(root.scroll-y, -root.max-scroll, 0);
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+
+    list := Flickable {
+        x: 0;
+        y: 1px;
+        width: root.max-scroll > 0 ? parent.width - 9px : parent.width;
+        height: parent.height - 2px;
+        interactive: false;
+        content-height: Math.max(root.content-height, self.height);
+        content-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+        TouchArea {
+            width: list.width;
+            height: list.content-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+        }
+        for entry[i] in TorrentStep.rows: Rectangle {
+            y: i * root.row-height;
+            width: list.width;
+            height: root.row-height;
+            // Only the rows on screen (and one either side) exist.
+            if (i + 1) * root.row-height >= -list.content-y && i * root.row-height <= -list.content-y + list.height: TreeRow {
+                width: parent.width;
+                item: entry;
+            }
+        }
+    }
+
+    if root.max-scroll > 0: ScrollBar {
+        x: root.width - self.width;
+        y: 1px;
+        height: root.height - 2px;
+        content-height: list.content-height;
+        viewport-height: list.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -list.content-y;
+        track-color: rgba(255, 255, 255, 0.06);
+        thumb-color: rgba(255, 255, 255, 0.24);
+        thumb-hover-color: rgba(255, 255, 255, 0.34);
+        thumb-radius: 999px;
+    }
+}
+
+export component TorrentStepBody inherits VerticalLayout {
+    // __torrent-step: gap 12px, padding 16px, a faint top-down gradient
+    padding: 16px;
+    spacing: 12px;
+
+    // toolbar: the search field, then "Sort by" and the select
+    HorizontalLayout {
+        spacing: 16px;
+        TextField {
+            horizontal-stretch: 1;
+            placeholder: T.tr("game_details.search_torrent_files");
+            text <=> TorrentStep.search;
+            edited(text) => {
+                TorrentStep.search-edited(text);
+            }
+        }
+        // __torrent-filters: margin-left auto, padding-left 16px, no shrink
+        HorizontalLayout {
+            horizontal-stretch: 0;
+            spacing: 8px;
+            padding-left: 16px;
+            Text {
+                text: T.tr("library.sort_by");
+                font-size: Theme.hint-size;
+                color: Theme.subtle;
+                vertical-alignment: center;
+            }
+            // width: fit-content (the label, its padding and the arrow)
+            Rectangle {
+                width: sort-measure.preferred-width + 13px + 28px + 2px;
+                sort-measure := Text {
+                    visible: false;
+                    text: TorrentStep.sort-label;
+                    font-size: Theme.body-size;
+                }
+                SelectField {
+                    width: parent.width;
+                    options: TorrentStep.sort-options;
+                    value: TorrentStep.sort-value;
+                    current-label: TorrentStep.sort-label;
+                    popup-id: "torrent-sort";
+                    dark: true;
+                }
+            }
+        }
+    }
+
+    VerticalLayout {
+        // __torrent-table-head: 34px, tiny uppercase, subtle
+        HorizontalLayout {
+            height: 34px;
+            padding-left: 12px;
+            padding-right: 12px;
+            spacing: 8px;
+            Text {
+                horizontal-stretch: 1;
+                text: T.tr("game_details.torrent_name_column").to-uppercase();
+                font-size: Theme.tiny-size;
+                letter-spacing: 0.33px;
+                color: Theme.subtle;
+                vertical-alignment: center;
+            }
+            Text {
+                width: 120px;
+                text: T.tr("game_details.torrent_size_column").to-uppercase();
+                font-size: Theme.tiny-size;
+                letter-spacing: 0.33px;
+                color: Theme.subtle;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+        }
+        // the select-all row (bold, a stronger bottom border, 8px under it)
+        Rectangle {
+            height: 36px + 8px;
+            opacity: TorrentStep.loading || !TorrentStep.has-files ? Theme.disabled-opacity : 1;
+            Rectangle {
+                y: 0;
+                height: 36px;
+                background: all-touch.has-hover && TorrentStep.has-files ? rgba(255, 255, 255, 0.04) : transparent;
+                Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: rgba(255, 255, 255, 0.1);
+                }
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        horizontal-stretch: 1;
+                        spacing: 8px;
+                        alignment: start;
+                        VerticalLayout {
+                            alignment: center;
+                            TreeCheckbox {
+                                checked: TorrentStep.all-selected;
+                                toggled => {
+                                    TorrentStep.toggle-all();
+                                }
+                            }
+                        }
+                        Text {
+                            text: T.tr("game_details.select_all_files");
+                            font-size: Theme.hint-size;
+                            font-weight: 700;
+                            color: Theme.body;
+                            vertical-alignment: center;
+                        }
+                    }
+                    Text {
+                        width: 120px;
+                        text: TorrentStep.selected-size;
+                        font-size: Theme.small-size;
+                        color: Theme.subtle;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+                all-touch := TouchArea {
+                    enabled: !TorrentStep.loading && TorrentStep.has-files;
+                    clicked => {
+                        TorrentStep.toggle-all();
+                    }
+                }
+            }
+        }
+    }
+
+    // loading / error feedback, or the rows
+    if TorrentStep.loading || TorrentStep.error != "": Rectangle {
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.12);
+        background: Theme.dark-background;
+        HorizontalLayout {
+            padding: 12px + 1px;
+            spacing: 8px;
+            Text {
+                horizontal-stretch: 1;
+                text: TorrentStep.loading ? T.tr("game_details.loading_torrent_files") : TorrentStep.error;
+                font-size: Theme.hint-size;
+                color: Theme.body;
+                wrap: word-wrap;
+                vertical-alignment: center;
+            }
+            if !TorrentStep.loading: HydraButton {
+                kind: "outline";
+                text: T.tr("game_details.retry_fetch_torrent_files");
+                clicked => {
+                    TorrentStep.retry();
+                }
+            }
+        }
+    }
+    if !TorrentStep.loading && TorrentStep.error == "": FileList { }
+
+    // footer: "Selected files: n/m" (+ the space error) and the button
+    HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 4px;
+            Text {
+                text: TorrentStep.summary;
+                font-size: Theme.small-size;
+                color: Theme.body;
+            }
+            if TorrentStep.space-error != "": Text {
+                text: TorrentStep.space-error;
+                font-size: Theme.small-size;
+                color: Theme.error;
+                wrap: word-wrap;
+            }
+        }
+        HydraButton {
+            kind: "primary";
+            min-width: 180px;
+            enabled: TorrentStep.can-download;
+            icon: DownloadSettings.starting ? @image-url("../../icons/sync.svg") : DownloadSettings.has-active-download ? @image-url("../../icons/plus.svg") : @image-url("../../icons/download.svg");
+            icon-rotation: DownloadSettings.starting ? Math.mod(animation-tick() / 1ms, 1000) / 1000 * 360deg : 0deg;
+            text: DownloadSettings.starting ? T.tr("game_details.loading") : DownloadSettings.has-active-download ? T.tr("game_details.add_to_queue") : T.tr("game_details.download_now");
+            clicked => {
+                Flight.from-x = self.absolute-position.x + self.width / 2;
+                Flight.from-y = self.absolute-position.y + self.height / 2;
+                TorrentStep.download();
+            }
+        }
+    }
+}

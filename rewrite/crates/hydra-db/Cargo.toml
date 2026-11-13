@@ -1,0 +1,16 @@
+[package]
+name = "hydra-db"
+description = "Local data for the Rust rewrite: the Electron app's LevelDB layout (classic-level + sublevels, JSON values) and the first-run import"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+# Pure Rust, file-format compatible with the C++ LevelDB classic-level bundles.
+rusty-leveldb = "4"
+
+[dev-dependencies]
+tempfile = "3"

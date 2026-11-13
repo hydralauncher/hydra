@@ -1,0 +1,127 @@
+// components/toast/toast.{tsx,scss}: bottom-right, a draining progress bar,
+// enter (0.2s ease-in-out from below) and a 150ms exit before unmounting.
+import { Theme } from "../theme.slint";
+import { Icon } from "widgets.slint";
+
+export global Toast {
+    in-out property <bool> visible;
+    in property <string> title;
+    in property <string> message;
+    // "success" | "error" | "warning"
+    in property <string> kind: "success";
+    in property <duration> duration: 2500ms;
+    // Bumped by the backend for every toast that starts from hidden.
+    in property <int> generation;
+    in-out property <bool> closing;
+}
+
+export component ToastHost inherits Rectangle {
+    // The friends window's toast: left/right/bottom 16px, no max-width.
+    in property <bool> stretch;
+    property <bool> shown: Toast.visible;
+
+    if root.shown: toast := Rectangle {
+        property <bool> entered;
+        property <duration> started;
+        // 100 -> 0 over `duration` (requestAnimationFrame in the renderer)
+        property <float> progress: Math.max(0, 1 - (animation-tick() - self.started) / Toast.duration);
+        width: root.stretch ? root.width - 32px : Math.min(420px, content.preferred-width + 2px);
+        height: content.preferred-height + 5px + 2px;
+        x: root.width - self.width - 16px;
+        // bottom: 28px + 16px; translateY(100%) while entering and closing
+        y: root.height - (root.stretch ? 16px : 44px) - self.height + (self.entered && !Toast.closing ? 0 : self.height);
+        opacity: self.entered ? 1 : 0;
+        animate y, opacity { duration: 200ms; easing: ease-in-out; }
+        background: Theme.dark-background;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border;
+        clip: true;
+        init => {
+            self.started = animation-tick();
+            self.entered = true;
+            Toast.closing = false;
+        }
+
+        content := VerticalLayout {
+            x: 1px;
+            y: 1px;
+            width: parent.width - 2px;
+            padding: 16px;
+            spacing: 8px;
+            HorizontalLayout {
+                spacing: 8px;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 16px;
+                    height: 16px;
+                    source: Toast.kind == "error" ? @image-url("../icons/x-circle-fill.svg")
+                        : Toast.kind == "warning" ? @image-url("../icons/alert-16.svg")
+                        : @image-url("../icons/check-circle-fill.svg");
+                    color: Toast.kind == "error" ? Theme.danger : Toast.kind == "warning" ? Theme.warning : Theme.success;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: Toast.title;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+                close := Rectangle {
+                    width: 16px;
+                    height: 18px;
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: @image-url("../icons/x-16.svg");
+                        color: close-touch.has-hover ? Theme.muted : Theme.body;
+                        animate color { duration: 200ms; easing: ease-in-out; }
+                    }
+                    close-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            Toast.closing = true;
+                        }
+                    }
+                }
+            }
+            if Toast.message != "": Text {
+                text: Toast.message;
+                font-size: Theme.body-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+        }
+
+        // <progress>: dark track, muted value
+        Rectangle {
+            x: 1px;
+            y: parent.height - 1px - 5px;
+            width: parent.width - 2px;
+            height: 5px;
+            background: Theme.dark-background;
+            Rectangle {
+                x: 0;
+                width: parent.width * toast.progress;
+                background: Theme.muted;
+            }
+        }
+
+        Timer {
+            interval: Toast.duration;
+            running: !Toast.closing;
+            triggered => {
+                Toast.closing = true;
+            }
+        }
+        Timer {
+            interval: 150ms;
+            running: Toast.closing;
+            triggered => {
+                Toast.visible = false;
+                Toast.closing = false;
+            }
+        }
+    }
+}

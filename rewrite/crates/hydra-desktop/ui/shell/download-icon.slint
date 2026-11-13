@@ -1,0 +1,205 @@
+// src/renderer/src/components/sidebar/sidebar-download-icon.{tsx,scss}
+//
+// The Downloads menu icon morphs between the plain arrow and a progress ring.
+// Strokes stay 1.5px while parts scale (vector-effect: non-scaling-stroke), so
+// the scaled shapes are computed into the path commands instead of using a
+// transform.
+import { Theme } from "../theme.slint";
+
+// $morph-duration / $morph-easing / $fade-duration
+component Stroke inherits Path {
+    stroke-width: 1.5px;
+    fill: transparent;
+    viewbox-x: 0;
+    viewbox-y: 0;
+    viewbox-width: 16;
+    viewbox-height: 16;
+    width: 16px;
+    height: 16px;
+    clip: false;
+}
+
+export component DownloadIcon inherits Rectangle {
+    // "idle" | "downloading" | "paused" | "extracting" | "preparing"
+    in property <string> phase: "idle";
+    in property <float> progress;
+    in property <bool> has-progress;
+    in property <int> games;
+    in property <color> icon-color: Theme.muted;
+    // Bumped when a download lands: squash, rebound, settle (CATCH_KEYFRAMES).
+    in property <int> catch-count;
+
+    width: 16px;
+    height: 16px;
+
+    property <bool> active: root.phase != "idle";
+    property <int> steps: Math.min(root.games, 5);
+    property <bool> stepped: root.active && root.steps >= 2;
+    property <float> ring-length: 2 * 3.14159265 * 7;
+    property <float> step-length: root.ring-length / Math.max(root.steps, 1) - 2.5;
+
+    // ---- morph state, animated like the CSS transitions
+    property <float> tray-opacity: root.active ? 0 : 1;
+    property <float> tray-scale: root.active ? 0.8 : 1;
+    property <float> tray-dy: root.active ? 1 : 0;
+    property <float> arrow-scale: root.phase == "paused" ? 0.35 : root.active ? 0.7 : 1;
+    property <float> arrow-dy: root.active ? 1.875 : 0;
+    property <float> arrow-opacity: root.phase == "paused" ? 0 : root.phase == "preparing" ? 0.6 : 1;
+    property <float> pause-opacity: root.phase == "paused" ? 0.6 : 0;
+    property <float> pause-scale: root.phase == "paused" ? 1 : 0.5;
+    property <float> ring-opacity: root.phase == "paused" ? 0.5 : root.active ? 1 : 0;
+    property <float> ring-scale: root.active ? 1 : 0.6;
+    property <float> track-opacity: root.stepped || (root.phase == "extracting" && !root.stepped) ? 0 : 1;
+    property <float> dashed-opacity: root.phase == "extracting" && !root.stepped ? 1 : 0;
+    property <float> progress-shown: Math.clamp(root.progress, 0, 1);
+    property <float> progress-opacity: root.has-progress && root.progress-shown > 0 ? 1 : 0;
+    property <float> spinner-opacity: root.phase == "preparing" ? 1 : 0;
+
+    animate tray-scale, tray-dy, arrow-scale, arrow-dy, pause-scale, ring-scale {
+        duration: 350ms;
+        easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    animate tray-opacity, arrow-opacity, pause-opacity, ring-opacity, track-opacity, dashed-opacity, progress-opacity, spinner-opacity {
+        duration: 250ms;
+        easing: ease;
+    }
+    animate progress-shown { duration: 600ms; easing: ease-out; }
+
+    // Scales a point about the shape's own centre (transform-box: fill-box).
+    pure function sx(x: float, cx: float, s: float) -> float {
+        return cx + (x - cx) * s;
+    }
+    pure function sy(y: float, cy: float, s: float, dy: float) -> float {
+        return cy + (y - cy) * s + dy;
+    }
+    // Point on the ring: -90deg rotation (starts at the top) and the ring scale.
+    pure function rx(angle: float) -> float {
+        return 8 + 7 * root.ring-scale * Math.cos((angle - 90) * 1deg);
+    }
+    pure function ry(angle: float) -> float {
+        return 8 + 7 * root.ring-scale * Math.sin((angle - 90) * 1deg);
+    }
+    // An arc from `from` to `to` degrees.
+    pure function arc(from: float, to: float) -> string {
+        if (to - from <= 0.01) {
+            return "M 8 8";
+        }
+        let r = 7 * root.ring-scale;
+        let large = (to - from) > 180 ? 1 : 0;
+        if (to - from >= 359.99) {
+            // Two halves: SVG arcs can't draw a full circle in one command.
+            return "M " + root.rx(from) + " " + root.ry(from) + " A " + r + " " + r + " 0 1 1 " + root.rx(from + 180) + " " + root.ry(from + 180) + " A " + r + " " + r + " 0 1 1 " + root.rx(from + 359.99) + " " + root.ry(from + 359.99);
+        }
+        return "M " + root.rx(from) + " " + root.ry(from) + " A " + r + " " + r + " 0 " + large + " 1 " + root.rx(to) + " " + root.ry(to);
+    }
+
+    // Catch: squash and rebound, 560ms (keyframes at 14%, 40%, 68%).
+    property <duration> catch-start: -1s;
+    property <bool> catching;
+    changed catch-count => {
+        root.catch-start = animation-tick();
+        root.catching = true;
+    }
+    catch-timer := Timer {
+        interval: 600ms;
+        running: root.catching;
+        triggered => {
+            root.catching = false;
+        }
+    }
+    property <float> catch-t: !root.catching ? 1 : Math.min(1, (animation-tick() - root.catch-start) / 560ms);
+    property <float> catch-sx: root.catch-t < 0.14 ? 1 + 0.12 * root.catch-t / 0.14
+        : root.catch-t < 0.4 ? 1.12 + 0.04 * (root.catch-t - 0.14) / 0.26
+        : root.catch-t < 0.68 ? 1.16 - 0.2 * (root.catch-t - 0.4) / 0.28
+        : 0.96 + 0.04 * (root.catch-t - 0.68) / 0.32;
+    property <float> catch-sy: root.catch-t < 0.14 ? 1 - 0.18 * root.catch-t / 0.14
+        : root.catch-t < 0.4 ? 0.82 + 0.42 * (root.catch-t - 0.14) / 0.26
+        : root.catch-t < 0.68 ? 1.24 - 0.28 * (root.catch-t - 0.4) / 0.28
+        : 0.96 + 0.04 * (root.catch-t - 0.68) / 0.32;
+
+    Rectangle {
+        transform-scale-x: root.catch-sx;
+        transform-scale-y: root.catch-sy;
+
+        // Tray: M1.75 9.75v2.5c0 .552.448 1 1 1h10.5c.552 0 1-.448 1-1v-2.5 (centre 8, 11.5)
+        Stroke {
+            stroke: root.icon-color;
+            opacity: root.tray-opacity;
+            stroke-line-cap: round;
+            stroke-line-join: round;
+            commands: "M " + root.sx(1.75, 8, root.tray-scale) + " " + root.sy(9.75, 11.5, root.tray-scale, root.tray-dy)
+                + " L " + root.sx(1.75, 8, root.tray-scale) + " " + root.sy(12.25, 11.5, root.tray-scale, root.tray-dy)
+                + " C " + root.sx(1.75, 8, root.tray-scale) + " " + root.sy(12.802, 11.5, root.tray-scale, root.tray-dy) + " " + root.sx(2.198, 8, root.tray-scale) + " " + root.sy(13.25, 11.5, root.tray-scale, root.tray-dy) + " " + root.sx(2.75, 8, root.tray-scale) + " " + root.sy(13.25, 11.5, root.tray-scale, root.tray-dy)
+                + " L " + root.sx(13.25, 8, root.tray-scale) + " " + root.sy(13.25, 11.5, root.tray-scale, root.tray-dy)
+                + " C " + root.sx(13.802, 8, root.tray-scale) + " " + root.sy(13.25, 11.5, root.tray-scale, root.tray-dy) + " " + root.sx(14.25, 8, root.tray-scale) + " " + root.sy(12.802, 11.5, root.tray-scale, root.tray-dy) + " " + root.sx(14.25, 8, root.tray-scale) + " " + root.sy(12.25, 11.5, root.tray-scale, root.tray-dy)
+                + " L " + root.sx(14.25, 8, root.tray-scale) + " " + root.sy(9.75, 11.5, root.tray-scale, root.tray-dy);
+        }
+
+        // Arrow: M8 2v7.5 M4.75 6.25 8 9.5l3.25-3.25 (bbox centre 8, 5.75)
+        Stroke {
+            stroke: root.icon-color;
+            opacity: root.arrow-opacity;
+            stroke-line-cap: round;
+            stroke-line-join: round;
+            commands: "M " + root.sx(8, 8, root.arrow-scale) + " " + root.sy(2, 5.75, root.arrow-scale, root.arrow-dy)
+                + " L " + root.sx(8, 8, root.arrow-scale) + " " + root.sy(9.5, 5.75, root.arrow-scale, root.arrow-dy)
+                + " M " + root.sx(4.75, 8, root.arrow-scale) + " " + root.sy(6.25, 5.75, root.arrow-scale, root.arrow-dy)
+                + " L " + root.sx(8, 8, root.arrow-scale) + " " + root.sy(9.5, 5.75, root.arrow-scale, root.arrow-dy)
+                + " L " + root.sx(11.25, 8, root.arrow-scale) + " " + root.sy(6.25, 5.75, root.arrow-scale, root.arrow-dy);
+        }
+
+        // Pause bars: M6.5 5.5v5 M9.5 5.5v5 (centre 8, 8)
+        Stroke {
+            stroke: root.icon-color;
+            opacity: root.pause-opacity;
+            stroke-line-cap: round;
+            commands: "M " + root.sx(6.5, 8, root.pause-scale) + " " + root.sy(5.5, 8, root.pause-scale, 0)
+                + " L " + root.sx(6.5, 8, root.pause-scale) + " " + root.sy(10.5, 8, root.pause-scale, 0)
+                + " M " + root.sx(9.5, 8, root.pause-scale) + " " + root.sy(5.5, 8, root.pause-scale, 0)
+                + " L " + root.sx(9.5, 8, root.pause-scale) + " " + root.sy(10.5, 8, root.pause-scale, 0);
+        }
+
+        // Ring
+        Rectangle {
+            opacity: root.ring-opacity;
+            // Track
+            Stroke {
+                stroke: rgba(255, 255, 255, 0.16);
+                opacity: root.track-opacity;
+                commands: root.arc(0, 360);
+            }
+            // Dashed track while extracting (stroke-dasharray: 1.54 2.13 ~ 12 dashes)
+            for i in 12: Stroke {
+                stroke: rgba(255, 255, 255, 0.16);
+                opacity: root.dashed-opacity;
+                commands: root.arc(i * 30, i * 30 + 30 * 1.54 / 3.67);
+            }
+            // One step per queued game
+            for i in 5: Stroke {
+                property <bool> shown: root.stepped && i < root.steps;
+                property <float> step-degrees: (shown ? root.step-length : 0) / root.ring-length * 360;
+                property <float> start-degrees: i * 360 / Math.max(root.steps, 1);
+                animate step-degrees, start-degrees { duration: 400ms; easing: ease; }
+                stroke: rgba(255, 255, 255, 0.26);
+                opacity: shown ? 1 : 0;
+                animate opacity { duration: 250ms; easing: ease; }
+                commands: root.arc(self.start-degrees, self.start-degrees + self.step-degrees);
+            }
+            // Progress of the current game
+            Stroke {
+                stroke: root.icon-color;
+                stroke-line-cap: root.stepped ? butt : round;
+                opacity: root.progress-opacity;
+                commands: root.arc(0, (root.stepped ? root.step-length / root.ring-length * 360 : 360) * root.progress-shown);
+            }
+            // Spinner while preparing (0.9s linear infinite)
+            Stroke {
+                stroke: root.icon-color;
+                stroke-line-cap: round;
+                opacity: root.spinner-opacity;
+                property <float> turn: root.phase == "preparing" ? Math.mod(animation-tick() / 900ms, 1) * 360 : 0;
+                commands: root.arc(self.turn, self.turn + 90);
+            }
+        }
+    }
+}
