@@ -82,6 +82,7 @@ interface ReleasesTabProps {
 
 const ACTIVE_RELEASE_OFFSET = 160;
 const JUMP_TIMEOUT_MS = 1500;
+const SCROLL_END_TOLERANCE_PX = 2;
 
 const findScrollParent = (element: HTMLElement) => {
   for (let node = element.parentElement; node; node = node.parentElement) {
@@ -133,7 +134,8 @@ export function RecompilationReleasesTab({
     const update = () => {
       if (scrollingTo.current) return;
       const isAtEnd =
-        scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+        scroller.scrollTop + scroller.clientHeight >=
+        scroller.scrollHeight - SCROLL_END_TOLERANCE_PX;
       if (isAtEnd) {
         setActiveTag(releases.at(-1)?.tag ?? null);
         return;

@@ -1233,6 +1233,9 @@ export const prepareRecompilationRom = async (
     );
 
     if (meta.path?.installer && (!isPrepared || meta.imported)) {
+      if (isProtonPort(ref.slug)) {
+        throw new Error(`${ref.slug}'s ROM setup can't run through Proton`);
+      }
       await runRomInstaller(
         meta.path.installer,
         installDirectory,
