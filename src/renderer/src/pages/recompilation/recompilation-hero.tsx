@@ -29,6 +29,7 @@ import {
 } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import { RecompilationPlaytime } from "./recompilation-playtime";
+import { formatExtracting, toExtractionBar } from "./extraction-progress";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import "../game-details/hero.scss";
 
@@ -65,10 +66,20 @@ export function RecompilationHero({
     const job = state.ps4PkgJob.job;
     return job !== null && job.objectId === objectId;
   });
-  const { showErrorToast } = useToast();
+  const { showErrorToast, showSuccessToast } = useToast();
   const [isUninstallOpen, setIsUninstallOpen] = useState(false);
+  const [isUninstallStarting, setIsUninstalling] = useState(false);
 
   const { state, progress } = install;
+  const isUninstalling =
+    isUninstallStarting || progress?.phase === "uninstalling";
+  const uninstallPercent =
+    progress?.phase === "uninstalling" && progress.total
+      ? Math.min(
+          100,
+          Math.round(((progress.loaded ?? 0) / progress.total) * 100)
+        )
+      : null;
   const isDownloading = progress?.phase === "downloading";
   const isExtracting =
     progress?.phase === "extracting" ||
@@ -78,6 +89,8 @@ export function RecompilationHero({
   const handlesRom = rom.state?.handlesRom === true;
   const needsRomChoice =
     handlesRom && !rom.state?.romPath && !rom.state?.isReady;
+  const isRomDownloading = rom.downloadPhase !== null;
+  const romPercent = Math.round((rom.downloadProgress ?? 0) * 100);
   const canApplyPs4Update =
     rom.state?.isFolder === true && Boolean(rom.state.romPath);
   const ps4Update = usePs4PkgPicker("launchbox", objectId, "update", () => {
@@ -105,6 +118,24 @@ export function RecompilationHero({
     if (result.preparing) onOpenInstall();
   };
 
+  const runLinkFolder = async () => {
+    const { filePaths } = await window.electron.showOpenDialog({
+      title: t("link_folder_title"),
+      defaultPath: install.state?.installParentPath,
+      properties: ["openDirectory"],
+    });
+    const [directory] = filePaths ?? [];
+    if (!directory) return;
+
+    const result = await install.linkFolder(directory);
+    if (!result.ok) {
+      showErrorToast(t(getInstallErrorKey(result.reason)));
+      return;
+    }
+    showSuccessToast(t("link_folder_done"));
+    if (rom.state?.handlesRom) onOpenInstall();
+  };
+
   const runPlay = async () => {
     const played = await install.play();
     if (played === "rom_update_required") onOpenUpdate();
@@ -121,8 +152,12 @@ export function RecompilationHero({
 
   const runUninstall = async () => {
     setIsUninstallOpen(false);
-    const ok = await install.uninstall();
-    if (!ok) showErrorToast(t("uninstall_failed"));
+    setIsUninstalling(true);
+    const ok = await install
+      .uninstall()
+      .finally(() => setIsUninstalling(false));
+    if (ok) showSuccessToast(t("uninstall_done", { name: details.name }));
+    else showErrorToast(t("uninstall_failed"));
   };
 
   const percent =
@@ -131,13 +166,34 @@ export function RecompilationHero({
       : null;
 
   const renderPrimary = () => {
+    if (isUninstalling) {
+      return (
+        <div className="recompilation-page__progress">
+          <div className="setup-modal__progress-meta">
+            <span className="setup-modal__progress-status">
+              {uninstallPercent === null
+                ? t("uninstalling")
+                : t("uninstalling_percent", { percent: uninstallPercent })}
+            </span>
+          </div>
+          <InstallProgressBar
+            progress={
+              uninstallPercent === null
+                ? { phase: "extracting" }
+                : { phase: "downloading", loaded: uninstallPercent, total: 100 }
+            }
+          />
+        </div>
+      );
+    }
+
     if (isDownloading || isExtracting) {
       return (
         <div className="recompilation-page__progress">
           <div className="setup-modal__progress-meta">
             <span className="setup-modal__progress-status">
               {isExtracting
-                ? t("extracting")
+                ? formatExtracting(t("extracting"), progress)
                 : t("downloading_percent", { percent: percent ?? 0 })}
             </span>
             {isDownloading &&
@@ -152,7 +208,35 @@ export function RecompilationHero({
               )}
           </div>
           <InstallProgressBar
-            progress={isDownloading ? progress : { phase: "extracting" }}
+            progress={isDownloading ? progress : toExtractionBar(progress)}
+          />
+        </div>
+      );
+    }
+
+    if (isRomDownloading && !install.isRunning) {
+      return (
+        <div
+          className="recompilation-page__progress recompilation-page__progress--clickable"
+          role="button"
+          tabIndex={0}
+          onClick={onOpenInstall}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") onOpenInstall();
+          }}
+        >
+          <div className="setup-modal__progress-meta">
+            <span className="setup-modal__progress-status">
+              {t(
+                rom.downloadPhase === "extracting"
+                  ? "rom_extracting_button"
+                  : "rom_downloading_button",
+                { percent: romPercent }
+              )}
+            </span>
+          </div>
+          <InstallProgressBar
+            progress={{ phase: "downloading", loaded: romPercent, total: 100 }}
           />
         </div>
       );
@@ -160,10 +244,21 @@ export function RecompilationHero({
 
     if (!isInstalled) {
       return (
-        <Button onClick={onOpenInstall} disabled={!installAsset}>
-          <DownloadIcon />
-          {t("install")}
-        </Button>
+        <>
+          <Button onClick={onOpenInstall} disabled={!installAsset}>
+            <DownloadIcon />
+            {t("install")}
+          </Button>
+          <Button
+            theme="outline"
+            onClick={() => void runLinkFolder()}
+            disabled={install.isBusy}
+            title={t("link_folder_hint")}
+          >
+            <FileDirectoryIcon />
+            {t("link_folder")}
+          </Button>
+        </>
       );
     }
 
@@ -289,7 +384,7 @@ export function RecompilationHero({
 
         <div className="recompilation-page__hero-actions">
           <div className="recompilation-page__hero-buttons">
-            {hasCloudSave && <CloudSaveWidget />}
+            {hasCloudSave && !isUninstalling && <CloudSaveWidget />}
             {renderPrimary()}
           </div>
           {showsNoFileNote && (

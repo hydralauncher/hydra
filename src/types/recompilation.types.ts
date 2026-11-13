@@ -112,6 +112,8 @@ export interface RecompilationRef {
 export type RecompilationInstallPhase =
   | "downloading"
   | "extracting"
+  | "uninstalling"
+  | "uninstalled"
   | "done"
   | "error";
 
@@ -132,6 +134,7 @@ export interface RecompilationInstallState {
   installParentPath: string;
   executablePath: string | null;
   hasCloudSaves: boolean;
+  progress?: RecompilationInstallProgress | null;
 }
 
 export interface RecompilationRomMeta {

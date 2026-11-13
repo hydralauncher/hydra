@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LinkExternalIcon } from "@primer/octicons-react";
 import type {
@@ -80,8 +80,21 @@ interface ReleasesTabProps {
   releases: RecompilationRelease[];
 }
 
-const latestOf = (releases: RecompilationRelease[]) =>
-  releases.find((release) => release.isLatest) ?? releases[0];
+const ACTIVE_RELEASE_OFFSET = 160;
+const JUMP_TIMEOUT_MS = 1500;
+
+const findScrollParent = (element: HTMLElement) => {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const { overflowY } = getComputedStyle(node);
+    if (
+      (overflowY === "auto" || overflowY === "scroll") &&
+      node.scrollHeight > node.clientHeight
+    ) {
+      return node;
+    }
+  }
+  return null;
+};
 
 export function RecompilationReleasesTab({
   details,
@@ -89,8 +102,10 @@ export function RecompilationReleasesTab({
 }: Readonly<ReleasesTabProps>) {
   const { t } = useTranslation("recompilation");
   const { formatDate } = useDate();
-  const latest = latestOf(releases);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const articles = useRef(new Map<string, HTMLElement>());
+  const scrollingTo = useRef<string | null>(null);
   const base = useMemo(
     () =>
       getReadmeBaseUrls(
@@ -109,7 +124,55 @@ export function RecompilationReleasesTab({
     [releases, formatDate]
   );
 
-  if (!latest) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || releases.length < 2) return;
+    const scroller = findScrollParent(container);
+    if (!scroller) return;
+
+    const update = () => {
+      if (scrollingTo.current) return;
+      const isAtEnd =
+        scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+      if (isAtEnd) {
+        setActiveTag(releases.at(-1)?.tag ?? null);
+        return;
+      }
+      const line = scroller.getBoundingClientRect().top + ACTIVE_RELEASE_OFFSET;
+      let current = releases[0].tag;
+      for (const release of releases) {
+        const article = articles.current.get(release.tag);
+        if (article && article.getBoundingClientRect().top <= line) {
+          current = release.tag;
+        }
+      }
+      setActiveTag(current);
+    };
+    const finishJump = () => {
+      scrollingTo.current = null;
+    };
+
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    scroller.addEventListener("scrollend", finishJump);
+    return () => {
+      scroller.removeEventListener("scroll", update);
+      scroller.removeEventListener("scrollend", finishJump);
+    };
+  }, [releases]);
+
+  const jumpTo = (tag: string) => {
+    const article = articles.current.get(tag);
+    if (!article) return;
+    scrollingTo.current = tag;
+    setActiveTag(tag);
+    article.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      if (scrollingTo.current === tag) scrollingTo.current = null;
+    }, JUMP_TIMEOUT_MS);
+  };
+
+  if (releases.length === 0) {
     return (
       <p className="recompilation-page__column recompilation-page__empty">
         {t("no_releases")}
@@ -117,43 +180,50 @@ export function RecompilationReleasesTab({
     );
   }
 
-  const release = releases.find((item) => item.tag === selectedTag) ?? latest;
-
   return (
-    <div className="recompilation-page__releases">
+    <div ref={containerRef} className="recompilation-page__releases">
       {releases.length > 1 && (
         <div className="recompilation-page__column recompilation-page__releases-rail">
           <div className="release-rail-sticky">
             <ReleaseRail
               items={items}
-              selectedId={release.tag}
+              selectedId={activeTag ?? releases[0].tag}
               label={t("tab_releases")}
-              onSelect={setSelectedTag}
+              onSelect={jumpTo}
             />
           </div>
         </div>
       )}
 
-      <article key={release.tag} className="recompilation-page__release">
-        <ColumnHeader
-          title={release.name}
-          subtitle={t("released_on", {
-            date: formatDate(release.publishedAt),
-          })}
-          url={release.url}
-        />
-        {release.notesMarkdown ? (
-          <RecompilationMarkdown
-            source={release.notesMarkdown}
-            base={base}
-            kind="notes"
+      {releases.map((release) => (
+        <article
+          key={release.tag}
+          ref={(element) => {
+            if (element) articles.current.set(release.tag, element);
+            else articles.current.delete(release.tag);
+          }}
+          className="recompilation-page__release"
+        >
+          <ColumnHeader
+            title={release.name}
+            subtitle={t("released_on", {
+              date: formatDate(release.publishedAt),
+            })}
+            url={release.url}
           />
-        ) : (
-          <p className="recompilation-page__column recompilation-page__empty">
-            {t("no_release_notes")}
-          </p>
-        )}
-      </article>
+          {release.notesMarkdown ? (
+            <RecompilationMarkdown
+              source={release.notesMarkdown}
+              base={base}
+              kind="notes"
+            />
+          ) : (
+            <p className="recompilation-page__column recompilation-page__empty">
+              {t("no_release_notes")}
+            </p>
+          )}
+        </article>
+      ))}
     </div>
   );
 }

@@ -65,11 +65,24 @@ export const readShadps4DiscIds = async (
   return { titleId, saveTitleId: contentSerial ?? titleId };
 };
 
+const isPkgPath = (filePath: string) =>
+  path.extname(filePath).toLowerCase() === ".pkg";
+
+const toGameFolderPath = (filePath: string) =>
+  path.basename(filePath).toLowerCase() === "eboot.bin"
+    ? path.dirname(filePath)
+    : filePath;
+
 export const shadps4GameFolders = (game: Pick<Game, "discs">) =>
-  (game.discs ?? []).filter(
-    (disc: ClassicsDisc) =>
-      disc.path.trim() && !disc.isExecutable && !disc.recompilationSlug
-  );
+  (game.discs ?? [])
+    .filter(
+      (disc: ClassicsDisc) =>
+        disc.path.trim() &&
+        !disc.isExecutable &&
+        !disc.recompilationSlug &&
+        !isPkgPath(disc.path)
+    )
+    .map((disc) => ({ ...disc, path: toGameFolderPath(disc.path) }));
 
 /**
  * The save folders of the game: the installed disc's, plus those of the game's

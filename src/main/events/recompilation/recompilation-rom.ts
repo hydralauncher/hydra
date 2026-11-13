@@ -17,7 +17,9 @@ import type {
 import { isCompletedLikeDownload } from "../../../types";
 import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
 import { t } from "i18next";
-import { logger, SevenZip, WindowManager } from "@main/services";
+import { emulators, logger, SevenZip, WindowManager } from "@main/services";
+import { readShadps4InstallDirs } from "@main/services/emulators/shadps4-files";
+import { getDownloadsPath } from "@main/events/helpers/get-downloads-path";
 import { HydraApi } from "@main/services/hydra-api";
 import { parseParamSfoValue } from "@main/services/emulators/param-sfo";
 import {
@@ -40,7 +42,14 @@ import {
   isPs4PkgJobRunning,
   runPs4PkgJob,
 } from "../emulators/ps4-pkg-job";
-import { toZ64 } from "./n64-rom";
+import { N64_HEADER, V64_HEADER, toZ64 } from "./n64-rom";
+import {
+  getPortPlatform,
+  getPortWinePrefix,
+  isProtonPort,
+  toWinePath,
+  type PortPlatform,
+} from "./recompilation-proton";
 import {
   getOnlineLaunchEnv,
   pickPortFile,
@@ -69,19 +78,28 @@ const getRecompilationRomMeta = (slug: string): RecompilationRomMeta | null =>
 export const shouldHideRecompilationConsole = (slug: string) =>
   Object.hasOwn(ROM_META, slug) && ROM_META[slug]?.hideConsole === true;
 
-export const getRecompilationExecutableOverride = (slug: string) =>
+export const getRecompilationExecutableOverride = (
+  slug: string,
+  platform: PortPlatform = getPortPlatform(slug)
+) =>
   (Object.hasOwn(ROM_META, slug)
-    ? ROM_META[slug]?.executable?.[process.platform as MetaPlatform]
+    ? ROM_META[slug]?.executable?.[platform as MetaPlatform]
     : undefined) ?? null;
 
-type RomKind = Pick<RecompilationRomMeta, "extensions" | "folder" | "titleIds">;
+type RomKind = Pick<
+  RecompilationRomMeta,
+  "extensions" | "folder" | "titleIds" | "sha1"
+>;
 
 const EMPTY_ROM_KIND: RomKind = { extensions: [] };
 
 const ROM_CHOICE_FILE = ".hydra-recompilation-rom.json";
 const EXTRACTED_ROM_FOLDER = ".hydra-rom";
 const ARCHIVE_EXTENSIONS = new Set([".zip", ".7z", ".rar"]);
-const ROM_SCAN_DEPTH = 2;
+const ROM_SCAN_DEPTH = 6;
+const ROM_SEARCH_DEPTH = 4;
+const ROM_SEARCH_CACHE_MS = 5 * 60_000;
+const MAX_SEARCHED_ROM_FILES = 40;
 
 interface RomChoice {
   source: RecompilationRomSource;
@@ -181,10 +199,11 @@ const romExists = (romPath: string | null | undefined, kind: RomKind) =>
 const findGameFolder = async (
   directory: string,
   kind: RomKind,
-  depth = 0
+  depth = 0,
+  maxDepth = ROM_SCAN_DEPTH
 ): Promise<string | null> => {
   if (await isGameFolder(directory, kind)) return directory;
-  if (depth >= ROM_SCAN_DEPTH) return null;
+  if (depth >= maxDepth) return null;
 
   const entries = await fs.promises
     .readdir(directory, { withFileTypes: true })
@@ -194,7 +213,8 @@ const findGameFolder = async (
     const found = await findGameFolder(
       path.join(directory, entry.name),
       kind,
-      depth + 1
+      depth + 1,
+      maxDepth
     );
     if (found) return found;
   }
@@ -269,7 +289,171 @@ const getDownloadedRomPath = async (download: Download, kind: RomKind) => {
   return (await findRomInFolder(downloaded, extensions))?.path ?? null;
 };
 
-const getLibraryRomPath = async (objectId: string, kind: RomKind) => {
+const findDiscRom = async (disc: string, kind: RomKind) => {
+  if (isFolderRom(kind)) {
+    const folder = toGameFolder(disc);
+    if (await isGameFolder(folder, kind)) return folder;
+    const isDirectory = await fs.promises
+      .stat(folder)
+      .then((stats) => stats.isDirectory())
+      .catch(() => false);
+    return isDirectory ? findGameFolder(folder, kind) : null;
+  }
+  if (hasExtension(disc, kind.extensions) && (await fileExists(disc))) {
+    return disc;
+  }
+  const isDirectory = await fs.promises
+    .stat(disc)
+    .then((stats) => stats.isDirectory())
+    .catch(() => false);
+  return isDirectory
+    ? ((await findRomInFolder(disc, kind.extensions))?.path ?? null)
+    : null;
+};
+
+const listRomSearchRoots = async (kind: RomKind) => {
+  const configs = Object.values(await emulators.getAllEmulatorConfigs());
+  const roots = configs.flatMap((config) =>
+    config.romFolders.map((folder) => folder.path)
+  );
+  if (isFolderRom(kind)) {
+    const ps4 = configs.find((config) => config.system === "ps4");
+    roots.push(
+      ...(await readShadps4InstallDirs(ps4?.executablePath ?? null).catch(
+        () => []
+      ))
+    );
+  }
+  roots.push(await getDownloadsPath());
+
+  const unique = new Map<string, string>();
+  for (const root of roots) {
+    if (root) unique.set(path.resolve(root).toLowerCase(), root);
+  }
+  return [...unique.values()];
+};
+
+const HASH_CHUNK_BYTES = 1024 * 1024;
+
+/**
+ * Hashes the file as it is and, for byte-swapped N64 dumps, as .z64. It reads
+ * in chunks, so the main process keeps answering the windows meanwhile.
+ */
+const hashRomFile = (filePath: string) =>
+  new Promise<string[]>((resolve, reject) => {
+    // Identifies the ROM dump against the hashes the ports publish; not a security check.
+    const raw = crypto.createHash("sha1"); // NOSONAR
+    let swapped: crypto.Hash | null = null;
+    let swap: "16" | "32" | null | undefined;
+    let pending = Buffer.alloc(0);
+    const stream = fs.createReadStream(filePath, {
+      highWaterMark: HASH_CHUNK_BYTES,
+    });
+    stream.on("data", (value: Buffer | string) => {
+      const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+      raw.update(chunk);
+      if (swap === undefined) {
+        const header = chunk.length >= 4 ? chunk.readUInt32BE(0) : 0;
+        if (header === V64_HEADER) swap = "16";
+        else if (header === N64_HEADER) swap = "32";
+        else swap = null;
+        if (swap) swapped = crypto.createHash("sha1"); // NOSONAR
+      }
+      if (!swap || !swapped) return;
+      const data = Buffer.concat([pending, chunk]);
+      const usable = data.length - (data.length % 4);
+      const converted = Buffer.from(data.subarray(0, usable));
+      swapped.update(swap === "16" ? converted.swap16() : converted.swap32());
+      pending = data.subarray(usable);
+    });
+    stream.once("error", reject);
+    stream.once("end", () => {
+      const hashes = [raw.digest("hex")];
+      if (swapped) hashes.push(swapped.digest("hex"));
+      resolve(hashes);
+    });
+  });
+
+const matchesRomHash = async (filePath: string, sha1: string[]) => {
+  try {
+    const { size } = await fs.promises.stat(filePath);
+    if (size > MAX_HASHED_ROM_BYTES) return false;
+    const hashes = await hashRomFile(filePath);
+    return hashes.some((hash) => sha1.includes(hash));
+  } catch {
+    return false;
+  }
+};
+
+const listRomFiles = async (
+  directory: string,
+  extensions: string[],
+  found: string[],
+  depth = 0
+) => {
+  if (depth > ROM_SEARCH_DEPTH || found.length >= MAX_SEARCHED_ROM_FILES) {
+    return;
+  }
+  const entries = await fs.promises
+    .readdir(directory, { withFileTypes: true })
+    .catch(() => []);
+  for (const entry of entries) {
+    if (found.length >= MAX_SEARCHED_ROM_FILES) return;
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      await listRomFiles(entryPath, extensions, found, depth + 1);
+    } else if (entry.isFile() && hasExtension(entry.name, extensions)) {
+      found.push(entryPath);
+    }
+  }
+};
+
+const searchRomFolders = async (kind: RomKind) => {
+  if (isFolderRom(kind)) {
+    if (!kind.titleIds?.length) return null;
+    for (const root of await listRomSearchRoots(kind)) {
+      const found = await findGameFolder(root, kind, 0, ROM_SEARCH_DEPTH);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (!kind.sha1?.length || !kind.extensions.length) return null;
+  for (const root of await listRomSearchRoots(kind)) {
+    const files: string[] = [];
+    await listRomFiles(root, kind.extensions, files);
+    for (const file of files) {
+      if (await matchesRomHash(file, kind.sha1)) return file;
+    }
+  }
+  return null;
+};
+
+const romSearches = new Map<
+  string,
+  { at: number; result: Promise<string | null> }
+>();
+
+const searchRomFoldersCached = (objectId: string, kind: RomKind) => {
+  const key = `${objectId}:${JSON.stringify(kind)}`;
+  const cached = romSearches.get(key);
+  if (cached && Date.now() - cached.at < ROM_SEARCH_CACHE_MS) {
+    return cached.result;
+  }
+  const result = searchRomFolders(kind).catch((error) => {
+    logger.warn("Failed to look for the port's game in the ROM folders", error);
+    return null;
+  });
+  romSearches.set(key, { at: Date.now(), result });
+  return result;
+};
+
+const getLibraryRomPath = async (
+  objectId: string,
+  kind: RomKind,
+  options: { search: boolean } = { search: true }
+) => {
+  if (!isFolderRom(kind) && !kind.extensions.length) return null;
   const key = levelKeys.game("launchbox", objectId);
 
   const download = await downloadsSublevel.get(key).catch(() => null);
@@ -286,25 +470,35 @@ const getLibraryRomPath = async (objectId: string, kind: RomKind) => {
   }
 
   const game = await gamesSublevel.get(key).catch(() => null);
-  if (!game || game.isDeleted) return null;
-  const candidates = [
-    game.selectedDiscPath,
-    ...(game.discs ?? []).map((disc) => disc.path),
-  ];
-  for (const disc of candidates) {
-    if (!disc) continue;
-    const matches = isFolderRom(kind) || hasExtension(disc, kind.extensions);
-    if (matches && (await romExists(disc, kind))) return disc;
+  if (game && !game.isDeleted) {
+    const portDiscs = new Set(
+      (game.discs ?? [])
+        .filter((disc) => disc.recompilationSlug)
+        .map((disc) => disc.path)
+    );
+    const candidates = [
+      game.selectedDiscPath,
+      ...(game.discs ?? []).map((disc) => disc.path),
+    ].filter((disc) => disc && !portDiscs.has(disc));
+    for (const disc of candidates) {
+      if (!disc) continue;
+      const found = await findDiscRom(disc, kind);
+      if (found) return found;
+    }
   }
-  return null;
+
+  if (!options.search) return null;
+  const found = await searchRomFoldersCached(objectId, kind);
+  return found && (await romExists(found, kind)) ? found : null;
 };
 
 const getCopyTarget = (
   meta: RecompilationRomMeta,
   baseDirectory: string,
-  romName: string
+  romName: string,
+  platform: MetaPlatform
 ) => {
-  const template = meta.copyTo?.[process.platform as MetaPlatform];
+  const template = meta.copyTo?.[platform];
   return template
     ? resolveRecompilationPath(template, baseDirectory, romName)
     : null;
@@ -313,9 +507,10 @@ const getCopyTarget = (
 const isPortReady = async (
   meta: RecompilationRomMeta,
   baseDirectory: string,
-  choice: RomChoice | null
+  choice: RomChoice | null,
+  platform: MetaPlatform
 ) => {
-  const imported = meta.imported?.[process.platform as MetaPlatform] ?? [];
+  const imported = meta.imported?.[platform] ?? [];
   for (const template of imported) {
     if (
       await fileExists(resolveRecompilationPath(template, baseDirectory, ""))
@@ -324,7 +519,7 @@ const isPortReady = async (
     }
   }
   return (
-    getCopyTarget(meta, baseDirectory, "") !== null &&
+    getCopyTarget(meta, baseDirectory, "", platform) !== null &&
     (await fileExists(choice?.preparedTarget))
   );
 };
@@ -354,7 +549,11 @@ export const getRecompilationRomState = async (
   const installDirectory = await getRecompilationInstallDirectory(ref.slug);
   const [choice, libraryRomPath] = await Promise.all([
     readRomChoice(installDirectory),
-    getLibraryRomPath(ref.objectId, kind),
+    readRomChoice(installDirectory).then((saved) =>
+      getLibraryRomPath(ref.objectId, kind, {
+        search: !saved || saved.source === "library",
+      })
+    ),
   ]);
 
   let romPath: string | null = null;
@@ -375,7 +574,8 @@ export const getRecompilationRomState = async (
       ? (await isPortReady(
           meta,
           await getRecompilationBaseDirectory(installDirectory),
-          choice
+          choice,
+          getPortPlatform(ref.slug) as MetaPlatform
         )) ||
         (await isPreparedForInstalledVersion(
           meta,
@@ -727,9 +927,15 @@ const getRomTarget = (
   meta: RecompilationRomMeta,
   installDirectory: string,
   baseDirectory: string,
-  romPath: string
+  romPath: string,
+  platform: MetaPlatform
 ) => {
-  const copyTarget = getCopyTarget(meta, baseDirectory, path.basename(romPath));
+  const copyTarget = getCopyTarget(
+    meta,
+    baseDirectory,
+    path.basename(romPath),
+    platform
+  );
   if (copyTarget) return copyTarget;
   if (meta.format !== "z64" || path.extname(romPath).toLowerCase() === ".z64") {
     return null;
@@ -802,14 +1008,20 @@ const runRomInstaller = async (
 const writeRomConfig = async (
   config: NonNullable<NonNullable<RecompilationRomMeta["path"]>["config"]>,
   baseDirectory: string,
-  romPath: string
+  romPath: string,
+  slug: string
 ) => {
   const template =
     typeof config.file === "string"
       ? config.file
-      : config.file[process.platform as MetaPlatform];
+      : config.file[getPortPlatform(slug) as MetaPlatform];
   if (!template) return;
-  const file = resolveRecompilationPath(template, baseDirectory, "");
+  const file = resolveRecompilationPath(
+    template,
+    baseDirectory,
+    "",
+    isProtonPort(slug) ? getPortWinePrefix(slug) : null
+  );
   if (path.extname(file).toLowerCase() === ".ini") {
     await writeIniValues(file, { [config.key.at(-1)!]: romPath });
     return;
@@ -867,10 +1079,11 @@ const refuseOutdatedGame = async (
 
 const writePortSettings = async (
   meta: RecompilationRomMeta,
-  baseDirectory: string
+  baseDirectory: string,
+  platform: MetaPlatform
 ) => {
   for (const setting of meta.path?.settings ?? []) {
-    const template = pickPortFile(setting.file);
+    const template = pickPortFile(setting.file, platform);
     if (!template) continue;
     const file = resolveRecompilationPath(template, baseDirectory, "");
     if (setting.seedFrom && !(await fileExists(file))) {
@@ -968,7 +1181,14 @@ export const prepareRecompilationRom = async (
     }
 
     const baseDirectory = await getRecompilationBaseDirectory(installDirectory);
-    const target = getRomTarget(meta, installDirectory, baseDirectory, romPath);
+    const platform = getPortPlatform(ref.slug) as MetaPlatform;
+    const target = getRomTarget(
+      meta,
+      installDirectory,
+      baseDirectory,
+      romPath,
+      platform
+    );
     if (target && (!isPrepared || !(await fileExists(target)))) {
       await copyRom(romPath, target, meta.format);
     }
@@ -990,9 +1210,14 @@ export const prepareRecompilationRom = async (
       );
     }
     if (meta.path?.config) {
-      await writeRomConfig(meta.path.config, baseDirectory, romPath);
+      await writeRomConfig(
+        meta.path.config,
+        baseDirectory,
+        isProtonPort(ref.slug) ? toWinePath(romPath) : romPath,
+        ref.slug
+      );
     }
-    await writePortSettings(meta, baseDirectory);
+    await writePortSettings(meta, baseDirectory, platform);
     if (meta.path?.online) {
       onlineEnv = await getOnlineLaunchEnv(
         meta.path.online,
@@ -1032,7 +1257,8 @@ export const prepareRecompilationRom = async (
   const passRom =
     meta.imported !== undefined ||
     !(meta.once && isPrepared && choice.launched);
-  const fill = (value: string) => fillRomPlaceholders(value, romPath);
+  const launchRomPath = isProtonPort(ref.slug) ? toWinePath(romPath) : romPath;
+  const fill = (value: string) => fillRomPlaceholders(value, launchRomPath);
 
   return {
     ok: true,

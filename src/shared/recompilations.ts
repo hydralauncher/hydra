@@ -50,9 +50,10 @@ export const pickRecompilationInstallAsset = (
   const os = getRecompilationOs(platform);
   if (!os) return null;
 
-  return (
-    assets.find((asset) => asset.isInstallTarget && asset.os === os) ?? null
-  );
+  const pick = (target: RecompilationOs) =>
+    assets.find((asset) => asset.isInstallTarget && asset.os === target);
+  // Linux runs a Windows-only port through Proton.
+  return pick(os) ?? (os === "linux" ? pick("windows") : undefined) ?? null;
 };
 
 const parseUrl = (value: string) => {

@@ -294,6 +294,8 @@ export interface EmulatorInstallResult {
 
 export type Ps4PkgFailure =
   | "not_update"
+  | "not_dlc"
+  | "dlc_installed"
   | "unsupported"
   | "no_game_folder"
   | "other_game"
@@ -305,10 +307,10 @@ export type Ps4PkgFailure =
   | "busy"
   | "failed";
 
-/** "update" only takes update PKGs; "any" also takes the game PKG. */
-export type Ps4PkgAccept = "update" | "any";
+/** "update" only takes update PKGs, "dlc" only DLC PKGs; "any" also takes the game PKG. */
+export type Ps4PkgAccept = "update" | "dlc" | "any";
 
-export type Ps4PkgJobMode = "update" | "extract";
+export type Ps4PkgJobMode = "update" | "extract" | "dlc";
 
 export type Ps4PkgCheck =
   | {

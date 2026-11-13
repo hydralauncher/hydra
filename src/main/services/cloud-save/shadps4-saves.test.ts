@@ -153,6 +153,26 @@ describe("shadPS4 saves", () => {
       "unverified"
     );
     assert.deepEqual(
+      await inspectShadps4DiscIdentity(
+        game([
+          { path: path.join(root, "CUSA03173-Game.pkg"), sku: "CUSA-03173" },
+          { path: path.join(disc, "eboot.bin"), sku: "CUSA-03173" },
+        ])
+      ),
+      {
+        status: { status: "ready", path: null, titleId: null },
+        saveTitleIds: ["CUSA00207"],
+      }
+    );
+    assert.equal(
+      (
+        await inspectShadps4DiscIdentity(
+          game([{ path: path.join(root, "Game.pkg"), sku: "CUSA-03173" }])
+        )
+      ).status.status,
+      "missing"
+    );
+    assert.deepEqual(
       await getShadps4SavedataTitleIds(game([{ path: disc }]), async () => []),
       ["CUSA00207"]
     );

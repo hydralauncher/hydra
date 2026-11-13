@@ -10,7 +10,12 @@ export interface ClassicsScanResult {
   unmatched: number;
   unmatchedFiles: {
     name: string;
-    reason: "wrong_platform" | "unmatched" | "unsupported_package";
+    reason:
+      | "wrong_platform"
+      | "unmatched"
+      | "unsupported_package"
+      | "update_package"
+      | "dlc_package";
   }[];
   unsupportedPackages: number;
 }

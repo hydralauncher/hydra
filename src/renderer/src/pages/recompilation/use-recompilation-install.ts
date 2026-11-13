@@ -15,6 +15,7 @@ export interface RecompilationInstall {
   isPreparing: boolean;
   prepareFailed: boolean;
   install: (parentDirectory?: string) => Promise<RecompilationActionResult>;
+  linkFolder: (directory: string) => Promise<RecompilationActionResult>;
   uninstall: () => Promise<boolean>;
   play: () => Promise<
     boolean | "already_running" | "pkg_job_running" | "rom_update_required"
@@ -28,6 +29,8 @@ export const getInstallErrorKey = (reason?: string) => {
   if (reason === "no_executable") return "install_no_executable";
   if (reason === "install_folder_unwritable")
     return "install_folder_unwritable";
+  if (reason === "other_port") return "link_folder_other_port";
+  if (reason === "invalid_folder") return "link_folder_invalid";
   return "install_failed";
 };
 
@@ -84,6 +87,9 @@ export function useRecompilationInstall(
       slug,
     });
     setState(next);
+    if (next?.progress) {
+      setProgress((current) => current ?? next.progress ?? null);
+    }
   }, [objectId, slug]);
 
   useEffect(() => {
@@ -94,7 +100,11 @@ export function useRecompilationInstall(
     return window.electron.onRecompilationInstallProgress((payload) => {
       if (payload.slug !== slug) return;
 
-      if (payload.phase === "done" || payload.phase === "error") {
+      if (
+        payload.phase === "done" ||
+        payload.phase === "error" ||
+        payload.phase === "uninstalled"
+      ) {
         setProgress(payload.phase === "error" ? payload : null);
         void refresh();
         return;
@@ -120,6 +130,18 @@ export function useRecompilationInstall(
       // The reply can arrive before the "running" event, and the install
       // modal reads this when it opens.
       if (result.preparing) setPreparePhase("running");
+      return result;
+    },
+    [objectId, slug, refresh]
+  );
+
+  const linkFolder = useCallback(
+    async (directory: string) => {
+      const result = await window.electron.linkRecompilationFolder(
+        { objectId, slug },
+        directory
+      );
+      if (currentSlug.current === slug) await refresh();
       return result;
     },
     [objectId, slug, refresh]
@@ -179,6 +201,7 @@ export function useRecompilationInstall(
       (preparePhase === null && Boolean(state?.isPreparing)),
     prepareFailed: preparePhase === "error",
     install,
+    linkFolder,
     uninstall,
     play,
     close,

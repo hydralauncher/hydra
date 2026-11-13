@@ -82,7 +82,7 @@ const readShadps4GeneralConfig = async (
 
 export const readShadps4ConfiguredDirectory = async (
   executablePath: string | null,
-  key: "sys_modules_dir" | "home_dir"
+  key: "sys_modules_dir" | "home_dir" | "addon_install_dir"
 ): Promise<string | null> => {
   const configured = (await readShadps4GeneralConfig(executablePath))?.[key];
   if (typeof configured !== "string" || !configured.trim()) return null;
@@ -91,6 +91,10 @@ export const readShadps4ConfiguredDirectory = async (
     ? path.resolve(path.dirname(executablePath), configured)
     : configured;
 };
+
+export const resolveShadps4AddonDir = async (executablePath: string | null) =>
+  (await readShadps4ConfiguredDirectory(executablePath, "addon_install_dir")) ??
+  path.join(resolveShadps4UserDir(executablePath), "addcont");
 
 const readEnabledInstallDir = (entry: unknown): string | null => {
   const { path: directory, enabled } = (entry ?? {}) as {

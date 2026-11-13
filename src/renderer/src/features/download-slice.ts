@@ -7,6 +7,7 @@ import { MAX_DOWNLOAD_SPEED_HISTORY } from "@renderer/constants";
 export interface ExtractionInfo {
   visibleId: string;
   progress: number;
+  stage?: "install" | "update" | "dlc";
 }
 
 export interface DownloadState {
@@ -82,12 +83,14 @@ export const downloadSlice = createSlice({
         shop: GameShop;
         objectId: string;
         progress: number;
+        stage?: "install" | "update" | "dlc";
       }>
     ) => {
-      const { shop, objectId, progress } = action.payload;
+      const { shop, objectId, progress, stage } = action.payload;
       state.extraction = {
         visibleId: `${shop}:${objectId}`,
         progress,
+        stage,
       };
     },
     clearExtraction: (state) => {

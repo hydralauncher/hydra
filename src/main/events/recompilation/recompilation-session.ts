@@ -1,10 +1,14 @@
 import type { ChildProcess } from "node:child_process";
 import path from "node:path";
 
-import type { Game, RecompilationDetails, RecompilationRef } from "@types";
+import type { RecompilationRef } from "@types";
 import { toRecompilationCloudSaveObjectId } from "@shared";
 
-import { gamesSublevel, levelKeys } from "@main/level";
+import {
+  gamesSublevel,
+  levelKeys,
+  recompilationInstallsSublevel,
+} from "@main/level";
 import {
   canCreateCloudSaveUploadGuard,
   canRunAutomaticCloudSaveSync,
@@ -24,13 +28,21 @@ import {
 import { HydraApi } from "@main/services/hydra-api";
 import { NativeAddon } from "@main/services/native-addon";
 import { createGame, trackGamePlaytime } from "@main/services/library-sync";
+import {
+  onScreenshotGameClosed,
+  onScreenshotGameStarted,
+} from "@main/services/screenshots";
 import { getHydraPlaytimeRevision } from "@main/services/library-sync/library-write-queue";
 import { persistGamePlaytime } from "@main/services/process-watcher";
 import { logger } from "@main/services/logger";
 import { killWindowsProcessTree } from "@main/helpers/kill-windows-process-tree";
 import { WindowManager } from "@main/services/window-manager";
 import { isRecompilationCloudSaveEnabled } from "./recompilation-features";
-import { getRecompilationInstallDirectory } from "./recompilation-paths";
+import { getOrAddBaseGame } from "./recompilation-base-game";
+import {
+  getRecompilationInstallDirectory,
+  readInstallMarker,
+} from "./recompilation-paths";
 import {
   startRecompilationTrophyWatcher,
   type RecompilationTrophyWatcher,
@@ -40,10 +52,12 @@ const SHOP = "launchbox";
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
 const CLOSE_GRACE_PERIOD_MS = 10_000;
 const PORT_PROCESS_POLL_INTERVAL_MS = 2_000;
+const EXTERNAL_LAUNCH_POLL_INTERVAL_MS = 5_000;
 
 interface RecompilationSession {
   ref: RecompilationRef;
-  child: ChildProcess;
+  child: ChildProcess | null;
+  launchedPid?: number;
   startedAt: number;
   heartbeat: ReturnType<typeof setInterval> | null;
   portProcessWatch: ReturnType<typeof setInterval> | null;
@@ -103,54 +117,6 @@ export const prepareRecompilationCloudSave = async (
 
 export const clearRecompilationCloudSaveGuard = (ref: RecompilationRef) =>
   clearCloudSaveLaunchGuard(cloudSaveObjectId(ref), SHOP);
-
-const fetchBaseGameDetails = (ref: RecompilationRef) =>
-  HydraApi.get<RecompilationDetails>(
-    `/games/launchbox/${ref.objectId}/recompilations/${ref.slug}`,
-    undefined,
-    { needsAuth: false }
-  )
-    .then((details) => details.game)
-    .catch(() => null);
-
-const getOrAddBaseGame = async (ref: RecompilationRef): Promise<Game> => {
-  const key = baseKeyOf(ref);
-  const existing = await gamesSublevel.get(key);
-  if (existing && !existing.isDeleted) {
-    if (!existing.remoteId && HydraApi.isLoggedIn()) {
-      await createGame(existing).catch(() => {});
-    }
-    return existing;
-  }
-
-  const details = await fetchBaseGameDetails(ref);
-  const game: Game = existing
-    ? {
-        ...existing,
-        isDeleted: false,
-        addedToLibraryAt: new Date(),
-        platform: existing.platform ?? details?.platform ?? null,
-      }
-    : {
-        title: details?.title ?? ref.slug,
-        iconUrl: details?.iconUrl ?? null,
-        libraryHeroImageUrl: details?.libraryHeroImageUrl ?? null,
-        logoImageUrl: details?.logoImageUrl ?? null,
-        objectId: ref.objectId,
-        shop: SHOP,
-        remoteId: null,
-        isDeleted: false,
-        playTimeInMilliseconds: 0,
-        lastTimePlayed: null,
-        addedToLibraryAt: new Date(),
-        platform: details?.platform ?? null,
-        source: "hydra",
-      };
-  await gamesSublevel.put(key, game);
-  WindowManager.sendToAppWindows("on-library-batch-complete");
-  if (HydraApi.isLoggedIn()) await createGame(game).catch(() => {});
-  return game;
-};
 
 const sendPresencePing = async (baseKey: string) => {
   if (!HydraApi.isLoggedIn()) return;
@@ -213,6 +179,7 @@ const endSession = (session: RecompilationSession) => {
   if (session.portProcessWatch) clearInterval(session.portProcessWatch);
   deleteEmulatorGameRunning(portKey);
   deleteRecompilationGameRunning(portKey);
+  onScreenshotGameClosed(baseKeyOf(session.ref));
   return Math.max(0, performance.now() - session.startedAt);
 };
 
@@ -244,6 +211,20 @@ const isInsideDirectory = (filePath: string, directory: string) => {
   );
 };
 
+type PortProcess = Awaited<
+  ReturnType<typeof NativeAddon.listProcesses>
+>[number];
+
+const isPortProcess = (
+  { exe, environ, peExecutablePath }: PortProcess,
+  installDirectory: string
+) =>
+  [exe, environ?.APPIMAGE, peExecutablePath].some(
+    (filePath) =>
+      typeof filePath === "string" &&
+      isInsideDirectory(filePath, installDirectory)
+  );
+
 /** Processes running from the port's install folder, such as its game. */
 const listPortProcessIds = async (slug: string) => {
   const installDirectory = await getRecompilationInstallDirectory(slug).catch(
@@ -252,7 +233,7 @@ const listPortProcessIds = async (slug: string) => {
   if (!installDirectory) return [];
   const processes = await NativeAddon.listProcesses().catch(() => []);
   return processes
-    .filter(({ exe }) => exe && isInsideDirectory(exe, installDirectory))
+    .filter((process) => isPortProcess(process, installDirectory))
     .map(({ pid }) => pid);
 };
 
@@ -281,7 +262,8 @@ const followPortProcesses = async (
 
 export const startRecompilationSession = async (
   ref: RecompilationRef,
-  child: ChildProcess
+  child: ChildProcess | null,
+  launched?: { pid?: number; exited: Promise<void> }
 ) => {
   const portKey = portKeyOf(ref);
   const baseKey = baseKeyOf(ref);
@@ -289,6 +271,7 @@ export const startRecompilationSession = async (
   const session: RecompilationSession = {
     ref,
     child,
+    launchedPid: launched?.pid,
     startedAt: performance.now(),
     heartbeat: null,
     portProcessWatch: null,
@@ -304,7 +287,9 @@ export const startRecompilationSession = async (
   };
   sessions.set(portKey, session);
   setEmulatorGameRunning(portKey);
-  setRecompilationGameRunning(portKey, baseKey, ref.slug);
+  setRecompilationGameRunning(portKey, baseKey, ref.slug, {
+    processId: child?.pid ?? launched?.pid,
+  });
   // Started before the wait for the library, so a port that exits right away
   // still has its trophies read when the session finishes.
   session.trophyWatcher = startRecompilationTrophyWatcher(ref, baseKey);
@@ -316,14 +301,32 @@ export const startRecompilationSession = async (
   const finishAfterPortProcesses = () => {
     void followPortProcesses(session, finish);
   };
-  child.once("exit", finishAfterPortProcesses);
-  child.once("error", finish);
-  if (child.exitCode !== null || child.signalCode !== null) {
+  if (child) {
+    child.once("exit", finishAfterPortProcesses);
+    child.once("error", finish);
+    if (child.exitCode !== null || child.signalCode !== null) {
+      finishAfterPortProcesses();
+    }
+  } else if (launched) {
+    void launched.exited.then(finishAfterPortProcesses);
+  } else {
     finishAfterPortProcesses();
+  }
+
+  const installDirectory = await getRecompilationInstallDirectory(
+    ref.slug
+  ).catch(() => null);
+  if (installDirectory && sessions.get(portKey) === session) {
+    setRecompilationGameRunning(portKey, baseKey, ref.slug, {
+      processId: child?.pid ?? launched?.pid,
+      installDirectory,
+    });
   }
 
   await session.baseGameReady;
   if (sessions.get(portKey) !== session) return;
+
+  void onScreenshotGameStarted(baseKey);
 
   void sendPresencePing(baseKey);
   session.heartbeat = setInterval(() => {
@@ -389,15 +392,17 @@ export const closeRecompilation = (ref: RecompilationRef) => {
   const session = sessions.get(portKeyOf(ref));
   if (!session) return false;
 
-  if (session.child.exitCode !== null || session.child.signalCode !== null) {
+  const { child } = session;
+  if (!child || child.exitCode !== null || child.signalCode !== null) {
+    if (session.launchedPid) signalProcessGroup(session.launchedPid, "SIGTERM");
     void closePortProcesses(ref.slug);
     return true;
   }
 
-  const { pid } = session.child;
-  if (!pid) return session.child.kill();
+  const { pid } = child;
+  if (!pid) return child.kill();
   if (process.platform === "win32") return killPortProcessTree(pid);
-  if (!signalProcessGroup(pid, "SIGTERM")) return session.child.kill();
+  if (!signalProcessGroup(pid, "SIGTERM")) return child.kill();
 
   setTimeout(
     () => signalProcessGroup(pid, "SIGKILL"),
@@ -430,4 +435,60 @@ export const saveRecompilationPlaytimeOnQuit = async () => {
       );
     })
   );
+};
+
+const listInstalledPorts = async () => {
+  const ports: { ref: RecompilationRef; installDirectory: string }[] = [];
+  for await (const [
+    slug,
+    installDirectory,
+  ] of recompilationInstallsSublevel.iterator()) {
+    const marker = await readInstallMarker(installDirectory);
+    if (marker?.slug !== slug) continue;
+    ports.push({
+      ref: { objectId: marker.objectId, slug },
+      installDirectory,
+    });
+  }
+  return ports;
+};
+
+let externalLaunchCheck: Promise<void> | null = null;
+
+const detectExternalLaunches = async () => {
+  const ports = (await listInstalledPorts()).filter(
+    ({ ref }) => !sessions.has(portKeyOf(ref))
+  );
+  if (!ports.length) return;
+
+  const processes = await NativeAddon.listProcesses().catch(() => null);
+  if (!processes) return;
+
+  const { isRecompilationBusy } = await import("./recompilation-installer");
+  for (const { ref, installDirectory } of ports) {
+    if (sessions.has(portKeyOf(ref)) || isRecompilationBusy(ref.slug)) {
+      continue;
+    }
+    if (
+      !processes.some((process) => isPortProcess(process, installDirectory))
+    ) {
+      continue;
+    }
+    logger.info("Recompilation opened outside Hydra", ref);
+    void startRecompilationSession(ref, null);
+  }
+};
+
+export const startExternalRecompilationWatch = () => {
+  const timer = setInterval(() => {
+    if (externalLaunchCheck) return;
+    externalLaunchCheck = detectExternalLaunches()
+      .catch((error) => {
+        logger.error("Failed to look for recompilations opened outside", error);
+      })
+      .finally(() => {
+        externalLaunchCheck = null;
+      });
+  }, EXTERNAL_LAUNCH_POLL_INTERVAL_MS);
+  timer.unref?.();
 };

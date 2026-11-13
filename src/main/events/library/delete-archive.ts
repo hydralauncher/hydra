@@ -3,7 +3,15 @@ import fs from "node:fs";
 
 import { registerEvent } from "../register-event";
 import { logger } from "@main/services/logger";
+import { WindowManager } from "@main/services/window-manager";
 import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+
+const isInsideFolder = (folder: string, target: string) => {
+  const relative = path.relative(folder, target);
+  return (
+    relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  );
+};
 
 export const deleteArchiveFile = async (filePath: string) => {
   try {
@@ -33,6 +41,23 @@ export const deleteArchiveFile = async (filePath: string) => {
             installerSizeInBytes: null,
           });
         }
+
+        const extractedFolder =
+          path.extname(normalizedPath).toLowerCase() === ".pkg"
+            ? game?.discs?.find(
+                (disc) =>
+                  !disc.recompilationSlug &&
+                  isInsideFolder(download.downloadPath, disc.path) &&
+                  fs.existsSync(disc.path) &&
+                  fs.statSync(disc.path).isDirectory()
+              )?.path
+            : undefined;
+        if (extractedFolder) {
+          await downloadsSublevel.put(gameKey, {
+            ...download,
+            folderName: path.relative(download.downloadPath, extractedFolder),
+          });
+        }
         break;
       }
     }
@@ -42,6 +67,15 @@ export const deleteArchiveFile = async (filePath: string) => {
     logger.error(`Failed to delete archive: ${filePath}`, err);
     return false;
   }
+};
+
+/** Asks whether to delete archives the user picked once they are extracted. */
+export const promptExtractedArchives = (archivePaths: string[]) => {
+  const existing = archivePaths.filter((archivePath) =>
+    fs.existsSync(archivePath)
+  );
+  if (existing.length === 0) return;
+  WindowManager.sendToAppWindows("on-archive-deletion-prompt", existing);
 };
 
 const deleteArchive = async (

@@ -25,6 +25,8 @@ import {
 } from "@renderer/context";
 import { useFormat, useLibrary, useToast } from "@renderer/hooks";
 import { RomSourcesPanel } from "./rom-source-list";
+import { isProtonAsset } from "./proton-build";
+import { getExtractionPercent, toExtractionBar } from "./extraction-progress";
 import { splitRomRequirement } from "./rom-requirement";
 import {
   getInstallErrorKey,
@@ -77,7 +79,7 @@ const folderOf = (filePath: string) =>
 
 const toBarProgress = (progress?: InstallProgressLike) => {
   if (!progress) return undefined;
-  if (progress.phase === "extracting") return { phase: "extracting" };
+  if (progress.phase === "extracting") return toExtractionBar(progress);
   if (!progress.total) return { phase: "downloading", loaded: 0, total: 1 };
   return { ...progress, phase: "downloading" };
 };
@@ -540,14 +542,26 @@ function InstallModalContent({
       return (
         <StatusLine
           label={t("install_port_installed")}
-          detail={formatRecompilationVersion(state.version)}
+          detail={
+            state.version
+              ? formatRecompilationVersion(state.version)
+              : t("version_unknown")
+          }
           isDone
         />
       );
     }
     if (progress?.phase === "extracting") {
       return (
-        <StatusLine label={t("install_port_extracting")} progress={progress} />
+        <StatusLine
+          label={t("install_port_extracting")}
+          detail={
+            getExtractionPercent(progress) === null
+              ? undefined
+              : `${getExtractionPercent(progress)}%`
+          }
+          progress={progress}
+        />
       );
     }
     if (progress?.phase === "downloading") {
@@ -583,7 +597,8 @@ function InstallModalContent({
       return (
         <StatusLine
           label={t("rom_extracting")}
-          progress={{ phase: "extracting" }}
+          detail={`${romPercent}%`}
+          progress={{ phase: "downloading", loaded: romPercent, total: 100 }}
         />
       );
     }
@@ -646,6 +661,11 @@ function InstallModalContent({
 
       {renderRomStatus()}
       {renderPortStatus()}
+      {isRomDownloading && (
+        <p className="recompilation-install__waiting-note">
+          {t("install_waiting")}
+        </p>
+      )}
     </>
   );
 
@@ -713,6 +733,12 @@ function InstallModalContent({
               <dd>{formatBytes(installAsset.size)}</dd>
             </div>
           )}
+          {isProtonAsset(installAsset) && (
+            <div>
+              <dt>{t("row_build")}</dt>
+              <dd>{t("windows_via_proton")}</dd>
+            </div>
+          )}
           <div>
             <dt>{t("downloads")}</dt>
             <dd>{numberFormatter.format(details.downloadCount)}</dd>
@@ -752,6 +778,7 @@ function InstallModalContent({
       <RomSourcesPanel
         objectId={details.game.objectId}
         gameTitle={details.game.title}
+        romRequirement={details.romRequirement}
         onStarted={() => {
           setPickedFile(null);
           setSkipLibrary(false);
@@ -813,12 +840,9 @@ function InstallModalContent({
       {renderPortStatus()}
       {renderPrepareStatus()}
       {prepare?.phase !== "error" && (
-        <div className="recompilation-install__prepare-footer">
-          <span>{t(prepare ? "prepare_can_close" : "install_waiting")}</span>
-          <Button theme="outline" onClick={onClose}>
-            {t("close")}
-          </Button>
-        </div>
+        <p className="recompilation-install__waiting-note">
+          {t(prepare ? "prepare_can_close" : "install_waiting")}
+        </p>
       )}
     </>
   );
@@ -845,17 +869,20 @@ function InstallModalContent({
           {renderPortStatus()}
         </div>
       )}
-      <div className="setup-modal__done-actions">
-        <Button theme="outline" onClick={onClose}>
-          {t("close")}
-        </Button>
-        <Button onClick={play} disabled={!canPlay || install.isLaunching}>
-          <PlayIcon />
-          {t("play")}
-        </Button>
-      </div>
     </div>
   );
+
+  const getContinueDisabled = () => {
+    if (step === "location") return !parentDirectory || !hasEnoughSpace;
+    if (step === "done") return !canPlay || install.isLaunching;
+    return !romSource || isSaving || isRomDownloading;
+  };
+
+  const getContinueAction = () => {
+    if (step === "location") return startInstall;
+    if (step === "done") return () => void play();
+    return saveChoice;
+  };
 
   const stepOrder: InstallStep[] = [
     ...(hasLocationStep ? (["location"] as const) : []),
@@ -882,15 +909,28 @@ function InstallModalContent({
         totalSteps={stepOrder.length}
         showBack={step === "sources" || (step === "update" && !openOnUpdate)}
         showSkip={false}
-        continueHidden={step !== "rom" && step !== "location"}
-        continueDisabled={
-          step === "location"
-            ? !parentDirectory || !hasEnoughSpace
-            : !romSource || isSaving || isRomDownloading
+        continueHidden={
+          step !== "rom" && step !== "location" && step !== "done"
+        }
+        continueLabel={
+          step === "done" ? (
+            <>
+              <PlayIcon />
+              {t("play")}
+            </>
+          ) : undefined
+        }
+        continueDisabled={getContinueDisabled()}
+        secondaryAction={
+          step === "done" ||
+          (step === "rom" && isRomDownloading) ||
+          (step === "prepare" && prepare?.phase !== "error")
+            ? { label: t("close"), onClick: onClose }
+            : null
         }
         onBack={() => setStep("rom")}
         onSkip={() => {}}
-        onContinue={step === "location" ? startInstall : saveChoice}
+        onContinue={getContinueAction()}
       />
     </div>
   );

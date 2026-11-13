@@ -31,20 +31,21 @@ const looksLikeLinuxExecutable = async (filePath: string) => {
   }
 };
 
-const isExecutableCandidate = async (filePath: string) => {
+const isExecutableCandidate = async (filePath: string, platform: string) => {
   const lower = filePath.toLowerCase();
   if (
     /(unins|setup|install|crash|vc_?redist|dxsetup)/.test(path.basename(lower))
   ) {
     return false;
   }
-  if (process.platform === "win32") return lower.endsWith(".exe");
+  if (platform === "win32") return lower.endsWith(".exe");
   if (/\.(so(\.\d+)*|sh|txt|json|md)$/.test(lower)) return false;
   return looksLikeLinuxExecutable(filePath);
 };
 
 const collectExecutables = async (
   directory: string,
+  platform: string,
   depth = 0
 ): Promise<string[]> => {
   if (depth > EXECUTABLE_SCAN_DEPTH) return [];
@@ -55,8 +56,11 @@ const collectExecutables = async (
   for (const entry of entries) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      found.push(...(await collectExecutables(entryPath, depth + 1)));
-    } else if (entry.isFile() && (await isExecutableCandidate(entryPath))) {
+      found.push(...(await collectExecutables(entryPath, platform, depth + 1)));
+    } else if (
+      entry.isFile() &&
+      (await isExecutableCandidate(entryPath, platform))
+    ) {
       found.push(entryPath);
     }
   }
@@ -78,11 +82,12 @@ const makeExecutable = async (filePath: string) => {
 
 export const findDeclaredRecompilationEntry = async (
   root: string,
-  override: string | null
+  override: string | null,
+  platform: string = process.platform
 ) => {
   const entries = [
     ...(override ? [override] : []),
-    ...(process.platform === "win32" ? [] : [APPIMAGE_ENTRY]),
+    ...(platform === "win32" ? [] : [APPIMAGE_ENTRY]),
   ];
 
   for (const entry of entries) {
@@ -100,15 +105,17 @@ export const findDeclaredRecompilationEntry = async (
 export const findRecompilationExecutable = async (
   installDirectory: string,
   portName: string,
-  override: string | null
+  override: string | null,
+  platform: string = process.platform
 ) => {
   const declared = await findDeclaredRecompilationEntry(
     installDirectory,
-    override
+    override,
+    platform
   );
   if (declared) return declared;
 
-  const candidates = await collectExecutables(installDirectory);
+  const candidates = await collectExecutables(installDirectory, platform);
   if (candidates.length === 0) return null;
 
   const words = portName

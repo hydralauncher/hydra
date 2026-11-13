@@ -69,6 +69,13 @@ import {
 import { MoreVertical, FileArchive, FolderOpen } from "lucide-react";
 import { average } from "color.js";
 import { getEpicManagedError } from "@renderer/helpers/epic-managed-error";
+import { DownloadArtworkImage, getDownloadArtwork } from "./download-artwork";
+
+const EXTRACTION_STAGE_LABEL_KEYS = {
+  install: "installing",
+  update: "applying_update",
+  dlc: "applying_dlc",
+} as const;
 
 function hexToRgb(hex: string): [number, number, number] {
   let h = hex.replace("#", "");
@@ -297,6 +304,7 @@ export interface HeroDownloadViewProps {
   /** Shown while extracting, for extractions that can be cancelled safely. */
   onExtractionCancel?: () => void;
   isExtractionCancelling?: boolean;
+  extractingLabel?: string;
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
@@ -374,6 +382,7 @@ export function HeroDownloadView({
   onCancelClick,
   onExtractionCancel,
   isExtractionCancelling = false,
+  extractingLabel,
   t,
 }: Readonly<HeroDownloadViewProps>) {
   const navigate = useNavigate();
@@ -390,14 +399,10 @@ export function HeroDownloadView({
   return (
     <div className="download-group download-group--hero">
       <div className="download-group__hero-background">
-        <img
-          src={
-            game.customHeroImageUrl ||
-            game.libraryHeroImageUrl ||
-            game.libraryImageUrl ||
-            ""
-          }
+        <DownloadArtworkImage
+          artwork={getDownloadArtwork(game, "hero")}
           alt={game.title}
+          showForeground={false}
         />
         <div className="download-group__hero-overlay" />
       </div>
@@ -434,7 +439,7 @@ export function HeroDownloadView({
               <div className="download-group__progress-info-row">
                 {isGameExtracting && (
                   <span className="download-group__progress-status">
-                    {t("extracting")}
+                    {extractingLabel ?? t("extracting")}
                   </span>
                 )}
                 {!isGameExtracting && lastPacket?.isCheckingFiles && (
@@ -1376,6 +1381,11 @@ export function DownloadGroup({
           game={game}
           isGameDownloading={isGameDownloading}
           isGameExtracting={isGameExtracting}
+          extractingLabel={
+            isGameExtracting && extraction.stage
+              ? t(EXTRACTION_STAGE_LABEL_KEYS[extraction.stage])
+              : undefined
+          }
           downloadSpeed={downloadSpeed}
           finalDownloadSize={finalDownloadSize}
           peakSpeed={peakSpeed}
@@ -1426,8 +1436,8 @@ export function DownloadGroup({
                   onClick={() => navigate(buildGameDetailsPath(game))}
                   className="download-group__simple-thumbnail"
                 >
-                  <img
-                    src={game.customCoverImageUrl || game.libraryImageUrl || ""}
+                  <DownloadArtworkImage
+                    artwork={getDownloadArtwork(game, "thumbnail")}
                     alt={game.title}
                   />
                 </button>
@@ -1463,8 +1473,10 @@ export function DownloadGroup({
                     <div className="download-group__simple-meta-row">
                       {extraction?.visibleId === game.id ? (
                         <span className="download-group__simple-extracting">
-                          {t("extracting")} (
-                          {Math.round(extraction.progress * 100)}%)
+                          {extraction.stage
+                            ? t(EXTRACTION_STAGE_LABEL_KEYS[extraction.stage])
+                            : t("extracting")}{" "}
+                          ({Math.round(extraction.progress * 100)}%)
                         </span>
                       ) : (
                         <span className="download-group__simple-size">

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { BrowserWindow } from "electron";
 
 import { gamesSublevel } from "@main/level";
@@ -9,7 +10,10 @@ import type {
 } from "@types";
 
 import { emulatorSessions } from "../emulators/emulator-session-tracker";
-import { gamesPlaytime } from "../game-running-state";
+import {
+  gamesPlaytime,
+  recompilationGameSessions,
+} from "../game-running-state";
 import { launchedGamePids } from "../launched-game-pids";
 import { isWaylandSession } from "../linux-game-capture-session";
 import { logger } from "../logger";
@@ -135,13 +139,77 @@ const getTrackedCandidates = () =>
       })
   );
 
-export const getScreenshotGameTargets = async () => {
-  const [emulatorCandidates, trackedCandidates] = await Promise.all([
-    getEmulatorCandidates(),
-    getTrackedCandidates(),
-  ]);
+const isInsideDirectory = (filePath: string, directory: string) => {
+  const relative = path.relative(directory, filePath);
+  return (
+    relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)
+  );
+};
 
-  return [...emulatorCandidates, ...trackedCandidates].filter(
+const listPortExecutables = (
+  processes: Awaited<ReturnType<typeof NativeAddon.listProcesses>>,
+  installDirectory: string
+) => [
+  ...new Set(
+    processes.flatMap(({ exe, environ, peExecutablePath }) =>
+      [exe, environ?.APPIMAGE, peExecutablePath].filter(
+        (filePath): filePath is string =>
+          typeof filePath === "string" &&
+          isInsideDirectory(filePath, installDirectory)
+      )
+    )
+  ),
+];
+
+const getRecompilationCandidates = async () => {
+  const sessions = [...recompilationGameSessions.values()].filter(
+    (session) =>
+      !gamesPlaytime.has(session.gameKey) &&
+      !emulatorSessions.has(session.gameKey)
+  );
+  if (!sessions.length) return [];
+
+  const processes = await NativeAddon.listProcesses().catch(() => []);
+  const seen = new Set<string>();
+  return Promise.all(
+    sessions.map(async (session): Promise<ScreenshotGameCandidate | null> => {
+      if (seen.has(session.gameKey)) return null;
+      seen.add(session.gameKey);
+      const game = await readGame(session.gameKey);
+      if (!game) return null;
+
+      return {
+        game,
+        target: {
+          gameKey: session.gameKey,
+          shop: game.shop,
+          objectId: game.objectId,
+          title: game.title,
+          processId: session.processId,
+          executablePaths: session.installDirectory
+            ? listPortExecutables(processes, session.installDirectory)
+            : [],
+          winePrefixPath: null,
+          isEmulator: false,
+        },
+      };
+    })
+  );
+};
+
+export const getScreenshotGameTargets = async () => {
+  const [emulatorCandidates, trackedCandidates, recompilationCandidates] =
+    await Promise.all([
+      getEmulatorCandidates(),
+      getTrackedCandidates(),
+      getRecompilationCandidates(),
+    ]);
+
+  return [
+    ...emulatorCandidates,
+    ...trackedCandidates,
+    ...recompilationCandidates,
+  ].filter(
     (candidate): candidate is ScreenshotGameCandidate => candidate !== null
   );
 };

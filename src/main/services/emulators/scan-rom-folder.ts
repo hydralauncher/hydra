@@ -6,6 +6,7 @@ import type { KnownBinary } from "./known-binaries";
 import { resolveSniffTarget, sniffDiscImage } from "./sniff-disc-platform";
 import { logger } from "../logger";
 import { readPs4PkgInfo } from "../ps4-pkg/ps4-pkg-info";
+import { parseParamSfoValue } from "./param-sfo";
 import type { EmulatorSystem } from "@types";
 
 const MAX_COLLECTED_FILES = 50_000;
@@ -17,11 +18,16 @@ export interface ScannedGame {
   wrongPlatform: boolean;
 }
 
+export interface SkippedPackage {
+  path: string;
+  kind: "update" | "dlc" | "other";
+}
+
 export interface ScanResult {
   fileCount: number;
   sizeBytes: number;
   games: ScannedGame[];
-  unsupportedPackages: string[];
+  unsupportedPackages: SkippedPackage[];
 }
 
 export interface ScanProgress {
@@ -432,21 +438,50 @@ const collectPs4Directory = (
   }
 };
 
+const normalizeTitleId = (titleId: string) =>
+  titleId.replace(/\W/g, "").toUpperCase();
+
+const readPs4FolderTitleId = async (directory: string) => {
+  const data = await fs
+    .readFile(path.join(directory, "sce_sys", "param.sfo"))
+    .catch(() => null);
+  const titleId = data ? parseParamSfoValue(data, "TITLE_ID") : null;
+  return titleId ? normalizeTitleId(titleId) : null;
+};
+
 /**
  * Game PKGs are imported (and extracted on Play); update and add-on PKGs are
- * not games, so they are left out and counted for the scan warning.
+ * not games, so they are left out and counted for the scan warning. A game
+ * PKG whose game is already installed as a folder is left out quietly.
  */
 const keepPs4GamePkgs = async (candidates: Candidate[]) => {
   const kept: Candidate[] = [];
-  const skipped: string[] = [];
+  const skipped: SkippedPackage[] = [];
+  const installedTitleIds = new Set<string>();
+  for (const candidate of candidates) {
+    if (!candidate.isMarkerDir) continue;
+    const titleId = await readPs4FolderTitleId(candidate.fullPath);
+    if (titleId) installedTitleIds.add(titleId);
+  }
+
   for (const candidate of candidates) {
     if (candidate.isMarkerDir) {
       kept.push(candidate);
       continue;
     }
     const info = await readPs4PkgInfo(candidate.fullPath).catch(() => null);
-    if (info?.kind === "game" && !info.isDeltaPatch) kept.push(candidate);
-    else skipped.push(candidate.fullPath);
+    if (
+      info?.kind === "patch" ||
+      (info?.kind === "game" && info.isDeltaPatch)
+    ) {
+      skipped.push({ path: candidate.fullPath, kind: "update" });
+    } else if (info?.kind === "addon") {
+      skipped.push({ path: candidate.fullPath, kind: "dlc" });
+    } else if (info?.kind !== "game") {
+      skipped.push({ path: candidate.fullPath, kind: "other" });
+    } else if (!installedTitleIds.has(normalizeTitleId(info.titleId))) {
+      kept.push(candidate);
+    }
   }
   return { kept, skipped };
 };
@@ -471,7 +506,10 @@ const collectCandidates = async (
   binary: KnownBinary,
   scanSubfolders: boolean,
   signal?: { cancelled: boolean }
-): Promise<{ candidates: Candidate[]; unsupportedPackages: string[] }> => {
+): Promise<{
+  candidates: Candidate[];
+  unsupportedPackages: SkippedPackage[];
+}> => {
   const candidates: Candidate[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();

@@ -10,11 +10,14 @@ import { ClassicsIcon } from "@renderer/pages/library/category-filter";
 
 import "../classics-onboarding-modal/classics-onboarding-modal.scss";
 import "./recompilation-onboarding-modal.scss";
-
-const STORAGE_KEY = "hydra-recompilation-onboarding-dismissed";
+import {
+  RECOMPILATION_ONBOARDING_TIP,
+  dismissTip,
+  isTipDismissed,
+} from "@renderer/dismissed-tips";
 
 export const hasDismissedRecompilationOnboarding = () =>
-  localStorage.getItem(STORAGE_KEY) === "true";
+  isTipDismissed(RECOMPILATION_ONBOARDING_TIP);
 
 export interface RecompilationOnboardingModalProps {
   visible: boolean;
@@ -134,7 +137,7 @@ export function RecompilationOnboardingModal({
   }, [visible]);
 
   const handleClose = () => {
-    if (dontShowAgain) localStorage.setItem(STORAGE_KEY, "true");
+    if (dontShowAgain) dismissTip(RECOMPILATION_ONBOARDING_TIP);
     onClose();
   };
 

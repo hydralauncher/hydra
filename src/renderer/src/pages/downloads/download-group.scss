@@ -371,6 +371,7 @@
   }
 
   &__simple-thumbnail {
+    position: relative;
     width: 200px;
     height: 100px;
     border-radius: 6px;
@@ -399,6 +400,28 @@
       height: 100%;
       object-fit: cover;
     }
+  }
+
+  &__hero-background &__artwork-blur,
+  &__simple-thumbnail &__artwork-blur {
+    filter: blur(18px) saturate(1.1);
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+
+  &__simple-thumbnail &__artwork-fitted {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: auto;
+    height: auto;
+    max-width: 60%;
+    max-height: 80%;
+    object-fit: contain;
+    transform: translate(-50%, -50%);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 5px 5px rgba(0, 0, 0, 0.09);
   }
 
   &__simple-info {

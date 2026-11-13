@@ -21,6 +21,7 @@ export interface Ps4PkgInstallOptions {
   signal?: AbortSignal;
   /** Only for PKGs Hydra downloaded; a PKG the user picked is kept. */
   deletePkg?: boolean;
+  addonDirectory?: string | null;
 }
 
 export interface Ps4PkgInstallResult {
@@ -261,6 +262,56 @@ const installUpdate = async (
   }
 };
 
+const ENTITLEMENT_LABEL = /^[A-Za-z0-9_]{1,16}$/;
+
+export const getPs4AddonTarget = (addonDirectory: string, info: Ps4PkgInfo) => {
+  const label = info.contentId.split("-")[2] ?? "";
+  if (!ENTITLEMENT_LABEL.test(label)) {
+    throw new Ps4PkgError(
+      "unsupported_pkg",
+      `Unexpected DLC content id ${info.contentId}`
+    );
+  }
+  return path.join(addonDirectory, info.titleId, label);
+};
+
+const hasFiles = (directory: string) =>
+  fs.promises
+    .readdir(directory)
+    .then((entries) => entries.length > 0)
+    .catch(() => false);
+
+export const isPs4AddonInstalled = (addonDirectory: string, info: Ps4PkgInfo) =>
+  hasFiles(getPs4AddonTarget(addonDirectory, info));
+
+const installAddon = async (
+  pkgPath: string,
+  info: Ps4PkgInfo,
+  target: string,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal
+) => {
+  if (await hasFiles(target)) return;
+  if (info.pfsImageSize === 0) {
+    await fs.promises.mkdir(target, { recursive: true });
+    return;
+  }
+
+  const staging = path.join(
+    path.dirname(target),
+    `.${path.basename(target)}.hydra-install`
+  );
+  await fs.promises.rm(staging, { recursive: true, force: true });
+  try {
+    await runWorkers(pkgPath, staging, onProgress, signal);
+    await fs.promises.rm(target, { recursive: true, force: true });
+    await fs.promises.mkdir(path.dirname(target), { recursive: true });
+    await fs.promises.rename(staging, target);
+  } finally {
+    await fs.promises.rm(staging, { recursive: true, force: true });
+  }
+};
+
 const hasPs4Title = async (directory: string, titleId: string) =>
   hasGameFiles(directory) &&
   sameTitleId(await readPs4FolderParam(directory, "TITLE_ID"), titleId);
@@ -319,6 +370,7 @@ const installNow = async ({
   onProgress,
   signal,
   deletePkg = false,
+  addonDirectory,
 }: Ps4PkgInstallOptions): Promise<Ps4PkgInstallResult> => {
   const info = await readPs4PkgInfo(pkgPath);
   if (info.isDeltaPatch) {
@@ -335,6 +387,9 @@ const installNow = async ({
     target = gameDirectory ?? besidePkg;
     await assertPs4UpdateFits(info, target);
     await installUpdate(pkgPath, target, onProgress, signal);
+  } else if (info.kind === "addon" && addonDirectory) {
+    target = getPs4AddonTarget(addonDirectory, info);
+    await installAddon(pkgPath, info, target, onProgress, signal);
   } else {
     throw new Ps4PkgError(
       "unsupported_pkg",

@@ -47,8 +47,17 @@ import {
 import recompilationSaves from "./recompilation-saves.json";
 import {
   addRecompilationDisc,
+  linkInstalledRecompilation,
   removeRecompilationDisc,
+  waitForRecompilationLink,
 } from "./recompilation-disc";
+import {
+  getPortPlatform,
+  getPortProtonPath,
+  getPortWinePrefix,
+  runsThroughProton,
+  type PortPlatform,
+} from "./recompilation-proton";
 import {
   findDeclaredRecompilationEntry,
   findRecompilationExecutable,
@@ -65,7 +74,25 @@ const installsInProgress = new Set<string>();
 const launchesInProgress = new Set<string>();
 const preparesInProgress = new Set<string>();
 
+export const isRecompilationBusy = (slug: string) =>
+  installsInProgress.has(slug) ||
+  launchesInProgress.has(slug) ||
+  preparesInProgress.has(slug) ||
+  uninstallsInProgress.has(slug);
+
+const lastProgress = new Map<string, RecompilationInstallProgress>();
+const uninstallsInProgress = new Set<string>();
+
 const sendProgress = (progress: RecompilationInstallProgress) => {
+  if (
+    progress.phase === "downloading" ||
+    progress.phase === "extracting" ||
+    progress.phase === "uninstalling"
+  ) {
+    lastProgress.set(progress.slug, progress);
+  } else {
+    lastProgress.delete(progress.slug);
+  }
   WindowManager.mainWindow?.webContents.send(
     "on-recompilation-install-progress",
     progress
@@ -131,7 +158,8 @@ const refreshDeclaredEntry = async (
 ) => {
   const declared = await findDeclaredRecompilationEntry(
     installDirectory,
-    getRecompilationExecutableOverride(slug)
+    getRecompilationExecutableOverride(slug),
+    getPortPlatform(slug)
   ).catch(() => null);
   if (!declared || declared === executablePath) return executablePath;
 
@@ -202,13 +230,17 @@ const extractAppImageWithItself = (
 const extractReleaseArchive = async (
   archivePath: string,
   assetName: string,
-  stagingDirectory: string
+  stagingDirectory: string,
+  onProgress?: (percent: number) => void
 ) => {
   try {
-    await SevenZip.extractFile({
-      filePath: archivePath,
-      outputPath: stagingDirectory,
-    });
+    await SevenZip.extractFile(
+      {
+        filePath: archivePath,
+        outputPath: stagingDirectory,
+      },
+      onProgress ? ({ percent }) => onProgress(percent) : undefined
+    );
   } catch (error) {
     const isAppImage = assetName.toLowerCase().endsWith(".appimage");
     if (process.platform !== "linux" || !isAppImage) throw error;
@@ -227,7 +259,9 @@ const extractRelease = async (
   assetName: string,
   installDirectory: string,
   portName: string,
-  executableOverride: string | null
+  executableOverride: string | null,
+  buildPlatform: PortPlatform,
+  onProgress?: (percent: number) => void
 ) => {
   const stagingDirectory = `${installDirectory}.partial`;
   await fs.promises.rm(stagingDirectory, { recursive: true, force: true });
@@ -240,7 +274,12 @@ const extractRelease = async (
         path.join(stagingDirectory, path.basename(assetName))
       );
     } else {
-      await extractReleaseArchive(archivePath, assetName, stagingDirectory);
+      await extractReleaseArchive(
+        archivePath,
+        assetName,
+        stagingDirectory,
+        onProgress
+      );
     }
     await extractNestedArchives(stagingDirectory);
     const root = await resolveExtractedRoot(stagingDirectory);
@@ -248,7 +287,8 @@ const extractRelease = async (
     const executablePath = await findRecompilationExecutable(
       root,
       portName,
-      executableOverride
+      executableOverride,
+      buildPlatform
     );
     if (!executablePath) throw new RecompilationInstallError("no_executable");
     await fs.promises.mkdir(installDirectory, { recursive: true });
@@ -272,6 +312,9 @@ export const getRecompilationInstallState = async (
   const installDirectory = await getInstallDirectory(ref.slug);
   const marker = await readInstallMarker(installDirectory);
   const installed = marker?.slug === ref.slug;
+  if (installed && !installsInProgress.has(ref.slug)) {
+    void linkInstalledRecompilation(ref.slug, installDirectory, marker);
+  }
 
   return {
     installed,
@@ -282,6 +325,7 @@ export const getRecompilationInstallState = async (
     installParentPath: path.dirname(installDirectory),
     executablePath: installed ? marker.executablePath : null,
     hasCloudSaves: Object.hasOwn(recompilationSaves, ref.slug),
+    progress: lastProgress.get(ref.slug) ?? null,
   };
 };
 
@@ -343,6 +387,8 @@ const downloadAndInstall = async (
   onArchivePath: (archivePath: string) => void
 ) => {
   const { details, release, asset } = await fetchRelease(ref);
+  const buildPlatform: PortPlatform =
+    asset.os === "windows" ? "win32" : (process.platform as PortPlatform);
   const archivePath = path.join(
     SystemPath.getPath("temp"),
     `hydra-recompilation-${ref.slug}-${path.basename(asset.name)}`
@@ -373,13 +419,26 @@ const downloadAndInstall = async (
     throw new Error(`Checksum mismatch for ${asset.name}`);
   }
 
-  sendProgress({ slug: ref.slug, phase: "extracting" });
+  sendProgress({ slug: ref.slug, phase: "extracting", loaded: 0, total: 100 });
+  let lastPercent = 0;
   const executablePath = await extractRelease(
     archivePath,
     asset.name,
     installDirectory,
     details.name,
-    getRecompilationExecutableOverride(ref.slug)
+    getRecompilationExecutableOverride(ref.slug, buildPlatform),
+    buildPlatform,
+    (percent) => {
+      const rounded = Math.min(100, Math.max(0, Math.floor(percent)));
+      if (rounded <= lastPercent) return;
+      lastPercent = rounded;
+      sendProgress({
+        slug: ref.slug,
+        phase: "extracting",
+        loaded: rounded,
+        total: 100,
+      });
+    }
   );
 
   const marker: InstallMarker = {
@@ -466,6 +525,95 @@ export const installRecompilation = async (
   return result;
 };
 
+const fetchDetailsQuietly = (ref: RecompilationRef) =>
+  HydraApi.get<RecompilationDetails>(apiPath(ref), undefined, {
+    needsAuth: false,
+  }).catch(() => null);
+
+const isDirectory = (directory: string) =>
+  fs.promises
+    .stat(directory)
+    .then((stats) => stats.isDirectory())
+    .catch(() => false);
+
+export const linkRecompilationFolder = async (
+  rawRef: unknown,
+  rawDirectory: unknown
+): Promise<RecompilationActionResult> => {
+  const ref = parseRef(rawRef);
+  if (!ref) return { ok: false, reason: "invalid_port" };
+  if (typeof rawDirectory !== "string" || !path.isAbsolute(rawDirectory)) {
+    return { ok: false, reason: "invalid_folder" };
+  }
+  const directory = path.resolve(rawDirectory);
+  if (!(await isDirectory(directory))) {
+    return { ok: false, reason: "invalid_folder" };
+  }
+  if (isRecompilationBusy(ref.slug)) {
+    return { ok: false, reason: "already_installing" };
+  }
+
+  const current = await getRecompilationInstallState(ref);
+  if (await isPortRunning(ref, current?.executablePath ?? null)) {
+    return { ok: false, reason: "running" };
+  }
+
+  const existing = await readInstallMarker(directory);
+  if (existing && existing.slug !== ref.slug) {
+    return { ok: false, reason: "other_port" };
+  }
+
+  const details = await fetchDetailsQuietly(ref);
+  let marker: InstallMarker;
+  if (existing) {
+    marker = { ...existing, objectId: ref.objectId };
+  } else {
+    const findIn = (platform: PortPlatform) =>
+      findRecompilationExecutable(
+        directory,
+        details?.name ?? ref.slug,
+        getRecompilationExecutableOverride(ref.slug, platform),
+        platform
+      ).catch(() => null);
+    const nativePlatform = process.platform as PortPlatform;
+    const executablePath =
+      (await findIn(nativePlatform)) ??
+      (nativePlatform === "linux" ? await findIn("win32") : null);
+    if (!executablePath) return { ok: false, reason: "no_executable" };
+    marker = {
+      slug: ref.slug,
+      objectId: ref.objectId,
+      version: "",
+      assetName: "",
+      executablePath,
+      installedAt: new Date().toISOString(),
+      name: details?.name,
+      iconUrl: details?.iconUrl ?? null,
+    };
+  }
+
+  try {
+    await fs.promises.writeFile(
+      path.join(directory, INSTALL_MARKER_FILE),
+      JSON.stringify(marker, null, 2)
+    );
+  } catch {
+    return { ok: false, reason: "install_folder_unwritable" };
+  }
+
+  await saveRecompilationInstallDirectory(ref.slug, directory);
+  const { getOrAddBaseGame } = await import("./recompilation-base-game");
+  await getOrAddBaseGame(ref).catch((error) => {
+    logger.error(
+      "Failed to add the recompilation's game to the library",
+      error
+    );
+  });
+  await linkInstalledRecompilation(ref.slug, directory, marker);
+  sendProgress({ slug: ref.slug, phase: "done" });
+  return { ok: true };
+};
+
 export const uninstallRecompilation = async (
   rawRef: unknown
 ): Promise<RecompilationActionResult> => {
@@ -479,22 +627,55 @@ export const uninstallRecompilation = async (
     return { ok: false, reason: "not_installed" };
   }
 
-  if (installsInProgress.has(ref.slug)) {
+  if (installsInProgress.has(ref.slug) || uninstallsInProgress.has(ref.slug)) {
     return { ok: false, reason: "already_installing" };
   }
   if (await isPortRunning(ref, marker.executablePath)) {
     return { ok: false, reason: "running" };
   }
 
+  uninstallsInProgress.add(ref.slug);
   try {
-    await fs.promises.rm(installDirectory, { recursive: true, force: true });
+    await waitForRecompilationLink(ref.slug);
+    await deleteFolderWithProgress(installDirectory, (loaded, total) =>
+      sendProgress({ slug: ref.slug, phase: "uninstalling", loaded, total })
+    );
   } catch (error) {
     logger.error(`Failed to uninstall ${ref.slug}`, error);
+    sendProgress({ slug: ref.slug, phase: "uninstalled" });
     return { ok: false, reason: "uninstall_failed" };
+  } finally {
+    uninstallsInProgress.delete(ref.slug);
   }
   await forgetRecompilationInstallDirectory(ref.slug);
   await removeRecompilationDisc(ref);
+  sendProgress({ slug: ref.slug, phase: "uninstalled" });
   return { ok: true };
+};
+
+/** Deletes the files one by one, so the uninstall can show how far it is. */
+const deleteFolderWithProgress = async (
+  directory: string,
+  onProgress: (loaded: number, total: number) => void
+) => {
+  const entries = await fs.promises
+    .readdir(directory, { recursive: true, withFileTypes: true })
+    .catch(() => []);
+  const files = entries
+    .filter((entry) => !entry.isDirectory())
+    .map((entry) => path.join(entry.parentPath, entry.name));
+
+  let lastPercent = -1;
+  onProgress(0, files.length || 1);
+  for (const [index, file] of files.entries()) {
+    await fs.promises.rm(file, { force: true });
+    const percent = Math.floor(((index + 1) / files.length) * 100);
+    if (percent !== lastPercent) {
+      lastPercent = percent;
+      onProgress(index + 1, files.length);
+    }
+  }
+  await fs.promises.rm(directory, { recursive: true, force: true });
 };
 
 export const openRecompilationFolder = async (
@@ -556,6 +737,35 @@ const startConsoleHider = () => {
     logger.error("Failed to start the port console hider", error)
   );
   return hider;
+};
+
+/** A Windows build on Linux runs through umu-run with the user's Proton. */
+const launchPortWithProton = async (
+  slug: string,
+  executablePath: string,
+  launch: { args: string[]; env: Record<string, string> }
+) => {
+  const { Umu } = await import("@main/services/umu");
+  const { UmuUpdater } = await import("@main/services/umu-updater");
+  void UmuUpdater.checkForUpdates();
+
+  let markExited: () => void = () => undefined;
+  const exited = new Promise<void>((resolve) => {
+    markExited = resolve;
+  });
+  try {
+    const pid = await Umu.launchExecutable(executablePath, launch.args, {
+      winePrefixPath: getPortWinePrefix(slug),
+      protonPath: await getPortProtonPath(),
+      gameId: `recompilation-${slug}`,
+      env: launch.env,
+      onExit: () => markExited(),
+    });
+    return { pid, exited };
+  } catch (error) {
+    logger.error(`Failed to launch ${slug} through Proton`, error);
+    return null;
+  }
 };
 
 const launchRecompilation = async (
@@ -622,6 +832,21 @@ const launchRecompilation = async (
   await applyPendingTrophyReset(ref).catch((error) =>
     logger.error("Failed to apply a saved trophy reset", error)
   );
+
+  if (runsThroughProton(executablePath)) {
+    const launched = await launchPortWithProton(
+      ref.slug,
+      executablePath,
+      launch
+    );
+    if (!launched) {
+      clearRecompilationCloudSaveGuard(ref);
+      return { ok: false, reason: "launch_failed" };
+    }
+    void markRecompilationRomLaunched(state.installPath);
+    void startRecompilationSession(ref, null, launched);
+    return { ok: true };
+  }
 
   const spawned = await spawnPort(executablePath, launch);
   if (spawned.ok && spawned.child.pid) {
