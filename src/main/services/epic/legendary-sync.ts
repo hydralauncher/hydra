@@ -29,23 +29,41 @@ const METADATA_FILE_MAX_BYTES = 4 * 1024 * 1024;
 const getMetadataCacheDirectory = (userData: string, accountId: string) =>
   path.join(userData, METADATA_CACHE_ROOT, accountId);
 
-/** Copies plain metadata JSON files; false when the source does not exist. */
+type MetadataCacheLog = (
+  level: "info" | "warn",
+  message: string,
+  details: Record<string, unknown>
+) => void;
+
+// Wired to the main logger in index.ts, like configureEpicTiming.
+let metadataCacheLog: MetadataCacheLog = () => {};
+
+export function configureLegendaryMetadataCacheLog(write: MetadataCacheLog) {
+  metadataCacheLog = write;
+}
+
+const errorCode = (error: unknown) =>
+  (error as NodeJS.ErrnoException)?.code ?? "unknown";
+
+/** Copies plain metadata JSON files; null when the source does not exist. */
 async function copyMetadataFiles(from: string, to: string) {
   let entries: Dirent[];
   try {
     entries = await fs.readdir(from, { withFileTypes: true });
   } catch {
-    return false;
+    return null;
   }
   await fs.mkdir(to, { recursive: true, mode: 0o700 });
+  let copied = 0;
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
     const source = path.join(from, entry.name);
     const stat = await fs.lstat(source);
     if (!stat.isFile() || stat.size > METADATA_FILE_MAX_BYTES) continue;
     await fs.copyFile(source, path.join(to, entry.name));
+    copied++;
   }
-  return true;
+  return copied;
 }
 
 export class LegendarySyncRunner {
@@ -95,10 +113,23 @@ export class LegendarySyncRunner {
       );
       const cacheDirectory = getMetadataCacheDirectory(userData, accountId);
       // A missing or unreadable cache only means Legendary fetches everything.
-      await copyMetadataFiles(
-        cacheDirectory,
-        path.join(directory, METADATA_DIRECTORY)
-      ).catch(() => false);
+      try {
+        const restored = await copyMetadataFiles(
+          cacheDirectory,
+          path.join(directory, METADATA_DIRECTORY)
+        );
+        metadataCacheLog("info", "Epic Legendary metadata cache restored", {
+          titles: restored ?? 0,
+        });
+      } catch (error) {
+        metadataCacheLog(
+          "warn",
+          "Epic Legendary metadata cache could not be restored",
+          {
+            error: errorCode(error),
+          }
+        );
+      }
       return new LegendarySyncRunner(
         binary,
         directory,
@@ -185,6 +216,7 @@ export class LegendarySyncRunner {
 
   async library(): Promise<unknown[]> {
     const results: unknown[] = [];
+    let failure: unknown;
     try {
       for (const platform of ["Windows", "Mac"]) {
         const result = await this.run([
@@ -199,10 +231,24 @@ export class LegendarySyncRunner {
         results.push(result);
       }
       return results;
+    } catch (error) {
+      failure = error;
+      throw error;
     } finally {
       // Also after a failure: a rate-limited run keeps what it fetched, so the
       // next sync continues instead of starting over.
-      await this.saveMetadataCache();
+      const cachedTitles = await this.saveMetadataCache();
+      if (
+        failure instanceof EpicIntegrationError &&
+        failure.code === "rate-limit"
+      )
+        metadataCacheLog(
+          "warn",
+          "Epic rate-limited the Legendary library sync",
+          {
+            cachedTitles,
+          }
+        );
     }
   }
 
@@ -217,11 +263,23 @@ export class LegendarySyncRunner {
         path.join(this.directory, METADATA_DIRECTORY),
         staging
       );
-      if (!copied) return;
+      if (copied === null) return null;
       await fs.rm(this.cacheDirectory, { recursive: true, force: true });
       await fs.rename(staging, this.cacheDirectory);
-    } catch {
+      metadataCacheLog("info", "Epic Legendary metadata cache saved", {
+        titles: copied,
+      });
+      return copied;
+    } catch (error) {
       // The cache only saves requests; a failed write never fails the sync.
+      metadataCacheLog(
+        "warn",
+        "Epic Legendary metadata cache could not be saved",
+        {
+          error: errorCode(error),
+        }
+      );
+      return null;
     } finally {
       await fs.rm(staging, { recursive: true, force: true }).catch(() => {});
     }

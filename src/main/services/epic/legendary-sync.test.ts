@@ -20,6 +20,9 @@ async function fixture(t: TestContext, command: Command) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "epic-sync-runner-"));
   const controller = new AbortController();
   const sessions: EpicSessionBundle[] = [];
+  const logs: { level: string; message: string; details: unknown }[] = [];
+  const record = (level: string) => (message: string, details: unknown) =>
+    logs.push({ level, message, details });
   const source = await fs.readFile(
     new URL("./legendary-sync.ts", import.meta.url),
     "utf8"
@@ -63,6 +66,9 @@ async function fixture(t: TestContext, command: Command) {
       Date,
     }
   );
+  module.configureLegendaryMetadataCacheLog((level, message, details) =>
+    record(level)(message, details)
+  );
   const runners: { cleanup(): Promise<void> }[] = [];
   const create = async () => {
     const created = await module.LegendarySyncRunner.create(
@@ -83,7 +89,7 @@ async function fixture(t: TestContext, command: Command) {
     for (const created of runners) await created.cleanup();
     await fs.rm(root, { recursive: true, force: true });
   });
-  return { root, controller, runner, sessions, create };
+  return { root, controller, runner, sessions, create, logs };
 }
 test("sync executes Windows/Mac independently and accepts confirmed empty arrays", async (t) => {
   const args: string[][] = [];
@@ -191,6 +197,22 @@ test("Legendary metadata carries over to the next run, even after a failure", as
     ["title-1.json", "title-2.json"],
     ["title-1.json", "title-2.json", "title-3.json"],
   ]);
+  assert.equal(
+    JSON.stringify(
+      f.logs.map(({ level, message, details }) => [level, message, details])
+    ),
+    JSON.stringify([
+      ["info", "Epic Legendary metadata cache restored", { titles: 0 }],
+      ["info", "Epic Legendary metadata cache saved", { titles: 2 }],
+      [
+        "warn",
+        "Epic rate-limited the Legendary library sync",
+        { cachedTitles: 2 },
+      ],
+      ["info", "Epic Legendary metadata cache restored", { titles: 2 }],
+      ["info", "Epic Legendary metadata cache saved", { titles: 4 }],
+    ])
+  );
 });
 
 test("metadata cache keeps only metadata JSON files", async (t) => {
