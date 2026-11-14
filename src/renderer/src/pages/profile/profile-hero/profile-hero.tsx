@@ -30,6 +30,7 @@ import {
 import { addSeconds } from "date-fns";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import cn from "classnames";
 import {
   AuthPage,
   EDIT_PROFILE_SEARCH_PARAM,
@@ -42,7 +43,7 @@ import { EditProfileModal } from "../edit-profile-modal/edit-profile-modal";
 import { preloadTopGameBanners } from "../edit-profile-modal/use-top-game-banners";
 import Skeleton from "react-loading-skeleton";
 import { ProfileGamificationPills } from "./profile-gamification-pills";
-import { CoinIcon } from "@renderer/components/gamification";
+import { CoinIcon, FramedAvatar } from "@renderer/components/gamification";
 import "./profile-hero.scss";
 
 type FriendAction =
@@ -85,6 +86,12 @@ export function ProfileHero() {
   }, [editRequested, isMe, setSearchParams]);
 
   const { gameRunning } = useAppSelector((state) => state.gameRunning);
+  const isGamificationEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled
+  );
+  const equippedFrame = isGamificationEnabled
+    ? (userProfile?.equippedFrame ?? null)
+    : null;
   const isShopEnabled = useAppSelector(
     (state) => state.gamification.isEnabled && state.gamification.isShopEnabled
   );
@@ -432,14 +439,25 @@ export function ProfileHero() {
           <div className="profile-hero__user-information">
             <button
               type="button"
-              className="profile-hero__avatar-button"
+              className={cn("profile-hero__avatar-button", {
+                "profile-hero__avatar-button--framed": equippedFrame,
+              })}
               onClick={handleAvatarClick}
             >
-              <Avatar
-                size={96}
-                alt={userProfile?.displayName}
-                src={userProfile?.profileImageUrl}
-              />
+              {equippedFrame ? (
+                <FramedAvatar
+                  size={96}
+                  alt={userProfile?.displayName}
+                  src={userProfile?.profileImageUrl}
+                  frame={equippedFrame}
+                />
+              ) : (
+                <Avatar
+                  size={96}
+                  alt={userProfile?.displayName}
+                  src={userProfile?.profileImageUrl}
+                />
+              )}
             </button>
 
             <div className="profile-hero__information">
