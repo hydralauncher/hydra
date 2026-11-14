@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
 
+import "./chat-official-badge.scss";
+
 export interface ChatOfficialBadgeProps {
   size: number;
 }

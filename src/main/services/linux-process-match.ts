@@ -9,16 +9,105 @@ export interface LinuxProcessInfo {
   steamCompatDataPath: string | null;
 }
 
+export interface LinuxProcessMatchIndex {
+  byExe: Set<string>;
+  byAppImage: Set<string>;
+  byCwd: Map<string, LinuxProcessInfo[]>;
+}
+
+const addPath = (index: Set<string>, key: string | null | undefined) => {
+  if (!key) return;
+
+  index.add(key.toLowerCase());
+};
+
+const appendProcess = (
+  index: Map<string, LinuxProcessInfo[]>,
+  key: string | null | undefined,
+  process: LinuxProcessInfo
+) => {
+  if (!key) return;
+
+  const normalizedKey = key.toLowerCase();
+  const entries = index.get(normalizedKey);
+
+  if (entries) {
+    entries.push(process);
+    return;
+  }
+
+  index.set(normalizedKey, [process]);
+};
+
+export const buildLinuxProcessMatchIndex = (
+  linuxProcesses: LinuxProcessInfo[]
+): LinuxProcessMatchIndex => {
+  const index: LinuxProcessMatchIndex = {
+    byExe: new Set(),
+    byAppImage: new Set(),
+    byCwd: new Map(),
+  };
+
+  for (const process of linuxProcesses) {
+    addPath(index.byExe, process.exe);
+    addPath(index.byAppImage, process.appImagePath);
+    appendProcess(index.byCwd, process.cwd, process);
+  }
+
+  return index;
+};
+
 export const hasLinuxNativeOrAppImageMatch = (
   executablePath: string,
-  linuxProcesses: LinuxProcessInfo[]
+  index: LinuxProcessMatchIndex
 ) => {
   const target = executablePath.toLowerCase();
 
-  return linuxProcesses.some(
-    (matchedProcess) =>
-      matchedProcess.exe === target || matchedProcess.appImagePath === target
-  );
+  return index.byExe.has(target) || index.byAppImage.has(target);
+};
+
+export interface LinuxCompatibilityProcessMatchOptions {
+  executablePath: string;
+  expectedWinePrefix?: string | null;
+}
+
+export const hasLinuxCompatibilityProcessMatch = (
+  index: LinuxProcessMatchIndex,
+  { executablePath, expectedWinePrefix }: LinuxCompatibilityProcessMatchOptions
+) => {
+  if (path.extname(executablePath).toLowerCase() !== ".exe") {
+    return false;
+  }
+
+  const executableName = path.basename(executablePath).toLowerCase();
+  const executableNameWithoutExtension = executableName.replace(/\.exe$/i, "");
+  const executableDirectory = path.dirname(executablePath).toLowerCase();
+  const normalizedWinePrefix = expectedWinePrefix?.toLowerCase();
+  const candidates = index.byCwd.get(executableDirectory) ?? [];
+
+  return candidates.some((process) => {
+    if (
+      normalizedWinePrefix &&
+      process.steamCompatDataPath &&
+      !doesSteamCompatDataPathMatchWinePrefix(
+        process.steamCompatDataPath,
+        normalizedWinePrefix
+      )
+    ) {
+      return false;
+    }
+
+    if (
+      process.name === executableName ||
+      process.name === executableNameWithoutExtension
+    ) {
+      return true;
+    }
+
+    const processRunsUnderWine = process.exe.includes("wine");
+
+    return processRunsUnderWine && process.name.length > 0;
+  });
 };
 
 interface ProcessLocation {

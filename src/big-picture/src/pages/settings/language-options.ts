@@ -1,4 +1,4 @@
-import languageResources from "@locales";
+import { languageNames } from "@locales/languages";
 import { getLanguageFlagCountryCode, resolveLanguageKey } from "@shared";
 
 export interface LanguageOption {
@@ -22,10 +22,10 @@ function getEnglishLanguageName(localeKey: string) {
 }
 
 export function getLanguageOptions(): LanguageOption[] {
-  return Object.entries(languageResources)
-    .map(([language, value]) => ({
+  return Object.entries(languageNames)
+    .map(([language, nativeName]) => ({
       localeKey: language,
-      nativeName: value.language_name,
+      nativeName,
       englishName: getEnglishLanguageName(language),
       flagCountryCode: getLanguageFlagCountryCode(language),
     }))
@@ -54,7 +54,7 @@ export function resolveCurrentLanguageOption(
       (languageOption) => languageOption.localeKey === selectedLanguage
     ) ?? {
       localeKey: "en",
-      nativeName: languageResources.en.language_name,
+      nativeName: languageNames.en,
       englishName: getEnglishLanguageName("en"),
       flagCountryCode: getLanguageFlagCountryCode("en"),
     }
