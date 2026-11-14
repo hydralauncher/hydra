@@ -1,34 +1,14 @@
 import type { Game, Rpcs3DiscIdentityStatus } from "@types";
 
-import { HydraApi } from "../hydra-api.js";
 import { extractVerifiedPs3TitleId } from "../emulators/extract-disc-sku.js";
-import {
-  cacheRpcs3CatalogueTitleIds,
-  rememberRpcs3CatalogueTitleIds,
-} from "./rpcs3-savedata-title-ids.js";
-import {
-  inspectRpcs3DiscIdentity,
-  rpcs3TitleIdsFromCatalogue,
-  type Rpcs3CatalogueEntry,
-} from "./rpcs3-game-identity-policy.js";
+import { fetchCatalogueTitleIds } from "./catalogue-title-ids.js";
+import { inspectRpcs3DiscIdentity } from "./rpcs3-game-identity-policy.js";
 
 export { assertRpcs3SnapshotIdentity } from "./rpcs3-game-identity-policy.js";
 
 export const getRpcs3CatalogueTitleIds = async (game: Game) => {
-  let entries: Rpcs3CatalogueEntry[];
-  try {
-    entries = await HydraApi.post<Rpcs3CatalogueEntry[]>(
-      "/games/shop-details",
-      { shop: "launchbox", objectIds: [game.objectId] },
-      { needsAuth: false }
-    );
-  } catch {
-    throw new Error("cloud_save_rpcs3_catalogue_unavailable");
-  }
-  const ids = rpcs3TitleIdsFromCatalogue(entries, game.objectId);
-  if (!ids.size) throw new Error("cloud_save_rpcs3_catalogue_unavailable");
-  rememberRpcs3CatalogueTitleIds(game, ids);
-  await cacheRpcs3CatalogueTitleIds(game, ids).catch(() => undefined);
+  const ids = await fetchCatalogueTitleIds(game).catch(() => null);
+  if (!ids?.size) throw new Error("cloud_save_rpcs3_catalogue_unavailable");
   return ids;
 };
 

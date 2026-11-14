@@ -358,7 +358,7 @@ export function EmulatorSetupModal({
         return;
       }
 
-      if (system !== "ps1" && system !== "ps2") return;
+      if (system !== "ps1" && system !== "ps2" && system !== "ps4") return;
 
       const paths = await window.electron.getEmulatorRomPaths(system);
       if (paths.length === 0) return;
@@ -513,6 +513,7 @@ export function EmulatorSetupModal({
           )}
           {currentStep === "rom_folder" && (
             <SetupStepRomFolder
+              system={system}
               systemLabel={systemShort}
               folders={folders}
               ymlEntryCount={ymlEntryCount}

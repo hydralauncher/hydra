@@ -44,6 +44,7 @@ import { ArchiveDeletionModal } from "./pages/downloads/archive-deletion-error-m
 import { CloudSubscriptionModal } from "./pages/shared-modals/hydra-cloud/cloud-subscription-modal";
 import { AddFriendModal } from "./pages/profile/profile-content/add-friend-modal";
 import { ClassicsScanModal } from "./pages/settings/emulation/classics-scan-modal";
+import { Ps4PkgJobHost } from "./components/ps4-pkg-job/ps4-pkg-job-host";
 import { RetroArchScanModal } from "./pages/settings/emulation/retroarch-scan-modal";
 import { CloudGiftNotificationModal } from "./pages/shared-modals/cloud-gift-notification-modal";
 import { LevelUpModal } from "./components/gamification";
@@ -265,6 +266,7 @@ export function App() {
           "install-retroarch": 7108,
           "install-ppsspp": 7315,
           "install-dolphin": 7268,
+          "install-shadps4": 7859,
           "wii-saves": 7384,
           "retroachievements-emulators": 6629,
           "downloading-metadata": 7719,
@@ -280,6 +282,7 @@ export function App() {
           "install-retroarch": 7120,
           "install-ppsspp": 7328,
           "install-dolphin": 7281,
+          "install-shadps4": 7871,
           "wii-saves": 7406,
           "retroachievements-emulators": 6692,
           "downloading-metadata": 7773,
@@ -291,6 +294,7 @@ export function App() {
           "install-retroarch": 7135,
           "install-ppsspp": 7338,
           "install-dolphin": 7292,
+          "install-shadps4": 7880,
           "wii-saves": 7422,
           "retroachievements-emulators": 6717,
           "downloading-metadata": 7848,
@@ -302,6 +306,7 @@ export function App() {
           "install-retroarch": 7142,
           "install-ppsspp": 7375,
           "install-dolphin": 7303,
+          "install-shadps4": 7893,
           "wii-saves": 7431,
           "retroachievements-emulators": 6743,
           "downloading-metadata": 7854,
@@ -445,14 +450,20 @@ export function App() {
             matched: payload.matched,
             unmatched: payload.unmatched,
             unmatchedFiles: payload.unmatchedFiles,
+            unsupportedPackages: payload.unsupportedPackages,
           },
         })
       );
+      if (payload.type === "done" && payload.unsupportedPackages > 0) {
+        showWarningToast(
+          t("ps4_pkg_not_supported", { count: payload.unsupportedPackages })
+        );
+      }
       updateLibrary();
     });
 
     return () => unsubscribe();
-  }, [dispatch, updateLibrary]);
+  }, [dispatch, updateLibrary, showWarningToast, t]);
 
   useEffect(() => {
     window.electron.getActiveRetroArchImport().then((snapshot) => {
@@ -537,6 +548,16 @@ export function App() {
             t("extraction_unsupported_format_description", {
               ns: "downloads",
               format: failure.format,
+            })
+          );
+          return;
+        }
+
+        if (failure?.reason === "pkg-keys-unavailable") {
+          showErrorToast(
+            t("extraction_failed_title", { ns: "downloads" }),
+            t("extraction_pkg_keys_unavailable_description", {
+              ns: "downloads",
             })
           );
           return;
@@ -791,6 +812,7 @@ export function App() {
       />
 
       <ClassicsScanModal />
+      <Ps4PkgJobHost />
       <RetroArchScanModal />
 
       <ScanGamesProvider>

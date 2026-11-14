@@ -13,7 +13,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AuthPage,
   getCloudSaveAccessAction,
+  discCloudSaveWrongGameErrorCode,
   getCloudSaveEmulatorProvider,
+  getDiscCloudSaveEmulatorProvider,
+  type DiscCloudSaveEmulatorProvider,
   hasCloudSaveExecutableSelection,
   isCloudSaveV2Eligible,
 } from "@shared";
@@ -25,7 +28,7 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveCustomPathApproval,
   CloudSaveOverview,
-  Rpcs3DiscIdentityStatus,
+  EmulatorDiscIdentityStatus,
   CloudSaveSyncProgressPayload,
   GameShop,
   LibraryGame,
@@ -43,9 +46,9 @@ import { CloudSaveV2FileBrowserModal } from "./cloud-save-v2-file-browser-modal"
 import { useCloudSaveOverview } from "./use-cloud-save-overview";
 import { useCloudSaveV2FileDetails } from "./use-cloud-save-v2-file-details";
 import {
-  RPCS3_CONFIG_SETTINGS_URL,
-  type Rpcs3ConfigCheckStatus,
-} from "./rpcs3-config-presentation";
+  emulatorConfigSettingsUrl,
+  type EmulatorConfigCheckStatus,
+} from "./emulator-config-presentation";
 import {
   isRetroArchExecutableError,
   isRetroArchSetupBlocked,
@@ -53,7 +56,7 @@ import {
   type RetroArchExecutableStatus,
 } from "./retroarch-executable-status";
 import { useRetroArchExecutableStatus } from "./use-retroarch-executable-status";
-import { useRpcs3ConfigStatus } from "./use-rpcs3-config-status";
+import { useEmulatorConfigStatus } from "./use-emulator-config-status";
 
 interface CloudSaveV2ContextValue {
   overview: CloudSaveOverview | null;
@@ -69,16 +72,16 @@ interface CloudSaveV2ContextValue {
   progress: CloudSaveSyncProgressPayload | null;
   hasExecutablePath: boolean;
   requiresRom: boolean;
-  requiresDisc: boolean;
+  discProvider: DiscCloudSaveEmulatorProvider | null;
   retroArchExecutableStatus: RetroArchExecutableStatus | null;
   retryRetroArchExecutable: () => void;
   openRetroArchSettings: () => void;
-  rpcs3ConfigStatus: Rpcs3ConfigCheckStatus | null;
-  retryRpcs3Config: () => void;
-  rpcs3DiscStatus: Rpcs3DiscIdentityStatus | null;
-  rpcs3IdentityError: boolean;
-  retryRpcs3Disc: () => void;
-  openRpcs3Settings: () => void;
+  emulatorConfigStatus: EmulatorConfigCheckStatus | null;
+  retryEmulatorConfig: () => void;
+  discStatus: EmulatorDiscIdentityStatus | null;
+  discIdentityError: boolean;
+  retryDiscIdentity: () => void;
+  openEmulatorSettings: () => void;
   canUseCloudSaves: boolean;
   openManager: () => void;
   openFileBrowser: () => void;
@@ -200,8 +203,7 @@ export function CloudSaveV2Provider({
   const isV2Eligible = isCloudSaveV2Eligible(shop, game?.platform, objectId);
   const isRetroArchGame =
     getCloudSaveEmulatorProvider(shop, game?.platform) === "retroarch";
-  const isRpcs3Game =
-    getCloudSaveEmulatorProvider(shop, game?.platform) === "rpcs3";
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, game?.platform);
   const hasExecutablePath = game
     ? hasCloudSaveExecutableSelection(game)
     : false;
@@ -219,10 +221,13 @@ export function CloudSaveV2Provider({
     shop,
     enabled: canCheckCloudSaves,
   });
+  const hasWrongGameError =
+    discProvider !== null &&
+    refreshErrorCode === discCloudSaveWrongGameErrorCode(discProvider);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [rpcs3DiscStatusEntry, setRpcs3DiscStatusEntry] = useState<{
+  const [discStatusEntry, setDiscStatusEntry] = useState<{
     key: string;
-    status: Rpcs3DiscIdentityStatus;
+    status: EmulatorDiscIdentityStatus;
   } | null>(null);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
@@ -271,9 +276,9 @@ export function CloudSaveV2Provider({
     gameKey,
     isModalVisible
   );
-  const { status: rpcs3ConfigStatus, retry: retryRpcs3Config } =
-    useRpcs3ConfigStatus(
-      isRpcs3Game && canCheckEmulator,
+  const { status: emulatorConfigStatus, retry: retryEmulatorConfig } =
+    useEmulatorConfigStatus(
+      canCheckEmulator ? discProvider : null,
       gameKey,
       isModalVisible
     );
@@ -285,24 +290,24 @@ export function CloudSaveV2Provider({
     setIsModalVisible(false);
     navigate(RETROARCH_CONFIG_SETTINGS_URL);
   }, [navigate]);
-  const rpcs3DiscStatus =
-    rpcs3DiscStatusEntry?.key === gameKey ? rpcs3DiscStatusEntry.status : null;
-  const openRpcs3Settings = useCallback(() => {
+  const discStatus =
+    discStatusEntry?.key === gameKey ? discStatusEntry.status : null;
+  const openEmulatorSettings = useCallback(() => {
     setIsModalVisible(false);
-    navigate(RPCS3_CONFIG_SETTINGS_URL);
-  }, [navigate]);
-  const refreshRpcs3DiscStatus = useCallback(async () => {
-    if (!isRpcs3Game || !canCheckCloudSaves) return;
-    const status = await window.electron.getRpcs3DiscIdentityStatus(
+    if (discProvider) navigate(emulatorConfigSettingsUrl(discProvider));
+  }, [discProvider, navigate]);
+  const refreshDiscStatus = useCallback(async () => {
+    if (!discProvider || !canCheckCloudSaves) return;
+    const status = await window.electron.getEmulatorDiscIdentityStatus(
       objectId,
       shop
     );
-    setRpcs3DiscStatusEntry({ key: gameKey, status });
-  }, [canCheckCloudSaves, gameKey, isRpcs3Game, objectId, shop]);
+    setDiscStatusEntry({ key: gameKey, status });
+  }, [canCheckCloudSaves, discProvider, gameKey, objectId, shop]);
 
   useEffect(() => {
-    void refreshRpcs3DiscStatus().catch(() =>
-      setRpcs3DiscStatusEntry({
+    void refreshDiscStatus().catch(() =>
+      setDiscStatusEntry({
         key: gameKey,
         status: {
           status: "catalogue-unavailable",
@@ -311,12 +316,10 @@ export function CloudSaveV2Provider({
         },
       })
     );
-  }, [refreshRpcs3DiscStatus, gameKey, isModalVisible, game?.discs, isSyncing]);
-  const retryRpcs3Disc = useCallback(() => {
-    void Promise.all([refreshRpcs3DiscStatus(), refresh()]).catch(
-      () => undefined
-    );
-  }, [refreshRpcs3DiscStatus, refresh]);
+  }, [refreshDiscStatus, gameKey, isModalVisible, game?.discs, isSyncing]);
+  const retryDiscIdentity = useCallback(() => {
+    void Promise.all([refreshDiscStatus(), refresh()]).catch(() => undefined);
+  }, [refreshDiscStatus, refresh]);
 
   const activeGameKey = useRef(gameKey);
   const gamePageSyncInFlight = useRef(false);
@@ -669,7 +672,7 @@ export function CloudSaveV2Provider({
     setWasOpenedFromLaunchConflict(false);
     setIsFileBrowserVisible(false);
     setGameOptionsInitialCategory(
-      isRetroArchGame || isRpcs3Game ? "general" : "locations"
+      isRetroArchGame || discProvider ? "general" : "locations"
     );
     setShowGameOptionsModal(true);
   };
@@ -1071,21 +1074,14 @@ export function CloudSaveV2Provider({
   } else if (hasRefreshError) {
     errorMessageKey = "cloud_save_v2_load_error";
   }
-  if (rpcs3ConfigStatus && rpcs3ConfigStatus !== "ready") {
+  if (emulatorConfigStatus && emulatorConfigStatus !== "ready") {
     errorMessageKey = null;
   }
   if (isRetroArchGame && isRetroArchSetupBlocked(retroArchExecutableStatus)) {
     errorMessageKey = null;
   }
-  if (
-    rpcs3DiscStatus?.status !== "ready" &&
-    rpcs3DiscStatus?.status !== "missing"
-  ) {
-    if (
-      rpcs3DiscStatus ||
-      refreshErrorCode === "cloud_save_rpcs3_save_wrong_game"
-    )
-      errorMessageKey = null;
+  if (discStatus?.status !== "ready" && discStatus?.status !== "missing") {
+    if (discStatus || hasWrongGameError) errorMessageKey = null;
   }
   const openFileBrowser = useCallback(() => {
     if (cloudSaveAccessAction === "open") {
@@ -1108,17 +1104,16 @@ export function CloudSaveV2Provider({
       progress,
       hasExecutablePath,
       requiresRom: isRetroArchGame,
-      requiresDisc: isRpcs3Game,
+      discProvider,
       retroArchExecutableStatus,
       retryRetroArchExecutable,
       openRetroArchSettings,
-      rpcs3ConfigStatus,
-      retryRpcs3Config,
-      rpcs3DiscStatus,
-      rpcs3IdentityError:
-        refreshErrorCode === "cloud_save_rpcs3_save_wrong_game",
-      retryRpcs3Disc,
-      openRpcs3Settings,
+      emulatorConfigStatus,
+      retryEmulatorConfig,
+      discStatus,
+      discIdentityError: hasWrongGameError,
+      retryDiscIdentity,
+      openEmulatorSettings,
       canUseCloudSaves,
       openManager,
       openFileBrowser,
@@ -1132,16 +1127,16 @@ export function CloudSaveV2Provider({
       hasError,
       hasExecutablePath,
       isRetroArchGame,
-      isRpcs3Game,
+      discProvider,
       retroArchExecutableStatus,
       retryRetroArchExecutable,
       openRetroArchSettings,
-      rpcs3ConfigStatus,
-      retryRpcs3Config,
-      rpcs3DiscStatus,
-      refreshErrorCode,
-      retryRpcs3Disc,
-      openRpcs3Settings,
+      emulatorConfigStatus,
+      retryEmulatorConfig,
+      discStatus,
+      hasWrongGameError,
+      retryDiscIdentity,
+      openEmulatorSettings,
       isAutomaticSyncEnabled,
       isGameRunning,
       isRefreshing,
@@ -1184,18 +1179,16 @@ export function CloudSaveV2Provider({
         isGameRunning={isGameRunning}
         hasExecutablePath={hasExecutablePath}
         requiresRom={isRetroArchGame}
-        requiresDisc={isRpcs3Game}
+        discProvider={discProvider}
         retroArchExecutableStatus={retroArchExecutableStatus}
         onRetryRetroArchExecutable={retryRetroArchExecutable}
         onConfigureRetroArch={openRetroArchSettings}
-        rpcs3ConfigStatus={rpcs3ConfigStatus}
-        onRetryRpcs3Config={retryRpcs3Config}
-        rpcs3DiscStatus={rpcs3DiscStatus}
-        rpcs3IdentityError={
-          refreshErrorCode === "cloud_save_rpcs3_save_wrong_game"
-        }
-        onRetryRpcs3Disc={retryRpcs3Disc}
-        onConfigureRpcs3={openRpcs3Settings}
+        emulatorConfigStatus={emulatorConfigStatus}
+        onRetryEmulatorConfig={retryEmulatorConfig}
+        discStatus={discStatus}
+        discIdentityError={hasWrongGameError}
+        onRetryDiscIdentity={retryDiscIdentity}
+        onConfigureEmulator={openEmulatorSettings}
         isAutomaticSyncEnabled={isAutomaticSyncEnabled}
         hasError={hasError}
         errorMessageKey={errorMessageKey}

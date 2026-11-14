@@ -49,6 +49,7 @@ export default function RecompilationPage() {
   const [details, setDetails] = useState<RecompilationDetails | null>(null);
   const [readme, setReadme] = useState<RecompilationReadme | null>(null);
   const [releases, setReleases] = useState<RecompilationRelease[]>([]);
+  const [areReleasesLoaded, setAreReleasesLoaded] = useState(false);
   const [game, setGame] = useState<LibraryGame | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState<RecompilationTab>("about");
@@ -57,6 +58,7 @@ export default function RecompilationPage() {
   const rom = useRecompilationRom(objectId, slug);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const [openInstallOnUpdate, setOpenInstallOnUpdate] = useState(false);
   const [isRomDownloadOpen, setIsRomDownloadOpen] = useState(false);
 
   useEffect(() => {
@@ -65,7 +67,9 @@ export default function RecompilationPage() {
   }, [objectId, slug]);
 
   useEffect(() => {
-    if (searchParams.get("rom") !== "1") return;
+    const rom = searchParams.get("rom");
+    if (rom !== "1" && rom !== "update") return;
+    setOpenInstallOnUpdate(rom === "update");
     setIsInstallOpen(true);
     setSearchParams({}, { replace: true });
   }, [searchParams, setSearchParams]);
@@ -79,6 +83,7 @@ export default function RecompilationPage() {
     let cancelled = false;
     setDetails(null);
     setReleases([]);
+    setAreReleasesLoaded(false);
     setIsNotFound(false);
     setActiveTab("about");
 
@@ -93,7 +98,9 @@ export default function RecompilationPage() {
 
     getRecompilationReleases(objectId, slug)
       .then((data) => {
-        if (!cancelled) setReleases(data.releases ?? []);
+        if (cancelled) return;
+        setReleases(data.releases ?? []);
+        setAreReleasesLoaded(true);
       })
       .catch((error) => logger.error("Failed to load releases", error));
 
@@ -216,13 +223,22 @@ export default function RecompilationPage() {
     >
       <div className="recompilation-page">
         <RecompilationHero
+          objectId={objectId}
           details={details}
+          areReleasesLoaded={areReleasesLoaded}
           game={game}
           hasCloudSave={cloudSaveGame !== null}
           installAsset={installAsset}
           install={install}
           rom={rom}
-          onOpenInstall={() => setIsInstallOpen(true)}
+          onOpenInstall={() => {
+            setOpenInstallOnUpdate(false);
+            setIsInstallOpen(true);
+          }}
+          onOpenUpdate={() => {
+            setOpenInstallOnUpdate(true);
+            setIsInstallOpen(true);
+          }}
           onDownloadRom={() => setIsRomDownloadOpen(true)}
         />
 
@@ -232,6 +248,7 @@ export default function RecompilationPage() {
           installAsset={installAsset}
           install={install}
           rom={rom}
+          openOnUpdate={openInstallOnUpdate}
           onClose={() => setIsInstallOpen(false)}
         />
 

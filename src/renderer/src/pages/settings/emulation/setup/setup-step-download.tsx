@@ -27,6 +27,7 @@ const OFFICIAL_WEBSITES: Record<EmulatorBinary, string> = {
   duckstation: "https://www.duckstation.org/",
   pcsx2: "https://pcsx2.net/",
   rpcs3: "https://rpcs3.net/",
+  shadps4: "https://shadps4.net/",
   ppsspp: "https://www.ppsspp.org/",
   dolphin: "https://dolphin-emu.org/",
 };
@@ -37,6 +38,7 @@ const ARTICLE_KEYS: Partial<Record<EmulatorBinary, string>> = {
   rpcs3: "install-rpcs3",
   ppsspp: "install-ppsspp",
   dolphin: "install-dolphin",
+  shadps4: "install-shadps4",
 };
 
 const SEMVER_RE = /v?\d{1,9}\.\d{1,9}(?:\.\d{1,9})?/;

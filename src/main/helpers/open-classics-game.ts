@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import path from "node:path";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { logger, NativeAddon } from "@main/services";
@@ -32,6 +33,11 @@ const codedLaunchError = (
   logger.error("Failed to launch classics game", { code, ...context });
   return Object.assign(new Error(message), { code });
 };
+
+const resolveDiscBootPath = (
+  discPath: string,
+  system: EmulatorSystem
+): string => (system === "ps4" ? path.join(discPath, "eboot.bin") : discPath);
 
 const isRpcs3RunningExternally = async (): Promise<number[]> => {
   const procs = await NativeAddon.listProcesses();
@@ -355,9 +361,38 @@ export const openClassicsGame = async (
     );
   }
 
+  if (system === "ps4") {
+    const { isPs4PkgJobRunningFor } = await import(
+      "@main/events/emulators/ps4-pkg-job"
+    );
+    if (isPs4PkgJobRunningFor(objectId)) {
+      throw Object.assign(
+        new Error(`PS4_PKG_JOB_RUNNING: ${shop}/${objectId}`),
+        { code: "PS4_PKG_JOB_RUNNING" }
+      );
+    }
+  }
+
   const resolvedDiscPath =
     discPath ?? game.selectedDiscPath ?? game.discs?.[0]?.path ?? null;
-  if (!resolvedDiscPath || !existsSync(resolvedDiscPath)) {
+
+  // A PS4 PKG found in the ROM folder has to be extracted before it plays;
+  // the renderer asks first and then extracts it.
+  if (
+    system === "ps4" &&
+    resolvedDiscPath?.toLowerCase().endsWith(".pkg") &&
+    existsSync(resolvedDiscPath)
+  ) {
+    throw Object.assign(
+      new Error(`PS4_PKG_NEEDS_EXTRACTION: ${shop}/${objectId}`),
+      { code: "PS4_PKG_NEEDS_EXTRACTION" }
+    );
+  }
+
+  if (
+    !resolvedDiscPath ||
+    !existsSync(resolveDiscBootPath(resolvedDiscPath, system))
+  ) {
     throw codedLaunchError(
       "NO_DISC",
       `NO_DISC: No disc available for game ${objectId}`,
