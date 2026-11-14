@@ -11,6 +11,7 @@ import {
   isEmulatorSaveRawPath,
   parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
+  parseShadps4SaveRawPath,
 } from "./emulator-provider-identity.js";
 
 const within = (root: string, candidate: string) => {
@@ -40,6 +41,15 @@ const restoreBaseForRoot = (root: string, rawPath: string) => {
   }
   if (parseRpcs3GamedataRawPath(rawPath) && path.basename(root) === "game") {
     return path.dirname(root);
+  }
+  const shadps4Save = parseShadps4SaveRawPath(rawPath);
+  if (
+    shadps4Save &&
+    path.basename(root) === shadps4Save.saveTitleId &&
+    path.basename(path.dirname(root)) === "savedata" &&
+    path.basename(path.dirname(path.dirname(root))) === shadps4Save.userId
+  ) {
+    return path.dirname(path.dirname(path.dirname(root)));
   }
   return root;
 };

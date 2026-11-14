@@ -8,7 +8,11 @@ export interface ClassicsScanResult {
   sizeBytes: number;
   matched: number;
   unmatched: number;
-  unmatchedFiles: { name: string; reason: "wrong_platform" | "unmatched" }[];
+  unmatchedFiles: {
+    name: string;
+    reason: "wrong_platform" | "unmatched" | "unsupported_package";
+  }[];
+  unsupportedPackages: number;
 }
 
 export interface ClassicsScanState {

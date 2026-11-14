@@ -1,5 +1,4 @@
-import { execFile, type ChildProcess } from "node:child_process";
-import path from "node:path";
+import type { ChildProcess } from "node:child_process";
 
 import { gamesSublevel, levelKeys } from "@main/level";
 import { EMULATOR_SYSTEMS } from "@shared";
@@ -11,6 +10,7 @@ import {
   setEmulatorGameRunning,
 } from "../game-running-state";
 import { logger } from "../logger";
+import { killWindowsProcessTree } from "@main/helpers/kill-windows-process-tree";
 import { syncRetroAchievements } from "../retro-achievements/retro-achievements-sync";
 import {
   startEmulatorSouvenirWatcher,
@@ -32,6 +32,10 @@ import {
   startShadps4TrophyWatcher,
   type Shadps4TrophyWatcher,
 } from "./shadps4-trophy-watcher";
+import {
+  startRpcs3TrophyWatcher,
+  type Rpcs3TrophyWatcher,
+} from "./rpcs3-trophy-watcher";
 import { launchedGamePids } from "../launched-game-pids";
 import { NativeAddon } from "../native-addon";
 import { stopLinuxGameCaptureSession } from "../linux-game-capture-session";
@@ -67,7 +71,7 @@ export interface EmulatorSession {
   corePid: number | null;
   coreWatch: ReturnType<typeof setInterval> | null;
   relaunchWatch: ReturnType<typeof setInterval> | null;
-  trophyWatcher: Shadps4TrophyWatcher | null;
+  trophyWatcher: Shadps4TrophyWatcher | Rpcs3TrophyWatcher | null;
 }
 
 export const emulatorSessions = new Map<string, EmulatorSession>();
@@ -85,23 +89,6 @@ const listShadps4Processes = async () => {
 
 export const listShadps4ProcessIds = async (): Promise<number[]> =>
   (await listShadps4Processes()).map(({ pid }) => pid);
-
-const killWindowsProcessTree = (pid: number): void => {
-  const taskkillPath = path.win32.join(
-    process.env.SystemRoot || String.raw`C:\Windows`,
-    "System32",
-    "taskkill.exe"
-  );
-
-  execFile(
-    taskkillPath,
-    ["/PID", String(pid), "/T", "/F"],
-    { shell: false, windowsHide: true },
-    (error) => {
-      if (error) logger.warn("Failed to close shadPS4 process tree", error);
-    }
-  );
-};
 
 const isProcessAlive = (pid: number): boolean => {
   try {
@@ -178,6 +165,20 @@ const sendPresencePing = async (gameKey: string): Promise<void> => {
   });
 };
 
+const startTrophyWatcher = (
+  system: EmulatorSessionSystem,
+  gameKey: string,
+  executablePath: string,
+  discPath: string | undefined
+): Shadps4TrophyWatcher | Rpcs3TrophyWatcher | null => {
+  if (!discPath) return null;
+  if (system === "ps4") {
+    return startShadps4TrophyWatcher({ gameKey, executablePath, discPath });
+  }
+  if (system === "ps3") return startRpcs3TrophyWatcher({ gameKey, discPath });
+  return null;
+};
+
 interface StartEmulatorSessionOptions {
   game: Game;
   system: EmulatorSessionSystem;
@@ -225,10 +226,12 @@ export const startEmulatorSession = async ({
     corePid: null,
     coreWatch: null,
     relaunchWatch: null,
-    trophyWatcher:
-      system === "ps4" && discPath
-        ? startShadps4TrophyWatcher({ gameKey, executablePath, discPath })
-        : null,
+    trophyWatcher: startTrophyWatcher(
+      system,
+      gameKey,
+      executablePath,
+      discPath
+    ),
   };
 
   emulatorSessions.set(gameKey, session);
@@ -239,6 +242,9 @@ export const startEmulatorSession = async ({
       void refreshShadps4CorePid(gameKey, session, launcherPid);
     }, SHADPS4_CORE_POLL_INTERVAL_MS);
     session.coreWatch.unref?.();
+  }
+  if (system === "ps3" && launcherPid) {
+    launchedGamePids.set(gameKey, launcherPid);
   }
   setEmulatorGameRunning(gameKey);
   void onScreenshotGameStarted(gameKey);
@@ -296,7 +302,7 @@ export const closeEmulatorSession = (gameKey: string): boolean => {
   if (session.relaunchWatch && session.corePid) {
     killRelaunchedProcess(session.corePid);
   } else if (session.system === "ps4" && pid && process.platform === "win32") {
-    killWindowsProcessTree(pid);
+    killWindowsProcessTree(pid, "shadPS4");
     return true;
   }
 
@@ -419,7 +425,9 @@ const finalizeEmulatorSession = async (gameKey: string): Promise<void> => {
   if (session.coreWatch) clearInterval(session.coreWatch);
   if (session.relaunchWatch) clearInterval(session.relaunchWatch);
   stopEmulatorSouvenirWatcher(gameKey);
-  if (session.system === "ps4") launchedGamePids.delete(gameKey);
+  if (session.system === "ps4" || session.system === "ps3") {
+    launchedGamePids.delete(gameKey);
+  }
   const trophyWatcherFinished = session.trophyWatcher?.finish();
   await cleanupEmulatorSouvenirSession(session.souvenirSession);
 

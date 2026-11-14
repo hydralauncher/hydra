@@ -1181,8 +1181,15 @@ export function GameOptionsModal({
       );
       await updateGame();
       showSuccessToast(t("reset_achievements_success"));
-    } catch {
-      showErrorToast(t("reset_achievements_error"));
+    } catch (error) {
+      showErrorToast(
+        t(
+          error instanceof Error &&
+            error.message.includes("reset_achievements_game_running")
+            ? "reset_achievements_game_running"
+            : "reset_achievements_error"
+        )
+      );
     } finally {
       setIsDeletingAchievements(false);
     }
@@ -1394,6 +1401,10 @@ export function GameOptionsModal({
             className={`game-options-modal__panel${
               selectedCategory === "assets"
                 ? " game-options-modal__panel--assets"
+                : ""
+            }${
+              selectedCategory === "general"
+                ? " game-options-modal__panel--general"
                 : ""
             }`}
           >

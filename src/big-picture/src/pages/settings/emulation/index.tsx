@@ -39,7 +39,7 @@ import { EmulationDetail } from "./detail";
 import { RetroArchEmulationDetail } from "./retroarch-detail";
 import {
   isRetroArchEmulationDeepLink,
-  isRpcs3EmulationDeepLink,
+  getEmulatorDetailDeepLinkSystem,
 } from "./navigation";
 import { SettingsSection } from "../settings-section";
 
@@ -236,7 +236,7 @@ export function EmulationSettingsSection({
   const { t } = useTranslation("settings");
   const { search } = useLocation();
   const isRetroArchDeepLink = isRetroArchEmulationDeepLink(search);
-  const isRpcs3DeepLink = isRpcs3EmulationDeepLink(search);
+  const deepLinkSystem = getEmulatorDetailDeepLinkSystem(search);
   const { setFocus } = useNavigation();
   const [configs, setConfigs] = useState<EmulatorConfigMap | null>(null);
   const [retroArchConfig, setRetroArchConfig] =
@@ -244,8 +244,8 @@ export function EmulationSettingsSection({
   const [view, setView] = useState<EmulationView>(() =>
     isRetroArchDeepLink
       ? { kind: "retroarch" }
-      : isRpcs3DeepLink
-        ? { kind: "detail", system: "ps3" }
+      : deepLinkSystem
+        ? { kind: "detail", system: deepLinkSystem }
         : { kind: "grid" }
   );
   const [returnSystem, setReturnSystem] = useState<EmulationCardKey>("ps1");
@@ -318,8 +318,9 @@ export function EmulationSettingsSection({
 
   useEffect(() => {
     if (isRetroArchDeepLink) setView({ kind: "retroarch" });
-    else if (isRpcs3DeepLink) setView({ kind: "detail", system: "ps3" });
-  }, [isRetroArchDeepLink, isRpcs3DeepLink]);
+    else if (deepLinkSystem)
+      setView({ kind: "detail", system: deepLinkSystem });
+  }, [isRetroArchDeepLink, deepLinkSystem]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -327,7 +328,7 @@ export function EmulationSettingsSection({
       if (view.kind === "detail" || view.kind === "retroarch") {
         setFocus(
           (view.kind === "retroarch" && isRetroArchDeepLink) ||
-            (view.kind === "detail" && isRpcs3DeepLink)
+            (view.kind === "detail" && deepLinkSystem !== null)
             ? EMULATION_DETAIL_EXECUTABLE_BUTTON_ID
             : EMULATION_DETAIL_BACK_BUTTON_ID
         );
@@ -343,7 +344,7 @@ export function EmulationSettingsSection({
   }, [
     isLoaded,
     isRetroArchDeepLink,
-    isRpcs3DeepLink,
+    deepLinkSystem,
     returnSystem,
     setFocus,
     view,

@@ -26,15 +26,29 @@ import { useToast } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
 import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
-import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
+import {
+  HardDrive,
+  X,
+  FolderOpen,
+  ChevronDown,
+  Disc3,
+  RefreshCw,
+} from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   isPs4GameFolder,
   platformToSystem,
 } from "@renderer/helpers";
+
+// Labels that don't fit their button end in "…"; the button's title shows
+// the full text on hover.
+function ButtonLabel({ children }: Readonly<{ children: ReactNode }>) {
+  return <span className="game-options-modal__button-label">{children}</span>;
+}
 
 interface ClassicsDiscSectionProps {
   game: LibraryGame;
@@ -53,6 +67,31 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
   );
 
   const { showErrorToast } = useToast();
+  const ps4Pkg = usePs4PkgPicker(game.shop, game.objectId, "any", () => {
+    void updateGame();
+  });
+  const ps4Update = usePs4PkgPicker(game.shop, game.objectId, "update");
+  const isPkgBusy = ps4Pkg.isBusy || ps4Update.isBusy;
+  // An update needs a PS4 game folder: a disc's or an installed port's.
+  const [hasPs4GameFolder, setHasPs4GameFolder] = useState(false);
+  const discKey = discs.map((disc) => disc.path).join("|");
+
+  useEffect(() => {
+    if (system !== "ps4") {
+      setHasPs4GameFolder(false);
+      return;
+    }
+    let active = true;
+    void window.electron
+      .hasPs4GameFolder(game.shop, game.objectId)
+      .then((has) => {
+        if (active) setHasPs4GameFolder(has);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [system, game.shop, game.objectId, discKey]);
   const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
     null
   );
@@ -95,7 +134,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       );
     }
 
-    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+    const region = disc ? getDiscRegion(disc) : null;
 
     if (!region) return <Disc3 size={18} className="disc-field__icon" />;
 
@@ -193,6 +232,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const handleAddDiscFile = async () => {
     setIsAddMenuOpen(false);
+    if (system === "ps4") {
+      await ps4Pkg.pick();
+      return;
+    }
     const retroArchPlatform = platformToRetroArchPlatform(game.platform);
     let extensions = ["*"];
     if (retroArchPlatform) {
@@ -358,18 +401,17 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 isAddMenuOpen ? "disc-field__menu--open" : ""
               }`}
             >
-              {system !== "ps4" && (
-                <button
-                  type="button"
-                  className="disc-field__option"
-                  onClick={() => void handleAddDiscFile()}
-                >
-                  <Disc3 size={16} className="disc-field__icon" />
-                  <span className="disc-field__label">
-                    {t("add_disc_option")}
-                  </span>
-                </button>
-              )}
+              <button
+                type="button"
+                className="disc-field__option"
+                onClick={() => void handleAddDiscFile()}
+                disabled={isPkgBusy}
+              >
+                <Disc3 size={16} className="disc-field__icon" />
+                <span className="disc-field__label">
+                  {t("add_disc_option")}
+                </span>
+              </button>
               <button
                 type="button"
                 className="disc-field__option"
@@ -396,33 +438,51 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         </div>
 
-        {selectedDisc && (
-          <div className="disc-field__actions">
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleOpenDiscLocation}
-            >
-              <FolderOpen size={14} />
-              {t("open_disc_location")}
-            </Button>
-            <Button
-              type="button"
-              theme="outline"
-              onClick={() => void handleRemoveDisc(selectedDisc.path)}
-            >
-              <X size={14} />
-              {t("remove_selected_disc")}
-            </Button>
-          </div>
-        )}
-
         {discs.length > 1 && (
           <CheckboxField
             label={t("dont_ask_disc_again")}
             checked={Boolean(game.dontAskDiscSelection)}
             onChange={(e) => void handleToggleDontAsk(e.target.checked)}
           />
+        )}
+
+        {(selectedDisc || hasPs4GameFolder) && (
+          <div className="disc-field__actions">
+            {selectedDisc && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleOpenDiscLocation}
+                title={t("open_disc_location")}
+              >
+                <FolderOpen size={14} />
+                <ButtonLabel>{t("open_disc_location")}</ButtonLabel>
+              </Button>
+            )}
+            {hasPs4GameFolder && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={() => void ps4Update.pick()}
+                disabled={isPkgBusy}
+                title={t("apply_ps4_update")}
+              >
+                <RefreshCw size={14} />
+                <ButtonLabel>{t("apply_ps4_update")}</ButtonLabel>
+              </Button>
+            )}
+            {selectedDisc && (
+              <Button
+                type="button"
+                theme="danger"
+                onClick={() => void handleRemoveDisc(selectedDisc.path)}
+                title={t("remove_selected_disc")}
+              >
+                <X size={14} />
+                <ButtonLabel>{t("remove_selected_disc")}</ButtonLabel>
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -647,9 +707,10 @@ export function GeneralSettingsSection({
           onClick={onDeleteSteamShortcut}
           theme="danger"
           disabled={creatingSteamShortcut}
+          title={t("delete_steam_shortcut")}
         >
           <SteamLogo />
-          {t("delete_steam_shortcut")}
+          <ButtonLabel>{t("delete_steam_shortcut")}</ButtonLabel>
         </Button>
       );
     } else if (hasShortcutLaunchTarget) {
@@ -658,9 +719,10 @@ export function GeneralSettingsSection({
           onClick={onCreateSteamShortcut}
           theme="outline"
           disabled={creatingSteamShortcut}
+          title={t("steam_shortcut_short")}
         >
           <SteamLogo />
-          {t("create_steam_shortcut")}
+          <ButtonLabel>{t("steam_shortcut_short")}</ButtonLabel>
         </Button>
       );
     }
@@ -1090,8 +1152,9 @@ export function GeneralSettingsSection({
                 <Button
                   onClick={() => onCreateShortcut("desktop")}
                   theme="outline"
+                  title={t("create_shortcut")}
                 >
-                  {t("create_shortcut")}
+                  <ButtonLabel>{t("create_shortcut")}</ButtonLabel>
                 </Button>
               )}
               {steamShortcutButton}
@@ -1099,8 +1162,9 @@ export function GeneralSettingsSection({
                 <Button
                   onClick={() => onCreateShortcut("start_menu")}
                   theme="outline"
+                  title={t("create_start_menu_shortcut")}
                 >
-                  {t("create_start_menu_shortcut")}
+                  <ButtonLabel>{t("create_start_menu_shortcut")}</ButtonLabel>
                 </Button>
               )}
             </div>

@@ -3,7 +3,7 @@ import type { EmulatorSystem, GameShop, RetroArchPlatform } from "@types";
 import { platformToRetroArchPlatform } from "./retroarch-platform.js";
 import { parseRecompilationCloudSaveObjectId } from "./recompilations.js";
 
-export type CloudSaveEmulatorProvider = "rpcs3" | "retroarch";
+export type CloudSaveEmulatorProvider = "rpcs3" | "shadps4" | "retroarch";
 
 export const getCloudSaveEmulatorProvider = (
   shop: GameShop,
@@ -11,6 +11,7 @@ export const getCloudSaveEmulatorProvider = (
 ): CloudSaveEmulatorProvider | null => {
   if (shop !== "launchbox" || !platform) return null;
   if (/playstation\s*3|\bps3\b/i.test(platform)) return "rpcs3";
+  if (/playstation\s*4|\bps4\b/i.test(platform)) return "shadps4";
   return platformToRetroArchPlatform(platform) ? "retroarch" : null;
 };
 
@@ -54,18 +55,23 @@ export const hasSelectedRetroArchRom = (game: {
   discs?: RomDisc[];
 }) => getSelectedRetroArchRomPath(game) !== null;
 
-export type DiscCloudSaveEmulatorProvider = "rpcs3";
+export type DiscCloudSaveEmulatorProvider = "rpcs3" | "shadps4";
 
 const DISC_PROVIDER_SYSTEMS: Record<
   DiscCloudSaveEmulatorProvider,
   EmulatorSystem
 > = {
   rpcs3: "ps3",
+  shadps4: "ps4",
 };
 
 export const DISC_CLOUD_SAVE_EMULATOR_PROVIDERS = Object.keys(
   DISC_PROVIDER_SYSTEMS
 ) as DiscCloudSaveEmulatorProvider[];
+
+export const DISC_CLOUD_SAVE_EMULATOR_SYSTEMS = Object.values(
+  DISC_PROVIDER_SYSTEMS
+);
 
 export const isDiscCloudSaveEmulatorProvider = (
   provider: CloudSaveEmulatorProvider | null | undefined
@@ -94,15 +100,18 @@ export const discCloudSaveWrongGameErrorCode = (
   provider: DiscCloudSaveEmulatorProvider
 ) => `cloud_save_${provider}_save_wrong_game`;
 
-export const hasCloudSaveDisc = (game: { discs?: Array<{ path: string }> }) =>
-  game.discs?.some((disc) => Boolean(disc.path.trim())) ?? false;
+/** A port's disc is the port's own game, so the emulator has no disc there. */
+export const hasCloudSaveDisc = (game: { discs?: RomDisc[] }) =>
+  game.discs?.some(
+    (disc) => Boolean(disc.path.trim()) && !disc.recompilationSlug
+  ) ?? false;
 
 export const hasCloudSaveExecutableSelection = (game: {
   shop: GameShop;
   platform?: string | null;
   executablePath?: string | null;
   selectedDiscPath?: string | null;
-  discs?: Array<{ path: string }>;
+  discs?: RomDisc[];
 }) => {
   const provider = getCloudSaveEmulatorProvider(game.shop, game.platform);
   if (provider === "retroarch") return hasSelectedRetroArchRom(game);

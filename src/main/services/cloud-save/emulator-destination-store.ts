@@ -19,6 +19,7 @@ import {
   parseRpcs3GamedataRawPath,
   parseRpcs3SaveRawPath,
   parseRpcs3SavestateRawPath,
+  parseShadps4SaveRawPath,
 } from "./emulator-provider-identity.js";
 import {
   emulatorDestinationKindForFile,
@@ -69,8 +70,9 @@ export const getExpectedEmulatorDestination = async (
   if (
     kind === "save" &&
     relativePath &&
-    provider === "rpcs3" &&
-    (parseRpcs3SaveRawPath(rawPath) || parseRpcs3GamedataRawPath(rawPath))
+    ((provider === "rpcs3" &&
+      (parseRpcs3SaveRawPath(rawPath) || parseRpcs3GamedataRawPath(rawPath))) ||
+      (provider === "shadps4" && parseShadps4SaveRawPath(rawPath)))
   ) {
     const file = {
       variantId: "emulator-destination",

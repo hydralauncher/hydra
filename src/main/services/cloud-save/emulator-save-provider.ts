@@ -34,6 +34,14 @@ export const getEmulatorGameSaveFileFilter = async (
     const titleIds = savedataTitleIds ?? (await getRpcs3SavedataTitleIds(game));
     return (filePath: string) => isRpcs3GameSaveFile(game, filePath, titleIds);
   }
+  if (provider === "shadps4") {
+    const { getShadps4SavedataTitleIds, isShadps4GameSaveFile } = await import(
+      "./shadps4-save-layout.js"
+    );
+    const titleIds =
+      savedataTitleIds ?? (await getShadps4SavedataTitleIds(game));
+    return (filePath: string) => isShadps4GameSaveFile(filePath, titleIds);
+  }
   return () => false;
 };
 
@@ -43,6 +51,8 @@ const loadProvider = async (
   switch (provider) {
     case "rpcs3":
       return (await import("./rpcs3-save-provider")).rpcs3SaveProvider;
+    case "shadps4":
+      return (await import("./shadps4-save-provider")).shadps4SaveProvider;
     case "retroarch":
       return (await import("./retroarch-save-provider")).retroArchSaveProvider;
   }
@@ -55,6 +65,12 @@ export const getEmulatorSaveEnvironmentKey = async (game: Game) => {
       "./rpcs3-save-provider"
     );
     return getRpcs3SaveEnvironmentKey();
+  }
+  if (provider === "shadps4") {
+    const { getShadps4SaveEnvironmentKey } = await import(
+      "./shadps4-save-provider"
+    );
+    return getShadps4SaveEnvironmentKey();
   }
   if (provider === "retroarch") {
     const { getRetroArchSaveEnvironmentKey } = await import(

@@ -362,5 +362,120 @@
         "tags": ["save"]
       }
     ]
+  },
+  "spartanport": {
+    "saves": [
+      {
+        "id": "savedata",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/savedata/",
+          "linux": "<xdgData>/spartanport/user/savedata/"
+        }
+      },
+      {
+        "id": "trophies.dat",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/trophies.dat",
+          "linux": "<xdgData>/spartanport/user/trophies.dat"
+        }
+      }
+    ]
+  },
+  "bloodborne-pc": {
+    "saves": [
+      {
+        "path": "<base>/user/savedata/",
+        "kind": "dir",
+        "tags": ["save"]
+      },
+      {
+        "path": "<base>/user/seamless-coop/savedata/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "shadowofthecolossus-pc": {
+    "saves": [
+      {
+        "path": "<base>/user/savedata/",
+        "kind": "dir",
+        "tags": ["save"]
+      }
+    ]
+  },
+  "bbport": {
+    "saves": [
+      {
+        "id": "savedata",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/savedata/",
+          "linux": "<xdgData>/bbport/user/savedata/"
+        }
+      }
+    ]
+  },
+  "pt-pc": {
+    "saves": [
+      {
+        "id": "PT_Save_Data0",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/data/PT_Save_Data0",
+          "linux": "<base>/data/PT_Save_Data0"
+        }
+      },
+      {
+        "id": "PT_Save_Data1",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/data/PT_Save_Data1",
+          "linux": "<base>/data/PT_Save_Data1"
+        }
+      },
+      {
+        "id": "pt.ini",
+        "kind": "file",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/data/pt.ini",
+          "linux": "<base>/data/pt.ini"
+        }
+      }
+    ]
+  },
+  "octr-nitrofueled-pc": {
+    "saves": [
+      {
+        "id": "savedata",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/savedata/1/",
+          "linux": "<xdgData>/sacredfire/user/savedata/1/"
+        }
+      }
+    ]
+  },
+  "iss-pc": {
+    "saves": [
+      {
+        "id": "savedata",
+        "kind": "dir",
+        "tags": ["save"],
+        "paths": {
+          "windows": "<base>/user/savedata/",
+          "linux": "<base>/user/savedata/"
+        }
+      }
+    ]
   }
 }

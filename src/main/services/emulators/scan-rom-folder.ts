@@ -5,6 +5,7 @@ import path from "node:path";
 import type { KnownBinary } from "./known-binaries";
 import { resolveSniffTarget, sniffDiscImage } from "./sniff-disc-platform";
 import { logger } from "../logger";
+import { readPs4PkgInfo } from "../ps4-pkg/ps4-pkg-info";
 import type { EmulatorSystem } from "@types";
 
 const MAX_COLLECTED_FILES = 50_000;
@@ -20,6 +21,7 @@ export interface ScanResult {
   fileCount: number;
   sizeBytes: number;
   games: ScannedGame[];
+  unsupportedPackages: string[];
 }
 
 export interface ScanProgress {
@@ -333,6 +335,7 @@ const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
       case "ps3":
         games.push(...applyPs3Rules(group));
         break;
+      case "ps4":
       case "psp":
       case "dolphin":
         games.push(...applySimpleRules(group));
@@ -390,6 +393,13 @@ const isPs4GameDirectory = (entries: Dirent[]): boolean =>
     (entry) => entry.isDirectory() && matchesPs4EntryName(entry.name, "sce_sys")
   );
 
+const findPs4PackageFiles = (directory: string, entries: Dirent[]): string[] =>
+  entries
+    .filter(
+      (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".pkg")
+    )
+    .map((entry) => path.join(directory, entry.name));
+
 const collectPs4Directory = (
   directory: string,
   entries: Dirent[],
@@ -408,10 +418,37 @@ const collectPs4Directory = (
     return;
   }
 
+  for (const fullPath of findPs4PackageFiles(directory, entries)) {
+    candidates.push({
+      fullPath,
+      name: path.basename(fullPath).slice(0, -".pkg".length),
+      isMarkerDir: false,
+    });
+  }
+
   if (!shouldDescend) return;
   for (const entry of entries) {
     if (entry.isDirectory()) queue.push(path.join(directory, entry.name));
   }
+};
+
+/**
+ * Game PKGs are imported (and extracted on Play); update and add-on PKGs are
+ * not games, so they are left out and counted for the scan warning.
+ */
+const keepPs4GamePkgs = async (candidates: Candidate[]) => {
+  const kept: Candidate[] = [];
+  const skipped: string[] = [];
+  for (const candidate of candidates) {
+    if (candidate.isMarkerDir) {
+      kept.push(candidate);
+      continue;
+    }
+    const info = await readPs4PkgInfo(candidate.fullPath).catch(() => null);
+    if (info?.kind === "game" && !info.isDeltaPatch) kept.push(candidate);
+    else skipped.push(candidate.fullPath);
+  }
+  return { kept, skipped };
 };
 
 const collectEntries = (
@@ -434,7 +471,7 @@ const collectCandidates = async (
   binary: KnownBinary,
   scanSubfolders: boolean,
   signal?: { cancelled: boolean }
-): Promise<Candidate[]> => {
+): Promise<{ candidates: Candidate[]; unsupportedPackages: string[] }> => {
   const candidates: Candidate[] = [];
   const queue: string[] = [rootPath];
   const seen = new Set<string>();
@@ -478,7 +515,11 @@ const collectCandidates = async (
     );
   }
 
-  return candidates;
+  if (binary.system === "ps4") {
+    const { kept, skipped } = await keepPs4GamePkgs(candidates);
+    return { candidates: kept, unsupportedPackages: skipped };
+  }
+  return { candidates, unsupportedPackages: [] };
 };
 
 const sizeGame = async (
@@ -513,13 +554,13 @@ export const scanRomFolder = async (
   scanSubfolders: boolean,
   options?: ScanOptions
 ): Promise<ScanResult> => {
-  const raw = await collectCandidates(
+  const { candidates, unsupportedPackages } = await collectCandidates(
     rootPath,
     binary,
     scanSubfolders,
     options?.signal
   );
-  const games = dedupGames(binary, raw);
+  const games = dedupGames(binary, candidates);
   const total = games.length;
 
   let fileCount = 0;
@@ -556,7 +597,7 @@ export const scanRomFolder = async (
     });
   }
 
-  return { fileCount, sizeBytes, games: scannedGames };
+  return { fileCount, sizeBytes, games: scannedGames, unsupportedPackages };
 };
 
 export const countRomGroups = async (
@@ -565,8 +606,13 @@ export const countRomGroups = async (
   scanSubfolders: boolean,
   signal?: { cancelled: boolean }
 ): Promise<number> => {
-  const raw = await collectCandidates(rootPath, binary, scanSubfolders, signal);
-  return dedupGames(binary, raw).length;
+  const { candidates } = await collectCandidates(
+    rootPath,
+    binary,
+    scanSubfolders,
+    signal
+  );
+  return dedupGames(binary, candidates).length;
 };
 
 export interface CollectedRomFile {
