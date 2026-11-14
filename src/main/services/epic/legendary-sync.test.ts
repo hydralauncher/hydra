@@ -63,21 +63,27 @@ async function fixture(t: TestContext, command: Command) {
       Date,
     }
   );
-  const runner = await module.LegendarySyncRunner.create(
-    "controlled-binary",
-    root,
-    connection.epicAccountId,
-    bundle,
-    controller.signal,
-    async (session) => {
-      sessions.push(session);
-    }
-  );
+  const runners: { cleanup(): Promise<void> }[] = [];
+  const create = async () => {
+    const created = await module.LegendarySyncRunner.create(
+      "controlled-binary",
+      root,
+      connection.epicAccountId,
+      bundle,
+      controller.signal,
+      async (session) => {
+        sessions.push(session);
+      }
+    );
+    runners.push(created);
+    return created;
+  };
+  const runner = await create();
   t.after(async () => {
-    await runner.cleanup();
+    for (const created of runners) await created.cleanup();
     await fs.rm(root, { recursive: true, force: true });
   });
-  return { root, controller, runner, sessions };
+  return { root, controller, runner, sessions, create };
 }
 test("sync executes Windows/Mac independently and accepts confirmed empty arrays", async (t) => {
   const args: string[][] = [];
@@ -162,4 +168,50 @@ test("rotated token survives cancellation but no collected library is returned",
 test("missing JSON is not accepted as empty library", async (t) => {
   const f = await fixture(t, async () => "");
   await assert.rejects(f.runner.library(), /invalid-response/);
+});
+
+test("Legendary metadata carries over to the next run, even after a failure", async (t) => {
+  const seen: string[][] = [];
+  let calls = 0;
+  const f = await fixture(t, async (directory) => {
+    const metadata = path.join(directory, "metadata");
+    seen.push((await fs.readdir(metadata).catch(() => [])).sort());
+    await fs.mkdir(metadata, { recursive: true });
+    await fs.writeFile(path.join(metadata, `title-${++calls}.json`), "{}");
+    if (calls === 2) throw new protocol.EpicIntegrationError("rate-limit");
+    return "[]";
+  });
+  await assert.rejects(f.runner.library(), /rate-limit/);
+  await f.runner.cleanup();
+  const next = await f.create();
+  assert.equal(JSON.stringify(await next.library()), "[[],[]]");
+  assert.deepEqual(seen, [
+    [],
+    ["title-1.json"],
+    ["title-1.json", "title-2.json"],
+    ["title-1.json", "title-2.json", "title-3.json"],
+  ]);
+});
+
+test("metadata cache keeps only metadata JSON files", async (t) => {
+  const f = await fixture(t, async (directory) => {
+    const metadata = path.join(directory, "metadata");
+    await fs.mkdir(path.join(metadata, "nested"), { recursive: true });
+    await fs.writeFile(path.join(metadata, "title.json"), "{}");
+    await fs.writeFile(path.join(metadata, "notes.txt"), "x");
+    return "[]";
+  });
+  await f.runner.library();
+  const cache = path.join(
+    f.root,
+    "epic-legendary-cache",
+    connection.epicAccountId
+  );
+  assert.deepEqual(await fs.readdir(cache), ["title.json"]);
+  assert.equal(
+    (await fs.readdir(path.dirname(cache))).some((name) =>
+      name.endsWith(".tmp")
+    ),
+    false
+  );
 });

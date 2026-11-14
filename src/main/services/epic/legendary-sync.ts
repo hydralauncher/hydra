@@ -1,3 +1,4 @@
+import type { Dirent } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -17,11 +18,42 @@ import {
 } from "./constants.js";
 import type { EpicSessionBundle } from "./store";
 
+// Legendary keeps per-title metadata (including achievements) in metadata/
+// and only refetches new or updated titles. Each run gets a fresh private
+// directory, so without this cache a large library refetches every title on
+// every sync and Epic answers with 429. Catalogue data only, never tokens.
+const METADATA_DIRECTORY = "metadata";
+const METADATA_CACHE_ROOT = "epic-legendary-cache";
+const METADATA_FILE_MAX_BYTES = 4 * 1024 * 1024;
+
+const getMetadataCacheDirectory = (userData: string, accountId: string) =>
+  path.join(userData, METADATA_CACHE_ROOT, accountId);
+
+/** Copies plain metadata JSON files; false when the source does not exist. */
+async function copyMetadataFiles(from: string, to: string) {
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(from, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  await fs.mkdir(to, { recursive: true, mode: 0o700 });
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
+    const source = path.join(from, entry.name);
+    const stat = await fs.lstat(source);
+    if (!stat.isFile() || stat.size > METADATA_FILE_MAX_BYTES) continue;
+    await fs.copyFile(source, path.join(to, entry.name));
+  }
+  return true;
+}
+
 export class LegendarySyncRunner {
   private pendingTermination?: () => Promise<void>;
   private constructor(
     private readonly binary: string,
     private readonly directory: string,
+    private readonly cacheDirectory: string,
     private readonly accountId: string,
     private readonly signal: AbortSignal,
     private readonly onSession: (bundle: EpicSessionBundle) => Promise<void>
@@ -61,9 +93,16 @@ export class LegendarySyncRunner {
         "[Legendary]\ndisable_update_check = true\ndisable_update_notice = true\ndisable_auto_aliasing = true\n",
         { mode: 0o600 }
       );
+      const cacheDirectory = getMetadataCacheDirectory(userData, accountId);
+      // A missing or unreadable cache only means Legendary fetches everything.
+      await copyMetadataFiles(
+        cacheDirectory,
+        path.join(directory, METADATA_DIRECTORY)
+      ).catch(() => false);
       return new LegendarySyncRunner(
         binary,
         directory,
+        cacheDirectory,
         accountId,
         signal,
         onSession
@@ -146,19 +185,46 @@ export class LegendarySyncRunner {
 
   async library(): Promise<unknown[]> {
     const results: unknown[] = [];
-    for (const platform of ["Windows", "Mac"]) {
-      const result = await this.run([
-        "list",
-        "--json",
-        "--include-non-installable",
-        "--platform",
-        platform,
-      ]);
-      if (!Array.isArray(result))
-        throw new EpicIntegrationError("invalid-response");
-      results.push(result);
+    try {
+      for (const platform of ["Windows", "Mac"]) {
+        const result = await this.run([
+          "list",
+          "--json",
+          "--include-non-installable",
+          "--platform",
+          platform,
+        ]);
+        if (!Array.isArray(result))
+          throw new EpicIntegrationError("invalid-response");
+        results.push(result);
+      }
+      return results;
+    } finally {
+      // Also after a failure: a rate-limited run keeps what it fetched, so the
+      // next sync continues instead of starting over.
+      await this.saveMetadataCache();
     }
-    return results;
+  }
+
+  private async saveMetadataCache() {
+    const staging = `${this.cacheDirectory}.${process.pid}-${Date.now()}.tmp`;
+    try {
+      await fs.mkdir(path.dirname(this.cacheDirectory), {
+        recursive: true,
+        mode: 0o700,
+      });
+      const copied = await copyMetadataFiles(
+        path.join(this.directory, METADATA_DIRECTORY),
+        staging
+      );
+      if (!copied) return;
+      await fs.rm(this.cacheDirectory, { recursive: true, force: true });
+      await fs.rename(staging, this.cacheDirectory);
+    } catch {
+      // The cache only saves requests; a failed write never fails the sync.
+    } finally {
+      await fs.rm(staging, { recursive: true, force: true }).catch(() => {});
+    }
   }
 
   async refresh(force: boolean) {
