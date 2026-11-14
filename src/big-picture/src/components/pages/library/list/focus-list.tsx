@@ -6,11 +6,13 @@ import {
 } from "../navigation";
 import { useLibraryListNavigation } from "../list-navigation";
 import { HorizontalLibraryGameListCard } from "../game-card";
+import type { LibraryCardSize } from "../library-card-size";
 
 import "./focus-list.scss";
 
 export interface LibraryFocusListProps {
   games: LibraryGame[];
+  cardSize: LibraryCardSize;
   contextMenuGameId?: string | null;
   onOpenContextMenu?: (
     game: LibraryGame,
@@ -21,6 +23,7 @@ export interface LibraryFocusListProps {
 
 export function LibraryFocusList({
   games,
+  cardSize,
   contextMenuGameId = null,
   onOpenContextMenu,
 }: Readonly<LibraryFocusListProps>) {
@@ -29,7 +32,7 @@ export function LibraryFocusList({
   if (games.length === 0) return null;
 
   return (
-    <section className="library-focus-list">
+    <section className="library-focus-list" data-card-size={cardSize}>
       <GridFocusGroup
         className="library-focus-list__grid"
         regionId={LIBRARY_FOCUS_LIST_REGION_ID}

@@ -25,6 +25,10 @@ import {
   isBuiltinLibraryTab,
   getGameCollectionIds,
   type LibraryViewMode,
+  type LibraryCardSize,
+  DEFAULT_LIBRARY_CARD_SIZE,
+  LIBRARY_CARD_SIZE_STORAGE_KEY,
+  isLibraryCardSize,
   LibraryFocusGrid,
   LibraryFilters,
   LibraryFocusList,
@@ -72,6 +76,14 @@ function getInitialLibraryViewMode(): LibraryViewMode {
     LIBRARY_VIEW_MODE_STORAGE_KEY,
     isLibraryViewMode,
     "grid"
+  );
+}
+
+function getInitialLibraryCardSize(): LibraryCardSize {
+  return getInitialLibraryStoredValue(
+    LIBRARY_CARD_SIZE_STORAGE_KEY,
+    isLibraryCardSize,
+    DEFAULT_LIBRARY_CARD_SIZE
   );
 }
 
@@ -136,6 +148,9 @@ export default function LibraryPage() {
   );
   const [viewMode, setViewMode] = useState<LibraryViewMode>(
     getInitialLibraryViewMode
+  );
+  const [cardSize, setCardSize] = useState<LibraryCardSize>(
+    getInitialLibraryCardSize
   );
   const [sortBy, setSortBy] = useState<LibrarySortOption>(
     getInitialLibrarySortOption
@@ -355,6 +370,17 @@ export default function LibraryPage() {
   useEffect(() => {
     try {
       globalThis.window.localStorage.setItem(
+        LIBRARY_CARD_SIZE_STORAGE_KEY,
+        cardSize
+      );
+    } catch {
+      // Ignore storage failures and keep the in-memory card size.
+    }
+  }, [cardSize]);
+
+  useEffect(() => {
+    try {
+      globalThis.window.localStorage.setItem(
         LIBRARY_SORT_BY_STORAGE_KEY,
         sortBy
       );
@@ -447,6 +473,8 @@ export default function LibraryPage() {
             onSelectedTabChange={setSelectedFilterTab}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            cardSize={cardSize}
+            onCardSizeChange={setCardSize}
             sortBy={sortBy}
             onSortByChange={setSortBy}
             filterBy={filterBy}
@@ -496,6 +524,7 @@ export default function LibraryPage() {
                 {viewMode === "list" ? (
                   <LibraryFocusList
                     games={filteredLibrary}
+                    cardSize={cardSize}
                     contextMenuGameId={
                       contextMenuState.visible
                         ? (contextMenuState.game?.id ?? null)
@@ -506,6 +535,7 @@ export default function LibraryPage() {
                 ) : (
                   <LibraryFocusGrid
                     games={filteredLibrary}
+                    cardSize={cardSize}
                     contextMenuGameId={
                       contextMenuState.visible
                         ? (contextMenuState.game?.id ?? null)
