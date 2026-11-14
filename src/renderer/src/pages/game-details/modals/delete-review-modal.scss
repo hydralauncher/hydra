@@ -2,13 +2,13 @@
 
 .delete-review-modal {
   &__karma-warning {
-    background-color: rgba(255, 193, 7, 0.1);
-    border: 1px solid rgba(255, 193, 7, 0.3);
-    border-radius: 4px;
+    background-color: rgba(globals.$warning-color, 0.1);
+    border: 1px solid rgba(globals.$warning-color, 0.3);
+    border-radius: 8px;
     padding: 12px;
     margin-bottom: 16px;
-    color: #ffc107;
-    font-size: 14px;
+    color: globals.$warning-color;
+    font-size: globals.$body-font-size;
     font-weight: 500;
   }
 

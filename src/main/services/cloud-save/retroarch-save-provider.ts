@@ -9,6 +9,8 @@ import { SystemPath } from "@main/services/system-path";
 import type { CloudSaveSyncAnchor, Game, UserLocationCoverage } from "@types";
 import {
   getCloudSaveRetroArchPlatform,
+  getRetroArchRomDiscs,
+  getSelectedRetroArchRomPath,
   getRetroArchRomExtensions,
 } from "@shared";
 
@@ -249,14 +251,8 @@ export const getRetroArchSaveEnvironmentKey = async (game: Game) => {
 export const getSelectedRetroArchRom = async (game: Game) => {
   const platform = getCloudSaveRetroArchPlatform(game.shop, game.platform);
   if (!platform) return null;
-  const discs = game.discs ?? [];
-  const selectedPath =
-    game.selectedDiscPath === undefined && discs.length === 1
-      ? discs[0].path
-      : game.selectedDiscPath;
-  if (!selectedPath || !discs.some((disc) => disc.path === selectedPath)) {
-    return null;
-  }
+  const selectedPath = getSelectedRetroArchRomPath(game);
+  if (!selectedPath) return null;
   if (
     !getRetroArchRomExtensions(platform).includes(
       path.extname(selectedPath).slice(1).toLowerCase()
@@ -396,7 +392,7 @@ export const locationsForGame = async (game: Game) => {
   if (!activePath) {
     throw new Error("cloud_save_retroarch_rom_missing");
   }
-  for (const disc of game.discs ?? []) {
+  for (const disc of getRetroArchRomDiscs(game.discs)) {
     const romPath = disc.path;
     const extension = path.extname(romPath).slice(1).toLowerCase();
     if (!allowedExtensions.has(extension)) {

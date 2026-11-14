@@ -377,6 +377,7 @@ mod tests {
             title: Some("Balatro".to_string()),
             source_url: None,
             user_data_path: cache_directory.path().display().to_string(),
+            recompilation_rules: None,
         })
         .await
         .unwrap();

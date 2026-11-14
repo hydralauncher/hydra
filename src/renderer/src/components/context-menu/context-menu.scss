@@ -37,7 +37,7 @@
     align-items: center;
     gap: 8px;
     border-radius: 4px;
-    padding: 6px 12px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     background: transparent;
     border: none;
     color: globals.$muted-color;
@@ -110,7 +110,7 @@
   }
 
   &__item-arrow {
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     color: globals.$muted-color;
     margin-left: auto;
     flex-shrink: 0;

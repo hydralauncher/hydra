@@ -31,3 +31,10 @@ export const resolveEmulatorAchievementTracking = (
 export const isEmulatorAchievementTrackingActive = (
   tracking: EmulatorAchievementTracking
 ) => tracking.souvenirs || tracking.realtimeUnlocks;
+
+export const needsEmulatorOverlayVisibility = (
+  userPreferences: UserPreferences | null | undefined,
+  tracking: EmulatorAchievementTracking
+) =>
+  tracking.souvenirs ||
+  userPreferences?.achievementNotificationsEnabled !== false;

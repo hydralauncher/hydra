@@ -48,12 +48,12 @@
   gap: 8px;
   height: 34px;
   border-radius: 4px;
-  padding: 6px 12px;
+  padding: 0 calc(globals.$spacing-unit * 1.5);
   cursor: pointer;
   transition:
     background-color 0.1s ease-in-out,
     color 0.1s ease-in-out;
-  font-size: 14px;
+  font-size: globals.$body-font-size;
   color: globals.$muted-color;
   outline: none;
   white-space: nowrap;

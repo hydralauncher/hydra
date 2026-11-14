@@ -13,22 +13,22 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
+    padding: calc(globals.$spacing-unit * 1.5);
     border-radius: 8px;
-    border: 1px solid rgba(255, 200, 60, 0.3);
-    background: rgba(255, 200, 60, 0.08);
+    border: 1px solid rgba(globals.$warning-color, 0.3);
+    background: rgba(globals.$warning-color, 0.1);
   }
 
   &__warning-icon {
     flex-shrink: 0;
-    color: rgba(255, 200, 60, 0.9);
+    color: globals.$warning-color;
   }
 
   &__warning-text {
     flex: 1;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     line-height: 1.4;
-    color: rgba(255, 255, 255, 0.85);
+    color: globals.$body-color;
   }
 
   &__asset-tabs {
@@ -42,10 +42,10 @@
   &__asset-tab {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: globals.$body-color;
     padding: 8px 16px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 500;
     transition: color ease 0.2s;
 
@@ -54,7 +54,7 @@
     }
 
     &--active {
-      color: #fff;
+      color: globals.$muted-color;
     }
   }
 
@@ -63,7 +63,7 @@
     bottom: -1px;
     left: 0;
     height: 2px;
-    background: #fff;
+    background: globals.$muted-color;
     pointer-events: none;
   }
 
@@ -165,7 +165,7 @@
     border-radius: 8px;
     color: #fff;
     font-weight: 600;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     backdrop-filter: blur(2px);
     z-index: 2;
   }
@@ -180,8 +180,8 @@
     height: 100%;
     text-align: center;
     text-wrap: balance;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 14px;
+    color: globals.$subtle-color;
+    font-size: globals.$body-font-size;
     line-height: 1.3;
 
     svg {
@@ -227,8 +227,8 @@
     backdrop-filter: blur(10px);
 
     &--danger {
-      border-color: rgba(225, 29, 72, 0.6);
-      background: rgba(225, 29, 72, 0.6);
+      border-color: rgba(globals.$error-color, 0.6);
+      background: rgba(globals.$error-color, 0.6);
     }
   }
 }

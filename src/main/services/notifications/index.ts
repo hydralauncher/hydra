@@ -489,6 +489,7 @@ export const publishNewAchievementNotification = async (info: {
   totalAchievementCount: number;
   gameTitle: string;
   gameIcon: string | null;
+  suppressSound?: boolean;
 }) => {
   const partialOptions =
     info.achievements.length > 1
@@ -526,8 +527,11 @@ export const publishNewAchievementNotification = async (info: {
   }).show();
 
   if (WindowManager.mainWindow) {
-    WindowManager.mainWindow.webContents.send("on-achievement-unlocked");
-  } else if (process.platform !== "linux") {
+    WindowManager.mainWindow.webContents.send(
+      "on-achievement-unlocked",
+      info.suppressSound
+    );
+  } else if (!info.suppressSound && process.platform !== "linux") {
     const soundPath = await getAchievementSoundPath();
     sound.play(soundPath);
   }

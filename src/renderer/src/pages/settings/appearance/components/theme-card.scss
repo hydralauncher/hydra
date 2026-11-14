@@ -7,7 +7,7 @@
   flex-direction: column;
   background-color: rgba(globals.$border-color, 0.01);
   border: 1px solid globals.$border-color;
-  border-radius: 12px;
+  border-radius: 8px;
   gap: 4px;
   transition: background-color 0.2s ease;
   padding: 16px;
@@ -25,7 +25,7 @@
     gap: 16px;
 
     &__title {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
       color: globals.$muted-color;
       text-transform: capitalize;
@@ -46,7 +46,7 @@
   }
 
   &__author {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: globals.$body-color;
     font-weight: 400;
 
@@ -90,7 +90,7 @@
       }
 
       Button {
-        padding: 8px 11px;
+        padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
       }
     }
   }

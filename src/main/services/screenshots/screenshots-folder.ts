@@ -26,3 +26,11 @@ export const getScreenshotsFolder = async () => {
     getDefaultScreenshotsFolder()
   );
 };
+
+export const getScreenshotFolderCandidates = async () => [
+  ...new Set([
+    await getScreenshotsFolder(),
+    getDefaultScreenshotsFolder(),
+    path.join(SystemPath.getPath("home"), "Pictures", SCREENSHOTS_FOLDER_NAME),
+  ]),
+];

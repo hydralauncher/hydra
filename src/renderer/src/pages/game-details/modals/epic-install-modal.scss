@@ -87,7 +87,7 @@
 
   &__extras {
     border: solid 1px globals.$border-color;
-    border-radius: 6px;
+    border-radius: 8px;
   }
 
   &__extras-header {
@@ -98,7 +98,7 @@
     min-height: 56px;
     padding: 12px 16px;
     border: 0;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
     color: globals.$body-color;
     font: inherit;
@@ -124,9 +124,9 @@
   }
 
   &__extras-summary {
-    font-size: calc(globals.$small-font-size + 1px);
+    font-size: globals.$hint-font-size;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.7);
+    color: globals.$subtle-color;
     white-space: nowrap;
   }
 
@@ -199,15 +199,15 @@
     padding: 2px 8px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.08);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
   }
 
   &__extra-size {
     flex-shrink: 0;
-    font-size: calc(globals.$small-font-size + 1px);
+    font-size: globals.$hint-font-size;
     font-variant-numeric: tabular-nums;
-    color: rgba(255, 255, 255, 0.7);
+    color: globals.$subtle-color;
   }
 
   &__warning {

@@ -4,7 +4,7 @@
   &__labels {
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: rgba(255, 255, 255, 0.86);
     font-weight: 600;
   }
@@ -21,7 +21,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    border-radius: 2px;
+    border-radius: 4px;
     pointer-events: none;
   }
 
@@ -46,7 +46,7 @@
       width: 16px;
       height: 16px;
       border-radius: 50%;
-      background: #fff;
+      background: globals.$muted-color;
       cursor: pointer;
       pointer-events: all;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
@@ -62,7 +62,7 @@
       width: 16px;
       height: 16px;
       border-radius: 50%;
-      background: #fff;
+      background: globals.$muted-color;
       cursor: pointer;
       pointer-events: all;
       border: none;

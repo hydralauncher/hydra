@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import type { EmulatorSystem } from "@types";
+import type { ClassicsDisc, EmulatorSystem, SkuRegion } from "@types";
 import { logger } from "@main/services/logger";
 import { resolveSniffTarget } from "./sniff-disc-platform";
 import { readChdLeadingData } from "./chd-reader";
@@ -10,6 +10,7 @@ import { extractDolphinGameId } from "./dolphin-disc-reader";
 import { normalize } from "./sku-normalize";
 import { parseParamSfo, parseParamSfoValue } from "./param-sfo";
 import { readVerifiedPs3DirectoryTitleId } from "./verified-ps3-directory-title-id";
+import { readPs4PkgInfo } from "../ps4-pkg/ps4-pkg-info";
 import { readVerifiedPs3PkgTitleId } from "./verified-ps3-pkg-title-id";
 import { extractTitleIdFromIso } from "./verified-ps3-iso-title-id";
 
@@ -224,6 +225,7 @@ const titleIdFromPs3Directory = async (
   const sfoCandidates = [
     path.join(dirPath, "PARAM.SFO"),
     path.join(dirPath, "PS3_GAME", "PARAM.SFO"),
+    path.join(dirPath, "sce_sys", "param.sfo"),
   ];
   for (const sfoPath of sfoCandidates) {
     const data = await fs.readFile(sfoPath).catch(() => null);
@@ -268,6 +270,16 @@ const extractPs3TitleId = async (
   } catch {
     return null;
   }
+};
+
+/** Only a PS4 game PKG counts as a disc; updates and add-ons do not. */
+const extractPs4PkgTitleId = async (
+  pkgPath: string
+): Promise<string | null> => {
+  const info = await readPs4PkgInfo(pkgPath).catch(() => null);
+  return info?.kind === "game" && !info.isDeltaPatch
+    ? normalize(info.titleId)
+    : null;
 };
 
 /** Cloud Save must use metadata from the media, never a filename guess. */
@@ -405,9 +417,51 @@ export const extractDiscSku = async (
       return extractPs12Sku(primaryPath);
     case "ps3":
       return extractPs3TitleId(primaryPath);
+    case "ps4":
+      return primaryPath.toLowerCase().endsWith(".pkg")
+        ? extractPs4PkgTitleId(primaryPath)
+        : extractPs3TitleId(primaryPath);
     case "psp":
       return extractPspDiscId(primaryPath);
     case "dolphin":
       return extractDolphinGameId(primaryPath);
   }
 };
+
+const PS4_CONTENT_ID_RE = /^([A-Z])[A-Z]\d{4}[-_]?[A-Z]{4}\d{5}/;
+
+const PS4_CONTENT_REGIONS: Partial<Record<string, SkuRegion>> = {
+  U: "US",
+  E: "EU",
+  J: "JP",
+  K: "KR",
+  H: "ASIA",
+};
+
+const extractDiscRegion = async (
+  primaryPath: string,
+  system: EmulatorSystem
+): Promise<SkuRegion | null> => {
+  if (system !== "ps4") return null;
+
+  const data = await fs
+    .readFile(path.join(primaryPath, "sce_sys", "param.sfo"))
+    .catch(() => null);
+  const contentId = data ? parseParamSfoValue(data, "CONTENT_ID") : null;
+  const prefix = contentId ? PS4_CONTENT_ID_RE.exec(contentId)?.[1] : null;
+  return prefix ? (PS4_CONTENT_REGIONS[prefix] ?? null) : null;
+};
+
+export const attachDiscRegion = async (
+  disc: ClassicsDisc,
+  system: EmulatorSystem
+): Promise<ClassicsDisc> => {
+  const region = await extractDiscRegion(disc.path, system);
+  return region ? { ...disc, region } : disc;
+};
+
+export const attachDiscRegions = (
+  discs: ClassicsDisc[],
+  system: EmulatorSystem
+): Promise<ClassicsDisc[]> =>
+  Promise.all(discs.map((disc) => attachDiscRegion(disc, system)));

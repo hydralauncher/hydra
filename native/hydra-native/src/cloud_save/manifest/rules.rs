@@ -1,12 +1,13 @@
 use super::types::{
     CloudSaveGameId, CloudSaveRule, CloudSaveRuleCondition, GameSaveRules, ManifestFileRule,
-    ManifestGameEntry,
+    ManifestGameEntry, RecompilationSaveRule,
 };
 use crate::cloud_save::identity::build_rule_id;
 
 const FILE_RULE_KIND: &str = "file";
 const DIRECTORY_RULE_KIND: &str = "dir";
 const LUDUSAVI_RULE_SOURCE: &str = "ludusavi";
+const RECOMPILATION_RULE_SOURCE: &str = "recomp";
 
 pub(crate) fn infer_rule_kind(raw_path: &str) -> &'static str {
     if raw_path
@@ -47,6 +48,36 @@ fn build_rule(file: &ManifestFileRule) -> CloudSaveRule {
     rule
 }
 
+fn build_recompilation_rule(entry: &RecompilationSaveRule) -> CloudSaveRule {
+    let kind = if entry.kind == DIRECTORY_RULE_KIND {
+        DIRECTORY_RULE_KIND
+    } else {
+        FILE_RULE_KIND
+    };
+    let mut rule = CloudSaveRule {
+        rule_id: String::new(),
+        kind: kind.to_string(),
+        raw_path: entry.raw_path.clone(),
+        source: RECOMPILATION_RULE_SOURCE.to_string(),
+        tags: entry.tags.clone(),
+        preferred_path: entry.preferred_path.clone(),
+        when: entry.when.clone(),
+    };
+    rule.rule_id = build_rule_id(&rule);
+    rule
+}
+
+fn rule_source_revision(rules: &[CloudSaveRule]) -> String {
+    let mut revision_ids = rules
+        .iter()
+        .map(|rule| rule.rule_id.as_str())
+        .collect::<Vec<_>>();
+    revision_ids.sort();
+    blake3::hash(revision_ids.join("\n").as_bytes())
+        .to_hex()
+        .to_string()
+}
+
 pub fn build_game_save_rules(
     shop: String,
     object_id: String,
@@ -58,19 +89,28 @@ pub fn build_game_save_rules(
         entry.files.iter().map(build_rule).collect()
     });
 
-    let mut revision_ids = rules
-        .iter()
-        .map(|rule| rule.rule_id.as_str())
-        .collect::<Vec<_>>();
-    revision_ids.sort();
-    let rule_source_revision = blake3::hash(revision_ids.join("\n").as_bytes())
-        .to_hex()
-        .to_string();
-
     GameSaveRules {
         game_id: CloudSaveGameId { shop, object_id },
         manifest_key,
-        rule_source_revision,
+        rule_source_revision: rule_source_revision(&rules),
+        rules,
+    }
+}
+
+pub fn build_recompilation_save_rules(
+    shop: String,
+    object_id: String,
+    entries: &[RecompilationSaveRule],
+) -> GameSaveRules {
+    let rules = entries
+        .iter()
+        .map(build_recompilation_rule)
+        .collect::<Vec<_>>();
+
+    GameSaveRules {
+        game_id: CloudSaveGameId { shop, object_id },
+        manifest_key: None,
+        rule_source_revision: rule_source_revision(&rules),
         rules,
     }
 }

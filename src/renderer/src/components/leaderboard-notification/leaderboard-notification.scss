@@ -1,7 +1,9 @@
+@use "../../scss/globals.scss";
+
 $leaderboard-up: #4ade80;
 $leaderboard-down: #ff6b81;
-$leaderboard-text: #f0f1f7;
-$leaderboard-muted: #a6a7ad;
+$leaderboard-text: globals.$muted-color;
+$leaderboard-muted: globals.$subtle-color;
 
 .leaderboard-notification-icon {
   position: relative;
@@ -50,7 +52,7 @@ $leaderboard-muted: #a6a7ad;
   &__self {
     width: 28px;
     height: 28px;
-    border-radius: 50%;
+    border-radius: 4px;
     border: 2px solid #141418;
     box-shadow: 0 0 0 1px rgba(176, 92, 255, 0.7);
     object-fit: cover;
@@ -60,13 +62,13 @@ $leaderboard-muted: #a6a7ad;
 .leaderboard-rank-chip {
   flex-shrink: 0;
   height: 22px;
-  padding: 0 7px;
+  padding: 0 globals.$spacing-unit;
   display: inline-flex;
   align-items: center;
   border-radius: 6px;
   background: rgba(74, 222, 128, 0.12);
   color: $leaderboard-up;
-  font-size: 12px;
+  font-size: globals.$small-font-size;
   font-weight: 700;
 
   &--down {
@@ -82,7 +84,7 @@ $leaderboard-muted: #a6a7ad;
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: globals.$spacing-unit;
 }
 
 .leaderboard-toast {
@@ -108,13 +110,13 @@ $leaderboard-muted: #a6a7ad;
     gap: 2px;
 
     b {
-      font-size: 14px;
+      font-size: globals.$body-font-size;
       font-weight: 700;
       color: $leaderboard-text;
     }
 
     span {
-      font-size: 12px;
+      font-size: globals.$small-font-size;
       color: $leaderboard-muted;
       white-space: nowrap;
       overflow: hidden;
@@ -152,9 +154,9 @@ $leaderboard-muted: #a6a7ad;
     left: 50%;
     top: 30%;
     transform: translateX(-50%);
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     line-height: 22px;
-    padding: 0 9px;
+    padding: 0 globals.$spacing-unit;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.1);
     color: $leaderboard-text;
@@ -192,14 +194,14 @@ $leaderboard-muted: #a6a7ad;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    padding: 12px 22px;
+    gap: calc(globals.$spacing-unit / 2);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 3);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(18, 18, 18, 0.9);
+    border: 1px solid globals.$border-color;
+    background: rgba(globals.$background-color, 0.9);
 
     small {
-      font-size: 12px;
+      font-size: globals.$small-font-size;
       color: $leaderboard-muted;
     }
   }
@@ -226,7 +228,7 @@ $leaderboard-muted: #a6a7ad;
   &__actions {
     margin-top: 4px;
     display: flex;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__button {
@@ -241,7 +243,7 @@ $leaderboard-muted: #a6a7ad;
     background: rgba(13, 13, 13, 0.4);
     white-space: nowrap;
     font: inherit;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     cursor: pointer;
     transition: background 0.2s ease;
 
@@ -251,11 +253,11 @@ $leaderboard-muted: #a6a7ad;
 
     &--primary {
       background: $leaderboard-text;
-      color: #0d0d0d;
+      color: globals.$dark-background-color;
       font-weight: 600;
 
       &:hover {
-        background: #ffffff;
+        background: #dadbe1;
       }
     }
   }

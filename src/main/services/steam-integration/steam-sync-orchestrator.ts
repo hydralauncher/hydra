@@ -821,14 +821,16 @@ class SteamSyncOrchestrator {
         } catch (error) {
           if (isSteamSyncAbortError(error)) throw error;
 
+          // The account session is validated before this loop; one game's page must not fail the run.
           if (
-            error instanceof SteamSessionRequiredError ||
-            (error instanceof Error &&
-              error.name === "SteamSessionRequiredError")
+            error instanceof Error &&
+            error.name === "SteamSessionRequiredError"
           ) {
-            throw error instanceof SteamSessionRequiredError
-              ? error
-              : new SteamSessionRequiredError();
+            steamSyncLogger.log(
+              `Skipping achievements for ${game.steamAppId} ${game.name} (login page)`
+            );
+            achievementsByAppId.set(game.steamAppId, undefined);
+            return;
           }
 
           const status = getSteamSourceHttpStatus(error);

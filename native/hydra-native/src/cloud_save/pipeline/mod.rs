@@ -219,6 +219,7 @@ pub async fn build_local_game_snapshot_pipeline(
         remote_id: input.remote_id,
         user_data_path: input.user_data_path,
         source_url: input.source_url,
+        recompilation_rules: input.recompilation_rules,
     })
     .await?;
     let manifest_key = save_rules.manifest_key;
@@ -366,6 +367,7 @@ mod tests {
             environment_id: "epic-fixture-environment".into(),
             hash_cache,
             extra_rules: None,
+            recompilation_rules: None,
         };
 
         let initial = build_local_game_snapshot_pipeline(input(vec![]))
@@ -405,6 +407,63 @@ mod tests {
             changed_file.hash,
             previous_hashes[&changed_file.absolute_path]
         );
+    }
+
+    #[tokio::test]
+    async fn recompilation_snapshot_uses_its_own_rules_and_skips_the_rest_of_the_port() {
+        use crate::cloud_save::manifest::types::{CloudSaveRuleCondition, RecompilationSaveRule};
+
+        let temp = tempdir().unwrap();
+        let install = temp.path().join("recompilations/ghostship");
+        let save = install.join("saves/file1.sav");
+        fs::create_dir_all(save.parent().unwrap()).unwrap();
+        fs::write(&save, b"star count 70").unwrap();
+        fs::write(install.join("Ghostship.exe"), b"exe").unwrap();
+        fs::write(install.join("sm64.o2r"), b"extracted rom").unwrap();
+        fs::write(install.join("ghostship.cfg.json"), b"{}").unwrap();
+
+        let input = BuildLocalGameSnapshotPipelineInput {
+            shop: "launchbox".into(),
+            object_id: "204:ghostship".into(),
+            title: Some("Super Mario 64".into()),
+            remote_id: None,
+            user_data_path: temp.path().join("user-data").to_string_lossy().into_owned(),
+            source_url: Some("https://example.invalid/never-fetched.yaml".into()),
+            platform: "windows".into(),
+            home_dir: temp.path().join("home").to_string_lossy().into_owned(),
+            documents_dir: None,
+            app_data_dir: None,
+            executable_path: Some(install.join("Ghostship.exe").to_string_lossy().into_owned()),
+            wine_prefix_path: None,
+            steam_path: None,
+            environment_id: "recompilation-fixture-environment".into(),
+            hash_cache: vec![],
+            extra_rules: None,
+            recompilation_rules: Some(vec![RecompilationSaveRule {
+                raw_path: "<base>/saves/".into(),
+                kind: "dir".into(),
+                tags: vec!["save".into()],
+                when: vec![CloudSaveRuleCondition {
+                    os: Some("windows".into()),
+                    store: None,
+                }],
+                preferred_path: None,
+            }]),
+        };
+
+        let snapshot = build_local_game_snapshot_pipeline(input).await.unwrap();
+
+        assert_eq!(snapshot.manifest_key, None);
+        assert_eq!(snapshot.file_count, 1);
+        assert!(snapshot
+            .files
+            .iter()
+            .all(|file| file.raw_path == "<base>/saves/"));
+        let saved = fs::canonicalize(&save).unwrap();
+        assert!(snapshot
+            .source_files
+            .iter()
+            .all(|file| fs::canonicalize(&file.absolute_path).unwrap() == saved));
     }
 
     fn scanned_rule(

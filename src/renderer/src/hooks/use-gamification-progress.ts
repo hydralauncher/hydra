@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
 import {
-  setGamificationEnabled,
+  setGamificationFeatures,
   setGamificationProgress,
 } from "@renderer/features";
 import { ensureArray } from "@renderer/helpers";
@@ -35,15 +35,21 @@ export function useGamificationProgress() {
   return { progress, refreshProgress };
 }
 
-/** Reads the GAMIFICATION flag on start and whenever the signed-in user changes. */
+const toGamificationFeatures = (features: string[], isLoaded: boolean) => ({
+  isEnabled: features.includes(Feature.Gamification),
+  isShopEnabled: features.includes(Feature.GamificationShop),
+  isLoaded,
+});
+
+/** Reads the gamification flags on start and whenever the signed-in user changes. */
 export function useGamificationFeatureSync() {
   const dispatch = useAppDispatch();
   const userId = useAppSelector((state) => state.userDetails.userDetails?.id);
 
   useEffect(() => {
     dispatch(
-      setGamificationEnabled(
-        readCachedFeatures().includes(Feature.Gamification)
+      setGamificationFeatures(
+        toGamificationFeatures(readCachedFeatures(), false)
       )
     );
   }, [dispatch]);
@@ -57,7 +63,7 @@ export function useGamificationFeatureSync() {
         const features = ensureArray<string>(response, "/features");
         localStorage.setItem("features", JSON.stringify(features));
         dispatch(
-          setGamificationEnabled(features.includes(Feature.Gamification))
+          setGamificationFeatures(toGamificationFeatures(features, true))
         );
       })
       .catch((error) => logger.error("Failed to load features", error));

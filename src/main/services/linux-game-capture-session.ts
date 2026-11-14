@@ -10,6 +10,7 @@ import { gamesSublevel } from "@main/level";
 import { HydraApi } from "./hydra-api";
 import { logger } from "./logger";
 import {
+  BlankScreenshotFrameError,
   buildGrabFrameExpression,
   createGrabbedFrame,
   parseGrabbedFrame,
@@ -515,7 +516,7 @@ export const grabLinuxGameSessionFrame = async (
     frame = createGrabbedFrame(info, runInCaptureWindow);
     if (info.isBlank) {
       frame.discard();
-      throw new Error("Wayland game window capture returned a blank frame");
+      throw new BlankScreenshotFrameError();
     }
   } catch (error) {
     finishCapture();

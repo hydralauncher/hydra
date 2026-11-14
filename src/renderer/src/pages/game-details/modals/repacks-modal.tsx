@@ -34,6 +34,7 @@ import {
 } from "@renderer/hooks";
 import { clearNewDownloadOptions } from "@renderer/features";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import { getRepackAvailabilityStatus } from "./repack-availability";
 import {
   canDownloadOnSteam,
   getGameKey,
@@ -188,22 +189,6 @@ export function RepacksModal({
   const sortedRepacks = useMemo(() => {
     return orderBy(repacks, [(repack) => repack.uploadDate], ["desc"]);
   }, [repacks]);
-
-  const getRepackAvailabilityStatus = (
-    repack: GameRepack
-  ): "online" | "partial" | "offline" => {
-    const uris = Array.isArray(repack.uris) ? repack.uris : [];
-    const unavailableSet = new Set(repack.unavailableUris ?? []);
-    const availableCount = uris.filter(
-      (uri) => !unavailableSet.has(uri)
-    ).length;
-    const unavailableCount = uris.length - availableCount;
-
-    if (uris.length === 0) return "offline";
-    if (unavailableCount === 0) return "online";
-    if (availableCount === 0) return "offline";
-    return "partial";
-  };
 
   useEffect(() => {
     const term = filterTerm.trim().toLowerCase();

@@ -16,17 +16,18 @@ import type {
   CloudSaveConflictResolution,
   CloudSaveOverview,
   CloudSaveSyncProgressPayload,
-  Rpcs3DiscIdentityStatus,
+  EmulatorDiscIdentityStatus,
 } from "@types";
-import { formatBytes } from "@shared";
+import { formatBytes, type DiscCloudSaveEmulatorProvider } from "@shared";
 import { Button, Modal } from "@renderer/components";
 import { useDate } from "@renderer/hooks";
 import {
   getCloudSavePanelMode,
-  getRpcs3ConfigWarningKey,
-  shouldShowRpcs3IdentityCard,
-  type Rpcs3ConfigCheckStatus,
-} from "./rpcs3-config-presentation";
+  discIdentityKey,
+  getEmulatorConfigWarningKey,
+  shouldShowDiscIdentityCard,
+  type EmulatorConfigCheckStatus,
+} from "./emulator-config-presentation";
 import type { RetroArchExecutableStatus } from "./retroarch-executable-status";
 import {
   getCloudSavePanelAction,
@@ -47,18 +48,18 @@ export interface CloudSavePanelProps {
   isGameRunning: boolean;
   hasExecutablePath: boolean;
   requiresRom: boolean;
-  requiresDisc: boolean;
+  discProvider: DiscCloudSaveEmulatorProvider | null;
   retroArchExecutableStatus?: RetroArchExecutableStatus | null;
   onRetryRetroArchExecutable: () => void;
   onConfigureRetroArch: () => void;
   isAutomaticSyncEnabled: boolean | null;
   hasError: boolean;
-  rpcs3ConfigStatus?: Rpcs3ConfigCheckStatus | null;
-  onRetryRpcs3Config: () => void;
-  rpcs3DiscStatus?: Rpcs3DiscIdentityStatus | null;
-  rpcs3IdentityError?: boolean;
-  onRetryRpcs3Disc: () => void;
-  onConfigureRpcs3: () => void;
+  emulatorConfigStatus?: EmulatorConfigCheckStatus | null;
+  onRetryEmulatorConfig: () => void;
+  discStatus?: EmulatorDiscIdentityStatus | null;
+  discIdentityError?: boolean;
+  onRetryDiscIdentity: () => void;
+  onConfigureEmulator: () => void;
   errorMessageKey:
     | "cloud_save_v2_load_error"
     | "cloud_save_v2_sync_error"
@@ -229,18 +230,18 @@ export function CloudSavePanel({
   isGameRunning,
   hasExecutablePath,
   requiresRom,
-  requiresDisc,
+  discProvider,
   retroArchExecutableStatus,
   onRetryRetroArchExecutable,
   onConfigureRetroArch,
   isAutomaticSyncEnabled,
   hasError,
-  rpcs3ConfigStatus,
-  onRetryRpcs3Config,
-  rpcs3DiscStatus,
-  rpcs3IdentityError = false,
-  onRetryRpcs3Disc,
-  onConfigureRpcs3,
+  emulatorConfigStatus,
+  onRetryEmulatorConfig,
+  discStatus,
+  discIdentityError = false,
+  onRetryDiscIdentity,
+  onConfigureEmulator,
   errorMessageKey,
   progress,
   onSync,
@@ -293,28 +294,32 @@ export function CloudSavePanel({
     hasError,
   });
   const partialDescriptionKey = getCloudSavePartialDescriptionKey(overview);
-  const rpcs3WarningKey = getRpcs3ConfigWarningKey(rpcs3ConfigStatus);
+  const requiresDisc = discProvider !== null;
+  const emulatorConfigWarningKey = getEmulatorConfigWarningKey(
+    discProvider,
+    emulatorConfigStatus
+  );
   const retroArchNeedsConfig =
     retroArchExecutableStatus !== null &&
     retroArchExecutableStatus !== undefined &&
     retroArchExecutableStatus !== "ready";
   const basePanelMode = getCloudSavePanelMode(
     hasExecutablePath,
-    rpcs3ConfigStatus,
+    emulatorConfigStatus,
     snapshotPanelMode,
     isSyncing,
     retroArchExecutableStatus
   );
   const identityBlocked =
-    shouldShowRpcs3IdentityCard(
+    shouldShowDiscIdentityCard(
       requiresDisc,
-      rpcs3DiscStatus,
-      rpcs3IdentityError,
+      discStatus,
+      discIdentityError,
       isSyncing
     ) &&
     hasExecutablePath &&
-    rpcs3ConfigStatus === "ready";
-  const panelMode = identityBlocked ? "rpcs3-identity" : basePanelMode;
+    emulatorConfigStatus === "ready";
+  const panelMode = identityBlocked ? "disc-identity" : basePanelMode;
 
   useEffect(() => {
     setIsCloudSaveEnabled(isAutomaticSyncEnabled ?? false);
@@ -503,31 +508,33 @@ export function CloudSavePanel({
     </section>
   );
 
-  const rpcs3ConfigCard = rpcs3WarningKey && (
+  const emulatorConfigCard = discProvider && emulatorConfigWarningKey && (
     <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
       <div className="cloud-save-v2__required-setup-copy">
         <strong>
           <WarningCircleIcon size={18} />
-          {t("cloud_save_v2_rpcs3_config_required_title")}
+          {t(`cloud_save_v2_${discProvider}_config_required_title`)}
         </strong>
-        <span>{t(rpcs3WarningKey)}</span>
+        <span>{t(emulatorConfigWarningKey)}</span>
       </div>
       <Button
         className="cloud-save-v2__sync-button"
         onClick={
-          rpcs3ConfigStatus === "error" ? onRetryRpcs3Config : onConfigureRpcs3
+          emulatorConfigStatus === "error"
+            ? onRetryEmulatorConfig
+            : onConfigureEmulator
         }
       >
-        {rpcs3ConfigStatus === "error" ? (
+        {emulatorConfigStatus === "error" ? (
           <ArrowClockwiseIcon size={20} />
         ) : (
           <FolderOpenIcon size={20} />
         )}
         <span>
           {t(
-            rpcs3ConfigStatus === "error"
+            emulatorConfigStatus === "error"
               ? "cloud_save_v2_check_again"
-              : "cloud_save_v2_rpcs3_config_open_settings"
+              : `cloud_save_v2_${discProvider}_config_open_settings`
           )}
         </span>
       </Button>
@@ -573,37 +580,40 @@ export function CloudSavePanel({
       </Button>
     </section>
   );
-  const rpcs3IdentityCard = (
+  const discIdentityCard = discProvider && (
     <section className="cloud-save-v2__snapshot cloud-save-v2__required-setup">
       <div className="cloud-save-v2__required-setup-copy">
         <strong>
           <WarningCircleIcon size={18} />
-          {t("cloud_save_v2_rpcs3_identity_title")}
+          {t(discIdentityKey(discProvider, "title"))}
         </strong>
         <span>
           {t(
-            rpcs3IdentityError
-              ? "cloud_save_v2_rpcs3_identity_remote"
-              : `cloud_save_v2_rpcs3_identity_${rpcs3DiscStatus?.status ?? "unverified"}`,
-            { path: rpcs3DiscStatus?.path, titleId: rpcs3DiscStatus?.titleId }
+            discIdentityError
+              ? discIdentityKey(discProvider, "remote")
+              : discIdentityKey(
+                  discProvider,
+                  discStatus?.status ?? "unverified"
+                ),
+            { path: discStatus?.path, titleId: discStatus?.titleId }
           )}
         </span>
       </div>
-      {!rpcs3IdentityError && (
+      {!discIdentityError && (
         <Button
           className="cloud-save-v2__sync-button"
           onClick={
-            rpcs3DiscStatus?.status === "catalogue-unavailable"
-              ? onRetryRpcs3Disc
+            discStatus?.status === "catalogue-unavailable"
+              ? onRetryDiscIdentity
               : onSelectExecutable
           }
         >
           <FolderOpenIcon size={20} />
           <span>
             {t(
-              rpcs3DiscStatus?.status === "catalogue-unavailable"
+              discStatus?.status === "catalogue-unavailable"
                 ? "cloud_save_v2_check_again"
-                : "cloud_save_v2_rpcs3_identity_edit_discs"
+                : discIdentityKey(discProvider, "edit_discs")
             )}
           </span>
         </Button>
@@ -666,9 +676,9 @@ export function CloudSavePanel({
 
       {panelMode === "missing-executable" && missingExecutableCard}
 
-      {panelMode === "rpcs3-config" && rpcs3ConfigCard}
+      {panelMode === "emulator-config" && emulatorConfigCard}
       {panelMode === "retroarch-config" && retroArchConfigCard}
-      {panelMode === "rpcs3-identity" && rpcs3IdentityCard}
+      {panelMode === "disc-identity" && discIdentityCard}
 
       {panelMode === "skeleton" && (
         <CloudSaveSnapshotSkeleton label={t("cloud_save_v2_checking")} />

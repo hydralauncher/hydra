@@ -1,5 +1,7 @@
 import { HydraApi, WindowManager } from "@main/services";
+import { ChatOfficialMessages } from "@main/services/chat/chat-official-messages";
 import { ChatUnreadStore } from "@main/services/chat/chat-unread-store";
+import { OFFICIAL_CHAT_FRIEND_ID } from "@shared";
 import { logger } from "@main/services/logger";
 import type { ChatWindowState } from "@types";
 import { ipcMain } from "electron";
@@ -32,11 +34,17 @@ ipcMain.handle("setChatWindowState", (_event, state: ChatWindowState) => {
 
 ipcMain.handle("getChatUnreadState", () => ChatUnreadStore.getState());
 
+ipcMain.handle("refreshOfficialChat", () => ChatOfficialMessages.refresh());
+
 ipcMain.handle(
   "markChatRead",
   async (_event, friendId: string, seq: number): Promise<boolean> => {
     if (!isFriendId(friendId) || !Number.isSafeInteger(seq) || seq < 0) {
       return false;
+    }
+
+    if (friendId === OFFICIAL_CHAT_FRIEND_ID) {
+      return seq > 0 && ChatOfficialMessages.markRead(seq);
     }
 
     const generation = ChatUnreadStore.getGeneration();

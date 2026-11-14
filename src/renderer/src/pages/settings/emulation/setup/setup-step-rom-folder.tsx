@@ -2,10 +2,12 @@ import { useTranslation } from "react-i18next";
 import { FileDirectoryIcon, PlusIcon, XIcon } from "@primer/octicons-react";
 
 import { Button, CheckboxField } from "@renderer/components";
+import type { EmulatorSystem } from "@types";
 
 import type { PendingFolder } from "./types";
 
 interface Props {
+  system?: EmulatorSystem;
   systemLabel: string;
   folders: PendingFolder[];
   ymlEntryCount?: number;
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export function SetupStepRomFolder({
+  system,
   systemLabel,
   folders,
   ymlEntryCount = 0,
@@ -33,7 +36,9 @@ export function SetupStepRomFolder({
         {t("setup_step_rom_folder", { system: systemLabel })}
       </h3>
       <p className="setup-modal__body-intro">
-        {t("setup_rom_intro", { system: systemLabel })}
+        {t(system === "ps4" ? "setup_rom_intro_ps4" : "setup_rom_intro", {
+          system: systemLabel,
+        })}
       </p>
 
       {ymlEntryCount > 0 && (

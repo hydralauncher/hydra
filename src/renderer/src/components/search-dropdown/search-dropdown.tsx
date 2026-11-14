@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Tooltip } from "react-tooltip";
 import {
@@ -35,6 +35,8 @@ export interface SearchDropdownProps {
   activeIndex: number;
   currentQuery: string;
   searchContainerRef?: React.RefObject<HTMLDivElement>;
+  /** Matches the dropdown to the field it opens from. */
+  width?: number;
 }
 
 export function SearchDropdown({
@@ -54,13 +56,16 @@ export function SearchDropdown({
   activeIndex,
   currentQuery,
   searchContainerRef,
+  width = 250,
 }: SearchDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
   const { t } = useTranslation("header");
   const shopTooltipId = useId();
 
-  useEffect(() => {
+  // Measures before the browser paints, so the first frame already sits
+  // under the field instead of at the last (or initial) position.
+  useLayoutEffect(() => {
     if (!visible) {
       setAdjustedPosition(position);
       return;
@@ -76,8 +81,8 @@ export function SearchDropdown({
       let adjustedX = position.x;
       let adjustedY = position.y;
 
-      if (adjustedX + 250 > viewportWidth - 10) {
-        adjustedX = Math.max(10, viewportWidth - 250 - 10);
+      if (adjustedX + width > viewportWidth - 10) {
+        adjustedX = Math.max(10, viewportWidth - width - 10);
       }
 
       if (adjustedY + rect.height > viewportHeight - 10) {
@@ -87,8 +92,8 @@ export function SearchDropdown({
       setAdjustedPosition({ x: adjustedX, y: adjustedY });
     };
 
-    requestAnimationFrame(checkPosition);
-  }, [visible, position]);
+    checkPosition();
+  }, [visible, position, width]);
 
   useEffect(() => {
     if (!visible) return;
@@ -132,6 +137,7 @@ export function SearchDropdown({
         style={{
           left: adjustedPosition.x,
           top: adjustedPosition.y,
+          width,
         }}
       >
         {hasHistory && (

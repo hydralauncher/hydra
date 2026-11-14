@@ -13,18 +13,21 @@ const addRomFolder = async (
 ) => {
   const current = await emulators.getEmulatorConfig(system);
   if (current.romFolders.some((f) => f.path === folderPath)) {
-    return current;
+    return { config: current, unsupportedPackages: 0 };
   }
 
   const signal = { cancelled: false };
-  await runLaunchboxImport(
+  const { unsupportedPackages } = await runLaunchboxImport(
     system,
     [{ path: folderPath, scanSubfolders }],
     language,
     signal
   );
 
-  return emulators.getEmulatorConfig(system);
+  return {
+    config: await emulators.getEmulatorConfig(system),
+    unsupportedPackages,
+  };
 };
 
 registerEvent("addRomFolder", addRomFolder);

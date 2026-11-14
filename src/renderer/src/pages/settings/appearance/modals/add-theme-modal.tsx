@@ -44,9 +44,6 @@ const DEFAULT_THEME_CODE = `/*
 /* Main content */
 .container__content {}
 
-/* Bottom panel */
-.bottom-panel {}
-
 /* Toast */
 .toast {}
 

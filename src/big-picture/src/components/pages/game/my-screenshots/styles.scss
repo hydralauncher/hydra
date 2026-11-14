@@ -338,6 +338,13 @@ $local-screenshot-actions-fade-duration: 0.15s;
       font-size: 15px;
     }
   }
+
+  &__message-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: calc(var(--spacing-unit) * 2);
+  }
 }
 
 .local-screenshot-tile {

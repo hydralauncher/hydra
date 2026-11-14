@@ -1,5 +1,7 @@
 import type { EmulatorBinary, EmulatorSystem } from "@types";
 
+import { readShadps4InstalledVersion } from "./shadps4-files.js";
+
 export interface KnownBinary {
   system: EmulatorSystem;
   binary: EmulatorBinary;
@@ -12,6 +14,7 @@ export interface KnownBinary {
   versionProbeDisabledPlatforms?: NodeJS.Platform[];
   romExtensions: string[];
   romDirectoryMarkers: string[];
+  readVersion?: (executablePath: string) => string | null;
 }
 
 export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
@@ -86,6 +89,19 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     // romDirectoryMarkers; license/internal files (.rap/.sfb/.bin/...) excluded.
     romExtensions: [".iso", ".pkg", ".elf", ".self"],
     romDirectoryMarkers: ["PS3_GAME", "ps3_game"],
+  },
+  ps4: {
+    system: "ps4",
+    binary: "shadps4",
+    displayName: "shadPS4",
+    linuxNames: ["shadPS4QtLauncher-qt.AppImage"],
+    windowsNames: ["shadPS4QtLauncher.exe"],
+    macosBundleNames: [],
+    flatpakIds: [],
+    versionFlags: [],
+    readVersion: readShadps4InstalledVersion,
+    romExtensions: [],
+    romDirectoryMarkers: [],
   },
   psp: {
     system: "psp",

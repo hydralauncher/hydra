@@ -20,35 +20,12 @@ import {
 } from "./rpcs3-save-layout.js";
 import {
   expandRpcs3SavedataTitleIds,
-  normalizeRpcs3CatalogueTitleId,
   normalizeRpcs3TitleId,
 } from "./rpcs3-title-ids.js";
 
 export { normalizeRpcs3TitleId } from "./rpcs3-title-ids.js";
 
 const TITLE_ID = /^[A-Z]{4}\d{5}$/;
-
-export interface Rpcs3CatalogueEntry {
-  objectId: string;
-  shop: string;
-  skus?: string[];
-}
-
-export const rpcs3TitleIdsFromCatalogue = (
-  entries: Rpcs3CatalogueEntry[],
-  objectId: string
-) => {
-  const entry = Array.isArray(entries)
-    ? entries.find(
-        (item) => item.objectId === objectId && item.shop === "launchbox"
-      )
-    : null;
-  return new Set(
-    (Array.isArray(entry?.skus) ? entry.skus : [])
-      .map(normalizeRpcs3CatalogueTitleId)
-      .filter((id): id is string => id !== null)
-  );
-};
 
 export const inspectRpcs3DiscIdentity = async (
   game: Game,

@@ -19,6 +19,7 @@ import { assertCloudSaveSubscription } from "./cloud-save-access";
 import { cloudSaveFileKey } from "./cloud-save-contract";
 import { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { getEmulatorSaveProvider } from "./emulator-save-provider";
+import { emulatorRequiresFreshContext } from "./emulator-disc-identity.js";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import {
   confirmCloudSaveCustomPaths,
@@ -1010,10 +1011,9 @@ export const syncGameCloudSave = async (
         throw new Error("cloud_save_game_running");
       }
       await prepareRetroArchSyncLayout(game);
-      const operationContext =
-        getEmulatorSaveProvider(game) === "rpcs3"
-          ? await getCloudSaveGameContext(objectId, shop)
-          : context;
+      const operationContext = emulatorRequiresFreshContext(game)
+        ? await getCloudSaveGameContext(objectId, shop)
+        : context;
       return runGameCloudSaveSync(
         objectId,
         shop,
@@ -1051,10 +1051,9 @@ export const resolveCloudSaveConflict = async (
         throw new Error("cloud_save_game_running");
       }
       await prepareRetroArchSyncLayout(game);
-      const operationContext =
-        getEmulatorSaveProvider(game) === "rpcs3"
-          ? await getCloudSaveGameContext(objectId, shop)
-          : context;
+      const operationContext = emulatorRequiresFreshContext(game)
+        ? await getCloudSaveGameContext(objectId, shop)
+        : context;
       return runGameCloudSaveSync(
         objectId,
         shop,

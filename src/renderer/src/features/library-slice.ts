@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 import type { LibraryGame } from "@types";
+import { pickLibraryCollectionPositions } from "@shared";
 
 export interface LibraryState {
   value: LibraryGame[];
@@ -79,6 +80,10 @@ export const librarySlice = createSlice({
 
         if (game) {
           game.collectionIds = action.payload.collectionIds;
+          game.collectionPositions = pickLibraryCollectionPositions(
+            game.collectionPositions,
+            action.payload.collectionIds
+          );
         }
       }
     },

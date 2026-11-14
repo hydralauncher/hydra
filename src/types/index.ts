@@ -16,6 +16,7 @@ import type {
 } from "./game.types";
 import type { ArtworkAssetType } from "./artwork.types";
 import type { GameContentWarning } from "./souvenir.types";
+import type { RecompilationSummary } from "./recompilation.types";
 
 export type FriendRequestAction = "ACCEPTED" | "REFUSED" | "CANCEL";
 export * from "./download-contract";
@@ -161,6 +162,7 @@ export interface GameRunning {
   objectId: string;
   shop: GameShop;
   sessionDurationInMillis: number;
+  recompilationSlug?: string;
 }
 
 export interface Steam250Game {
@@ -205,6 +207,8 @@ export interface UserFriend {
       })
     | null;
   isOnline?: boolean;
+  /* The Hydra team's account: it messages users, nobody messages it. */
+  isOfficial?: boolean;
 }
 
 export interface UserFriends {
@@ -338,6 +342,32 @@ export interface ChatMessagesPage {
   pendingMessages?: ChatPendingMessageDto[];
 }
 
+/* One row of GET /profile/chats: a conversation with at least one message. */
+export interface ChatConversationDto {
+  friendId: string;
+  /* As in the friends list, whatever the friend's visibility or relationship. */
+  friend: {
+    id: string;
+    displayName: string;
+    profileImageUrl: string | null;
+    isOfficial?: boolean;
+  };
+  lastMessage: ChatReplyDto & {
+    seq: number;
+    createdAt: string;
+  };
+  lastMessageAt: string;
+  lastReadSeq: number;
+  unreadCount: number;
+  canSend: boolean;
+}
+
+export interface ChatConversationsPage {
+  conversations: ChatConversationDto[];
+  /* Null on the last page. */
+  nextCursor: string | null;
+}
+
 export interface ChatUnreadSummary {
   totalUnread: number;
   conversations: {
@@ -352,6 +382,39 @@ export interface ChatUnreadState {
   totalUnread: number;
   byFriend: Record<string, number>;
   lastMessageAtByFriend?: Record<string, string>;
+  /* Bumped by each official messages poll, so an open chat window refetches. */
+  officialRevision?: number;
+}
+
+export interface OfficialMessageDto {
+  id: string;
+  seq: number;
+  senderId: string;
+  body: string;
+  locale: string;
+  attachments: ChatAttachmentDto[];
+  createdAt: string;
+  isUnread: boolean;
+}
+
+export interface OfficialMessagesPage {
+  sender: {
+    id: string;
+    displayName: string;
+    /* Null: the launcher shows its own logo. */
+    profileImageUrl: string | null;
+    isOfficial: boolean;
+  };
+  messages: OfficialMessageDto[];
+  unreadCount: number;
+  hasMoreBefore: boolean;
+  nextPollSeconds: number;
+}
+
+export interface OfficialUnreadSummary {
+  unreadCount: number;
+  latestSeq: number | null;
+  nextPollSeconds: number;
 }
 
 /* friendId is always the other side of the conversation, even for messages
@@ -569,6 +632,8 @@ export interface UserProfile {
   hasCompletedWrapped2025: boolean;
   progress?: LevelProgress | null;
   loginStreak?: LoginStreak | null;
+  /* The Hydra team's account (see UserFriend). */
+  isOfficial?: boolean;
 }
 
 export interface LevelProgress {
@@ -761,6 +826,11 @@ export interface GameReview {
     [key: string]: string;
   };
   detectedLanguage: string | null;
+  recompilation?: {
+    slug: string;
+    name: string;
+    iconUrl: string | null;
+  } | null;
 }
 
 export interface TrendingGame extends ShopAssets {
@@ -832,11 +902,12 @@ export interface AchievementNotificationInfo {
   isRare: boolean;
   isPlatinum: boolean;
   points?: number;
-  variant?: "screenshot";
+  variant?: "screenshot" | "screenshot-error";
 }
 
 export type AchievementNotificationRequest = {
   id: string;
+  batchId: string;
   position: AchievementCustomNotificationPosition;
 } & (
   | {
@@ -1011,6 +1082,7 @@ export interface CatalogueSearchPayload {
   releaseYear?: { gte?: number; lte?: number };
   shops?: string[];
   platforms?: string[];
+  recompilation?: "has";
 }
 
 export interface ProtonDBData {
@@ -1041,6 +1113,7 @@ export type CatalogueSearchResult = {
   developers?: string[];
   publishers?: string[];
   skus?: string[];
+  recompilations?: RecompilationSummary[];
 } & Pick<ShopAssets, "libraryImageUrl" | "downloadSources">;
 
 export type LibraryGame = Game &
@@ -1094,8 +1167,10 @@ export * from "./artwork.types";
 export * from "./cloud-save.types";
 export * from "./souvenir.types";
 export * from "./screenshot.types";
+export * from "./recompilation.types";
 
 export type ExtractionFailure =
   | { reason: "unsupported-format"; format: string }
-  | { reason: "file-not-found" };
+  | { reason: "file-not-found" }
+  | { reason: "pkg-keys-unavailable" };
 export type { SystemPowerAction } from "./system-power";

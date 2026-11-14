@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronDownIcon } from "@primer/octicons-react";
 import "./collapsed-menu.scss";
 
@@ -11,17 +11,7 @@ export function CollapsedMenu({
   title,
   children,
 }: Readonly<CollapsedMenuProps>) {
-  const content = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(true);
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    if (content.current && content.current.scrollHeight !== height) {
-      setHeight(isOpen ? content.current.scrollHeight : 0);
-    } else if (!isOpen) {
-      setHeight(0);
-    }
-  }, [isOpen, children, height]);
 
   return (
     <div className="collapsed-menu">
@@ -39,13 +29,10 @@ export function CollapsedMenu({
       </button>
 
       <div
-        ref={content}
-        className="collapsed-menu__content"
-        style={{
-          maxHeight: `${height}px`,
-        }}
+        className={`collapsed-menu__content${isOpen ? "" : " collapsed-menu__content--closed"}`}
+        aria-hidden={!isOpen}
       >
-        {children}
+        <div className="collapsed-menu__body">{children}</div>
       </div>
     </div>
   );

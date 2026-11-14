@@ -1,5 +1,6 @@
 import { registerEvent } from "../register-event";
 import { emulators } from "@main/services";
+import { readShadps4InstallDirs } from "@main/services/emulators/shadps4-files";
 import type { EmulatorSystem } from "@types";
 
 const getEmulatorRomPaths = async (
@@ -7,6 +8,7 @@ const getEmulatorRomPaths = async (
   system: EmulatorSystem
 ) => {
   const config = await emulators.getEmulatorConfig(system);
+  if (system === "ps4") return readShadps4InstallDirs(config.executablePath);
   return emulators.readRecursivePaths(system, config.executablePath);
 };
 

@@ -8,6 +8,11 @@ import * as React from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import ts from "typescript";
+import * as customOrder from "./library-custom-order.js";
+import * as collectionOrderSaves from "./library-collection-order-saves.js";
+import * as dragOverlay from "./library-drag-overlay.js";
+import * as gridLayout from "./library-grid-layout.js";
+import * as dragAutoscroll from "./library-drag-autoscroll.js";
 
 type TestGame = {
   id: string;
@@ -127,6 +132,16 @@ async function renderLibrary(
   const gameCard = ({ game }: { game: TestGame }) =>
     React.createElement("span", { "data-hidden-game": game.id }, game.title);
   const stubs: Record<string, unknown> = {
+    "@atlaskit/pragmatic-drag-and-drop/combine": {
+      combine:
+        (...cleanups: (() => void)[]) =>
+        () =>
+          cleanups.forEach((cleanup) => cleanup()),
+    },
+    "@atlaskit/pragmatic-drag-and-drop/element/adapter": {
+      dropTargetForElements: () => noop,
+      monitorForElements: () => noop,
+    },
     "@tanstack/react-virtual": {
       useVirtualizer: ({ count }: { count: number }) => {
         rowCount = count;
@@ -136,6 +151,7 @@ async function renderLibrary(
     "@renderer/hooks": {
       useLibrary: () => ({ library, updateLibrary }),
       useUserDetails: () => ({ userDetails }),
+      useToast: () => ({ showErrorToast: noop, showSuccessToast: noop }),
       useAppDispatch: () => noop,
       useAppSelector: (select: (state: unknown) => unknown) =>
         select({
@@ -161,6 +177,7 @@ async function renderLibrary(
         "FileDirectoryIcon",
         "SearchIcon",
         "SyncIcon",
+        "PlusIcon",
       ].map((name) => [name, () => null])
     ),
     "react-i18next": { useTranslation: () => ({ t: translate }) },
@@ -170,11 +187,21 @@ async function renderLibrary(
       removeDiacritics: (value: string) => value,
     },
     "@renderer/components": {
+      Button: () => null,
+      ConfirmationModal: () => null,
       CreateCollectionModal: () => null,
       GameContextMenu: () => null,
     },
     "@renderer/context": {
       useCollectionContextMenu: () => ({ openCollectionContextMenu: noop }),
+      useScanGames: () => ({
+        isScanSupported: false,
+        isScanning: false,
+        openScanModal: noop,
+      }),
+    },
+    "@renderer/components/sidebar/sidebar-adding-custom-game-modal": {
+      SidebarAddingCustomGameModal: () => null,
     },
     "@renderer/helpers": {
       getGameCollectionIds: () => [],
@@ -186,14 +213,28 @@ async function renderLibrary(
     },
     "./library-game-card": { LibraryGameCard: gameCard },
     "./library-game-card-large": { LibraryGameCardLarge: gameCard },
-    "./view-options": { ViewOptions: () => null },
-    "./filter-options": { FilterOptions: () => null },
+    "./library-display-menu": { LibraryDisplayMenu: () => null },
     "./category-filter": { CategoryFilter: () => null },
-    "./installed-filter": { InstalledFilter: () => null },
-    "./platform-filter": { PlatformFilter: () => null },
-    "./source-filter": { SourceFilter: () => null },
-    "./collections-filter": { CollectionsFilter: () => null },
+    "./library-filters-menu": { LibraryFiltersMenu: () => null },
     "./library-games-skeleton": { LibraryGamesSkeleton: () => null },
+    "./library-custom-order": customOrder,
+    "./library-collection-order": {
+      buildLibraryCollectionOrder: () => [],
+      expandLibraryCollectionOrder: () => [],
+      getLibraryCollectionGames: () => [],
+      hasLibraryCollectionOrder: () => false,
+      isSameLibraryOrder: (a: string[], b: string[]) =>
+        a.length === b.length && a.every((key, index) => key === b[index]),
+    },
+    "./library-collection-order-saves": collectionOrderSaves,
+    "./library-sortable-game": {
+      LibrarySortableGame: ({ children }: { children: React.ReactNode }) =>
+        React.createElement(React.Fragment, null, children),
+      isLibraryGameDragData: () => false,
+    },
+    "./library-drag-overlay": dragOverlay,
+    "./library-grid-layout": gridLayout,
+    "./library-drag-autoscroll": dragAutoscroll,
     "./library-category": {
       categoryShowsPlatforms: () => false,
       categoryShowsSources: () => false,

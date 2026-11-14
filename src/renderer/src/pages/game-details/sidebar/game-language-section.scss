@@ -17,7 +17,7 @@
     font-size: globals.$small-font-size;
     font-weight: 600;
     flex: 1;
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
 
     &--center {
       justify-content: flex-start;
@@ -45,7 +45,7 @@
   }
 
   &__cell {
-    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2.5);
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
     font-size: globals.$body-font-size;
     color: globals.$body-color;
     display: flex;
@@ -73,13 +73,5 @@
   &__cross {
     color: globals.$body-color;
     opacity: 0.8;
-  }
-
-  @media (max-width: 320px) {
-    &__header,
-    &__cell {
-      padding: calc(globals.$spacing-unit * 1) calc(globals.$spacing-unit * 0.5);
-      font-size: calc(globals.$small-font-size * 0.9);
-    }
   }
 }

@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import i18n from "i18next";
+import {
+  OFFICIAL_CHAT_FRIEND_ID,
+  OFFICIAL_MESSAGES_PAGE_MAXIMUM,
+  OFFICIAL_MESSAGES_PATH,
+} from "@shared";
 
 import type {
   ChatAttachmentContentType,
   ChatMessageDto,
   ChatMessageReactionsDto,
   ChatMessagesPage,
+  OfficialMessagesPage,
   ChatPendingMessageDto,
 } from "@types";
 
 import { getUploadProgress } from "./chat-attachments";
+import { toChatMessagesPage } from "./chat-official";
 import {
   createSendCooldown,
   getRateLimitWindowStart,
@@ -98,13 +106,29 @@ const revokeLocalCopies = (attachments: ChatAttachment[] = []) => {
 const chatPath = (friendId: string, suffix: string) =>
   `/profile/chats/${friendId}/${suffix}`;
 
-const fetchMessages = (
+const fetchMessages = async (
   friendId: string,
   params: { before?: number; after?: number; take: number }
-) =>
-  electron.hydraApi.get<ChatMessagesPage>(chatPath(friendId, "messages"), {
-    params,
-  });
+): Promise<ChatMessagesPage> => {
+  if (friendId !== OFFICIAL_CHAT_FRIEND_ID) {
+    return electron.hydraApi.get<ChatMessagesPage>(
+      chatPath(friendId, "messages"),
+      { params }
+    );
+  }
+
+  const page = await electron.hydraApi.get<OfficialMessagesPage>(
+    OFFICIAL_MESSAGES_PATH,
+    {
+      params: {
+        language: i18n.language,
+        limit: Math.min(params.take, OFFICIAL_MESSAGES_PAGE_MAXIMUM),
+        ...(params.before === undefined ? {} : { beforeSeq: params.before }),
+      },
+    }
+  );
+  return toChatMessagesPage(page, params.after);
+};
 
 /** Sets the user's reaction on the message; null removes it. */
 const sendReaction = (friendId: string, seq: number, emoji: string | null) => {
@@ -569,6 +593,12 @@ export function useChat({
   const resyncConversation = useCallback(
     async (conversation: ChatConversation) => {
       const friendId = conversation.friend.id;
+      // Its seq has gaps per user, so "newer than" paging doesn't apply.
+      if (friendId === OFFICIAL_CHAT_FRIEND_ID) {
+        await loadLatest(friendId, { replace: true });
+        return;
+      }
+
       const latestSeq = getLatestSeq(conversation.messages);
       if (conversation.loadState !== "loaded" || latestSeq === 0) {
         await loadLatest(friendId);
@@ -619,17 +649,27 @@ export function useChat({
           take: PAGE_SIZE,
         });
 
-        updateConversation(friendId, (current) => ({
-          ...current,
-          isLoadingOlder: false,
-          hasMoreBefore: page.hasMore,
-          messages: mergeChatMessages(
-            current.messages,
-            page.messages.map((message) =>
-              toChatMessage(message, friendId, true)
-            )
-          ),
-        }));
+        updateConversation(friendId, (current) => {
+          // History replaced meanwhile: this page would leave a hole.
+          const currentOldestSeq = current.messages.find(
+            (message) => message.seq !== undefined
+          )?.seq;
+          if (currentOldestSeq !== oldestSeq) {
+            return { ...current, isLoadingOlder: false };
+          }
+
+          return {
+            ...current,
+            isLoadingOlder: false,
+            hasMoreBefore: page.hasMore,
+            messages: mergeChatMessages(
+              current.messages,
+              page.messages.map((message) =>
+                toChatMessage(message, friendId, true)
+              )
+            ),
+          };
+        });
       } catch {
         updateConversation(friendId, (current) => ({
           ...current,
@@ -1164,14 +1204,15 @@ export function useChat({
     [updateConversation]
   );
 
-  // History loads once per tab; later updates come from realtime and resyncs.
+  // History loads once, when the conversation is first shown; later updates
+  // come from realtime and resyncs. The sidebar gets by on the list's
+  // `lastMessage` and `unreadCount` meanwhile.
   useEffect(() => {
-    for (const conversation of conversations) {
-      if (conversation.loadState === "idle") {
-        void loadLatest(conversation.friend.id);
-      }
-    }
-  }, [conversations, loadLatest]);
+    const active = conversations.find(
+      (conversation) => conversation.friend.id === activeId
+    );
+    if (active?.loadState === "idle") void loadLatest(active.friend.id);
+  }, [conversations, activeId, loadLatest]);
 
   useEffect(() => {
     const unsubscribeMessage = electron.onChatMessage(
@@ -1258,6 +1299,10 @@ export function useChat({
             replyToSeq:
               conversation.replyToSeq === seq ? null : conversation.replyToSeq,
             messages: setMessageVisibility(conversation.messages, seq, null),
+            lastMessage:
+              conversation.lastMessage?.seq === seq
+                ? { ...conversation.lastMessage, text: "", isHidden: true }
+                : conversation.lastMessage,
           }));
           return;
         }
@@ -1312,8 +1357,11 @@ export function useChat({
     const unsubscribeResync = electron.onChatResync(() => {
       setResyncCount((count) => count + 1);
 
+      // Unopened rows load when opened; the window refreshes their previews.
       for (const conversation of conversationsRef.current) {
-        void resyncConversation(conversation);
+        if (conversation.loadState !== "idle") {
+          void resyncConversation(conversation);
+        }
       }
     });
 

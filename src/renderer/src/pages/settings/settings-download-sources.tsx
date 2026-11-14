@@ -168,6 +168,7 @@ export function SettingsDownloadSources() {
     [DownloadSourceStatus.Matched]: t("download_source_matched"),
     [DownloadSourceStatus.Matching]: t("download_source_matching"),
     [DownloadSourceStatus.Failed]: t("download_source_failed"),
+    [DownloadSourceStatus.Dead]: t("download_source_dead"),
   };
 
   const handleModalClose = () => {

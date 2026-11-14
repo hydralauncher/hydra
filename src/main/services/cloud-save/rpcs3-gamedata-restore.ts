@@ -9,7 +9,7 @@ import {
   safeRelativeSegments,
 } from "./emulator-provider-identity.js";
 import { rpcs3GamedataFolderBelongsToTitle } from "./rpcs3-save-layout.js";
-import { isSafeRpcs3RestoreTarget } from "./rpcs3-savedata-restore.js";
+import { isSafeEmulatorRestoreTarget } from "./emulator-safe-restore-target.js";
 
 export const resolveRpcs3GamedataRestoreRule = async (
   file: Pick<RestoreManifestFile, "rawPath" | "relativePath">,
@@ -30,7 +30,7 @@ export const resolveRpcs3GamedataRestoreRule = async (
   const hdd0 = await fs.lstat(hdd0Root).catch(() => null);
   if (!hdd0?.isDirectory() || hdd0.isSymbolicLink()) return null;
   const gameRoot = path.join(hdd0Root, "game");
-  if (!(await isSafeRpcs3RestoreTarget(gameRoot, segments))) return null;
+  if (!(await isSafeEmulatorRestoreTarget(gameRoot, segments))) return null;
   const gameRootStat = await fs
     .lstat(gameRoot)
     .catch((error: NodeJS.ErrnoException) =>

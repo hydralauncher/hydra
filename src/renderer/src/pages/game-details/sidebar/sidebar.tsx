@@ -14,6 +14,7 @@ import { gameDetailsContext } from "@renderer/context";
 import {
   useAppSelector,
   useDate,
+  useFeature,
   useFormat,
   useGlobalLeaderboardsFeature,
   useUserDetails,
@@ -28,6 +29,7 @@ import {
 } from "@primer/octicons-react";
 import { HowLongToBeatSection } from "./how-long-to-beat-section";
 import { LaunchboxDetailsSection } from "./launchbox-details-section";
+import { RecompilationsSection } from "./recompilations-section";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import { buildGameAchievementPath } from "@renderer/helpers";
 import { useSubscription } from "@renderer/hooks/use-subscription";
@@ -38,6 +40,7 @@ import { isAchievementConcealed } from "@shared";
 import { ControllerSupportSection } from "./controller-support-section";
 import { GameScreenshots } from "../game-screenshots/game-screenshots";
 import { LeaderboardSection } from "../leaderboard/leaderboard-section";
+import { AchievementsSkeletonList } from "./achievements-skeleton-list";
 
 const ProtonDBSection = lazy(async () => {
   const mod = await import("./protondb-section");
@@ -147,6 +150,7 @@ export function Sidebar() {
   );
 
   const { showHydraCloudModal } = useSubscription();
+  const { isFeatureEnabled, Feature } = useFeature();
   const { t } = useTranslation("game_details");
   const { formatDateTime } = useDate();
   const { numberFormatter } = useFormat();
@@ -158,6 +162,20 @@ export function Sidebar() {
     (shop === "launchbox" &&
       !!shopDetails?.retroAchievementsGameId &&
       !userPreferences?.retroAchievementsWebApiKey);
+
+  // Steam's store data says up front whether the game has achievements
+  // (category 22). While the list loads, keep its section in place so the
+  // rail doesn't drop by a whole section when it arrives.
+  const STEAM_ACHIEVEMENTS_CATEGORY_ID = 22;
+  const isAchievementsSectionPending =
+    !shouldRenderAchievementsSection &&
+    !!userDetails &&
+    achievements === null &&
+    ((shop === "steam" &&
+      !!shopDetails?.categories?.some(
+        (category) => category.id === STEAM_ACHIEVEMENTS_CATEGORY_ID
+      )) ||
+      (shop === "launchbox" && !!shopDetails?.retroAchievementsGameId));
 
   useEffect(() => {
     if (objectId) {
@@ -207,6 +225,12 @@ export function Sidebar() {
 
   return (
     <aside className="content-sidebar">
+      {shop === "launchbox" &&
+        catalogueGame.objectId &&
+        isFeatureEnabled(Feature.Recompilations) && (
+          <RecompilationsSection objectId={catalogueGame.objectId} />
+        )}
+
       {shouldShowProtonFeatures && (
         <Suspense fallback={null}>
           <ProtonDBSection
@@ -245,6 +269,12 @@ export function Sidebar() {
               </li>
             ))}
           </ul>
+        </SidebarSection>
+      )}
+
+      {isAchievementsSectionPending && (
+        <SidebarSection title={t("achievements")}>
+          <AchievementsSkeletonList />
         </SidebarSection>
       )}
 

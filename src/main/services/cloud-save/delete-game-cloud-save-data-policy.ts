@@ -1,4 +1,5 @@
 import type { GameShop } from "@types";
+import { toCloudSaveApiGame } from "../../../shared/recompilations.js";
 
 interface DeleteGameCloudSaveDataDependencies {
   beginPendingDeletion: () => Promise<"prepared" | "remote-started">;
@@ -18,7 +19,14 @@ export const buildDeleteGameCloudSaveSnapshotsUrl = (
   objectId: string,
   shop: GameShop
 ) => {
-  const params = new URLSearchParams({ objectId, shop });
+  const apiGame = toCloudSaveApiGame(shop, objectId);
+  const params = new URLSearchParams({
+    objectId: apiGame.objectId,
+    shop: apiGame.shop,
+    ...(apiGame.recompilationSlug
+      ? { recompilationSlug: apiGame.recompilationSlug }
+      : {}),
+  });
   return `/profile/cloud-saves/snapshots?${params.toString()}`;
 };
 

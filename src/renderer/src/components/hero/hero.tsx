@@ -6,20 +6,27 @@ import Skeleton from "react-loading-skeleton";
 import { ensureArray } from "@renderer/helpers";
 import "./hero.scss";
 
+// Featured game per language, kept for the session so returning to Home
+// paints the hero at once instead of a skeleton.
+const featuredCache = new Map<string, TrendingGame[]>();
+
 export function Hero() {
+  const { i18n } = useTranslation();
+  const language = i18n.language.split("-")[0];
+
   const [featuredGameDetails, setFeaturedGameDetails] = useState<
     TrendingGame[] | null
-  >(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { i18n } = useTranslation();
+  >(() => featuredCache.get(language) ?? null);
+  // Start in the loading state: rendering nothing first and the skeleton a
+  // tick later pushed the whole page down.
+  const [isLoading, setIsLoading] = useState(
+    () => !featuredCache.has(language)
+  );
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    setIsLoading(true);
-
-    const language = i18n.language.split("-")[0];
+    if (!featuredCache.has(language)) setIsLoading(true);
 
     window.electron.hydraApi
       .get<TrendingGame[]>("/catalogue/featured", {
@@ -27,9 +34,12 @@ export function Hero() {
         needsAuth: false,
       })
       .then((result) => {
-        setFeaturedGameDetails(
-          ensureArray<TrendingGame>(result, "/catalogue/featured").slice(0, 1)
-        );
+        const featured = ensureArray<TrendingGame>(
+          result,
+          "/catalogue/featured"
+        ).slice(0, 1);
+        featuredCache.set(language, featured);
+        setFeaturedGameDetails(featured);
       })
       .catch(() => {
         setFeaturedGameDetails([]);
@@ -37,7 +47,7 @@ export function Hero() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [i18n.language]);
+  }, [language]);
 
   if (isLoading) {
     return <Skeleton className="hero" />;

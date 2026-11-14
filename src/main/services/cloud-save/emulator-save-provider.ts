@@ -17,7 +17,7 @@ export const getEmulatorSaveProvider = (game?: Game | null) =>
 
 export const getEmulatorGameSaveFileFilter = async (
   game: Game,
-  rpcs3SavedataTitleIds?: readonly string[]
+  savedataTitleIds?: readonly string[]
 ) => {
   const provider = getEmulatorSaveProvider(game);
   if (provider === "retroarch") {
@@ -31,9 +31,16 @@ export const getEmulatorGameSaveFileFilter = async (
     const { getRpcs3SavedataTitleIds } = await import(
       "./rpcs3-savedata-title-ids.js"
     );
-    const titleIds =
-      rpcs3SavedataTitleIds ?? (await getRpcs3SavedataTitleIds(game));
+    const titleIds = savedataTitleIds ?? (await getRpcs3SavedataTitleIds(game));
     return (filePath: string) => isRpcs3GameSaveFile(game, filePath, titleIds);
+  }
+  if (provider === "shadps4") {
+    const { getShadps4SavedataTitleIds, isShadps4GameSaveFile } = await import(
+      "./shadps4-save-layout.js"
+    );
+    const titleIds =
+      savedataTitleIds ?? (await getShadps4SavedataTitleIds(game));
+    return (filePath: string) => isShadps4GameSaveFile(filePath, titleIds);
   }
   return () => false;
 };
@@ -44,6 +51,8 @@ const loadProvider = async (
   switch (provider) {
     case "rpcs3":
       return (await import("./rpcs3-save-provider")).rpcs3SaveProvider;
+    case "shadps4":
+      return (await import("./shadps4-save-provider")).shadps4SaveProvider;
     case "retroarch":
       return (await import("./retroarch-save-provider")).retroArchSaveProvider;
   }
@@ -56,6 +65,12 @@ export const getEmulatorSaveEnvironmentKey = async (game: Game) => {
       "./rpcs3-save-provider"
     );
     return getRpcs3SaveEnvironmentKey();
+  }
+  if (provider === "shadps4") {
+    const { getShadps4SaveEnvironmentKey } = await import(
+      "./shadps4-save-provider"
+    );
+    return getShadps4SaveEnvironmentKey();
   }
   if (provider === "retroarch") {
     const { getRetroArchSaveEnvironmentKey } = await import(
@@ -70,7 +85,7 @@ export const discoverEmulatorSaveFiles = async (
   game: Game,
   environmentId: string,
   remoteFiles: RestoreManifestFile[] = [],
-  rpcs3SavedataTitleIds?: readonly string[]
+  savedataTitleIds?: readonly string[]
 ) => {
   const provider = getEmulatorSaveProvider(game);
   if (!provider) throw new Error("cloud_save_emulator_provider_unavailable");
@@ -84,7 +99,7 @@ export const discoverEmulatorSaveFiles = async (
       environmentId,
       variantId: variant.variantId,
       remoteFiles,
-      rpcs3SavedataTitleIds,
+      savedataTitleIds,
     }),
   };
 };
@@ -92,7 +107,7 @@ export const discoverEmulatorSaveFiles = async (
 export const getEmulatorRestoreRules = async (
   game: Game | null | undefined,
   files: RestoreManifestFile[],
-  rpcs3SavedataTitleIds?: readonly string[]
+  savedataTitleIds?: readonly string[]
 ) => {
   const provider = getEmulatorSaveProvider(game);
   if (!provider || !game || files.length === 0) {
@@ -101,7 +116,7 @@ export const getEmulatorRestoreRules = async (
   return (await loadProvider(provider)).restoreRules(
     game,
     files,
-    rpcs3SavedataTitleIds
+    savedataTitleIds
   );
 };
 

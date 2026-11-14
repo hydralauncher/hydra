@@ -74,12 +74,12 @@
 
   &__friend-name {
     color: globals.$muted-color;
-    font-size: 0.8rem;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
   }
 
   &__game-info {
-    font-size: 0.75rem;
+    font-size: globals.$small-font-size;
     display: flex;
     gap: globals.$spacing-unit;
     align-items: center;

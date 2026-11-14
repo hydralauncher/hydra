@@ -13,6 +13,7 @@ import {
 } from "@shared";
 import { Avatar, Button } from "@renderer/components";
 import { useDate, useFormat, useProcessedImage } from "@renderer/hooks";
+import { Feature, readCachedFeatures } from "@renderer/hooks/use-feature";
 import { formatNumber } from "@renderer/helpers";
 import {
   MAX_MINUTES_TO_SHOW_IN_PLAYTIME,
@@ -186,6 +187,14 @@ export function ReviewItem({
                       </span>
                     </div>
                   )}
+                  {review.recompilation &&
+                    readCachedFeatures().includes(Feature.Recompilations) && (
+                      <div className="game-details__review-recompilation">
+                        {t("review_played_with", {
+                          name: review.recompilation.name,
+                        })}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>

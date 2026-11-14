@@ -38,7 +38,11 @@
   }
 
   &__automatic-sync-badge {
-    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
+    background: linear-gradient(
+      270deg,
+      globals.$brand-teal 50%,
+      globals.$brand-blue 100%
+    );
     color: #fff;
     padding: 0 globals.$spacing-unit;
     border-radius: 4px;
@@ -117,7 +121,7 @@
     padding: calc(globals.$spacing-unit * 2);
     background-color: globals.$dark-background-color;
     border: 1px solid globals.$border-color;
-    border-radius: 4px;
+    border-radius: 8px;
     justify-content: space-between;
 
     &-info {
@@ -161,7 +165,7 @@
     margin: 0;
     padding: 0;
     align-self: flex-start;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     cursor: pointer;
     text-decoration: underline;
     color: globals.$body-color;

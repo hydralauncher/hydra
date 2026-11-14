@@ -33,7 +33,7 @@
 
   &__value {
     margin-left: 4px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: globals.$muted-color;
     font-weight: 500;
   }
@@ -41,7 +41,7 @@
   &__calculating-text,
   &__no-rating-text {
     margin-left: 4px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: globals.$muted-color;
   }
 

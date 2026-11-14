@@ -9,6 +9,10 @@ import type {
 export interface GamificationState {
   /** The GAMIFICATION feature flag for this user. Off hides every gamification surface. */
   isEnabled: boolean;
+  /** The GAMIFICATION_SHOP feature flag. The shop is mock-only until it is on. */
+  isShopEnabled: boolean;
+  /** True once /features has answered, so a missing flag means off rather than not loaded yet. */
+  areFeaturesLoaded: boolean;
   progress: GamificationProgress | null;
   missions: MissionsResponse | null;
   trails: Trail[] | null;
@@ -20,6 +24,8 @@ export interface GamificationState {
 
 const initialState: GamificationState = {
   isEnabled: false,
+  isShopEnabled: false,
+  areFeaturesLoaded: false,
   progress: null,
   missions: null,
   trails: null,
@@ -31,8 +37,17 @@ export const gamificationSlice = createSlice({
   name: "gamification",
   initialState,
   reducers: {
-    setGamificationEnabled: (state, action: PayloadAction<boolean>) => {
-      state.isEnabled = action.payload;
+    setGamificationFeatures: (
+      state,
+      action: PayloadAction<{
+        isEnabled: boolean;
+        isShopEnabled: boolean;
+        isLoaded: boolean;
+      }>
+    ) => {
+      state.isEnabled = action.payload.isEnabled;
+      state.isShopEnabled = action.payload.isShopEnabled;
+      state.areFeaturesLoaded = action.payload.isLoaded;
     },
     setGamificationProgress: (
       state,
@@ -75,7 +90,7 @@ export const gamificationSlice = createSlice({
 });
 
 export const {
-  setGamificationEnabled,
+  setGamificationFeatures,
   setGamificationProgress,
   applyRewardProgress,
   setGamificationMissions,

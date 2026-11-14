@@ -6,6 +6,7 @@ import {
   isNearlyUniformScreenshot,
   type ScreenshotColorRange,
 } from "./screenshot-frame-validation";
+import { BlankScreenshotFrameError } from "./screenshots/screenshot-frame-script";
 
 const MAX_CAPTURE_ATTEMPTS = 3;
 
@@ -219,7 +220,7 @@ export const captureWindowsGameWindowFrame = async (sourceId: string) => {
       });
     }
 
-    throw new Error("Windows game-window capture returned only blank frames");
+    throw new BlankScreenshotFrameError();
   } finally {
     destroyCaptureWindow(captureWindow);
   }

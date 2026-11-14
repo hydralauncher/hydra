@@ -71,7 +71,7 @@
     gap: globals.$spacing-unit;
     display: flex;
     color: globals.$muted-color;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     align-items: center;
 
     .star-rating {

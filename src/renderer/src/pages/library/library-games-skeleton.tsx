@@ -1,6 +1,6 @@
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import cn from "classnames";
-import type { ViewMode } from "./view-options";
+import type { ViewMode } from "./library-display-menu";
 import "./library-games-skeleton.scss";
 
 interface LibraryGamesSkeletonProps {

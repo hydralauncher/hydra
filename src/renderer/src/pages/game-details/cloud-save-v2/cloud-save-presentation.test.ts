@@ -577,6 +577,16 @@ describe("game page automatic cloud save sync", () => {
     assert.equal(shouldSyncOnGamePage({ isSyncing: true }), false);
   });
 
+  it("syncs community PC ports, which have no platform", () => {
+    assert.equal(
+      shouldSyncOnGamePage({
+        shop: "launchbox",
+        objectId: "12345:zelda64recomp",
+      }),
+      true
+    );
+  });
+
   it("waits for RetroArch configuration without blocking Steam or RPCS3", () => {
     for (const status of ["checking", "missing", "invalid", "error"] as const) {
       assert.equal(

@@ -6,8 +6,8 @@ import type { Game } from "@types";
 import {
   assertRpcs3SnapshotIdentity,
   inspectRpcs3DiscIdentity,
-  rpcs3TitleIdsFromCatalogue,
 } from "./rpcs3-game-identity-policy.js";
+import { catalogueTitleIdsFromEntries } from "./catalogue-title-ids.js";
 
 const game = (discs: Array<{ path: string; sku: string | null }>) =>
   ({ discs }) as Game;
@@ -17,7 +17,7 @@ describe("RPCS3 game identity", () => {
   it("reads catalogue SKUs that carry a region suffix", () => {
     assert.deepEqual(
       [
-        ...rpcs3TitleIdsFromCatalogue(
+        ...catalogueTitleIdsFromEntries(
           [
             {
               objectId: "14544",
@@ -169,10 +169,10 @@ describe("RPCS3 game identity", () => {
       { objectId: "gow", shop: "launchbox", skus: ["BLUS-30443", "BLES00510"] },
       { objectId: "minecraft", shop: "launchbox", skus: ["NPUB31419"] },
     ];
-    assert.deepEqual(rpcs3TitleIdsFromCatalogue(entries, "gow"), ids);
-    assert.equal(rpcs3TitleIdsFromCatalogue(entries, "unknown").size, 0);
+    assert.deepEqual(catalogueTitleIdsFromEntries(entries, "gow"), ids);
+    assert.equal(catalogueTitleIdsFromEntries(entries, "unknown").size, 0);
     assert.equal(
-      rpcs3TitleIdsFromCatalogue(
+      catalogueTitleIdsFromEntries(
         [{ objectId: "gow", shop: "steam", skus: ["NPUB31419"] }],
         "gow"
       ).size,

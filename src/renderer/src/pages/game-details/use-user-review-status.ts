@@ -5,6 +5,7 @@ export interface UseUserReviewStatusParams {
   shop?: GameShop;
   objectId?: string;
   userDetailsId?: string;
+  recompilationSlug?: string;
 }
 
 interface UserReviewStatusResult {
@@ -12,19 +13,40 @@ interface UserReviewStatusResult {
   hasReviewed: boolean;
 }
 
+// Last known answer per game and user. A revisit shows the right state on
+// the first render instead of waiting for the check, which would move the
+// page when the review prompt appears.
+const reviewStatusCache = new Map<string, boolean>();
+
 const buildIdentity = (
   shop?: GameShop,
   objectId?: string,
-  userDetailsId?: string
-) => `${shop ?? ""}:${objectId ?? ""}:${userDetailsId ?? ""}`;
+  userDetailsId?: string,
+  recompilationSlug?: string
+) =>
+  `${shop ?? ""}:${objectId ?? ""}:${userDetailsId ?? ""}:${recompilationSlug ?? ""}`;
 
 export function useUserReviewStatus({
   shop,
   objectId,
   userDetailsId,
+  recompilationSlug,
 }: Readonly<UseUserReviewStatusParams>) {
-  const identity = buildIdentity(shop, objectId, userDetailsId);
+  const identity = buildIdentity(
+    shop,
+    objectId,
+    userDetailsId,
+    recompilationSlug
+  );
   const [result, setResult] = useState<UserReviewStatusResult | null>(null);
+
+  const rememberResult = useCallback(
+    (hasReviewed: boolean) => {
+      reviewStatusCache.set(identity, hasReviewed);
+      setResult({ identity, hasReviewed });
+    },
+    [identity]
+  );
 
   useEffect(() => {
     if (!shop || !objectId || shop === "custom" || !userDetailsId) {
@@ -32,16 +54,22 @@ export function useUserReviewStatus({
       return;
     }
 
+    const cached = reviewStatusCache.get(identity);
+    if (cached !== undefined) setResult({ identity, hasReviewed: cached });
+
     let cancelled = false;
 
     window.electron.hydraApi
       .get<{ hasReviewed: boolean }>(
         `/games/${shop}/${objectId}/reviews/check`,
-        { needsAuth: true }
+        {
+          needsAuth: true,
+          params: recompilationSlug ? { recompilationSlug } : undefined,
+        }
       )
       .then((response) => {
         if (cancelled) return;
-        setResult({ identity, hasReviewed: response?.hasReviewed || false });
+        rememberResult(response?.hasReviewed || false);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -52,16 +80,21 @@ export function useUserReviewStatus({
     return () => {
       cancelled = true;
     };
-  }, [identity, shop, objectId, userDetailsId]);
+  }, [
+    identity,
+    shop,
+    objectId,
+    userDetailsId,
+    recompilationSlug,
+    rememberResult,
+  ]);
 
-  const currentResult = result?.identity === identity ? result : null;
+  const cachedResult = reviewStatusCache.has(identity)
+    ? { identity, hasReviewed: reviewStatusCache.get(identity)! }
+    : null;
+  const currentResult = result?.identity === identity ? result : cachedResult;
 
-  const updateHasUserReviewed = useCallback(
-    (hasReviewed: boolean) => {
-      setResult({ identity, hasReviewed });
-    },
-    [identity]
-  );
+  const updateHasUserReviewed = rememberResult;
 
   return {
     hasUserReviewed: currentResult?.hasReviewed ?? false,

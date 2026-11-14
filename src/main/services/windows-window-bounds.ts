@@ -10,6 +10,21 @@ export interface SourceClientAreaCrop extends ImageCropRect {
   sourceHeight: number;
 }
 
+export const getSourceWindowSize = (sourceId: string) => {
+  if (process.platform !== "win32") return null;
+
+  const windowHandle = getWindowHandleFromSourceId(sourceId);
+  if (!windowHandle) return null;
+
+  const bounds = NativeAddon.getWindowsWindowBounds(windowHandle);
+  if (!bounds) return null;
+
+  return {
+    width: bounds.frame.right - bounds.frame.left,
+    height: bounds.frame.bottom - bounds.frame.top,
+  };
+};
+
 export const getSourceClientAreaCrop = (
   sourceId: string
 ): SourceClientAreaCrop | null => {

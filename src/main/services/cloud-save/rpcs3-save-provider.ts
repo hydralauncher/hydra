@@ -64,14 +64,14 @@ export const rpcs3SaveProvider: EmulatorProvider = {
   async discover(context: EmulatorProviderContext) {
     try {
       const { configRoot, homeRoot } = await resolveRpcs3SaveLocation();
-      const rpcs3SavedataTitleIds =
-        context.rpcs3SavedataTitleIds ??
+      const savedataTitleIds =
+        context.savedataTitleIds ??
         (await getRpcs3SavedataTitleIds(context.game));
       const [savedata, savestates, gamedata] = await Promise.all([
-        scanRpcs3SaveRoot({ ...context, rpcs3SavedataTitleIds }, homeRoot),
+        scanRpcs3SaveRoot({ ...context, savedataTitleIds }, homeRoot),
         scanRpcs3Savestates(context, configRoot),
         scanRpcs3Gamedata(
-          { ...context, rpcs3SavedataTitleIds },
+          { ...context, savedataTitleIds },
           rpcs3Hdd0Root({ homeRoot })
         ),
       ]);
@@ -92,10 +92,10 @@ export const rpcs3SaveProvider: EmulatorProvider = {
       };
     }
   },
-  async restoreRules(game: Game, files, rpcs3SavedataTitleIds) {
+  async restoreRules(game: Game, files, savedataTitleIds) {
     if (!rpcs3TitleIdsForGame(game).length) return new Map();
     const allowedTitleIds = new Set(
-      rpcs3SavedataTitleIds ?? (await getRpcs3SavedataTitleIds(game))
+      savedataTitleIds ?? (await getRpcs3SavedataTitleIds(game))
     );
     let homeRoot: string;
     let configRoot: string;

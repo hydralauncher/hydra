@@ -25,7 +25,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
 
   &__skeleton-row {
     height: 56px;
-    border-radius: 8px;
+    border-radius: 4px;
   }
 
   &__empty {
@@ -58,10 +58,14 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     border-top: solid 1px globals.$border-color;
   }
 
+  &__footer--placeholder {
+    visibility: hidden;
+  }
+
   &__see-all {
     display: inline-flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: calc(globals.$spacing-unit / 2);
     width: fit-content;
     padding: 0;
     border: 0;
@@ -81,7 +85,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit * 1.5);
-    margin: globals.$spacing-unit globals.$spacing-unit 0;
+    margin: globals.$spacing-unit calc(globals.$spacing-unit * 2) 0;
     padding: calc(globals.$spacing-unit * 1.5);
     border: dashed 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
@@ -172,7 +176,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 calc(globals.$spacing-unit * 0.75);
+    padding: 0 calc(globals.$spacing-unit / 2);
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -197,7 +201,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   &__tooltip {
     position: fixed;
     z-index: 9999;
-    padding: 6px 10px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     background-color: globals.$dark-background-color;
@@ -443,7 +447,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     align-items: center;
     justify-content: center;
     background-color: #1a1a1a;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
     color: globals.$body-color;
 
@@ -578,7 +582,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     font-size: globals.$small-font-size;
     line-height: 16px;
     color: globals.$body-color;
@@ -653,13 +657,13 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: calc(globals.$spacing-unit / 2);
   }
 
   &__name-line {
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: globals.$spacing-unit;
     min-width: 0;
   }
 
@@ -674,19 +678,19 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   &__you {
     flex-shrink: 0;
     height: 18px;
-    padding: 0 6px;
+    padding: 0 globals.$spacing-unit;
     display: inline-flex;
     align-items: center;
     border: solid 1px rgba(255, 255, 255, 0.15);
     border-radius: 6px;
     color: globals.$body-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
   }
 
   &__progress {
     height: 3px;
-    border-radius: 2px;
+    border-radius: 999px;
     background-color: color-mix(in srgb, currentColor 16%, transparent);
     overflow: hidden;
   }
@@ -694,7 +698,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
   &__progress-fill {
     display: block;
     height: 100%;
-    border-radius: 2px;
+    border-radius: 999px;
     background-color: color-mix(in srgb, currentColor 45%, transparent);
     transition: width 0.46s $leaderboard-ease;
   }
@@ -762,7 +766,7 @@ $leaderboard-ease: cubic-bezier(0.34, 1.4, 0.64, 1);
     white-space: nowrap;
 
     &--muted {
-      color: #838383;
+      color: globals.$subtle-color;
     }
   }
 }

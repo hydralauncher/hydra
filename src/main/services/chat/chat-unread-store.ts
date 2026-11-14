@@ -1,3 +1,4 @@
+import { OFFICIAL_CHAT_FRIEND_ID } from "@shared";
 import type { ChatUnreadState, ChatUnreadSummary } from "@types";
 import { HydraApi } from "../hydra-api";
 import { logger } from "../logger";
@@ -29,6 +30,12 @@ export class ChatUnreadStore {
   private static isLoaded = false;
   private static loading: Promise<void> | null = null;
   private static pendingChanges: Map<string, PendingUnreadChange> | null = null;
+  // Kept apart from `unread`: catch-up reads that to announce missed messages,
+  // and official messages have neither a chat API nor notifications.
+  private static officialUnread = 0;
+  private static officialRevision = 0;
+  // Bumped by each read, so a poll that started before it can't undo it.
+  private static officialReadMark = 0;
   // Bumped on clear() so a load started before sign-out can't repopulate the
   // store with the previous user's counts.
   private static generation = 0;
@@ -120,8 +127,33 @@ export class ChatUnreadStore {
     this.broadcast();
   }
 
+  public static getOfficialReadMark() {
+    return this.officialReadMark;
+  }
+
+  public static applyOfficialPoll(
+    unreadCount: number,
+    generation: number,
+    readMark: number
+  ) {
+    if (generation !== this.generation) return;
+
+    if (readMark === this.officialReadMark) this.officialUnread = unreadCount;
+    this.officialRevision++;
+    this.broadcast();
+  }
+
+  public static clearOfficialUnread(generation: number) {
+    if (generation !== this.generation) return;
+
+    this.officialReadMark++;
+    this.officialUnread = 0;
+    this.broadcast();
+  }
+
   public static clear() {
     this.generation++;
+    this.officialUnread = 0;
     this.unread.clear();
     this.lastMessageAt.clear();
     this.lastSeenSeq.clear();
@@ -208,9 +240,15 @@ export class ChatUnreadStore {
     }
 
     return {
-      totalUnread,
-      byFriend: Object.fromEntries(this.unread),
+      totalUnread: totalUnread + this.officialUnread,
+      byFriend: {
+        ...Object.fromEntries(this.unread),
+        ...(this.officialUnread > 0
+          ? { [OFFICIAL_CHAT_FRIEND_ID]: this.officialUnread }
+          : {}),
+      },
       lastMessageAtByFriend,
+      officialRevision: this.officialRevision,
     };
   }
 

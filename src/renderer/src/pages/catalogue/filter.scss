@@ -10,11 +10,12 @@
     globals.$dark-background-color 84%,
     var(--filter-item-color) 16%
   );
-  padding: 4px 6px 4px 10px;
+  padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit / 2)
+    calc(globals.$spacing-unit / 2) globals.$spacing-unit;
   border-radius: 8px;
   border: solid 1px
     color-mix(in srgb, globals.$border-color 70%, var(--filter-item-color) 30%);
-  font-size: 12px;
+  font-size: globals.$small-font-size;
   min-height: 32px;
   max-width: 100%;
 
@@ -128,7 +129,7 @@
     color: rgba(255, 255, 255, 0.7);
     padding: 4px 8px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
     min-width: 24px;
     text-align: center;
@@ -149,25 +150,40 @@
     text-overflow: ellipsis;
   }
 
+  // Collapses with a grid-row transition instead of a measured max-height,
+  // so a section renders at full height on its first paint.
   &__content {
+    display: grid;
+    grid-template-rows: 1fr;
     overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1);
+    transition: grid-template-rows 0.3s ease;
     background-color: globals.$dark-background-color;
     position: relative;
+
+    &--closed {
+      grid-template-rows: 0fr;
+    }
   }
 
   &__content-inner {
+    min-height: 0;
+    overflow: hidden;
     padding: calc(globals.$spacing-unit * 2);
+    transition: padding-block 0.3s ease;
+
+    .filter-section__content--closed & {
+      padding-block: 0;
+    }
   }
 
   &__count {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     margin-bottom: 12px;
     display: block;
   }
 
   &__clear-button {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     margin-bottom: 12px;
     display: block;
     color: globals.$body-color;
@@ -199,14 +215,14 @@
     flex: 1;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: max-content;
-    padding: 7px 10px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     border: 0;
     border-radius: 6px;
     color: globals.$muted-color;
     background-color: transparent;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
     cursor: pointer;
     transition:
@@ -236,11 +252,11 @@
     justify-content: center;
     min-width: 18px;
     height: 18px;
-    padding: 0 5px;
-    border-radius: 9px;
+    padding: 0 calc(globals.$spacing-unit / 2);
+    border-radius: 999px;
     color: globals.$body-color;
     background-color: rgba(255, 255, 255, 0.1);
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     line-height: 1;
   }
 

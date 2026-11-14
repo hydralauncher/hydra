@@ -24,6 +24,17 @@ const closeGame = async (
 ) => {
   if (emulators.closeEmulatorSession(levelKeys.game(shop, objectId))) return;
 
+  if (shop === "launchbox") {
+    const { closeRecompilation, findRunningRecompilation } = await import(
+      "@main/events/recompilation/recompilation-session"
+    );
+    const runningPort = findRunningRecompilation(objectId);
+    if (runningPort) {
+      closeRecompilation(runningPort);
+      return;
+    }
+  }
+
   const processes = await NativeAddon.listProcesses();
 
   const game = await gamesSublevel.get(levelKeys.game(shop, objectId));

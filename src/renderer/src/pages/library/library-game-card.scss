@@ -109,7 +109,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 0 6px;
+    padding: 0 globals.$spacing-unit;
     height: 24px;
     box-sizing: border-box;
     line-height: 1;
@@ -121,12 +121,12 @@
 
     &-long {
       display: inline;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
     }
 
     &-short {
       display: none;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
     }
 
     @container (max-width: 200px) {
@@ -177,9 +177,9 @@
     align-items: center;
     justify-content: center;
     line-height: 1;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
-    color: #fafafa;
+    color: globals.$muted-color;
     max-width: 96px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -218,8 +218,8 @@
       globals.$classics-rainbow border-box;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    color: #fafafa;
-    gap: 6px;
+    color: globals.$muted-color;
+    gap: calc(globals.$spacing-unit / 2);
     padding: 0 8px;
     height: 24px;
     box-sizing: border-box;
@@ -228,7 +228,7 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
 
     .library-game-card__installed-text {
-      font-size: 11px;
+      font-size: globals.$tiny-font-size;
     }
   }
 
@@ -237,12 +237,12 @@
     width: 15px;
     height: 15px;
     object-fit: contain;
-    border-radius: 3px;
+    border-radius: 4px;
     display: block;
   }
 
   &__installed-text {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     display: inline;
 
     // Hide label on narrow cards, keep the icon as the indicator

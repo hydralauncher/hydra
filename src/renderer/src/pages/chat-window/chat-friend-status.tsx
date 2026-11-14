@@ -5,6 +5,8 @@ import { Avatar } from "@renderer/components";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { UserFriend } from "@types";
 
+import { isOfficialAccount } from "./chat-sidebar-layout";
+
 export interface ChatFriendStatusProps {
   friend: UserFriend;
   isTyping?: boolean;
@@ -71,11 +73,14 @@ export function ChatFriendAvatar({
         src={friend.profileImageUrl}
         alt={friend.displayName}
       />
-      <span
-        className={cn("chat-window__status-orb", {
-          "chat-window__status-orb--online": friend.isOnline,
-        })}
-      />
+      {/* The official account has no presence to show. */}
+      {!isOfficialAccount(friend) && (
+        <span
+          className={cn("chat-window__status-orb", {
+            "chat-window__status-orb--online": friend.isOnline,
+          })}
+        />
+      )}
     </div>
   );
 }

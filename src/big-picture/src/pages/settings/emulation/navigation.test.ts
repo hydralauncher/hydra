@@ -3,7 +3,7 @@ import { it } from "node:test";
 
 import {
   isRetroArchEmulationDeepLink,
-  isRpcs3EmulationDeepLink,
+  getEmulatorDetailDeepLinkSystem,
 } from "./navigation.js";
 
 it("opens the RetroArch executable settings from a Big Picture deep link", () => {
@@ -23,13 +23,25 @@ it("opens the RetroArch executable settings from a Big Picture deep link", () =>
   );
 });
 
-it("opens the RPCS3 executable settings from a Big Picture deep link", () => {
+it("opens the RPCS3 and shadPS4 settings from a Big Picture deep link", () => {
   assert.equal(
-    isRpcs3EmulationDeepLink("?tab=emulation&system=ps3&section=emulator"),
-    true
+    getEmulatorDetailDeepLinkSystem(
+      "?tab=emulation&system=ps3&section=emulator"
+    ),
+    "ps3"
   );
   assert.equal(
-    isRpcs3EmulationDeepLink("?tab=emulation&system=retroarch"),
-    false
+    getEmulatorDetailDeepLinkSystem(
+      "?tab=emulation&system=ps4&section=emulator"
+    ),
+    "ps4"
+  );
+  assert.equal(
+    getEmulatorDetailDeepLinkSystem("?tab=emulation&system=retroarch"),
+    null
+  );
+  assert.equal(
+    getEmulatorDetailDeepLinkSystem("?tab=general&system=ps4"),
+    null
   );
 });

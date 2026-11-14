@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Navigate } from "react-router-dom";
 import cn from "classnames";
 import { LockIcon } from "@primer/octicons-react";
 import { Button } from "@renderer/components";
@@ -32,7 +33,12 @@ export default function Shop() {
   const { formatNumber } = useFormat();
   const { userDetails } = useUserDetails();
   const { progress } = useGamificationProgress();
-  const isEnabled = useAppSelector((state) => state.gamification.isEnabled);
+  const isEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled && state.gamification.isShopEnabled
+  );
+  const areFeaturesLoaded = useAppSelector(
+    (state) => state.gamification.areFeaturesLoaded
+  );
   const [category, setCategory] = useState<ShopCategory>("all");
   const [hideOwned, setHideOwned] = useState(false);
   const [openItem, setOpenItem] = useState<ShopItem | null>(null);
@@ -48,7 +54,8 @@ export default function Shop() {
     [category, hideOwned]
   );
 
-  if (!isEnabled || !progress || !userDetails) return null;
+  if (!isEnabled) return areFeaturesLoaded ? <Navigate to="/" replace /> : null;
+  if (!progress || !userDetails) return null;
 
   const countIn = (target: ShopCategory) =>
     SHOP_ITEMS.filter(

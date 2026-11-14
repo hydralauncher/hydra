@@ -13,6 +13,7 @@ import { KNOWN_BINARY_LABELS } from "./known-binary-labels";
 import { EMULATOR_ICONS } from "./emulator-icons";
 import { BiosSection } from "./bios-section";
 import { FirmwareSection } from "./firmware-section";
+import { TrophyKeySection } from "./trophy-key-section";
 import {
   DetailHeader,
   DetailRemoveModals,
@@ -26,7 +27,8 @@ import { MemoryCardsSection } from "./memory-cards-section";
 import { CloudSavesSection } from "./cloud-saves-section";
 import { LocalEmulatorSavesSection } from "./local-emulator-saves-section";
 import { RomsDetectedSection } from "./roms-detected-section";
-import { Rpcs3ConfigRootSection } from "./rpcs3-config-root-section";
+import { EmulatorSaveLocationSection } from "./emulator-save-location-section";
+import { getEmulatorSaveLocation } from "./emulator-save-location";
 import { formatRelativeShort } from "./relative-time";
 import {
   availableEmulatorTabs,
@@ -68,7 +70,7 @@ export function EmulatorDetail({
 
   const formatLastScan = (ts: number | null): string =>
     ts !== null ? formatRelativeShort(ts, i18n.language) : "—";
-  const { showSuccessToast, showErrorToast } = useToast();
+  const { showSuccessToast, showErrorToast, showWarningToast } = useToast();
   const { scan, start } = useClassicsScan();
 
   const [busy, setBusy] = useState(false);
@@ -85,7 +87,8 @@ export function EmulatorDetail({
   const hasMemoryCards = supportsMemoryCards(config.system);
   const hasEmulatorSaves = supportsEmulatorSaves(config.system);
   const supportsBios = hasMemoryCards;
-  const supportsFirmware = config.system === "ps3";
+  const supportsFirmware = config.system === "ps3" || config.system === "ps4";
+  const saveLocation = getEmulatorSaveLocation(config.system);
 
   const [activeTab, setActiveTab] = useState<EmulatorTab>(() =>
     readStoredTab(config.system)
@@ -297,18 +300,28 @@ export function EmulatorDetail({
     if (scan.completedNonce === lastScanNonceRef.current) return;
     lastScanNonceRef.current = scan.completedNonce;
     if (scan.completedSystem !== config.system) return;
-    showSuccessToast(
-      t("scan_complete_toast", {
-        matched: scan.result?.matched ?? 0,
-        unmatched: scan.result?.unmatched ?? 0,
-      })
-    );
+    const summary = t("scan_complete_toast", {
+      matched: scan.result?.matched ?? 0,
+      unmatched: scan.result?.unmatched ?? 0,
+    });
+    if (scan.result?.unsupportedPackages) {
+      showWarningToast(
+        summary,
+        t("ps4_pkg_not_supported", {
+          ns: "app",
+          count: scan.result.unsupportedPackages,
+        })
+      );
+      return;
+    }
+    showSuccessToast(summary);
   }, [
     scan.completedNonce,
     scan.completedSystem,
     scan.result,
     config.system,
     showSuccessToast,
+    showWarningToast,
     t,
   ]);
 
@@ -361,9 +374,10 @@ export function EmulatorDetail({
             onBrowse={handleBrowseExecutable}
           />
 
-          {config.system === "ps3" && (
-            <Rpcs3ConfigRootSection
+          {saveLocation && (
+            <EmulatorSaveLocationSection
               config={config}
+              location={saveLocation}
               disabled={busy}
               onChange={onChange}
             />
@@ -382,6 +396,10 @@ export function EmulatorDetail({
 
           {supportsFirmware && (
             <FirmwareSection config={config} disabled={busy} />
+          )}
+
+          {config.system === "ps4" && (
+            <TrophyKeySection config={config} disabled={busy} />
           )}
 
           {isConfigured && (

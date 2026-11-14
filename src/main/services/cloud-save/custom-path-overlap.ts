@@ -8,6 +8,7 @@ import type {
 } from "@types";
 
 import { NativeAddon } from "../native-addon";
+import { getRecompilationSaveRules } from "./recompilation-cloud-save";
 import type { getCloudSaveGameContext } from "./cloud-save-game-context";
 import { cloudSaveCustomPathContextFromPathContext } from "./custom-path";
 import { getCloudSaveCustomPathOverlapErrorCode } from "./custom-path-overlap-error";
@@ -71,6 +72,10 @@ export const getApprovedCloudSaveRules = async (
       title: context.game?.title,
       remoteId: context.game?.remoteId ?? undefined,
       userDataPath: SystemPath.getPath("userData"),
+      recompilationRules: getRecompilationSaveRules(
+        context.pathContext,
+        context.game?.executablePath
+      ),
     })
   ).rules;
 

@@ -56,4 +56,5 @@ export const levelKeys = {
   steamSyncRun: "steamSyncRun",
   chatNotificationCursor: "chatNotificationCursor", // Newest chat message already announced
   leaderboardNotificationsShown: "leaderboardNotificationsShown",
+  recompilationInstalls: "recompilationInstalls",
 };

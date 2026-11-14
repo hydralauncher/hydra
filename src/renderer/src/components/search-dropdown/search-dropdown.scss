@@ -10,7 +10,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   margin-top: 4px;
-  width: 250px;
 
   &__section {
     padding: 4px 0;
@@ -30,7 +29,7 @@
 
   &__section-title {
     color: globals.$muted-color;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -56,7 +55,7 @@
     border: 1px solid transparent;
     border-radius: 6px;
     background: transparent;
-    color: globals.$muted-color;
+    color: globals.$body-color;
     cursor: pointer;
     transition:
       background-color 0.15s ease,
@@ -64,21 +63,21 @@
       border-color 0.15s ease;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
 
     &--active {
       background-color: rgba(255, 255, 255, 0.06);
-      border-color: rgba(255, 255, 255, 0.08);
-      color: #fafafa;
+      border-color: globals.$border-color;
+      color: globals.$muted-color;
     }
   }
 
   &__clear-text-button {
-    color: globals.$muted-color;
+    color: globals.$body-color;
     cursor: pointer;
     padding: 0;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: bold;
     text-transform: uppercase;
     transition: color ease 0.2s;
@@ -86,7 +85,7 @@
     border: none;
 
     &:hover {
-      color: #ffffff;
+      color: globals.$muted-color;
     }
   }
 
@@ -121,8 +120,8 @@
     background-color: transparent;
 
     &:hover {
-      color: #ff3333;
-      background-color: rgba(255, 85, 85, 0.2);
+      color: globals.$error-color;
+      background-color: rgba(globals.$error-color, 0.18);
     }
   }
 
@@ -156,7 +155,7 @@
     color: globals.$muted-color;
 
     &--image {
-      border-radius: 2px;
+      border-radius: 4px;
       object-fit: cover;
     }
   }
@@ -166,7 +165,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
   }
 
   &__loading,
@@ -174,7 +173,7 @@
     padding: 16px 12px;
     text-align: center;
     color: globals.$muted-color;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
   }
 
   &__empty {
@@ -186,6 +185,6 @@
     color: #ffa000;
     font-weight: 600;
     padding: 0 2px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 }

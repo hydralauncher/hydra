@@ -1,7 +1,9 @@
 import type { Game, GameShop, LibraryCatalogueMetadata } from "@types";
 import { mergeLocalAndRemotePlayTime } from "../../../shared/playtime.js";
 import { mergeLibraryCatalogueMetadata } from "../../../shared/library-catalogue.js";
+import { pickLibraryCollectionPositions } from "../../../shared/library-group-actions.js";
 import { resolveLibraryIsDeleted } from "./resolve-library-source.js";
+import { getCollectionOrderRevision } from "./library-write-queue.js";
 
 export interface ImportedProfileGame extends LibraryCatalogueMetadata {
   id: string;
@@ -24,6 +26,7 @@ export interface ImportedProfileGame extends LibraryCatalogueMetadata {
   isFavorite?: boolean;
   isPinned?: boolean;
   collectionIds?: string[];
+  collectionPositions?: Record<string, number>;
 }
 
 const parseDate = (value: Date | string | null | undefined): Date | null => {
@@ -42,38 +45,75 @@ const latestDate = (
   return local;
 };
 
+export const keepNewerLocalCollectionOrders = (
+  merged: Game,
+  localGame: Game,
+  collectionOrderRevision: number
+): Record<string, number> => {
+  const positions = { ...merged.collectionPositions };
+  for (const collectionId of merged.collectionIds ?? []) {
+    if (getCollectionOrderRevision(collectionId) <= collectionOrderRevision)
+      continue;
+
+    const localPosition = localGame.collectionPositions?.[collectionId];
+    if (localPosition === undefined) delete positions[collectionId];
+    else positions[collectionId] = localPosition;
+  }
+  return positions;
+};
+
 export const mergeImportedProfileGame = (
   localGame: Game,
-  remoteGame: ImportedProfileGame
-): Game => ({
-  ...localGame,
-  ...mergeLibraryCatalogueMetadata(localGame, remoteGame),
-  remoteId:
-    localGame.source === "hydra" &&
-    localGame.remoteId === null &&
-    remoteGame.source === "epic"
-      ? null
-      : remoteGame.id,
-  addedToLibraryAt:
-    localGame.addedToLibraryAt ?? parseDate(remoteGame.createdAt),
-  lastTimePlayed: latestDate(
-    localGame.lastTimePlayed,
-    remoteGame.lastTimePlayed
-  ),
-  ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
-  hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
-  hasActiveEpicImport:
-    remoteGame.hasActiveEpicImport ?? localGame.hasActiveEpicImport ?? false,
-  isDeleted: resolveLibraryIsDeleted(
-    localGame.isDeleted,
-    undefined,
-    remoteGame.hasActiveSteamImport === true,
-    remoteGame.hasActiveEpicImport === true
-  ),
-  hasManuallyUpdatedPlaytime:
-    remoteGame.hasManuallyUpdatedPlaytime ??
-    localGame.hasManuallyUpdatedPlaytime,
-  favorite: remoteGame.isFavorite ?? localGame.favorite,
-  isPinned: remoteGame.isPinned ?? localGame.isPinned,
-  collectionIds: remoteGame.collectionIds ?? localGame.collectionIds,
-});
+  remoteGame: ImportedProfileGame,
+  collectionOrderRevision?: number
+): Game => {
+  const merged: Game = {
+    ...localGame,
+    ...mergeLibraryCatalogueMetadata(localGame, remoteGame),
+    remoteId:
+      localGame.source === "hydra" &&
+      localGame.remoteId === null &&
+      remoteGame.source === "epic"
+        ? null
+        : remoteGame.id,
+    addedToLibraryAt:
+      localGame.addedToLibraryAt ?? parseDate(remoteGame.createdAt),
+    lastTimePlayed: latestDate(
+      localGame.lastTimePlayed,
+      remoteGame.lastTimePlayed
+    ),
+    ...mergeLocalAndRemotePlayTime(localGame, remoteGame),
+    hasActiveSteamImport: remoteGame.hasActiveSteamImport === true,
+    hasActiveEpicImport:
+      remoteGame.hasActiveEpicImport ?? localGame.hasActiveEpicImport ?? false,
+    isDeleted: resolveLibraryIsDeleted(
+      localGame.isDeleted,
+      undefined,
+      remoteGame.hasActiveSteamImport === true,
+      remoteGame.hasActiveEpicImport === true
+    ),
+    hasManuallyUpdatedPlaytime:
+      remoteGame.hasManuallyUpdatedPlaytime ??
+      localGame.hasManuallyUpdatedPlaytime,
+    favorite: remoteGame.isFavorite ?? localGame.favorite,
+    isPinned: remoteGame.isPinned ?? localGame.isPinned,
+    collectionIds: remoteGame.collectionIds ?? localGame.collectionIds,
+    collectionPositions: pickLibraryCollectionPositions(
+      Object.hasOwn(remoteGame, "collectionPositions")
+        ? remoteGame.collectionPositions
+        : localGame.collectionPositions,
+      remoteGame.collectionIds ?? localGame.collectionIds ?? []
+    ),
+  };
+
+  if (collectionOrderRevision === undefined) return merged;
+
+  return {
+    ...merged,
+    collectionPositions: keepNewerLocalCollectionOrders(
+      merged,
+      localGame,
+      collectionOrderRevision
+    ),
+  };
+};

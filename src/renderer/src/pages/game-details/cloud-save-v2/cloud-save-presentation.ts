@@ -164,6 +164,7 @@ interface GamePageOpenSyncInput {
   overview: CloudSaveOverview | null;
   shop: GameShop;
   platform?: string | null;
+  objectId?: string;
   canUseCloudSaves: boolean;
   hasExecutablePath: boolean;
   retroArchExecutableStatus?: RetroArchExecutableStatus | null;
@@ -176,6 +177,7 @@ export const shouldSyncCloudSaveOnGamePage = ({
   overview,
   shop,
   platform,
+  objectId,
   canUseCloudSaves,
   hasExecutablePath,
   retroArchExecutableStatus,
@@ -183,7 +185,7 @@ export const shouldSyncCloudSaveOnGamePage = ({
   isSyncing,
   isInFlight,
 }: GamePageOpenSyncInput) =>
-  isCloudSaveV2Eligible(shop, platform) &&
+  isCloudSaveV2Eligible(shop, platform, objectId) &&
   canUseCloudSaves &&
   hasExecutablePath &&
   (getCloudSaveEmulatorProvider(shop, platform) !== "retroarch" ||

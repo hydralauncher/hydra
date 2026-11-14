@@ -11,10 +11,10 @@
     height: 36px;
     padding: 0 12px;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
     color: rgba(255, 255, 255, 0.9);
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
     cursor: pointer;
     transition:
@@ -41,7 +41,7 @@
     display: inline-flex;
     min-width: 0;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     color: rgba(255, 255, 255, 0.95);
 
     svg {
@@ -60,7 +60,7 @@
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    border-radius: 3px;
+    border-radius: 4px;
     object-fit: cover;
   }
 
@@ -83,7 +83,7 @@
     max-width: min(360px, calc(100vw - 32px));
     max-height: min(360px, 60vh);
     overflow-y: auto;
-    background: #1a1a1a;
+    background: globals.$dark-background-color;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 4px;
@@ -99,12 +99,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     background: none;
     border: none;
     border-radius: 6px;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;

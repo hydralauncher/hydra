@@ -50,7 +50,7 @@ export function HowLongToBeatSection({
                   )}
                 </li>
               ))
-            : Array.from({ length: 4 }).map((_, index) => (
+            : Array.from({ length: 3 }).map((_, index) => (
                 <Skeleton
                   key={index}
                   className="how-long-to-beat__category-skeleton"

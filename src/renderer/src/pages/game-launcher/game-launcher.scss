@@ -5,7 +5,12 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: linear-gradient(135deg, #0d0d0d 0%, #1a1a2e 50%, #16213e 100%);
+  background: linear-gradient(
+    135deg,
+    globals.$dark-background-color 0%,
+    #1a1a2e 50%,
+    #16213e 100%
+  );
   -webkit-app-region: drag;
   padding: calc(globals.$spacing-unit * 3);
   box-sizing: border-box;
@@ -119,7 +124,7 @@
   }
 
   &__title {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     color: globals.$body-color;
     margin: 0;
@@ -131,7 +136,7 @@
   }
 
   &__status {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     color: globals.$muted-color;
     margin: 0;
     display: flex;
@@ -144,7 +149,7 @@
   }
 
   &__status-detail {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: globals.$body-color;
     margin: 0;
     max-width: 100%;
@@ -194,8 +199,8 @@
     display: flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
   }
 
   &__actions {

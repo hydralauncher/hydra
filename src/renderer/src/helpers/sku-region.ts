@@ -1,4 +1,6 @@
-export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
+import type { SkuRegion } from "@types";
+
+export type { SkuRegion };
 
 const SONY_SKU_REGION_MAP: Record<string, SkuRegion> = {
   SCUS: "US",
@@ -97,6 +99,12 @@ export const getSkuRegion = (sku: string): SkuRegion | null => {
 
   return null;
 };
+
+export const getDiscRegion = (disc: {
+  sku?: string | null;
+  region?: SkuRegion | null;
+}): SkuRegion | null =>
+  disc.region ?? (disc.sku ? getSkuRegion(disc.sku) : null);
 
 export const getSkuRegionFromSaveIdentity = (
   saveIdentity: string | null | undefined

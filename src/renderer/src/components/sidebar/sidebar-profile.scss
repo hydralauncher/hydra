@@ -121,7 +121,7 @@
     right: calc(globals.$spacing-unit * 2);
     background-color: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid globals.$border-color;
     border-radius: 6px;
     padding: calc(globals.$spacing-unit / 2);
     z-index: 100;
@@ -141,8 +141,7 @@
     align-items: center;
     gap: calc(globals.$spacing-unit + globals.$spacing-unit / 2);
     width: 100%;
-    padding: calc(globals.$spacing-unit * 1.25)
-      calc(globals.$spacing-unit * 1.5);
+    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
     border-radius: 4px;
     color: globals.$muted-color;
     cursor: pointer;
@@ -176,9 +175,9 @@
     align-items: center;
     min-width: 20px;
     height: 20px;
-    border-radius: 10px;
+    border-radius: 999px;
     padding: 0 4px;
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     font-weight: bold;
     color: #fff;
 
@@ -210,7 +209,7 @@
 
   &__dropdown-separator {
     height: 1px;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: globals.$border-color;
     margin: calc(globals.$spacing-unit / 2) 0;
   }
 }

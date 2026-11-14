@@ -12,26 +12,8 @@ import {
   parseRpcs3SaveRawPath,
   safeRelativeSegments,
 } from "./emulator-provider-identity.js";
+import { isSafeEmulatorRestoreTarget } from "./emulator-safe-restore-target.js";
 import { rpcs3SlotBelongsToTitle } from "./rpcs3-save-layout.js";
-
-export const isSafeRpcs3RestoreTarget = async (
-  root: string,
-  segments: string[]
-) => {
-  const target = path.resolve(root, ...segments);
-  if (!target.startsWith(`${path.resolve(root)}${path.sep}`)) return false;
-  let current = root;
-  for (const segment of segments) {
-    current = path.join(current, segment);
-    const stat = await fs
-      .lstat(current)
-      .catch((error: NodeJS.ErrnoException) =>
-        error.code === "ENOENT" ? null : undefined
-      );
-    if (stat === undefined || stat?.isSymbolicLink()) return false;
-  }
-  return true;
-};
 
 export const resolveRpcs3SavedataRestoreRule = async (
   file: Pick<RestoreManifestFile, "rawPath" | "relativePath">,
@@ -54,12 +36,15 @@ export const resolveRpcs3SavedataRestoreRule = async (
   const profile = await fs.lstat(profileRoot).catch(() => null);
   if (profile && !profile.isDirectory()) return null;
   if (
-    !(await isSafeRpcs3RestoreTarget(homeRoot, [parsed.profileId, "savedata"]))
+    !(await isSafeEmulatorRestoreTarget(homeRoot, [
+      parsed.profileId,
+      "savedata",
+    ]))
   ) {
     return null;
   }
   const saveRoot = path.join(profileRoot, "savedata");
-  if (!(await isSafeRpcs3RestoreTarget(saveRoot, segments))) return null;
+  if (!(await isSafeEmulatorRestoreTarget(saveRoot, segments))) return null;
   return emulatorRestoreRule(file.rawPath, saveRoot, "dir");
 };
 

@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import type { UserPreferences } from "@types";
 import {
   isEmulatorAchievementTrackingActive,
+  needsEmulatorOverlayVisibility,
   resolveEmulatorAchievementTracking,
 } from "./emulator-achievement-tracking.js";
 
@@ -62,5 +63,40 @@ describe("emulator achievement tracking", () => {
     );
 
     assert.equal(isEmulatorAchievementTrackingActive(tracking), false);
+  });
+});
+
+describe("emulator overlay visibility", () => {
+  const noSouvenirs = { souvenirs: false, realtimeUnlocks: false };
+
+  it("is needed while achievement notifications are on", () => {
+    assert.equal(needsEmulatorOverlayVisibility(null, noSouvenirs), true);
+    assert.equal(
+      needsEmulatorOverlayVisibility(
+        { achievementNotificationsEnabled: true } as UserPreferences,
+        noSouvenirs
+      ),
+      true
+    );
+  });
+
+  it("is needed for souvenirs even with notifications off", () => {
+    assert.equal(
+      needsEmulatorOverlayVisibility(
+        { achievementNotificationsEnabled: false } as UserPreferences,
+        { souvenirs: true, realtimeUnlocks: false }
+      ),
+      true
+    );
+  });
+
+  it("is not needed with notifications and souvenirs off", () => {
+    assert.equal(
+      needsEmulatorOverlayVisibility(
+        { achievementNotificationsEnabled: false } as UserPreferences,
+        noSouvenirs
+      ),
+      false
+    );
   });
 });

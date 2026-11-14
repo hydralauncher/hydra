@@ -3,6 +3,7 @@ import type { Game, SteamGameSyncPayload } from "@types";
 
 import { updateGameRecord } from "../game-record-updater";
 import { HydraApi } from "../hydra-api";
+import { getCollectionOrderRevision } from "../library-sync/library-write-queue";
 import {
   mergeImportedProfileGame,
   type ImportedProfileGame,
@@ -29,6 +30,7 @@ const publishGame = async (
     );
   }
 
+  const collectionOrderRevision = getCollectionOrderRevision();
   const remoteGame = await HydraApi.get<ImportedProfileGame>(
     `/profile/games/steam/${encodeURIComponent(steamAppId)}`,
     undefined,
@@ -43,7 +45,7 @@ const publishGame = async (
   if (signal.aborted) return;
 
   const updatedGame = await updateGameRecord(gameKey, (localGame) =>
-    mergeImportedProfileGame(localGame, remoteGame)
+    mergeImportedProfileGame(localGame, remoteGame, collectionOrderRevision)
   );
   if (!updatedGame || signal.aborted) return;
 

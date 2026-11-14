@@ -16,18 +16,39 @@ import {
   useState,
 } from "react";
 import { Tooltip } from "react-tooltip";
-import { Button, CheckboxField, TextField } from "@renderer/components";
+import {
+  Button,
+  CheckboxField,
+  ConfirmationModal,
+  TextField,
+} from "@renderer/components";
+import { useToast } from "@renderer/hooks";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import type { ClassicsDisc, LibraryGame, ShortcutLocation } from "@types";
-import { FileIcon } from "@primer/octicons-react";
-import { HardDrive, X, FolderOpen, ChevronDown, Disc3 } from "lucide-react";
+import { DeviceDesktopIcon, FileIcon } from "@primer/octicons-react";
+import {
+  HardDrive,
+  X,
+  FolderOpen,
+  ChevronDown,
+  Disc3,
+  RefreshCw,
+} from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
+import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
+  isPs4GameFolder,
   platformToSystem,
 } from "@renderer/helpers";
+
+// Labels that don't fit their button end in "…"; the button's title shows
+// the full text on hover.
+function ButtonLabel({ children }: Readonly<{ children: ReactNode }>) {
+  return <span className="game-options-modal__button-label">{children}</span>;
+}
 
 interface ClassicsDiscSectionProps {
   game: LibraryGame;
@@ -45,6 +66,35 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     [game.platform]
   );
 
+  const { showErrorToast } = useToast();
+  const ps4Pkg = usePs4PkgPicker(game.shop, game.objectId, "any", () => {
+    void updateGame();
+  });
+  const ps4Update = usePs4PkgPicker(game.shop, game.objectId, "update");
+  const isPkgBusy = ps4Pkg.isBusy || ps4Update.isBusy;
+  // An update needs a PS4 game folder: a disc's or an installed port's.
+  const [hasPs4GameFolder, setHasPs4GameFolder] = useState(false);
+  const discKey = discs.map((disc) => disc.path).join("|");
+
+  useEffect(() => {
+    if (system !== "ps4") {
+      setHasPs4GameFolder(false);
+      return;
+    }
+    let active = true;
+    void window.electron
+      .hasPs4GameFolder(game.shop, game.objectId)
+      .then((has) => {
+        if (active) setHasPs4GameFolder(has);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [system, game.shop, game.objectId, discKey]);
+  const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
+    null
+  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
@@ -54,6 +104,20 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     discs.find((d) => d.path === game.selectedDiscPath) ?? discs[0] ?? null;
 
   const renderDiscIcon = (disc: ClassicsDisc | null) => {
+    if (disc?.recompilationSlug) {
+      return disc.iconUrl ? (
+        <img
+          src={disc.iconUrl}
+          alt=""
+          width={18}
+          height={18}
+          className="disc-field__icon disc-field__icon--image"
+        />
+      ) : (
+        <DeviceDesktopIcon size={18} className="disc-field__icon" />
+      );
+    }
+
     if (disc?.isExecutable) {
       const fileIcon = executableIcons[disc.path];
 
@@ -70,7 +134,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       );
     }
 
-    const region = disc?.sku ? getSkuRegion(disc.sku) : null;
+    const region = disc ? getDiscRegion(disc) : null;
 
     if (!region) return <Disc3 size={18} className="disc-field__icon" />;
 
@@ -168,6 +232,10 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
   const handleAddDiscFile = async () => {
     setIsAddMenuOpen(false);
+    if (system === "ps4") {
+      await ps4Pkg.pick();
+      return;
+    }
     const retroArchPlatform = platformToRetroArchPlatform(game.platform);
     let extensions = ["*"];
     if (retroArchPlatform) {
@@ -192,10 +260,40 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       properties: ["openDirectory"],
     });
     if (res.canceled || !res.filePaths[0]) return;
+    if (system === "ps4" && !(await isPs4GameFolder(res.filePaths[0]))) {
+      showErrorToast(t("ps4_folder_missing_eboot"));
+      return;
+    }
     await addDiscFromPath(res.filePaths[0]);
   };
 
+  const discSubtitle = (disc: ClassicsDisc) =>
+    disc.recompilationSlug ? t("pc_version") : disc.fileName;
+
+  const uninstallPort = async () => {
+    const slug = portToUninstall?.recompilationSlug;
+    setPortToUninstall(null);
+    if (!slug) return;
+
+    const result = await window.electron.uninstallRecompilation({
+      objectId: game.objectId,
+      slug,
+    });
+    if (!result.ok && result.reason !== "not_installed") {
+      showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+    }
+    await updateGame();
+  };
+
   const handleRemoveDisc = async (path: string) => {
+    const port = discs.find(
+      (disc) => disc.path === path && disc.recompilationSlug
+    );
+    if (port) {
+      setPortToUninstall(port);
+      return;
+    }
+
     await window.electron.updateClassicsDisc(game.shop, game.objectId, {
       removeDiscPath: path,
     });
@@ -230,7 +328,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                     {selectedDisc && getClassicsDiscLabel(selectedDisc)}
                   </span>
                   <span className="disc-field__filename">
-                    {selectedDisc?.fileName}
+                    {selectedDisc && discSubtitle(selectedDisc)}
                   </span>
                 </span>
                 <ChevronDown
@@ -263,7 +361,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                           {getClassicsDiscLabel(disc)}
                         </span>
                         <span className="disc-field__filename">
-                          {disc.fileName}
+                          {discSubtitle(disc)}
                         </span>
                       </span>
                     </button>
@@ -307,6 +405,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 type="button"
                 className="disc-field__option"
                 onClick={() => void handleAddDiscFile()}
+                disabled={isPkgBusy}
               >
                 <Disc3 size={16} className="disc-field__icon" />
                 <span className="disc-field__label">
@@ -323,7 +422,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                   {t("add_executable_option")}
                 </span>
               </button>
-              {system === "ps3" && (
+              {(system === "ps3" || system === "ps4") && (
                 <button
                   type="button"
                   className="disc-field__option"
@@ -339,27 +438,6 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
           </div>
         </div>
 
-        {selectedDisc && (
-          <div className="disc-field__actions">
-            <Button
-              type="button"
-              theme="outline"
-              onClick={handleOpenDiscLocation}
-            >
-              <FolderOpen size={14} />
-              {t("open_disc_location")}
-            </Button>
-            <Button
-              type="button"
-              theme="outline"
-              onClick={() => void handleRemoveDisc(selectedDisc.path)}
-            >
-              <X size={14} />
-              {t("remove_selected_disc")}
-            </Button>
-          </div>
-        )}
-
         {discs.length > 1 && (
           <CheckboxField
             label={t("dont_ask_disc_again")}
@@ -367,7 +445,59 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
             onChange={(e) => void handleToggleDontAsk(e.target.checked)}
           />
         )}
+
+        {(selectedDisc || hasPs4GameFolder) && (
+          <div className="disc-field__actions">
+            {selectedDisc && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={handleOpenDiscLocation}
+                title={t("open_disc_location")}
+              >
+                <FolderOpen size={14} />
+                <ButtonLabel>{t("open_disc_location")}</ButtonLabel>
+              </Button>
+            )}
+            {hasPs4GameFolder && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={() => void ps4Update.pick()}
+                disabled={isPkgBusy}
+                title={t("apply_ps4_update")}
+              >
+                <RefreshCw size={14} />
+                <ButtonLabel>{t("apply_ps4_update")}</ButtonLabel>
+              </Button>
+            )}
+            {selectedDisc && (
+              <Button
+                type="button"
+                theme="danger"
+                onClick={() => void handleRemoveDisc(selectedDisc.path)}
+                title={t("remove_selected_disc")}
+              >
+                <X size={14} />
+                <ButtonLabel>{t("remove_selected_disc")}</ButtonLabel>
+              </Button>
+            )}
+          </div>
+        )}
       </div>
+
+      <ConfirmationModal
+        visible={portToUninstall !== null}
+        title={t("uninstall_title", {
+          ns: "recompilation",
+          name: portToUninstall?.label,
+        })}
+        descriptionText={t("uninstall_description", { ns: "recompilation" })}
+        confirmButtonLabel={t("uninstall", { ns: "recompilation" })}
+        cancelButtonLabel={t("cancel", { ns: "recompilation" })}
+        onClose={() => setPortToUninstall(null)}
+        onConfirm={() => void uninstallPort()}
+      />
     </div>
   );
 }
@@ -577,9 +707,10 @@ export function GeneralSettingsSection({
           onClick={onDeleteSteamShortcut}
           theme="danger"
           disabled={creatingSteamShortcut}
+          title={t("delete_steam_shortcut")}
         >
           <SteamLogo />
-          {t("delete_steam_shortcut")}
+          <ButtonLabel>{t("delete_steam_shortcut")}</ButtonLabel>
         </Button>
       );
     } else if (hasShortcutLaunchTarget) {
@@ -588,9 +719,10 @@ export function GeneralSettingsSection({
           onClick={onCreateSteamShortcut}
           theme="outline"
           disabled={creatingSteamShortcut}
+          title={t("steam_shortcut_short")}
         >
           <SteamLogo />
-          {t("create_steam_shortcut")}
+          <ButtonLabel>{t("steam_shortcut_short")}</ButtonLabel>
         </Button>
       );
     }
@@ -1020,8 +1152,9 @@ export function GeneralSettingsSection({
                 <Button
                   onClick={() => onCreateShortcut("desktop")}
                   theme="outline"
+                  title={t("create_shortcut")}
                 >
-                  {t("create_shortcut")}
+                  <ButtonLabel>{t("create_shortcut")}</ButtonLabel>
                 </Button>
               )}
               {steamShortcutButton}
@@ -1029,8 +1162,9 @@ export function GeneralSettingsSection({
                 <Button
                   onClick={() => onCreateShortcut("start_menu")}
                   theme="outline"
+                  title={t("create_start_menu_shortcut")}
                 >
-                  {t("create_start_menu_shortcut")}
+                  <ButtonLabel>{t("create_start_menu_shortcut")}</ButtonLabel>
                 </Button>
               )}
             </div>

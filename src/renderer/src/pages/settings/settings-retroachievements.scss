@@ -3,7 +3,7 @@
 .settings-retroachievements {
   &__emulator-note {
     margin: 0;
-    color: var(--text-secondary);
+    color: globals.$body-color;
     font-size: globals.$small-font-size;
     line-height: 1.5;
   }

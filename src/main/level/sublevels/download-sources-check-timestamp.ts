@@ -12,7 +12,17 @@ export const getDownloadSourcesCheckBaseline = async (): Promise<
     });
 
     // Value was wrapped in quotes for some reason, remove them if they exist
-    return timestamp.replaceAll('"', "");
+    const baseline = new Date(timestamp.replaceAll('"', ""));
+
+    if (Number.isNaN(baseline.getTime())) {
+      logger.warn(
+        "Ignoring invalid download sources check baseline",
+        timestamp
+      );
+      return null;
+    }
+
+    return baseline.toISOString();
   } catch (error) {
     if (error instanceof Error && error.name === "NotFoundError") {
       logger.debug("Download sources check baseline not found, returning null");

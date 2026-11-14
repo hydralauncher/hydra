@@ -1,0 +1,164 @@
+// The Downloads icon morphs between the plain arrow and a progress ring.
+// Every part is always in the DOM; the modifiers only move, fade and resize
+// them, so each change between states is a transition, never a swap.
+$morph-duration: 0.35s;
+$morph-easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+$fade-duration: 0.25s;
+
+.sidebar-download-icon {
+  flex-shrink: 0;
+  overflow: visible;
+
+  &__tray,
+  &__arrow,
+  &__pause {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    // The arrow shrinks into the ring but keeps the ring's 1.5px stroke.
+    vector-effect: non-scaling-stroke;
+    transform-box: fill-box;
+    transform-origin: center;
+    transition:
+      transform $morph-duration $morph-easing,
+      opacity $fade-duration ease;
+  }
+
+  &__pause {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  &__ring {
+    opacity: 0;
+    transform-box: view-box;
+    transform-origin: 8px 8px;
+    transform: rotate(-90deg) scale(0.6);
+    transition:
+      transform $morph-duration $morph-easing,
+      opacity $fade-duration ease;
+  }
+
+  &__track,
+  &__step,
+  &__progress,
+  &__spinner-arc {
+    fill: none;
+    stroke-width: 1.5;
+  }
+
+  &__track {
+    stroke: rgba(255, 255, 255, 0.16);
+    transition: opacity $fade-duration ease;
+
+    &--dashed {
+      stroke-dasharray: 1.54 2.13;
+      opacity: 0;
+    }
+  }
+
+  &__step {
+    stroke: rgba(255, 255, 255, 0.26);
+    transition:
+      stroke-dasharray 0.4s ease,
+      stroke-dashoffset 0.4s ease,
+      opacity $fade-duration ease;
+  }
+
+  &__progress {
+    stroke: currentColor;
+    stroke-linecap: round;
+    transition:
+      stroke-dasharray 0.6s ease-out,
+      opacity $fade-duration ease;
+  }
+
+  &__spinner {
+    transform-box: view-box;
+    transform-origin: 8px 8px;
+    // Paused, not removed, when it hides, so it fades out where it stands.
+    animation: sidebar-download-icon-spin 0.9s linear infinite paused;
+  }
+
+  &__spinner-arc {
+    stroke: currentColor;
+    stroke-linecap: round;
+    opacity: 0;
+    transition: opacity $fade-duration ease;
+  }
+
+  &--active &__tray {
+    opacity: 0;
+    transform: translateY(1px) scale(0.8);
+  }
+
+  &--active &__arrow {
+    transform: translateY(1.875px) scale(0.7);
+  }
+
+  &--active &__ring {
+    opacity: 1;
+    transform: rotate(-90deg) scale(1);
+  }
+
+  &--stepped &__track {
+    opacity: 0;
+  }
+
+  &--stepped &__progress {
+    stroke-linecap: butt;
+  }
+
+  &--extracting:not(&--stepped) &__track {
+    opacity: 0;
+  }
+
+  &--extracting:not(&--stepped) &__track--dashed {
+    opacity: 1;
+  }
+
+  &--paused &__arrow {
+    opacity: 0;
+    transform: translateY(1.875px) scale(0.35);
+  }
+
+  &--paused &__pause {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  &--paused &__ring {
+    opacity: 0.5;
+  }
+
+  &--preparing &__arrow {
+    opacity: 0.6;
+  }
+
+  &--preparing &__spinner {
+    animation-play-state: running;
+  }
+
+  &--preparing &__spinner-arc {
+    opacity: 1;
+  }
+}
+
+@keyframes sidebar-download-icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-download-icon,
+  .sidebar-download-icon * {
+    transition: none !important;
+  }
+
+  .sidebar-download-icon__spinner {
+    animation: none;
+  }
+}

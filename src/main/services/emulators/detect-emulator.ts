@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { findEmulatorInDownloadDirectories } from "./find-emulator-in-download-directories.js";
 import { getEmulatorVersion } from "./get-emulator-version.js";
+import { isExecutableNameExpectedForBinary } from "./is-executable-name-expected.js";
 
 export interface DetectableBinary {
   binary: string;
@@ -166,6 +167,7 @@ const searchPortableWindows = (
 };
 
 const findAppImage = (
+  binaryName: string,
   binaryKeywords: string[],
   dirs: string[]
 ): string | null => {
@@ -179,6 +181,9 @@ const findAppImage = (
         continue;
       }
       const full = path.join(dir, entry);
+      if (!isExecutableNameExpectedForBinary(full, { binary: binaryName })) {
+        continue;
+      }
       if (existsSync(full)) return full;
     }
   }
@@ -260,7 +265,11 @@ const findPlatformInstall = (
   }
   if (isMac) return null;
 
-  return findAppImage([binary.binary, binary.displayName], linuxAppImageDirs());
+  return findAppImage(
+    binary.binary,
+    [binary.binary, binary.displayName],
+    linuxAppImageDirs()
+  );
 };
 
 const findMacAppBundle = (binary: DetectableBinary): string | null => {

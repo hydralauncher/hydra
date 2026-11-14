@@ -1,4 +1,5 @@
 import cn from "classnames";
+import { createPortal } from "react-dom";
 import { PlacesType, Tooltip } from "react-tooltip";
 
 import "./button.scss";
@@ -8,6 +9,7 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip?: string;
   tooltipPlace?: PlacesType;
+  tooltipInPortal?: boolean;
   theme?: "primary" | "outline" | "dark" | "danger" | "cloud";
   /** `small` fits compact rows (list headers, card footers). */
   size?: "medium" | "small";
@@ -22,6 +24,7 @@ export const Button = forwardRef<HTMLButtonElement, Readonly<ButtonProps>>(
       className,
       tooltip,
       tooltipPlace = "top",
+      tooltipInPortal = false,
       ...props
     },
     ref
@@ -35,6 +38,8 @@ export const Button = forwardRef<HTMLButtonElement, Readonly<ButtonProps>>(
           "data-tooltip-content": tooltip,
         }
       : {};
+
+    const tooltipElement = tooltip ? <Tooltip id={id} /> : null;
 
     return (
       <>
@@ -53,7 +58,9 @@ export const Button = forwardRef<HTMLButtonElement, Readonly<ButtonProps>>(
           {children}
         </button>
 
-        {tooltip && <Tooltip id={id} />}
+        {tooltipElement && tooltipInPortal
+          ? createPortal(tooltipElement, document.body)
+          : tooltipElement}
       </>
     );
   }

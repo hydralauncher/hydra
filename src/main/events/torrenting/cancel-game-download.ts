@@ -1,5 +1,5 @@
 import { registerEvent } from "../register-event";
-import { DownloadOrchestrator, logger } from "@main/services";
+import { DownloadOrchestrator, GameFilesManager, logger } from "@main/services";
 import type { GameShop } from "@types";
 
 const cancelGameDownload = async (
@@ -8,6 +8,7 @@ const cancelGameDownload = async (
   objectId: string
 ) => {
   logger.log(`[Downloads] Cancel requested for ${shop}:${objectId}`);
+  GameFilesManager.cancelPs4Extraction(shop, objectId);
   return DownloadOrchestrator.cancelDownloadById(shop, objectId);
 };
 

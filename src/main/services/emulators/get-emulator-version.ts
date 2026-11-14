@@ -11,6 +11,7 @@ export const getEmulatorVersion = (
   executablePath: string,
   binary: EmulatorVersionProbe
 ): string | null => {
+  if (binary.readVersion) return binary.readVersion(executablePath);
   if (!isEmulatorVersionProbeEnabled(binary)) return null;
 
   const executableTarget = resolveEmulatorExecutableTarget(executablePath);

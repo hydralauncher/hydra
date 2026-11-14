@@ -95,20 +95,16 @@
 
   &__cards {
     display: grid;
-    grid-template-columns: repeat(1, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: calc(globals.$spacing-unit * 2);
     transition: all ease 0.2s;
     padding: 0 calc(globals.$spacing-unit * 3) calc(globals.$spacing-unit * 3);
 
-    @media (min-width: 768px) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (min-width: 1250px) {
+    @include globals.page-min-width(1000px) {
       grid-template-columns: repeat(3, 1fr);
     }
 
-    @media (min-width: 1600px) {
+    @include globals.page-min-width(1350px) {
       grid-template-columns: repeat(4, 1fr);
     }
   }

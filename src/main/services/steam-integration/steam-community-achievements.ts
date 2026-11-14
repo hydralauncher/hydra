@@ -105,9 +105,17 @@ export const parseSteamTimezoneOffsetSeconds = (
   return match ? Number(match[0]) : 0;
 };
 
-export const isSteamCommunityLoginUrl = (url: string) =>
-  url.includes("login.steampowered.com") ||
-  /(?:^|[/.])login(?:[/?#]|$)/i.test(url);
+// Steam pages embed achievement text and the login host, so only the URL identifies a login page.
+export const isSteamCommunityLoginUrl = (value: string) => {
+  if (!URL.canParse(value)) return false;
+
+  const url = new URL(value);
+  return (
+    url.hostname === "login.steampowered.com" ||
+    url.pathname === "/login" ||
+    url.pathname.startsWith("/login/")
+  );
+};
 
 export const isSteamCommunityPlayerstatsXml = (body: string) =>
   /<playerstats[\s>]/i.test(body);
@@ -115,13 +123,6 @@ export const isSteamCommunityPlayerstatsXml = (body: string) =>
 export const isSteamCommunityPrivateStatsXml = (body: string) =>
   /<privacyState>\s*private\s*<\/privacyState>/i.test(body) &&
   !/<achievement\b/i.test(body);
-
-export const isSteamCommunityLoginPage = (url: string, body: string) => {
-  if (isSteamCommunityLoginUrl(url)) return true;
-  if (isSteamCommunityPlayerstatsXml(body)) return false;
-  if (/\bachieveRow\b/.test(body)) return false;
-  return /login\.steampowered\.com/i.test(body) && /sign in/i.test(body);
-};
 
 export const parseSteamUnlockTimeText = (
   text: string,
@@ -334,12 +335,6 @@ const readResponseText = async (response: Response) => {
   return body;
 };
 
-const throwIfCommunityLogin = (url: string, body: string) => {
-  if (isSteamCommunityLoginPage(url, body)) {
-    throwCommunitySessionRequired();
-  }
-};
-
 export const steamCommunityStatsXmlUrl = (
   steamId64: string,
   steamAppId: string
@@ -404,7 +399,9 @@ export const fetchSteamCommunityPlayerAchievements = async ({
   const readPage = async (url: string) => {
     const response = await communityFetch(url, { signal, redirect: "follow" });
     const body = await readResponseText(response);
-    throwIfCommunityLogin(response.url, body);
+    if (isSteamCommunityLoginUrl(response.url)) {
+      throwCommunitySessionRequired();
+    }
     return { body, url: response.url || url };
   };
 
@@ -416,7 +413,10 @@ export const fetchSteamCommunityPlayerAchievements = async ({
     );
     if (isSteamCommunityPlayerstatsXml(page.body)) return page.body;
 
-    return (await readPage(steamCommunityStatsXmlUrlForPage(page.url))).body;
+    const redirectedXmlUrl = steamCommunityStatsXmlUrlForPage(page.url);
+    if (redirectedXmlUrl === page.url) return page.body;
+
+    return (await readPage(redirectedXmlUrl)).body;
   };
 
   const mapUnlocks = async (htmlBody: string) => {
@@ -431,6 +431,14 @@ export const fetchSteamCommunityPlayerAchievements = async ({
     return mapCommunityHtmlToPlayerstats(unlocks, schema);
   };
 
+  const xmlBody = await readPlayerstatsXml();
+  if (
+    isSteamCommunityPlayerstatsXml(xmlBody) &&
+    !isSteamCommunityPrivateStatsXml(xmlBody)
+  ) {
+    return parseSteamCommunityAchievementsXml(xmlBody);
+  }
+
   const profileHtml = await readHtml(
     steamCommunityStatsHtmlUrl(steamId64, steamAppId)
   );
@@ -440,18 +448,6 @@ export const fetchSteamCommunityPlayerAchievements = async ({
   const ownerHtml = await readHtml(steamCommunityOwnerStatsHtmlUrl(steamAppId));
   const fromOwner = await mapUnlocks(ownerHtml);
   if (fromOwner) return fromOwner;
-
-  if (/\bachieveRow\b/.test(profileHtml) || /\bachieveRow\b/.test(ownerHtml)) {
-    return playerstatsPayload([]);
-  }
-
-  const xmlBody = await readPlayerstatsXml();
-  if (
-    isSteamCommunityPlayerstatsXml(xmlBody) &&
-    !isSteamCommunityPrivateStatsXml(xmlBody)
-  ) {
-    return parseSteamCommunityAchievementsXml(xmlBody);
-  }
 
   return playerstatsPayload([]);
 };

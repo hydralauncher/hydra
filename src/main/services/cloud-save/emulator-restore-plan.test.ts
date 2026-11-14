@@ -257,6 +257,53 @@ describe("emulator restore destination safety", () => {
     }
   });
 
+  it("lets shadPS4 saves create a missing user under the home folder", async () => {
+    const root = await fs.realpath(
+      await fs.mkdtemp(path.join(os.tmpdir(), "hydra-restore-"))
+    );
+    try {
+      const homeRoot = path.join(root, "shadPS4", "home");
+      await fs.mkdir(path.join(homeRoot, "1000"), { recursive: true });
+      const restoreRootPath = path.join(
+        homeRoot,
+        "1001",
+        "savedata",
+        "CUSA00207"
+      );
+      const relativePath = path.join("SPRJ0005", "userdata0000");
+      const shadps4: ResolvedRestoreTarget = {
+        ...action(relativePath, path.join(restoreRootPath, relativePath)),
+        rawPath: "<emulator>/shadps4/CUSA00207/1001",
+        restoreRootPath,
+        action: "create",
+      };
+      const outside: ResolvedRestoreTarget = {
+        ...shadps4,
+        rawPath: "<emulator>/shadps4/CUSA00207/1002",
+        restoreRootPath: path.join(root, "elsewhere", "CUSA00207"),
+        targetPath: path.join(root, "elsewhere", "CUSA00207", relativePath),
+      };
+      const result = await filterUnsafeEmulatorRestoreTargets(
+        true,
+        {
+          homeDir: path.join(root, "user-home"),
+          platform: process.platform === "win32" ? "windows" : "linux",
+        } as CloudSavePathContext,
+        { actions: [shadps4, outside], blocked: [], deferred: [] }
+      );
+      assert.deepEqual(
+        result.actions.map((item) => item.rawPath),
+        [shadps4.rawPath]
+      );
+      assert.deepEqual(
+        result.blocked.map((item) => item.rawPath),
+        [outside.rawPath]
+      );
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("lets RPCS3 game data create a missing game directory under dev_hdd0", async () => {
     const root = await fs.realpath(
       await fs.mkdtemp(path.join(os.tmpdir(), "hydra-restore-"))

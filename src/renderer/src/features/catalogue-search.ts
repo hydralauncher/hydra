@@ -77,6 +77,7 @@ export const catalogueSearchSlice = createSlice({
         deckCompatibility: [],
         releaseYear: undefined,
         platforms: [],
+        recompilation: undefined,
       };
     },
   },

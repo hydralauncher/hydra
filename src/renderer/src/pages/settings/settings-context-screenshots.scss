@@ -146,7 +146,7 @@ $screenshots-hover-duration: 0.2s;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     min-width: 0;
     margin: 0;
     padding: 0;
@@ -156,7 +156,7 @@ $screenshots-hover-duration: 0.2s;
   &__combo-slot {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
   }
 
   &__combo-select {

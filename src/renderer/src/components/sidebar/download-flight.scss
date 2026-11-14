@@ -1,0 +1,27 @@
+@use "../../scss/globals.scss";
+
+// The game icon (or spark) that flies into the sidebar's Downloads item when
+// a download starts. download-flight.ts moves it with the Web Animations API.
+.download-flight {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: globals.$download-flight-z-index;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+
+  &--icon {
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.08);
+    background-position: center;
+    background-size: cover;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+  }
+
+  &--spark {
+    border-radius: 50%;
+    background-color: globals.$muted-color;
+    box-shadow: 0 0 10px 2px rgba(globals.$muted-color, 0.55);
+  }
+}

@@ -20,7 +20,6 @@ import {
   normalizeBadges,
   normalizeFriendStreaks,
   normalizeGlobalLeaderboardResponse,
-  formatBoardTotal,
   normalizeMyGames,
   normalizePlayActivity,
   resolveWeekRange,
@@ -649,13 +648,6 @@ describe("profile normalizers", () => {
     assert.throws(() => normalizeMyGames({}), TypeError);
   });
 
-  it("caps shown board sizes at 10,000+", () => {
-    const format = (value: number) => String(value);
-    assert.equal(formatBoardTotal(9999, format), "9999");
-    assert.equal(formatBoardTotal(10000, format), "10000+");
-    assert.equal(formatBoardTotal(123456, format), "10000+");
-  });
-
   it("sorts friend streaks by active first, then by days", () => {
     const friends = normalizeFriendStreaks({
       friends: [
@@ -708,6 +700,28 @@ describe("profile normalizers", () => {
     assert.equal(getBadgeProgress(badges.badges[1]), 55);
     assert.equal(getBadgeProgress(badges.badges[0]), 0);
     assert.throws(() => normalizeBadges({}), TypeError);
+  });
+
+  it("keeps only valid catalogue images on badges", () => {
+    const { badges } = normalizeBadges({
+      badges: [
+        {
+          id: "a",
+          kind: "streak_record",
+          images: {
+            valid: { base: "https://cdn/a", widths: [64, 128] },
+            noBase: { widths: [64] },
+            badWidths: { base: "https://cdn/b", widths: ["64"] },
+          },
+        },
+        { id: "b", kind: "streak_record", images: "nope" },
+      ],
+    });
+
+    assert.deepEqual(badges[0].images, {
+      valid: { base: "https://cdn/a", widths: [64, 128], thumbHash: null },
+    });
+    assert.deepEqual(badges[1].images, {});
   });
 
   it("reads the target of locked game badges", () => {

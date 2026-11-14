@@ -43,6 +43,17 @@ pub struct GetSaveRulesForGameInput {
     pub remote_id: Option<String>,
     pub user_data_path: String,
     pub source_url: Option<String>,
+    pub recompilation_rules: Option<Vec<RecompilationSaveRule>>,
+}
+
+#[napi(object)]
+#[derive(Debug, Clone)]
+pub struct RecompilationSaveRule {
+    pub raw_path: String,
+    pub kind: String,
+    pub tags: Vec<String>,
+    pub when: Vec<CloudSaveRuleCondition>,
+    pub preferred_path: Option<String>,
 }
 
 #[napi(object)]

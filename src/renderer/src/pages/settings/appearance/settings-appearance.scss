@@ -28,7 +28,7 @@
       flex-direction: column;
       background-color: rgba(globals.$border-color, 0.01);
       border: 1px solid globals.$border-color;
-      border-radius: 12px;
+      border-radius: 8px;
       gap: 4px;
       transition: background-color 0.2s ease;
       padding: 16px;
@@ -46,7 +46,7 @@
         gap: 16px;
 
         &__title {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 600;
           color: globals.$muted-color;
           text-transform: capitalize;
@@ -67,7 +67,7 @@
       }
 
       &__author {
-        font-size: 12px;
+        font-size: globals.$small-font-size;
         color: globals.$body-color;
         font-weight: 400;
 
@@ -107,7 +107,7 @@
           gap: 8px;
 
           Button {
-            padding: 8px 11px;
+            padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
           }
         }
       }
@@ -125,7 +125,7 @@
     background-color: rgba(globals.$border-color, 0.01);
     cursor: pointer;
     border: 1px dashed globals.$border-color;
-    border-radius: 12px;
+    border-radius: 8px;
     gap: 12px;
     transition: background-color 0.2s ease;
 
@@ -145,7 +145,7 @@
     &__text {
       text-align: center;
       max-width: 400px;
-      font-size: 14.5px;
+      font-size: globals.$body-font-size;
       line-height: 1.6;
       font-weight: 400;
       color: rgba(globals.$body-color, 0.85);

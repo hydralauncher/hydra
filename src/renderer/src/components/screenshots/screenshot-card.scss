@@ -109,7 +109,7 @@
     justify-content: center;
     gap: 4px;
     height: 24px;
-    padding: 0 6px;
+    padding: 0 globals.$spacing-unit;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 4px;
     background: rgba(0, 0, 0, 0.55);
@@ -137,7 +137,7 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    padding: calc(globals.$spacing-unit * 1.25);
+    padding: calc(globals.$spacing-unit * 1.5);
     color: globals.$body-color;
     font-size: globals.$small-font-size;
   }
@@ -148,7 +148,7 @@
     max-width: 100%;
     min-width: 0;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: globals.$spacing-unit;
     overflow: hidden;
     color: globals.$muted-color;
     font-size: globals.$body-font-size;
@@ -239,9 +239,9 @@
   display: inline-flex;
   min-width: 0;
   align-items: center;
-  gap: 6px;
+  gap: calc(globals.$spacing-unit / 2);
   height: 24px;
-  padding: 0 6px;
+  padding: 0 globals.$spacing-unit;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.55);
@@ -252,7 +252,7 @@
   pointer-events: auto;
 
   &--author {
-    padding-left: 3px;
+    padding-left: 2px;
     font-weight: 600;
 
     &.link:hover {

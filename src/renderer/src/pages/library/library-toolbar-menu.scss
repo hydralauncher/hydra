@@ -1,0 +1,182 @@
+@use "../../scss/globals.scss";
+@use "./library-dropdown" as dropdown;
+
+// Shared by the Filters and Sort menus, which hold everything the toolbar
+// used to show as separate controls.
+.library-toolbar-menu {
+  &__trigger {
+    @include dropdown.trigger(&);
+    flex-shrink: 0;
+    white-space: nowrap;
+
+    &[data-state="open"] .library-toolbar-menu__chevron {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__chevron {
+    @include dropdown.chevron;
+  }
+
+  &__active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: globals.$muted-color;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    @include dropdown.content;
+    display: flex;
+    flex-direction: column;
+    min-width: 280px;
+  }
+
+  &__label {
+    padding: 8px 12px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &__separator {
+    height: 1px;
+    margin: 4px;
+    background-color: globals.$border-color;
+  }
+
+  &__list {
+    max-height: calc(34px * 6);
+    overflow-y: auto;
+  }
+
+  &__item {
+    @include dropdown.item;
+    padding-right: 32px;
+
+    &:hover,
+    &[data-highlighted] {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    &--muted {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    &[data-disabled] {
+      opacity: 0.4;
+      cursor: default;
+      background-color: transparent;
+    }
+  }
+
+  &__item-label {
+    @include dropdown.item-label;
+  }
+
+  &__item-count {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &__item-indicator {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    display: flex;
+    color: #fff;
+    pointer-events: none;
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+    transition:
+      transform 0.15s ease-out,
+      opacity 0.15s ease-out;
+
+    &[data-state="unchecked"] {
+      transform: translateY(-50%) scale(0.4);
+      opacity: 0;
+    }
+  }
+
+  // "Show installed only" reads as a setting, so it gets a switch.
+  &__switch-item {
+    @include dropdown.item;
+    height: 38px;
+
+    &:hover,
+    &[data-highlighted] {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__switch {
+    position: relative;
+    width: 32px;
+    height: 18px;
+    flex-shrink: 0;
+    border-radius: 9px;
+    background-color: rgba(255, 255, 255, 0.15);
+    transition: background-color 0.15s ease;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background-color: globals.$muted-color;
+      transition:
+        transform 0.15s ease,
+        background-color 0.15s ease;
+    }
+  }
+
+  &__switch-item[data-state="checked"] &__switch {
+    background-color: globals.$muted-color;
+
+    &::after {
+      transform: translateX(14px);
+      background-color: globals.$dark-background-color;
+    }
+  }
+
+  &__views {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 0 4px 4px;
+  }
+
+  &__view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    transition:
+      background-color 0.1s ease-in-out,
+      color 0.1s ease-in-out;
+
+    &:hover,
+    &[data-highlighted] {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: globals.$muted-color;
+    }
+
+    &[data-state="checked"] {
+      border-color: rgba(255, 255, 255, 0.12);
+      background-color: rgba(255, 255, 255, 0.06);
+      color: #fff;
+    }
+  }
+}

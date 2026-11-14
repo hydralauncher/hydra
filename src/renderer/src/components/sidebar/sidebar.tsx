@@ -32,13 +32,9 @@ import {
   type LibraryCategory,
   type LibrarySource,
 } from "@renderer/pages/library/library-category";
-import type { SortOption } from "@renderer/pages/library/filter-options";
+import type { SortOption } from "@renderer/pages/library/library-display-menu";
 
-import {
-  CheckCircleFillIcon,
-  CheckCircleIcon,
-  VideoIcon,
-} from "@primer/octicons-react";
+import { CheckCircleFillIcon, CheckCircleIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import deckyIcon from "@renderer/assets/icons/decky.png";
 import cn from "classnames";
@@ -396,6 +392,14 @@ export function Sidebar() {
 
   const sidebarRef = useRef<HTMLElement>(null);
 
+  // The title bar lines its arrows up with the edge of the sidebar.
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      `${sidebarWidth}px`
+    );
+  }, [sidebarWidth]);
+
   const cursorPos = useRef({ x: 0 });
   const sidebarInitialWidth = useRef(0);
 
@@ -485,7 +489,6 @@ export function Sidebar() {
       ref={sidebarRef}
       className={cn("sidebar", {
         "sidebar--resizing": isResizing,
-        "sidebar--darwin": window.electron.platform === "darwin",
       })}
       style={{
         width: sidebarWidth,
@@ -493,17 +496,6 @@ export function Sidebar() {
         maxWidth: sidebarWidth,
       }}
     >
-      {globalThis.window.electron.platform === "darwin" && (
-        <button
-          type="button"
-          className="sidebar__big-picture-darwin"
-          onClick={() => globalThis.window.electron.openBigPictureWindow()}
-        >
-          <VideoIcon size={14} />
-          {t("big_picture")}
-        </button>
-      )}
-
       <div className="sidebar__container">
         <SidebarProfile />
 

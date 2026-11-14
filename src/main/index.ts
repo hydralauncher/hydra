@@ -34,6 +34,7 @@ import {
   stopWaylandFocusWatch,
 } from "./services/screenshots";
 import { isWaylandSession } from "./services/linux-game-capture-session";
+import { recompilationGameSessions } from "./services/game-running-state";
 import { refreshPortableShortcutLauncher } from "./helpers/shortcut-launch";
 import { lookupCachedPlatform } from "./events/library/get-library";
 import { loadState } from "./main";
@@ -52,6 +53,7 @@ import {
   parseSteamOpenIdReturn,
 } from "./services/steam-integration/steam-openid-return";
 import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
+import { achievementNotificationPresenter } from "./services/achievement-notification-presenter-electron";
 import {
   initializeEpicIntegration,
   shutdownEpicIntegration,
@@ -197,6 +199,8 @@ const initializeApp = async () => {
     });
   });
 
+  await WindowManager.loadWindowDecorationsPreference();
+
   try {
     await loadState();
   } catch (error) {
@@ -313,7 +317,13 @@ const handleRunGame = async (shop: GameShop, objectId: string) => {
         await gamesSublevel.put(gameKey, game).catch(() => {});
       }
     }
-    await openClassicsGame(shop, objectId);
+    await openClassicsGame(shop, objectId).catch((error) => {
+      if (
+        (error as { code?: string }).code !== "RECOMPILATION_ALREADY_RUNNING"
+      ) {
+        throw error;
+      }
+    });
     return;
   }
 
@@ -439,6 +449,12 @@ app.on("window-all-closed", () => {
 
 const SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS = 2_000;
 
+const saveRecompilationPlaytimeOnQuit = async () => {
+  if (recompilationGameSessions.size === 0) return;
+  const session = await import("./events/recompilation/recompilation-session");
+  await session.saveRecompilationPlaytimeOnQuit();
+};
+
 let canAppBeClosed = false;
 let isAppClosing = false;
 
@@ -473,6 +489,7 @@ app.on("before-quit", async (e) => {
       Lock.releaseLock(),
       TorrentService.shutdown(),
       clearGamesPlaytime(),
+      saveRecompilationPlaytimeOnQuit(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
       flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
     ]);
@@ -481,6 +498,7 @@ app.on("before-quit", async (e) => {
         logger.error("Application shutdown cleanup failed", result.reason);
       }
     }
+    achievementNotificationPresenter.shutdown();
     canAppBeClosed = true;
     app.quit();
   }

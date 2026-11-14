@@ -8,13 +8,18 @@ import {
 import type {
   LocalScreenshot,
   ProfileVisibility,
+  ScreenshotFailureKind,
   ScreenshotFeedbackToast,
   ScreenshotTriggerSource,
 } from "@types";
 
 import { getSignedInScreenshotOwnerId } from "./local-screenshot-owner";
+import { hasTrackedGamesRunning } from "../game-running-state";
 import { logger } from "../logger";
-import { getSourceClientAreaCrop } from "../windows-window-bounds";
+import {
+  getSourceClientAreaCrop,
+  getSourceWindowSize,
+} from "../windows-window-bounds";
 import {
   getLinuxGameCaptureFailure,
   getLinuxGameCaptureState,
@@ -29,26 +34,30 @@ import {
   type GameScreenshotCaptureTarget,
 } from "../screenshot";
 import { buildWindowsWindowSourceId } from "../windows-game-window-match";
-import { resolveForegroundGame } from "./foreground-game";
+import { grabDesktopDuplicationFrame } from "./desktop-duplication-frame";
+import {
+  getUnresolvedGameFailure,
+  resolveForegroundGame,
+  type ResolvedForegroundGame,
+  type UnresolvedForegroundGame,
+} from "./foreground-game";
 import type { ScreenshotGameTarget } from "./foreground-game-match";
 import { LocalScreenshotStore } from "./local-screenshot-store";
 import { ScreenshotFeedback } from "./screenshot-feedback";
 import {
+  BlankScreenshotFrameError,
   SCREENSHOT_PREVIEW_MAX_WIDTH,
   type EncodedScreenshotImages,
   type GrabbedScreenshotFrame,
 } from "./screenshot-frame-script";
-import {
-  BlankScreenshotFrameError,
-  ScreenshotFrameWorker,
-} from "./screenshot-frame-worker";
+import { ScreenshotFrameWorker } from "./screenshot-frame-worker";
 import {
   removeScreenshotPreview,
   writeScreenshotPreview,
 } from "./screenshot-preview";
 import { isScreenshotsFeatureEnabled } from "./screenshot-feature";
 import { resolveManualScreenshotPath } from "./screenshot-file-path";
-import { getScreenshotsFolder } from "./screenshots-folder";
+import { getScreenshotFolderCandidates } from "./screenshots-folder";
 import {
   ensureRootMarkerId,
   getScreenshotsRoot,
@@ -57,21 +66,22 @@ import { ScreenshotTelemetry } from "./screenshot-telemetry";
 import { readUserPreferences } from "./screenshot-user-preferences";
 import { CaptureCallTimeoutError } from "./window-bound-promise";
 
+const DISK_FULL_ERROR_CODES = new Set(["ENOSPC", "EDQUOT"]);
 const CAPTURE_JPEG_QUALITY = 0.95;
 const FALLBACK_JPEG_QUALITY = 95;
 const FALLBACK_PREVIEW_JPEG_QUALITY = 85;
 const MAX_FILE_NAME_SUFFIX = 50;
 const WAYLAND_SHARE_PROMPT_WAIT_MS = 1_500;
 
-type CaptureToastKind = ScreenshotFeedbackToast["kind"];
+type WaylandShareBlocker = "share_pending" | ScreenshotFailureKind;
 
-const WAYLAND_SHARE_FAILURE_TOASTS: Record<
+const WAYLAND_SHARE_FAILURES: Record<
   LinuxGameCaptureFailure,
-  CaptureToastKind
+  WaylandShareBlocker
 > = {
   share_cancelled: "share_pending",
   portal_unavailable: "share_unavailable",
-  capture_error: "capture_failed",
+  capture_error: "window_capture_failed",
 };
 
 const gameSessionIds = new Map<string, string>();
@@ -156,19 +166,31 @@ const saveCaptureFile = async (
   capturedAt: Date,
   data: Buffer
 ) => {
-  const screenshotsRoot = await getScreenshotsFolder();
-  await fs.promises.mkdir(
-    path.dirname(
-      resolveManualScreenshotPath(screenshotsRoot, gameTitle, capturedAt)
-    ),
-    { recursive: true }
-  );
-  return writeScreenshotToAvailablePath(
-    screenshotsRoot,
-    gameTitle,
-    capturedAt,
-    data
-  );
+  let lastError: unknown = null;
+  for (const screenshotsRoot of await getScreenshotFolderCandidates()) {
+    try {
+      await fs.promises.mkdir(
+        path.dirname(
+          resolveManualScreenshotPath(screenshotsRoot, gameTitle, capturedAt)
+        ),
+        { recursive: true }
+      );
+      return await writeScreenshotToAvailablePath(
+        screenshotsRoot,
+        gameTitle,
+        capturedAt,
+        data
+      );
+    } catch (error) {
+      logger.warn("Failed to save a screenshot to this folder", {
+        screenshotsRoot,
+        error: error instanceof Error ? error.message : error,
+      });
+      lastError = error;
+    }
+  }
+
+  throw lastError;
 };
 
 interface FinishCaptureOptions {
@@ -239,11 +261,43 @@ const discardUnrecordedCapture = async (
   });
 };
 
-const showCaptureToast = (kind: CaptureToastKind, gameTitle: string) => {
+const showCaptureToast = (
+  kind: ScreenshotFeedbackToast["kind"],
+  gameTitle: string
+) => {
   void ScreenshotFeedback.showToast({ kind, gameTitle }).catch((error) => {
     logger.error("Failed to show the screenshot toast", error);
   });
 };
+
+const showCaptureFailure = (
+  kind: ScreenshotFailureKind,
+  gameTitle: string | null
+) => {
+  void ScreenshotFeedback.showFailureToast({ kind, gameTitle }).catch(
+    (error) => {
+      logger.error("Failed to show the screenshot failure toast", error);
+    }
+  );
+  void ScreenshotFeedback.playFailureSound().catch((error) => {
+    logger.error("Failed to play the screenshot failure sound", error);
+  });
+};
+
+const getFrameFailureKind = (error: unknown): ScreenshotFailureKind =>
+  error instanceof BlankScreenshotFrameError
+    ? "blank_frame"
+    : "window_capture_failed";
+
+const isDiskFullError = (error: unknown) =>
+  DISK_FULL_ERROR_CODES.has(
+    (error as NodeJS.ErrnoException | null)?.code ?? ""
+  );
+
+const getSaveFailureKind = (
+  error: unknown,
+  fallback: ScreenshotFailureKind
+): ScreenshotFailureKind => (isDiskFullError(error) ? "disk_full" : fallback);
 
 const playCaptureSound = () => {
   void ScreenshotFeedback.playCaptureSound().catch((error) => {
@@ -282,8 +336,9 @@ const grabFromDirectWindowsSource = async (
 
   try {
     return await ScreenshotFrameWorker.grab(sourceId, {
-      waitForNextFrame: true,
+      waitForNextFrame: false,
       crop: getSourceClientAreaCrop(sourceId),
+      expectedSize: getSourceWindowSize(sourceId),
     });
   } catch (error) {
     if (
@@ -309,14 +364,20 @@ const acquireFrame = async (
     });
   }
 
+  const desktopFrame = await grabDesktopDuplicationFrame(
+    captureTarget.windowHandle
+  );
+  if (desktopFrame) return desktopFrame;
+
   const directFrame = await grabFromDirectWindowsSource(captureTarget);
   if (directFrame) return directFrame;
 
   const sourceId = await resolveGameCaptureSourceId(captureTarget);
   if (sourceId) {
     return ScreenshotFrameWorker.grab(sourceId, {
-      waitForNextFrame: true,
+      waitForNextFrame: process.platform !== "win32",
       crop: getSourceClientAreaCrop(sourceId),
+      expectedSize: getSourceWindowSize(sourceId),
     });
   }
 
@@ -339,7 +400,7 @@ const waitForWaylandSharePrompt = (gameKey: string) =>
 const getWaylandShareBlocker = async (
   source: ScreenshotTriggerSource,
   gameKey: string
-): Promise<CaptureToastKind | null> => {
+): Promise<WaylandShareBlocker | null> => {
   if (!isWaylandCaptureBackend()) return null;
 
   const initialState = getLinuxGameCaptureState(gameKey);
@@ -366,7 +427,7 @@ const getWaylandShareBlocker = async (
     failure,
   });
   ScreenshotTelemetry.record("capture", "ignored", `share_${failure ?? state}`);
-  return failure ? WAYLAND_SHARE_FAILURE_TOASTS[failure] : "share_pending";
+  return failure ? WAYLAND_SHARE_FAILURES[failure] : "share_pending";
 };
 
 type CaptureFailureStage = "frame" | "encode" | "write" | "store";
@@ -406,45 +467,54 @@ const createCaptureTimer = (
 
 type SaveCapturedScreenshot = () => Promise<void>;
 
-const grabScreenshot = async (
+const recordUnexpectedFailure = (error: unknown) => {
+  const errorName = error instanceof Error ? error.name : "unknown_error";
+  ScreenshotTelemetry.record("capture", "failed", `unexpected_${errorName}`);
+};
+
+const reportUnresolvedGame = (
   source: ScreenshotTriggerSource,
-  startedAt: number
-): Promise<SaveCapturedScreenshot | null> => {
-  const timer = createCaptureTimer(startedAt, source);
-  const userPreferences = await readUserPreferences();
-  const preferences = resolveScreenshotPreferences(userPreferences);
-  if (!preferences.enabled) {
-    logger.debug("Screenshot hotkey ignored: screenshots disabled", { source });
-    return null;
-  }
-  if (!(await isScreenshotsFeatureEnabled())) {
-    logger.debug("Screenshot hotkey ignored: feature flag off", { source });
-    return null;
-  }
-  timer.mark("checks");
-
-  const resolved = await resolveForegroundGame(source);
-  timer.mark("foreground");
-  if (!resolved) {
+  unresolved: UnresolvedForegroundGame,
+  toastEnabled: boolean
+) => {
+  const failure = getUnresolvedGameFailure(source, unresolved);
+  if (unresolved.candidates.length) {
     ScreenshotTelemetry.record("capture", "ignored", "no_foreground_game");
-    return null;
   }
+  if (failure && toastEnabled) {
+    showCaptureFailure(failure.kind, failure.gameTitle);
+  }
+};
 
+const grabResolvedGame = async (
+  resolved: ResolvedForegroundGame,
+  source: ScreenshotTriggerSource,
+  preferences: ReturnType<typeof resolveScreenshotPreferences>,
+  timer: ReturnType<typeof createCaptureTimer>
+): Promise<SaveCapturedScreenshot | null> => {
   const { target, foreground } = resolved;
   const gameTitle = resolved.game?.title ?? target.title;
   const capturedAt = new Date();
 
   const shareBlocker = await getWaylandShareBlocker(source, target.gameKey);
-  if (shareBlocker) {
+  if (shareBlocker === "share_pending") {
     showCaptureToast(shareBlocker, gameTitle);
+    return null;
+  }
+  if (shareBlocker) {
+    showCaptureFailure(shareBlocker, gameTitle);
     return null;
   }
 
   const ownerId = getSignedInScreenshotOwnerId();
 
-  const failCapture = (stage: CaptureFailureStage, error: unknown) => {
+  const failCapture = (
+    stage: CaptureFailureStage,
+    error: unknown,
+    kind: ScreenshotFailureKind
+  ) => {
     recordCaptureFailure(target.gameKey, stage, error);
-    showCaptureToast("capture_failed", gameTitle);
+    showCaptureFailure(kind, gameTitle);
   };
 
   let frame: GrabbedScreenshotFrame;
@@ -458,7 +528,7 @@ const grabScreenshot = async (
       x11WindowId: foreground?.windowId,
     });
   } catch (error) {
-    failCapture("frame", error);
+    failCapture("frame", error, getFrameFailureKind(error));
     return null;
   }
   timer.mark("frame");
@@ -470,7 +540,7 @@ const grabScreenshot = async (
   try {
     images = await frame.encode(CAPTURE_JPEG_QUALITY);
   } catch (error) {
-    failCapture("encode", error);
+    failCapture("encode", error, "save_failed");
     return null;
   } finally {
     frame.discard();
@@ -482,7 +552,11 @@ const grabScreenshot = async (
     try {
       filePath = await saveCaptureFile(gameTitle, capturedAt, images.jpeg);
     } catch (error) {
-      failCapture("write", error);
+      failCapture(
+        "write",
+        error,
+        getSaveFailureKind(error, "file_write_failed")
+      );
       return;
     }
     const previewPath = await writeScreenshotPreview(images.preview).catch(
@@ -506,7 +580,7 @@ const grabScreenshot = async (
         previewPath,
       });
     } catch (error) {
-      failCapture("store", error);
+      failCapture("store", error, getSaveFailureKind(error, "save_failed"));
       await discardUnrecordedCapture(filePath, previewPath);
       return;
     }
@@ -514,6 +588,50 @@ const grabScreenshot = async (
     timer.mark("saved");
     timer.flush(target.gameKey);
   };
+};
+
+const grabScreenshot = async (
+  source: ScreenshotTriggerSource,
+  startedAt: number
+): Promise<SaveCapturedScreenshot | null> => {
+  const timer = createCaptureTimer(startedAt, source);
+  const userPreferences = await readUserPreferences();
+  const preferences = resolveScreenshotPreferences(userPreferences);
+  if (!preferences.enabled) {
+    logger.debug("Screenshot hotkey ignored: screenshots disabled", { source });
+    return null;
+  }
+  if (!(await isScreenshotsFeatureEnabled())) {
+    logger.debug("Screenshot hotkey ignored: feature flag off", { source });
+    return null;
+  }
+  timer.mark("checks");
+
+  let lookup: Awaited<ReturnType<typeof resolveForegroundGame>>;
+  try {
+    lookup = await resolveForegroundGame(source);
+  } catch (error) {
+    logger.error("Failed to resolve the screenshot game", error);
+    recordUnexpectedFailure(error);
+    if (preferences.toastEnabled && hasTrackedGamesRunning()) {
+      showCaptureFailure("unexpected_error", null);
+    }
+    return null;
+  }
+  timer.mark("foreground");
+  if (lookup.status === "unresolved") {
+    reportUnresolvedGame(source, lookup, preferences.toastEnabled);
+    return null;
+  }
+
+  try {
+    return await grabResolvedGame(lookup, source, preferences, timer);
+  } catch (error) {
+    logger.error("Screenshot capture failed", error);
+    recordUnexpectedFailure(error);
+    showCaptureFailure("unexpected_error", null);
+    return null;
+  }
 };
 
 const queueScreenshotSave = (save: SaveCapturedScreenshot) => {
@@ -539,7 +657,7 @@ export const handleScreenshotTrigger = async (
   try {
     save = await grabScreenshot(source, startedAt);
   } catch (error) {
-    logger.error("Screenshot capture failed", error);
+    logger.error("Screenshot trigger failed before capture", error);
   } finally {
     captureInProgress = false;
   }

@@ -7,7 +7,7 @@
 
   &__description {
     margin: 0 0 calc(globals.$spacing-unit * 2) 0;
-    color: var(--text-secondary);
+    color: globals.$body-color;
     line-height: 1.6;
   }
 
@@ -29,9 +29,9 @@
 
   &__section-title {
     margin: 0;
-    font-size: 1.125rem;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: globals.$muted-color;
   }
 
   &__collapse-button {
@@ -63,16 +63,16 @@
   }
 
   &__check-icon {
-    color: white;
+    color: globals.$muted-color;
     flex-shrink: 0;
   }
 
   &__beta-badge {
     background: linear-gradient(135deg, #c9aa71, #d4af37);
     color: #1a1a1a;
-    font-size: 0.625rem;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
-    padding: 2px 6px;
+    padding: 2px calc(globals.$spacing-unit / 2);
     border-radius: 4px;
     letter-spacing: 0.5px;
     flex-shrink: 0;

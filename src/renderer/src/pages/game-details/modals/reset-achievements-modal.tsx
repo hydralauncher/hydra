@@ -2,11 +2,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LinkExternalIcon } from "@primer/octicons-react";
 import { Button, CheckboxField, Link, Modal } from "@renderer/components";
-import type { Game } from "@types";
+import { platformToSystem } from "@shared";
+import type { EmulatorSystem, Game } from "@types";
 import "./reset-achievements-modal.scss";
 
 const RETRO_ACHIEVEMENTS_SETTINGS_URL =
   "https://retroachievements.org/settings#resettable-game-select";
+
+const TROPHY_SYSTEMS = new Set<EmulatorSystem | null>(["ps3", "ps4"]);
 
 type ResetAchievementsModalProps = Readonly<{
   visible: boolean;
@@ -26,7 +29,9 @@ export function ResetAchievementsModal({
   const [hasResetOnRetroAchievements, setHasResetOnRetroAchievements] =
     useState(false);
 
-  const isLaunchbox = game.shop === "launchbox";
+  const usesRetroAchievements =
+    game.shop === "launchbox" &&
+    !TROPHY_SYSTEMS.has(platformToSystem(game.platform));
 
   const handleClose = () => {
     setHasResetOnRetroAchievements(false);
@@ -41,7 +46,7 @@ export function ResetAchievementsModal({
     }
   };
 
-  const isResetDisabled = isLaunchbox && !hasResetOnRetroAchievements;
+  const isResetDisabled = usesRetroAchievements && !hasResetOnRetroAchievements;
 
   return (
     <Modal
@@ -55,7 +60,7 @@ export function ResetAchievementsModal({
         { game: game.title }
       )}
     >
-      {isLaunchbox && (
+      {usesRetroAchievements && (
         <div className="reset-achievements-modal__retroachievements">
           <p className="reset-achievements-modal__retroachievements-note">
             {t("reset_achievements_retroachievements_note")}

@@ -1,13 +1,16 @@
 import {
   ArrowClockwiseIcon,
   ClockCounterClockwiseIcon,
+  EyeSlashIcon,
   FireIcon,
+  GearIcon,
   ImageIcon,
   UsersThreeIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import type {
   GameShop,
   LocalScreenshot,
@@ -16,6 +19,7 @@ import type {
 } from "@types";
 import {
   groupByCaptureDay,
+  HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID,
   INITIAL_SCREENSHOT_SPOILER_PAGING,
   buildGameScreenshotsPath,
   resumeSpoilerPaging,
@@ -48,6 +52,7 @@ import {
   useScreenshotLightbox,
   type ScreenshotViewerEntry,
 } from "../../screenshots";
+import { IS_DESKTOP } from "../../../../constants";
 import { FocusRegionContext, useFocusLayerId } from "../../../context";
 import { useGamepad, useNavigation, useUserDetails } from "../../../../hooks";
 import { NavigationService } from "../../../../services";
@@ -58,6 +63,8 @@ import {
 import {
   GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID,
   GAME_SCREENSHOTS_MODAL_CLOSE_ID,
+  GAME_SCREENSHOTS_MODAL_COMMUNITY_PROCEED_ID,
+  GAME_SCREENSHOTS_MODAL_COMMUNITY_SETTINGS_ID,
   GAME_SCREENSHOTS_MODAL_GRID_REGION_ID,
   GAME_SCREENSHOTS_MODAL_LIST_REGION_ID,
   GAME_SCREENSHOTS_MODAL_LOAD_MORE_ID,
@@ -413,6 +420,47 @@ function CommunityScreenshotsPanel({
         </div>
       </VerticalFocusGroup>
     </>
+  );
+}
+
+interface CommunityScreenshotsHiddenNoticeProps {
+  onOpenSettings: () => void;
+  onProceed: () => void;
+}
+
+function CommunityScreenshotsHiddenNotice({
+  onOpenSettings,
+  onProceed,
+}: Readonly<CommunityScreenshotsHiddenNoticeProps>) {
+  const { t } = useTranslation("big_picture");
+
+  return (
+    <div className="game-screenshots-modal__message">
+      <EyeSlashIcon size={28} />
+      <p>{t("screenshots_community_hidden")}</p>
+      <HorizontalFocusGroup asChild>
+        <div className="game-screenshots-modal__message-actions">
+          <Button
+            variant="secondary"
+            size="small"
+            focusId={GAME_SCREENSHOTS_MODAL_COMMUNITY_SETTINGS_ID}
+            icon={<GearIcon size={18} />}
+            onClick={onOpenSettings}
+          >
+            {t("screenshots_go_to_settings")}
+          </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            focusId={GAME_SCREENSHOTS_MODAL_COMMUNITY_PROCEED_ID}
+            icon={<UsersThreeIcon size={18} />}
+            onClick={onProceed}
+          >
+            {t("screenshots_proceed_anyway")}
+          </Button>
+        </div>
+      </HorizontalFocusGroup>
+    </div>
   );
 }
 
@@ -814,6 +862,7 @@ export interface GameScreenshotsModalProps {
   objectId: string;
   communityShop: GameShop;
   communityObjectId: string;
+  isCommunityHidden: boolean;
   writeBus?: ScreenshotWriteBus;
   initialTab?: GameScreenshotsTab;
   onClose: () => void;
@@ -825,19 +874,24 @@ export function GameScreenshotsModal({
   objectId,
   communityShop,
   communityObjectId,
+  isCommunityHidden,
   writeBus,
   initialTab = "mine",
   onClose,
 }: Readonly<GameScreenshotsModalProps>) {
   const { t } = useTranslation("screenshots");
   const { setFocus } = useNavigation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<GameScreenshotsTab>(initialTab);
   const [hasOpenedCommunity, setHasOpenedCommunity] = useState(false);
+  const [hasProceededToCommunity, setHasProceededToCommunity] = useState(false);
   const hasCommunity = communityShop !== "custom";
+  const isCommunityBlocked = isCommunityHidden && !hasProceededToCommunity;
   const activeTab = hasCommunity ? tab : "mine";
-  const emptyMineFocusId = hasCommunity
-    ? GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID
-    : GAME_SCREENSHOTS_MODAL_CLOSE_ID;
+  const emptyMineFocusId =
+    hasCommunity && !isCommunityBlocked
+      ? GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID
+      : GAME_SCREENSHOTS_MODAL_CLOSE_ID;
   const mineTab = useMyScreenshotsTab({
     enabled: visible,
     shop,
@@ -846,7 +900,8 @@ export function GameScreenshotsModal({
     emptyFocusId: emptyMineFocusId,
   });
   const community = useCommunityScreenshots({
-    enabled: visible && hasCommunity && hasOpenedCommunity,
+    enabled:
+      visible && hasCommunity && hasOpenedCommunity && !isCommunityBlocked,
     shop: communityShop,
     objectId: communityObjectId,
     writeBus,
@@ -860,7 +915,10 @@ export function GameScreenshotsModal({
   );
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      setHasProceededToCommunity(false);
+      return;
+    }
     if (initialTab === "community") setHasOpenedCommunity(true);
     setTab(initialTab);
   }, [initialTab, visible]);
@@ -868,6 +926,9 @@ export function GameScreenshotsModal({
   const mineFocusId = mineTab.firstFocusId ?? emptyMineFocusId;
   const [mineInitialFocusId, setMineInitialFocusId] = useState<string>();
   const isMineReady = activeTab === "mine" && !mineTab.isLoading;
+  const communityFocusId = isCommunityBlocked
+    ? GAME_SCREENSHOTS_MODAL_COMMUNITY_SETTINGS_ID
+    : GAME_SCREENSHOTS_MODAL_SORT_ID;
 
   useEffect(() => {
     if (!visible) {
@@ -884,13 +945,38 @@ export function GameScreenshotsModal({
       if (nextTab === "community") setHasOpenedCommunity(true);
       setTab(nextTab);
       globalThis.window.requestAnimationFrame(() =>
-        setFocus(
-          nextTab === "mine" ? mineFocusId : GAME_SCREENSHOTS_MODAL_SORT_ID
-        )
+        setFocus(nextTab === "mine" ? mineFocusId : communityFocusId)
       );
     },
-    [mineFocusId, setFocus]
+    [communityFocusId, mineFocusId, setFocus]
   );
+
+  const proceedToCommunity = () => {
+    setHasProceededToCommunity(true);
+    globalThis.window.requestAnimationFrame(() =>
+      setFocus(GAME_SCREENSHOTS_MODAL_SORT_ID)
+    );
+  };
+
+  const openCommunitySettings = () => {
+    onClose();
+    navigate(
+      `${IS_DESKTOP ? "/big-picture" : ""}/settings?tab=screenshots&section=${HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID}`
+    );
+  };
+
+  const renderCommunityTab = () => {
+    if (isCommunityBlocked) {
+      return (
+        <CommunityScreenshotsHiddenNotice
+          onOpenSettings={openCommunitySettings}
+          onProceed={proceedToCommunity}
+        />
+      );
+    }
+
+    return <CommunityScreenshotsPanel community={community} />;
+  };
 
   return (
     <>
@@ -931,12 +1017,14 @@ export function GameScreenshotsModal({
               <MyScreenshotsPanel
                 tab={mineTab}
                 onBrowseCommunity={
-                  hasCommunity ? () => selectTab("community") : undefined
+                  hasCommunity && !isCommunityBlocked
+                    ? () => selectTab("community")
+                    : undefined
                 }
                 onClose={onClose}
               />
             ) : (
-              <CommunityScreenshotsPanel community={community} />
+              renderCommunityTab()
             )}
           </div>
         </VerticalFocusGroup>

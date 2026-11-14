@@ -13,6 +13,7 @@ import { BinaryNotFoundModal } from "../shared-modals/binary-not-found-modal";
 import "./downloads.scss";
 import { DeleteGameModal } from "./delete-game-modal";
 import { DownloadGroup } from "./download-group";
+import { Ps4PkgJobGroup } from "./ps4-pkg-job-group";
 import {
   getDownloadId,
   getRendererDownloadBucket,
@@ -56,7 +57,9 @@ export default function Downloads() {
   useEffect(() => {
     let cancelled = false;
 
-    const updateRunningGameIds = (gamesRunning: { id: string }[]) => {
+    const updateRunningGameIds = (
+      gamesRunning: { id: string; recompilationSlug?: string }[]
+    ) => {
       if (cancelled) return;
 
       setRunningGameIds((previous) => {
@@ -170,8 +173,15 @@ export default function Downloads() {
       return (leftDownload.timestamp ?? 0) - (rightDownload.timestamp ?? 0);
     });
 
-    const complete = orderBy(result.complete, (game) =>
-      game.download?.progress === 1 ? 0 : 1
+    // Finished downloads first, then the most recently downloaded on top.
+    // `timestamp` is when the download started; Hydra keeps no finish time.
+    const complete = orderBy(
+      result.complete,
+      [
+        (game) => (game.download?.progress === 1 ? 0 : 1),
+        (game) => game.download?.timestamp ?? 0,
+      ],
+      ["asc", "desc"]
     );
 
     return {
@@ -204,9 +214,14 @@ export default function Downloads() {
     },
   ];
 
+  const hasPs4PkgJob = useAppSelector((state) => state.ps4PkgJob.job !== null);
+
   const hasItemsInLibrary = useMemo(() => {
-    return Object.values(libraryGroup).some((group) => group.length > 0);
-  }, [libraryGroup]);
+    return (
+      hasPs4PkgJob ||
+      Object.values(libraryGroup).some((group) => group.length > 0)
+    );
+  }, [hasPs4PkgJob, libraryGroup]);
 
   return (
     <>
@@ -232,6 +247,7 @@ export default function Downloads() {
       {hasItemsInLibrary ? (
         <section className="downloads__container">
           <div className="downloads__groups">
+            <Ps4PkgJobGroup />
             {downloadGroups.map((group) => (
               <DownloadGroup
                 key={group.title}

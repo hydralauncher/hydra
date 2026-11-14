@@ -139,7 +139,7 @@
 
   &__path-approval-file-size,
   &__path-approval-file-date {
-    color: rgba(255, 255, 255, 0.55);
+    color: globals.$subtle-color;
     white-space: nowrap;
   }
 
@@ -148,9 +148,9 @@
     align-items: center;
     gap: globals.$spacing-unit;
     padding: calc(globals.$spacing-unit * 1.5);
-    border: 1px solid rgba(255, 183, 77, 0.18);
+    border: 1px solid rgba(globals.$warning-color, 0.3);
     border-radius: 8px;
-    background: rgba(255, 183, 77, 0.08);
+    background: rgba(globals.$warning-color, 0.1);
     color: globals.$warning-color;
     font-size: globals.$small-font-size;
     line-height: 1.4;
@@ -399,7 +399,7 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: globals.$spacing-unit;
-    color: rgba(255, 255, 255, 0.55);
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
   }
 
@@ -440,7 +440,7 @@
       }
 
       &:focus-visible {
-        border-radius: 2px;
+        border-radius: 4px;
         outline: 2px solid var(--color-primary);
         outline-offset: 3px;
       }
@@ -458,20 +458,20 @@
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.05);
     color: globals.$muted-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 400;
     line-height: 1;
 
     &--synced {
-      background: rgba(0, 230, 118, 0.22);
+      background: rgba(globals.$success-color, 0.22);
     }
 
     &--outdated {
-      background: rgba(255, 204, 0, 0.22);
+      background: rgba(globals.$warning-color, 0.22);
     }
 
     &--conflict {
-      background: rgba(255, 59, 92, 0.22);
+      background: rgba(globals.$error-color, 0.22);
     }
   }
 
@@ -608,7 +608,7 @@
     flex-wrap: wrap;
     padding: globals.$spacing-unit;
     border-radius: 6px;
-    background: rgba(255, 59, 92, 0.08);
+    background: rgba(globals.$error-color, 0.08);
     color: globals.$error-color;
     font-size: globals.$small-font-size;
 
@@ -678,7 +678,7 @@
     }
 
     &::-webkit-scrollbar-thumb {
-      border-radius: 24px;
+      border-radius: 999px;
       background-color: rgba(255, 255, 255, 0.15);
 
       &:hover {
@@ -809,7 +809,7 @@
 
   &__browser-status {
     color: globals.$muted-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     text-align: center;
     white-space: nowrap;
 
@@ -932,7 +932,7 @@
   &__browser-folder-heading {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     min-width: 0;
 
     strong {
@@ -973,7 +973,7 @@
     strong {
       min-width: 0;
       overflow: hidden;
-      font-size: 14px;
+      font-size: globals.$body-font-size;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
@@ -984,8 +984,8 @@
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 11px;
+    color: globals.$subtle-color;
+    font-size: globals.$tiny-font-size;
     white-space: nowrap;
   }
 

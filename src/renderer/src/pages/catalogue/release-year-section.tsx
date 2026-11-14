@@ -1,5 +1,5 @@
 import { ChevronDownIcon } from "@primer/octicons-react";
-import { useEffect, useReducer, useRef } from "react";
+import { useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import "./release-year-section.scss";
 
@@ -20,9 +20,7 @@ export function ReleaseYearSection({
   onChange,
 }: Readonly<ReleaseYearSectionProps>) {
   const { t } = useTranslation("catalogue");
-  const contentRef = useRef<HTMLDivElement>(null);
   const [isOpen, toggleOpen] = useReducer((s) => !s, true);
-  const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
   const gte = value?.gte ?? MIN_YEAR;
   const lte = value?.lte ?? MAX_YEAR;
@@ -30,18 +28,6 @@ export function ReleaseYearSection({
 
   const gtePercent = ((gte - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100;
   const ltePercent = ((lte - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)) * 100;
-
-  useEffect(() => {
-    forceUpdate();
-  }, []);
-
-  useEffect(() => {
-    if (contentRef.current) {
-      forceUpdate();
-    }
-  }, [isOpen, isActive]);
-
-  const height = isOpen ? (contentRef.current?.scrollHeight ?? 0) : 0;
 
   const handleGteChange = (newGte: number) => {
     emit(Math.min(newGte, lte), lte);
@@ -84,9 +70,7 @@ export function ReleaseYearSection({
       </button>
 
       <div
-        ref={contentRef}
-        className="filter-section__content"
-        style={{ maxHeight: `${height}px` }}
+        className={`filter-section__content${isOpen ? "" : " filter-section__content--closed"}`}
       >
         <div className="filter-section__content-inner">
           {isActive ? (

@@ -72,16 +72,20 @@ export function useReviewPrompt({
     }
   }, []);
 
-  const showPrompt =
+  const isEligible =
     Boolean(shop) &&
     Boolean(objectId) &&
     shop !== "custom" &&
     Boolean(userDetailsId) &&
     isGameInLibrary &&
-    !isCheckingUserReview &&
-    !hasUserReviewed &&
     !isDismissed &&
     playTimeInMilliseconds >= REVIEW_MIN_PLAYTIME_IN_MS;
 
-  return { showPrompt, dismissPrompt };
+  const showPrompt = isEligible && !isCheckingUserReview && !hasUserReviewed;
+
+  // Only the review check is still pending: the page keeps the banner's space
+  // so it doesn't push the gallery down when the answer arrives.
+  const isPromptPending = isEligible && isCheckingUserReview;
+
+  return { showPrompt, isPromptPending, dismissPrompt };
 }

@@ -1,5 +1,7 @@
 import type { PrepareSnapshotRequest } from "@types";
 
+import { toCloudSaveApiGame } from "../../../shared/recompilations.js";
+
 import {
   validateCustomPathRawPaths,
   validateSnapshotFiles,
@@ -34,8 +36,7 @@ export const buildPrepareSnapshotPayload = ({
   }
 
   return {
-    shop,
-    objectId,
+    ...toCloudSaveApiGame(shop, objectId),
     platform,
     ...(hostname ? { hostname } : {}),
     snapshotHash,

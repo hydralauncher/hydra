@@ -69,7 +69,7 @@ $trigger-width: 210px;
     @include dropdown.item;
 
     &[data-state="checked"] {
-      color: #fff;
+      color: globals.$muted-color;
       background-color: globals.$background-color;
     }
 
@@ -94,8 +94,8 @@ $trigger-width: 210px;
     height: 18px;
     padding: 0 4px;
     background-color: globals.$muted-color;
-    border-radius: 9px;
-    font-size: 11px;
+    border-radius: 999px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
     color: globals.$dark-background-color;
     line-height: 1;

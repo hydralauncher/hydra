@@ -1,6 +1,7 @@
 export interface EmulatorVersionProbe {
   versionFlags: string[];
   versionProbeDisabledPlatforms?: NodeJS.Platform[];
+  readVersion?: (executablePath: string) => string | null;
 }
 
 export const isEmulatorVersionProbeEnabled = (

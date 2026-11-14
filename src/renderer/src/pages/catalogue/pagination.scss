@@ -39,8 +39,8 @@
     background-color: transparent;
     color: globals.$muted-color;
     text-align: center;
-    font-size: 12px;
-    padding: 0 6px;
+    font-size: globals.$small-font-size;
+    padding: 0 calc(globals.$spacing-unit / 2);
     outline: none;
   }
 }

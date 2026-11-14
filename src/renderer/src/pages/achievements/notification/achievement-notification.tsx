@@ -18,17 +18,19 @@ import {
 } from "@renderer/helpers";
 import { AchievementNotificationItem } from "@renderer/components/achievements/notification/achievement-notification";
 import { levelDBService } from "@renderer/services/leveldb.service";
+import { logger } from "@renderer/logger";
 import HydraIconUrl from "@renderer/assets/icons/hydra.svg?url";
 import app from "../../../app.scss?inline";
 import styles from "../../../components/achievements/notification/achievement-notification.scss?inline";
 import root from "react-shadow";
+import { armNotificationAnimations } from "./arm-notification-animations";
+import { resolveImageUrl } from "./resolve-image-url";
 
 const NOTIFICATION_TIMEOUT = 4_000;
 const CLOSING_TIMEOUT = 450;
-const IMAGE_PREPARATION_TIMEOUT = 2_000;
-const VISIBILITY_TIMEOUT = 1_000;
+const ARMING_TIMEOUT = 1_000;
 
-type NotificationPhase = "idle" | "prepared" | "playing" | "closing";
+type NotificationPhase = "idle" | "arming" | "playing" | "closing";
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
@@ -39,74 +41,6 @@ const getErrorMessage = (error: unknown) => {
   } catch {
     return "unknown error";
   }
-};
-
-const waitForVisibleFrame = (): Promise<void> => {
-  return new Promise((resolve) => {
-    let settled = false;
-    let frame = -1;
-    let timeout = 0;
-    let removeListener = () => {};
-
-    const finish = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeout);
-      cancelAnimationFrame(frame);
-      removeListener();
-      resolve();
-    };
-
-    const waitForFrames = () => {
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(finish);
-      });
-    };
-
-    timeout = window.setTimeout(finish, VISIBILITY_TIMEOUT);
-
-    if (document.visibilityState === "visible") {
-      waitForFrames();
-      return;
-    }
-
-    const listener = () => {
-      if (document.visibilityState !== "visible") return;
-      removeListener();
-      waitForFrames();
-    };
-
-    document.addEventListener("visibilitychange", listener);
-    removeListener = () => {
-      document.removeEventListener("visibilitychange", listener);
-      removeListener = () => {};
-    };
-  });
-};
-
-const resolveImageUrl = (source: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const image = new Image();
-    let settled = false;
-
-    const finish = (url: string) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      image.onload = null;
-      image.onerror = null;
-      resolve(url);
-    };
-
-    const timeout = window.setTimeout(
-      () => finish(HydraIconUrl),
-      IMAGE_PREPARATION_TIMEOUT
-    );
-
-    image.onload = () => finish(source);
-    image.onerror = () => finish(HydraIconUrl);
-    image.src = source;
-  });
 };
 
 export function AchievementNotification() {
@@ -124,7 +58,8 @@ export function AchievementNotification() {
   const hostReadyReported = useRef(false);
   const displayTimer = useRef<number | null>(null);
   const closingTimer = useRef<number | null>(null);
-  const hasPlayedSound = useRef(false);
+  const playedSoundBatch = useRef<string | null>(null);
+  const startVisibleRef = useRef(false);
 
   const clearAnimationTimers = useCallback(() => {
     if (displayTimer.current !== null) {
@@ -146,8 +81,10 @@ export function AchievementNotification() {
       const audio = new Audio(soundUrl);
       audio.volume = volume;
       await audio.play();
+      return true;
     } catch (error) {
-      console.error("Failed to play achievement notification sound", error);
+      logger.error("Failed to play achievement notification sound", error);
+      return false;
     }
   }, []);
 
@@ -201,6 +138,17 @@ export function AchievementNotification() {
     return () => unsubscribe();
   }, [loadAndApplyTheme]);
 
+  const reportContentReady = useCallback((requestId: string) => {
+    void window.electron
+      .achievementNotificationContentReady(requestId)
+      .catch((error) => {
+        void window.electron.achievementNotificationFailed(
+          requestId,
+          `Failed to report prepared notification: ${getErrorMessage(error)}`
+        );
+      });
+  }, []);
+
   useEffect(() => {
     const unsubscribe = window.electron.onPrepareAchievementNotification(
       (nextRequest) => {
@@ -215,9 +163,9 @@ export function AchievementNotification() {
         const resolveIcon = () => {
           if (nextRequest.type === "screenshot") return Promise.resolve("");
           if (nextRequest.type === "combined") {
-            return resolveImageUrl(HydraIconUrl);
+            return Promise.resolve(HydraIconUrl);
           }
-          return resolveImageUrl(nextRequest.achievement.iconUrl);
+          return resolveImageUrl(nextRequest.achievement.iconUrl, HydraIconUrl);
         };
 
         void resolveIcon()
@@ -246,7 +194,7 @@ export function AchievementNotification() {
             requestRef.current = nextRequest;
             setRequest(nextRequest);
             setAchievement(nextAchievement);
-            setPhase("prepared");
+            reportContentReady(nextRequest.id);
           })
           .catch((error) => {
             if (preparationSequence.current !== sequence) return;
@@ -259,35 +207,7 @@ export function AchievementNotification() {
     );
 
     return () => unsubscribe();
-  }, [clearAnimationTimers, t]);
-
-  const reportContentReady = useCallback((requestId: string) => {
-    void window.electron
-      .achievementNotificationContentReady(requestId)
-      .catch((error) => {
-        void window.electron.achievementNotificationFailed(
-          requestId,
-          `Failed to report prepared notification: ${getErrorMessage(error)}`
-        );
-      });
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!request || !achievement || phase !== "prepared") return;
-
-    let firstFrame = -1;
-    let secondFrame = -1;
-    firstFrame = requestAnimationFrame(() => {
-      secondFrame = requestAnimationFrame(() => {
-        reportContentReady(request.id);
-      });
-    });
-
-    return () => {
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-    };
-  }, [achievement, phase, request, reportContentReady]);
+  }, [clearAnimationTimers, reportContentReady, t]);
 
   const finishNotification = useCallback((requestId: string) => {
     if (requestRef.current?.id !== requestId) return;
@@ -309,36 +229,100 @@ export function AchievementNotification() {
     [finishNotification]
   );
 
+  const playAchievementSound = useCallback(
+    async (requestId: string, batchId: string) => {
+      playedSoundBatch.current = batchId;
+      const played = await playAudio();
+      if (!played) {
+        if (playedSoundBatch.current === batchId) {
+          playedSoundBatch.current = null;
+        }
+        return;
+      }
+
+      try {
+        await window.electron.achievementNotificationSoundPlayed(
+          requestId,
+          batchId
+        );
+      } catch (error) {
+        logger.error("Failed to report notification sound", error);
+      }
+    },
+    [playAudio]
+  );
+
+  const beginPlayback = useCallback(() => {
+    const activeRequest = requestRef.current;
+    if (!activeRequest) return;
+
+    const requestId = activeRequest.id;
+
+    void window.electron
+      .achievementNotificationStarted(requestId)
+      .catch((error) => {
+        logger.error("Failed to report notification start", error);
+      });
+
+    if (
+      activeRequest.type !== "screenshot" &&
+      playedSoundBatch.current !== activeRequest.batchId
+    ) {
+      void playAchievementSound(requestId, activeRequest.batchId);
+    }
+
+    displayTimer.current = window.setTimeout(() => {
+      if (requestRef.current?.id !== requestId) return;
+      setPhase("closing");
+      scheduleClosing(requestId);
+    }, NOTIFICATION_TIMEOUT);
+  }, [playAchievementSound, scheduleClosing]);
+
   useEffect(() => {
     const unsubscribe = window.electron.onStartAchievementNotification(
-      (requestId) => {
+      (requestId, visible) => {
         if (requestRef.current?.id !== requestId) return;
 
         clearAnimationTimers();
 
-        void waitForVisibleFrame().then(() => {
-          if (requestRef.current?.id !== requestId) return;
-
-          setPhase("playing");
-          if (
-            !hasPlayedSound.current &&
-            requestRef.current.type !== "screenshot"
-          ) {
-            hasPlayedSound.current = true;
-            void playAudio();
-          }
-
-          displayTimer.current = window.setTimeout(() => {
-            if (requestRef.current?.id !== requestId) return;
-            setPhase("closing");
-            scheduleClosing(requestId);
-          }, NOTIFICATION_TIMEOUT);
-        });
+        startVisibleRef.current = visible;
+        setPhase("arming");
       }
     );
 
     return () => unsubscribe();
-  }, [clearAnimationTimers, playAudio, scheduleClosing]);
+  }, [clearAnimationTimers]);
+
+  useLayoutEffect(() => {
+    if (phase !== "arming") return;
+
+    const card = shadowRootRef?.querySelector(".achievement-notification");
+
+    return armNotificationAnimations({
+      card: card ?? null,
+      scheduler: {
+        requestFrame: (callback) => window.requestAnimationFrame(callback),
+        cancelFrame: (handle) => window.cancelAnimationFrame(handle),
+        setTimeout: (callback, delay) => window.setTimeout(callback, delay),
+        clearTimeout: (handle) => window.clearTimeout(handle),
+      },
+      timeoutMs: ARMING_TIMEOUT,
+      onArmed: () => {
+        setPhase("playing");
+        beginPlayback();
+      },
+      canPlayWithoutFrames: () => startVisibleRef.current,
+      onTimeout: () => {
+        const requestId = requestRef.current?.id;
+        if (!requestId) return;
+
+        void window.electron.achievementNotificationFailed(
+          requestId,
+          "notification window did not become visible"
+        );
+      },
+    });
+  }, [beginPlayback, phase, shadowRootRef]);
 
   useEffect(() => {
     return () => {
@@ -357,7 +341,6 @@ export function AchievementNotification() {
           <AchievementNotificationItem
             achievement={achievement}
             isClosing={phase === "closing"}
-            isPaused={phase === "prepared"}
             position={request.position}
           />
         )}

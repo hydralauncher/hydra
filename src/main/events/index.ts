@@ -22,6 +22,7 @@ import "./library";
 import "./leveldb";
 import "./main-window-controls";
 import "./misc";
+import "./recompilation";
 import "./notifications";
 import "./profile";
 import "./screenshots";

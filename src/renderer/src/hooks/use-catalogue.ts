@@ -37,13 +37,28 @@ async function getLocalizedSteamMetadata<T>(endpoint: string, locale: string) {
   return metadata;
 }
 
+// Last loaded lists, kept for the session. Revisiting the catalogue starts
+// from them instead of empty lists, so the filter sections don't pop in.
+// null means "not loaded yet", so filter sections can hold their space.
+const catalogueCache: {
+  publishers: string[] | null;
+  developers: string[] | null;
+  downloadSources: DownloadSource[] | null;
+} = { publishers: null, developers: null, downloadSources: null };
+
 export function useCatalogue() {
   const dispatch = useAppDispatch();
   const { i18n } = useTranslation();
 
-  const [steamPublishers, setSteamPublishers] = useState<string[]>([]);
-  const [steamDevelopers, setSteamDevelopers] = useState<string[]>([]);
-  const [downloadSources, setDownloadSources] = useState<DownloadSource[]>([]);
+  const [steamPublishers, setSteamPublishers] = useState<string[] | null>(
+    catalogueCache.publishers
+  );
+  const [steamDevelopers, setSteamDevelopers] = useState<string[] | null>(
+    catalogueCache.developers
+  );
+  const [downloadSources, setDownloadSources] = useState<
+    DownloadSource[] | null
+  >(catalogueCache.downloadSources);
 
   const getSteamFilters = useCallback(async () => {
     const [tags, genres] = await Promise.all([
@@ -64,25 +79,36 @@ export function useCatalogue() {
   const getSteamPublishers = useCallback(() => {
     window.electron
       .getCatalogueNames("publishers")
-      .then(setSteamPublishers)
+      .then((publishers) => {
+        catalogueCache.publishers = publishers;
+        setSteamPublishers(publishers);
+      })
       .catch((error) => {
         logger.error("Failed to load Steam publishers", error);
+        setSteamPublishers((current) => current ?? []);
       });
   }, []);
 
   const getSteamDevelopers = useCallback(() => {
     window.electron
       .getCatalogueNames("developers")
-      .then(setSteamDevelopers)
+      .then((developers) => {
+        catalogueCache.developers = developers;
+        setSteamDevelopers(developers);
+      })
       .catch((error) => {
         logger.error("Failed to load Steam developers", error);
+        setSteamDevelopers((current) => current ?? []);
       });
   }, []);
 
   const getDownloadSources = useCallback(() => {
     levelDBService.values("downloadSources").then((results) => {
-      const sources = results as DownloadSource[];
-      setDownloadSources(sources.filter((source) => !!source.fingerprint));
+      const sources = (results as DownloadSource[]).filter(
+        (source) => !!source.fingerprint
+      );
+      catalogueCache.downloadSources = sources;
+      setDownloadSources(sources);
     });
   }, []);
 
@@ -98,5 +124,14 @@ export function useCatalogue() {
     getDownloadSources,
   ]);
 
-  return { steamPublishers, downloadSources, steamDevelopers };
+  return {
+    steamPublishers: steamPublishers ?? [],
+    downloadSources: downloadSources ?? [],
+    steamDevelopers: steamDevelopers ?? [],
+    loadingLists: {
+      publishers: steamPublishers === null,
+      developers: steamDevelopers === null,
+      downloadSources: downloadSources === null,
+    },
+  };
 }

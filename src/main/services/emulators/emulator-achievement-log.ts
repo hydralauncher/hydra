@@ -23,6 +23,7 @@ const LOG_FORMATS: Record<
     titleFirst: true,
   },
   ps3: null,
+  ps4: null,
   psp: {
     pattern: /Achievement unlocked: '(.*)' \((\d+)\)/,
     titleFirst: true,

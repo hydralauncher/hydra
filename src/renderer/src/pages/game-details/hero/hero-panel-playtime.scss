@@ -21,7 +21,7 @@
   }
 
   &__manual-warning {
-    color: #f59e0b; // Warning amber color
+    color: globals.$warning-color;
     flex-shrink: 0;
   }
 }

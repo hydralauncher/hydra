@@ -1,5 +1,6 @@
 import type { CloudSaveAutomaticSyncMode, GameShop } from "@types";
 import { getCloudSaveEmulatorProvider } from "../../../shared/cloud-save-emulator-provider.js";
+import { parseRecompilationCloudSaveObjectId } from "../../../shared/recompilations.js";
 
 export type { CloudSaveAutomaticSyncMode } from "@types";
 
@@ -30,7 +31,8 @@ export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
   shop: GameShop,
   legacyEnabled: boolean,
   storedV2Enabled: boolean | undefined,
-  platform?: string | null
+  platform?: string | null,
+  objectId?: string
 ) => {
   if (shop === "steam") {
     return resolveStoredCloudSaveAutomaticSyncMode(
@@ -38,7 +40,12 @@ export const resolveStoredCloudSaveAutomaticSyncModeForShop = (
       storedV2Enabled
     );
   }
-  if (shop === "epic" || getCloudSaveEmulatorProvider(shop, platform)) {
+  if (
+    shop === "epic" ||
+    getCloudSaveEmulatorProvider(shop, platform) ||
+    (objectId !== undefined &&
+      parseRecompilationCloudSaveObjectId(shop, objectId))
+  ) {
     return resolveCloudSaveAutomaticSyncMode({
       legacyEnabled: false,
       v2Enabled: storedV2Enabled ?? true,

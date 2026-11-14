@@ -65,35 +65,39 @@ const findIsoEntry = (
       e.name.toUpperCase() === name.toUpperCase()
   ) ?? null;
 
+const readIsoPs3GameEntries = async (
+  fh: import("node:fs/promises").FileHandle
+): Promise<IsoDirEntry[] | null> => {
+  const pvd = Buffer.alloc(ISO_SECTOR);
+  const { bytesRead } = await fh.read(pvd, 0, ISO_SECTOR, 16 * ISO_SECTOR);
+  if (bytesRead < 190 || pvd[0] !== 0x01) return null;
+  if (pvd.subarray(1, 6).toString("latin1") !== "CD001") return null;
+
+  const rootLba = pvd.readUInt32LE(156 + 2);
+  const rootSize = pvd.readUInt32LE(156 + 10);
+  const rootBuf = await readIsoExtent(fh, rootLba, rootSize, ISO_DIR_READ_CAP);
+  const ps3Game = findIsoEntry(parseIsoDirRecords(rootBuf), "PS3_GAME");
+  if (!ps3Game?.isDir) return null;
+
+  const ps3Buf = await readIsoExtent(
+    fh,
+    ps3Game.lba,
+    ps3Game.size,
+    ISO_DIR_READ_CAP
+  );
+  return parseIsoDirRecords(ps3Buf);
+};
+
 export const extractTitleIdFromIso = async (
   isoPath: string
 ): Promise<string | null> => {
   let fh: import("node:fs/promises").FileHandle | null = null;
   try {
     fh = await fs.open(isoPath, "r");
-    const pvd = Buffer.alloc(ISO_SECTOR);
-    const { bytesRead } = await fh.read(pvd, 0, ISO_SECTOR, 16 * ISO_SECTOR);
-    if (bytesRead < 190 || pvd[0] !== 0x01) return null;
-    if (pvd.subarray(1, 6).toString("latin1") !== "CD001") return null;
+    const entries = await readIsoPs3GameEntries(fh);
+    if (!entries) return null;
 
-    const rootLba = pvd.readUInt32LE(156 + 2);
-    const rootSize = pvd.readUInt32LE(156 + 10);
-    const rootBuf = await readIsoExtent(
-      fh,
-      rootLba,
-      rootSize,
-      ISO_DIR_READ_CAP
-    );
-    const ps3Game = findIsoEntry(parseIsoDirRecords(rootBuf), "PS3_GAME");
-    if (!ps3Game?.isDir) return null;
-
-    const ps3Buf = await readIsoExtent(
-      fh,
-      ps3Game.lba,
-      ps3Game.size,
-      ISO_DIR_READ_CAP
-    );
-    const paramSfo = findIsoEntry(parseIsoDirRecords(ps3Buf), "PARAM.SFO");
+    const paramSfo = findIsoEntry(entries, "PARAM.SFO");
     if (!paramSfo || paramSfo.isDir) return null;
 
     const sfoBuf = await readIsoExtent(
@@ -105,6 +109,34 @@ export const extractTitleIdFromIso = async (
     return parseParamSfo(sfoBuf);
   } catch {
     return null;
+  } finally {
+    await fh?.close();
+  }
+};
+
+export const listIsoPs3TrophyDirNames = async (
+  isoPath: string
+): Promise<string[]> => {
+  let fh: import("node:fs/promises").FileHandle | null = null;
+  try {
+    fh = await fs.open(isoPath, "r");
+    const entries = await readIsoPs3GameEntries(fh);
+    const tropDir = entries ? findIsoEntry(entries, "TROPDIR") : null;
+    if (!tropDir?.isDir) return [];
+
+    const tropBuf = await readIsoExtent(
+      fh,
+      tropDir.lba,
+      tropDir.size,
+      ISO_DIR_READ_CAP
+    );
+    return parseIsoDirRecords(tropBuf)
+      .filter(
+        (entry) => entry.isDir && entry.name !== "." && entry.name !== ".."
+      )
+      .map((entry) => entry.name);
+  } catch {
+    return [];
   } finally {
     await fh?.close();
   }

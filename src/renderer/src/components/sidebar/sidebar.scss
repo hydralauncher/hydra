@@ -16,34 +16,6 @@
     pointer-events: none;
   }
 
-  &--darwin {
-    padding-top: calc(globals.$spacing-unit * 6);
-  }
-
-  &__big-picture-darwin {
-    position: absolute;
-    top: 14px;
-    right: 12px;
-    color: globals.$muted-color;
-    opacity: 0.6;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    -webkit-app-region: no-drag;
-    transition:
-      opacity ease 0.1s,
-      background-color ease 0.1s;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-
   &__content {
     display: flex;
     flex-direction: column;
@@ -89,9 +61,9 @@
   &__game-list-empty {
     margin: 0;
     padding: calc(globals.$spacing-unit * 2);
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     text-align: center;
-    color: rgba(255, 255, 255, 0.5);
+    color: globals.$subtle-color;
   }
 
   &__handle {
@@ -200,7 +172,7 @@
     border-radius: 9px;
     background-color: rgba(255, 255, 255, 0.08);
     color: globals.$body-color;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 700;
     line-height: 1;
 
@@ -259,16 +231,16 @@
 
   &__game-favorite-icon {
     flex-shrink: 0;
-    color: #ffffff;
+    color: globals.$muted-color;
     opacity: 0.85;
   }
 
   &__game-badge {
     background-color: rgba(34, 197, 94, 0.15);
     color: rgb(187, 247, 208);
-    font-size: 10px;
+    font-size: globals.$tiny-font-size;
     font-weight: 600;
-    padding: 4px 6px;
+    padding: calc(globals.$spacing-unit / 2);
     border-radius: 6px;
     display: flex;
     flex-shrink: 0;
@@ -314,7 +286,7 @@
     align-items: center;
     width: 100%;
     color: rgba(255, 255, 255, 0.5);
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     line-height: 1.4;
     padding: 9px 0;
     text-align: left;

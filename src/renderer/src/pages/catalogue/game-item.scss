@@ -3,7 +3,7 @@
 .game-item {
   background-color: globals.$dark-background-color;
   width: 100%;
-  color: #fff;
+  color: globals.$muted-color;
   overflow: hidden;
   position: relative;
   border-radius: 4px;
@@ -108,7 +108,7 @@
     bottom: 8px;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     max-width: calc(100% - 52px);
     pointer-events: none;
     justify-content: flex-end;
@@ -118,9 +118,9 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 6px;
+    padding: calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
     color: #0a0a0a;
     background: rgb(180, 199, 220);
@@ -170,7 +170,7 @@
 
   &__genres {
     color: globals.$body-color;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     text-align: left;
     margin-bottom: 4px;
 

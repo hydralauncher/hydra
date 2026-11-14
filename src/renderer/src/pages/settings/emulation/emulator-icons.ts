@@ -4,6 +4,7 @@ import duckstationIcon from "@renderer/assets/emulation/icons/duckstation.png";
 import retroarchIcon from "@renderer/assets/emulation/icons/retroarch.png";
 import pcsx2Icon from "@renderer/assets/emulation/icons/pcsx2.png";
 import rpcs3Icon from "@renderer/assets/emulation/icons/rpcs3.png";
+import shadps4Icon from "@renderer/assets/emulation/icons/shadps4.png";
 import ppssppIcon from "@renderer/assets/emulation/icons/ppsspp.png";
 import dolphinIcon from "@renderer/assets/emulation/icons/dolphin.png";
 
@@ -11,6 +12,7 @@ export const EMULATOR_ICONS: Partial<Record<EmulatorBinary, string>> = {
   duckstation: duckstationIcon,
   pcsx2: pcsx2Icon,
   rpcs3: rpcs3Icon,
+  shadps4: shadps4Icon,
   ppsspp: ppssppIcon,
   dolphin: dolphinIcon,
 };

@@ -137,8 +137,8 @@
     align-items: center;
     gap: globals.$spacing-unit;
     max-width: calc(100% - globals.$spacing-unit * 4);
-    padding: 6px calc(globals.$spacing-unit * 1.5);
-    background-color: rgba(18, 18, 18, 0.66);
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5);
+    background-color: rgba(globals.$background-color, 0.66);
     backdrop-filter: blur(12px);
     border: solid 1px globals.$border-color;
     border-radius: 999px;

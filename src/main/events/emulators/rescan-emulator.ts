@@ -12,13 +12,14 @@ const rescanEmulator = async (
   const current = await emulators.getEmulatorConfig(system);
 
   if (current.romFolders.length === 0) {
-    return emulators.updateEmulatorConfig(system, (cfg) =>
+    const config = await emulators.updateEmulatorConfig(system, (cfg) =>
       emulators.recomputeTotals({ ...cfg, romFolders: [] })
     );
+    return { config, unsupportedPackages: 0 };
   }
 
   const signal = { cancelled: false };
-  await runLaunchboxImport(
+  const { unsupportedPackages } = await runLaunchboxImport(
     system,
     current.romFolders.map((f) => ({
       path: f.path,
@@ -28,7 +29,10 @@ const rescanEmulator = async (
     signal
   );
 
-  return emulators.getEmulatorConfig(system);
+  return {
+    config: await emulators.getEmulatorConfig(system),
+    unsupportedPackages,
+  };
 };
 
 registerEvent("rescanEmulator", rescanEmulator);

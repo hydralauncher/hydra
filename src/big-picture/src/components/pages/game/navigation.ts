@@ -69,6 +69,10 @@ export const GAME_SCREENSHOTS_MODAL_MINE_GRID_REGION_ID =
 export const GAME_SCREENSHOTS_MODAL_BROWSE_COMMUNITY_ID =
   "game-screenshots-modal-browse-community";
 export const GAME_SCREENSHOTS_MODAL_CLOSE_ID = "game-screenshots-modal-close";
+export const GAME_SCREENSHOTS_MODAL_COMMUNITY_SETTINGS_ID =
+  "game-screenshots-modal-community-settings";
+export const GAME_SCREENSHOTS_MODAL_COMMUNITY_PROCEED_ID =
+  "game-screenshots-modal-community-proceed";
 export const GAME_SCREENSHOTS_MODAL_LIST_REGION_ID =
   "game-screenshots-modal-list";
 export const GAME_SCREENSHOTS_MODAL_MINE_LOAD_MORE_ID =

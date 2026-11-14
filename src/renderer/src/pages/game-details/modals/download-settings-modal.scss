@@ -16,25 +16,25 @@
   }
 
   &__hint-text {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: globals.$body-color;
   }
 
   &__select-files-link {
     align-self: flex-start;
-    margin-top: 6px;
+    margin-top: globals.$spacing-unit;
     border: none;
     background: transparent;
     padding: 0;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 12px;
+    gap: calc(globals.$spacing-unit / 2);
+    color: globals.$body-color;
+    font-size: globals.$small-font-size;
     cursor: pointer;
 
     &:hover {
-      color: #ffffff;
+      color: globals.$muted-color;
     }
 
     &:disabled {
@@ -50,8 +50,8 @@
 
   &__single-archive-notice {
     align-self: flex-start;
-    margin: 6px 0 0;
-    font-size: 12px;
+    margin: globals.$spacing-unit 0 0;
+    font-size: globals.$small-font-size;
     color: globals.$body-color;
   }
 
@@ -85,7 +85,7 @@
       background-color 0.15s ease,
       border-color 0.15s ease;
     color: globals.$body-color;
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     text-align: left;
     height: 48px;
     box-sizing: border-box;
@@ -148,8 +148,8 @@
     flex-shrink: 0;
 
     .badge {
-      padding: 2px 6px;
-      font-size: 10px;
+      padding: 2px globals.$spacing-unit;
+      font-size: globals.$tiny-font-size;
       line-height: 1.2;
       height: 16px;
       display: flex;
@@ -184,18 +184,18 @@
     flex-shrink: 0;
 
     &--available {
-      background-color: #22c55e;
-      box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+      background-color: globals.$success-color;
+      box-shadow: 0 0 6px rgba(globals.$success-color, 0.5);
     }
 
     &--unavailable {
-      background-color: #ef4444;
-      box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+      background-color: globals.$error-color;
+      box-shadow: 0 0 6px rgba(globals.$error-color, 0.5);
     }
 
     &--warning {
-      background-color: #eab308;
-      box-shadow: 0 0 6px rgba(234, 179, 8, 0.5);
+      background-color: globals.$warning-color;
+      box-shadow: 0 0 6px rgba(globals.$warning-color, 0.5);
     }
   }
 
@@ -258,15 +258,15 @@
   &__torrent-filters {
     display: flex;
     align-items: center;
-    gap: calc(globals.$spacing-unit * 0.75);
+    gap: globals.$spacing-unit;
     margin-left: auto;
     padding-left: calc(globals.$spacing-unit * 2);
     flex-shrink: 0;
   }
 
   &__torrent-sort-label {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.72);
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
     white-space: nowrap;
   }
 
@@ -290,9 +290,9 @@
     gap: globals.$spacing-unit;
     height: 34px;
     padding: 0 calc(globals.$spacing-unit * 1.5);
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     letter-spacing: 0.03em;
-    color: rgba(255, 255, 255, 0.55);
+    color: globals.$subtle-color;
     text-transform: uppercase;
 
     span:last-child {
@@ -302,17 +302,17 @@
 
   &__torrent-files-feedback {
     border: 1px solid rgba(255, 255, 255, 0.12);
-    background-color: #0b0b0c;
+    background-color: globals.$dark-background-color;
     padding: calc(globals.$spacing-unit * 1.5);
     display: flex;
     align-items: center;
     gap: globals.$spacing-unit;
     justify-content: space-between;
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
   }
 
   &__torrent-files-list {
-    background-color: #0b0b0c;
+    background-color: globals.$dark-background-color;
     overflow: hidden;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -333,7 +333,7 @@
 
     &::-webkit-scrollbar-thumb {
       background-color: rgba(255, 255, 255, 0.24);
-      border-radius: 24px;
+      border-radius: 999px;
     }
 
     &::-webkit-scrollbar-thumb:hover {
@@ -345,7 +345,7 @@
     width: 100%;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.85);
+    color: globals.$body-color;
     height: 36px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 120px;
@@ -381,7 +381,7 @@
       height: 14px;
       min-width: 14px;
       min-height: 14px;
-      border-radius: 2px;
+      border-radius: 4px;
       padding: 0;
 
       svg {
@@ -437,7 +437,7 @@
   &__torrent-node-content {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 0;
     width: 100%;
   }
@@ -460,7 +460,7 @@
       width: 8px;
       height: 2px;
       background: globals.$dark-background-color;
-      border-radius: 2px;
+      border-radius: 999px;
     }
   }
 
@@ -469,11 +469,11 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
 
     &--bold {
       font-weight: 600;
-      font-size: 13px;
+      font-size: globals.$hint-font-size;
     }
 
     &--folder {
@@ -482,8 +482,8 @@
   }
 
   &__torrent-file-size {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.72);
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     white-space: nowrap;
     text-align: right;
   }
@@ -501,8 +501,8 @@
   }
 
   &__torrent-files-summary {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.76);
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
   }
 
   &__torrent-files-space-error {

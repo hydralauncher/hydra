@@ -1,3 +1,5 @@
+@use "../../../scss/globals.scss";
+
 .game-emulation-saves {
   &__header {
     display: flex;
@@ -9,13 +11,13 @@
     h2 {
       font-size: 16px;
       font-weight: 600;
-      color: #fafafa;
+      color: globals.$muted-color;
       margin: 0;
     }
 
     p {
-      font-size: 13px;
-      color: #8e919b;
+      font-size: globals.$hint-font-size;
+      color: globals.$subtle-color;
       margin: 4px 0 0;
     }
   }
@@ -38,8 +40,8 @@
   }
 
   &__empty {
-    color: #8e919b;
-    font-size: 13px;
+    color: globals.$subtle-color;
+    font-size: globals.$hint-font-size;
   }
 
   &__groups {
@@ -55,11 +57,11 @@
   }
 
   &__group-title {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #8e919b;
+    color: globals.$subtle-color;
     margin: 0;
   }
 
@@ -74,13 +76,13 @@
     h3 {
       font-size: 16px;
       font-weight: 600;
-      color: #fafafa;
+      color: globals.$muted-color;
       margin: 0;
     }
 
     p {
-      font-size: 13px;
-      color: #8e919b;
+      font-size: globals.$hint-font-size;
+      color: globals.$subtle-color;
       margin: 0;
       max-width: 360px;
     }
@@ -101,7 +103,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #8e919b;
+    color: globals.$subtle-color;
     opacity: 0.55;
     margin-bottom: 4px;
   }
@@ -120,10 +122,10 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    background: #0d0d0d;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
-    padding: 10px 16px 12px;
+    padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
   }
 
   &__card-body {
@@ -151,7 +153,7 @@
   &__card-flag {
     width: 20px;
     height: auto;
-    border-radius: 2px;
+    border-radius: 4px;
     flex-shrink: 0;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
@@ -159,9 +161,9 @@
   }
 
   &__card-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -170,7 +172,7 @@
   }
 
   &__card-size {
-    color: #8e919b;
+    color: globals.$subtle-color;
     flex-shrink: 0;
     margin-left: auto;
   }
@@ -178,7 +180,7 @@
   &__icon-button {
     background: transparent;
     border: 0;
-    color: #8e919b;
+    color: globals.$subtle-color;
     cursor: pointer;
     padding: 4px;
     display: inline-flex;
@@ -187,29 +189,29 @@
     flex-shrink: 0;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
   &__card-meta {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 0;
 
     span {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: #c0c1c7;
+      gap: calc(globals.$spacing-unit / 2);
+      font-size: globals.$hint-font-size;
+      color: globals.$body-color;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
 
       svg {
         flex-shrink: 0;
-        color: #8e919b;
+        color: globals.$subtle-color;
       }
     }
   }
@@ -227,17 +229,16 @@
     justify-content: center;
     height: 40px;
     padding: 8px 16px;
-    border: 1px solid rgba(244, 67, 54, 0.3);
+    border: 1px solid rgba(globals.$error-color, 0.3);
     border-radius: 8px;
-    background: rgba(244, 67, 54, 0.1);
-    color: #f44336;
+    background: rgba(globals.$error-color, 0.1);
+    color: globals.$error-color;
     cursor: pointer;
     transition: all 0.2s ease;
 
     &:hover {
-      background: rgba(244, 67, 54, 0.2);
-      border-color: #f44336;
-      color: #ff5722;
+      background: rgba(globals.$error-color, 0.2);
+      border-color: globals.$error-color;
     }
   }
 

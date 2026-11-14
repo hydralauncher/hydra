@@ -1,3 +1,5 @@
+import DOMPurify from "dompurify";
+
 export function removeZalgoText(text: string): string {
   // Match combining characters that are commonly used in Zalgo text
   // Using a more explicit approach to avoid misleading-character-class warning
@@ -16,59 +18,39 @@ export function removeZalgoText(text: string): string {
   return result;
 }
 
+const SANITIZE_HTML_ALLOWED_TAGS = [
+  "p",
+  "br",
+  "strong",
+  "b",
+  "em",
+  "i",
+  "u",
+  "s",
+  "blockquote",
+  "ul",
+  "ol",
+  "li",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "hr",
+];
+
 export function sanitizeHtml(html: string): string {
   if (!html || typeof html !== "string") {
     return "";
   }
 
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = html;
-
-  const disallowedSelectors = [
-    "script",
-    "style",
-    "iframe",
-    "object",
-    "embed",
-    "link",
-    "meta",
-  ];
-  for (const sel of disallowedSelectors) {
-    for (const el of tempDiv.querySelectorAll(sel)) {
-      el.remove();
-    }
-  }
-
-  // Remove code and pre tags but keep their text content
-  for (const el of tempDiv.querySelectorAll("code, pre")) {
-    const textNode = document.createTextNode(el.textContent || "");
-    el.replaceWith(textNode);
-  }
-
-  for (const el of tempDiv.querySelectorAll("*")) {
-    for (const attr of Array.from(el.attributes)) {
-      const name = attr.name.toLowerCase();
-      if (
-        name.startsWith("on") ||
-        name === "style" ||
-        name === "src" ||
-        name === "href"
-      ) {
-        el.removeAttribute(attr.name);
-      }
-    }
-  }
-
-  const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT);
-  let node: Node | null;
-  while ((node = walker.nextNode())) {
-    const textNode = node as Text;
-    const value = textNode.nodeValue || "";
-    textNode.nodeValue = removeZalgoText(value);
-  }
-
-  const cleanHtml = tempDiv.innerHTML.trim();
-  return cleanHtml;
+  return removeZalgoText(
+    DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: SANITIZE_HTML_ALLOWED_TAGS,
+      ALLOWED_ATTR: [],
+    })
+  ).trim();
 }
 
 export function stripHtml(html: string): string {

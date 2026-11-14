@@ -406,6 +406,26 @@ describe("merge user variant snapshots", () => {
     }
   });
 
+  it("does not combine divergent files from one shadPS4 save folder", () => {
+    const rawPath = "<emulator>/shadps4/CUSA00207/1000";
+    const base = [
+      file("SPRJ0005/sce_sys/param.sfo", "a", rawPath),
+      file("SPRJ0005/userdata0000", "b", rawPath),
+    ];
+    const local = [file("SPRJ0005/sce_sys/param.sfo", "c", rawPath), base[1]];
+    const remote = [base[0], file("SPRJ0005/userdata0000", "d", rawPath)];
+    const unresolved = mergeUserVariantSnapshots({
+      local: context(local),
+      remoteVariants: [variant],
+      remoteFiles: remote,
+      base: anchor(base),
+    });
+    assert.deepEqual(
+      unresolved.conflicts.map((item) => item.entryId).sort(),
+      base.map(cloudSaveFileKey).sort()
+    );
+  });
+
   it("does not combine divergent files from one RPCS3 game data profile", () => {
     const rawPath = "<emulator>/rpcs3-gamedata/BCUS98245";
     const base = [

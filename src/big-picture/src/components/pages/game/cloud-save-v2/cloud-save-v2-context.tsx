@@ -9,7 +9,12 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getCloudSaveEmulatorProvider, isCloudSaveV2Eligible } from "@shared";
+import {
+  discCloudSaveWrongGameErrorCode,
+  getCloudSaveEmulatorProvider,
+  getDiscCloudSaveEmulatorProvider,
+  isCloudSaveV2Eligible,
+} from "@shared";
 
 import {
   getCloudSaveSyncErrorKind,
@@ -23,8 +28,8 @@ import {
   RETROARCH_CONFIG_SETTINGS_URL,
 } from "@renderer/pages/game-details/cloud-save-v2/retroarch-executable-status";
 import { useRetroArchExecutableStatus } from "@renderer/pages/game-details/cloud-save-v2/use-retroarch-executable-status";
-import { useRpcs3ConfigStatus } from "@renderer/pages/game-details/cloud-save-v2/use-rpcs3-config-status";
-import { RPCS3_CONFIG_SETTINGS_URL } from "@renderer/pages/game-details/cloud-save-v2/rpcs3-config-presentation";
+import { useEmulatorConfigStatus } from "@renderer/pages/game-details/cloud-save-v2/use-emulator-config-status";
+import { emulatorConfigSettingsUrl } from "@renderer/pages/game-details/cloud-save-v2/emulator-config-presentation";
 import type {
   CloudSaveConflictResolution,
   CloudSaveCustomPathApproval,
@@ -33,7 +38,7 @@ import type {
   GameShop,
   RetroArchLegacyBatteryCandidate,
   RetroArchLocalBatteryCandidate,
-  Rpcs3DiscIdentityStatus,
+  EmulatorDiscIdentityStatus,
 } from "@types";
 
 import { useBigPictureToast, useUserDetails } from "../../../../hooks";
@@ -181,6 +186,10 @@ export function BigPictureCloudSaveProvider({
       enabled: canCheckCloudSaves,
     });
   const emulatorProvider = getCloudSaveEmulatorProvider(shop, platform);
+  const discProvider = getDiscCloudSaveEmulatorProvider(shop, platform);
+  const hasWrongGameError =
+    discProvider !== null &&
+    refreshErrorCode === discCloudSaveWrongGameErrorCode(discProvider);
   const { details: fileDetails, refresh: refreshFileDetails } =
     useCloudSaveV2FileDetails({
       objectId,
@@ -202,9 +211,9 @@ export function BigPictureCloudSaveProvider({
     gameKey,
     isModalVisible
   );
-  const { status: rpcs3ConfigStatus, retry: retryRpcs3Config } =
-    useRpcs3ConfigStatus(
-      emulatorProvider === "rpcs3" && canCheckEmulator,
+  const { status: emulatorConfigStatus, retry: retryEmulatorConfig } =
+    useEmulatorConfigStatus(
+      canCheckEmulator ? discProvider : null,
       gameKey,
       isModalVisible
     );
@@ -216,29 +225,29 @@ export function BigPictureCloudSaveProvider({
     setIsModalVisible(false);
     navigate(RETROARCH_CONFIG_SETTINGS_URL);
   };
-  const openRpcs3Settings = () => {
+  const openEmulatorSettings = () => {
     setIsModalVisible(false);
-    navigate(RPCS3_CONFIG_SETTINGS_URL);
+    if (discProvider) navigate(emulatorConfigSettingsUrl(discProvider));
   };
-  const [rpcs3DiscStatusEntry, setRpcs3DiscStatusEntry] = useState<{
+  const [discStatusEntry, setDiscStatusEntry] = useState<{
     key: string;
-    status: Rpcs3DiscIdentityStatus;
+    status: EmulatorDiscIdentityStatus;
   } | null>(null);
-  const rpcs3DiscStatus =
-    rpcs3DiscStatusEntry?.key === gameKey ? rpcs3DiscStatusEntry.status : null;
-  const refreshRpcs3DiscStatus = useCallback(async () => {
-    if (emulatorProvider !== "rpcs3" || !canCheckCloudSaves) return;
-    const status = await window.electron.getRpcs3DiscIdentityStatus(
+  const discStatus =
+    discStatusEntry?.key === gameKey ? discStatusEntry.status : null;
+  const refreshDiscStatus = useCallback(async () => {
+    if (!discProvider || !canCheckCloudSaves) return;
+    const status = await window.electron.getEmulatorDiscIdentityStatus(
       objectId,
       shop
     );
-    setRpcs3DiscStatusEntry({ key: gameKey, status });
-  }, [canCheckCloudSaves, emulatorProvider, gameKey, objectId, shop]);
+    setDiscStatusEntry({ key: gameKey, status });
+  }, [canCheckCloudSaves, discProvider, gameKey, objectId, shop]);
   const [wasOpenedFromLaunchConflict, setWasOpenedFromLaunchConflict] =
     useState(false);
   useEffect(() => {
-    void refreshRpcs3DiscStatus().catch(() =>
-      setRpcs3DiscStatusEntry({
+    void refreshDiscStatus().catch(() =>
+      setDiscStatusEntry({
         key: gameKey,
         status: {
           status: "catalogue-unavailable",
@@ -247,7 +256,7 @@ export function BigPictureCloudSaveProvider({
         },
       })
     );
-  }, [refreshRpcs3DiscStatus, gameKey, isModalVisible, isSyncing]);
+  }, [refreshDiscStatus, gameKey, isModalVisible, isSyncing]);
   const [hasSyncError, setHasSyncError] = useState(false);
   const [progress, setProgress] = useState<CloudSaveSyncProgressPayload | null>(
     null
@@ -838,16 +847,15 @@ export function BigPictureCloudSaveProvider({
     errorMessageKey = "cloud_save_v2_load_error";
   }
   if (
-    emulatorProvider === "rpcs3" &&
-    rpcs3ConfigStatus &&
-    rpcs3ConfigStatus !== "ready"
+    discProvider &&
+    emulatorConfigStatus &&
+    emulatorConfigStatus !== "ready"
   ) {
     errorMessageKey = null;
   }
   if (
-    emulatorProvider === "rpcs3" &&
-    (refreshErrorCode === "cloud_save_rpcs3_save_wrong_game" ||
-      (rpcs3DiscStatus && rpcs3DiscStatus.status !== "ready"))
+    discProvider &&
+    (hasWrongGameError || (discStatus && discStatus.status !== "ready"))
   ) {
     errorMessageKey = null;
   }
@@ -864,17 +872,17 @@ export function BigPictureCloudSaveProvider({
     isGameRunning,
     hasExecutablePath,
     requiresRom: emulatorProvider === "retroarch",
-    requiresDisc: emulatorProvider === "rpcs3",
+    discProvider,
     retroArchExecutableStatus,
     onRetryRetroArchExecutable: retryRetroArchExecutable,
     onConfigureRetroArch: openRetroArchSettings,
-    rpcs3ConfigStatus,
-    onRetryRpcs3Config: retryRpcs3Config,
-    onConfigureRpcs3: openRpcs3Settings,
-    rpcs3DiscStatus,
-    rpcs3IdentityError: refreshErrorCode === "cloud_save_rpcs3_save_wrong_game",
-    onRetryRpcs3Disc: () =>
-      void Promise.all([refreshRpcs3DiscStatus(), refresh()]),
+    emulatorConfigStatus,
+    onRetryEmulatorConfig: retryEmulatorConfig,
+    onConfigureEmulator: openEmulatorSettings,
+    discStatus,
+    discIdentityError: hasWrongGameError,
+    onRetryDiscIdentity: () =>
+      void Promise.all([refreshDiscStatus(), refresh()]),
     hasError,
     errorMessageKey,
     progress,

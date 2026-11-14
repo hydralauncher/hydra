@@ -1,5 +1,6 @@
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { AchievementsSkeletonList } from "./sidebar/achievements-skeleton-list";
 
 export function GameDetailsSkeleton() {
   return (
@@ -62,15 +63,22 @@ export function GameDetailsSkeleton() {
             </div>
 
             <div className="gallery-slider__container">
-              <div
-                className="gallery-slider__viewport"
-                style={{ height: "250px" }}
-              >
+              <div className="gallery-slider__viewport">
                 <Skeleton
                   height="100%"
                   width="100%"
                   className="gallery-slider__media"
                 />
+              </div>
+              <div className="gallery-slider__preview">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="gallery-slider__preview-button gallery-slider__preview-button--active"
+                  >
+                    <Skeleton height="100%" width="100%" />
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -81,6 +89,21 @@ export function GameDetailsSkeleton() {
           </div>
 
           <aside className="content-sidebar">
+            <div className="sidebar-section">
+              <div className="sidebar-section__header">
+                <div
+                  className="sidebar-section__button"
+                  style={{ pointerEvents: "none" }}
+                >
+                  <Skeleton height={18} width={18} />
+                  <Skeleton height={18} width={136} />
+                </div>
+              </div>
+
+              <div className="sidebar-section__content">
+                <AchievementsSkeletonList />
+              </div>
+            </div>
             <div className="sidebar-section">
               <div className="sidebar-section__header">
                 <div
@@ -118,45 +141,6 @@ export function GameDetailsSkeleton() {
                     <Skeleton height={14} width={30} />
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="sidebar-section">
-              <div className="sidebar-section__header">
-                <div
-                  className="sidebar-section__button"
-                  style={{ pointerEvents: "none" }}
-                >
-                  <Skeleton height={18} width={18} />
-                  <Skeleton height={18} width={136} />
-                </div>
-              </div>
-
-              <div className="sidebar-section__content">
-                <ul className="list">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <li key={index}>
-                      <div
-                        className="list__item"
-                        style={{ pointerEvents: "none" }}
-                      >
-                        <Skeleton
-                          height={54}
-                          width={54}
-                          style={{ borderRadius: "4px" }}
-                        />
-                        <div>
-                          <Skeleton
-                            height={14}
-                            width={120}
-                            style={{ marginBottom: "4px" }}
-                          />
-                          <Skeleton height={12} width={80} />
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
           </aside>

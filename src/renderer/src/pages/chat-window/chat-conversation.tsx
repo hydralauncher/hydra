@@ -10,7 +10,9 @@ import { Trans, useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
   AlertFillIcon,
+  BellIcon,
   ImageIcon,
+  LockIcon,
   PaperAirplaneIcon,
   ReplyIcon,
   SmileyIcon,
@@ -39,9 +41,12 @@ import type { ChatMessage } from "./chat-message-groups";
 import { ChatMessageList } from "./chat-message-list";
 import type { ChatSendCooldown } from "./chat-rate-limit";
 import { ChatSendCooldownGauge } from "./chat-send-cooldown";
+import { isOfficialAccount } from "./chat-sidebar-layout";
 import type { ChatConversation } from "./chat-types";
 import { ChatZzzIcon } from "./chat-zzz-icon";
 import type { ChatReactionErrorKind } from "./use-chat";
+
+const electron = globalThis.electron as Electron;
 
 /** Five lines of text plus the input's vertical padding. */
 const COMPOSER_MAX_HEIGHT = 110;
@@ -127,6 +132,8 @@ export interface ChatConversationViewProps {
   onDraftImagesChange: (
     update: (images: ChatDraftImage[]) => ChatDraftImage[]
   ) => void;
+  /** Images picked but not in the draft yet; reported even after unmount. */
+  onPreparingImagesChange: (count: number) => void;
   onReplyChange: (replyToSeq: number | null) => void;
   onSend: (text: string) => void;
   /** Sets the user's reaction on the message with `seq`; null removes it. */
@@ -149,6 +156,7 @@ export function ChatConversationView({
   sendRejections,
   onDraftChange,
   onDraftImagesChange,
+  onPreparingImagesChange,
   onReplyChange,
   onSend,
   onReact,
@@ -162,6 +170,9 @@ export function ChatConversationView({
   const { t, i18n } = useTranslation("chat_window");
   const { friend, messages, isTyping, draft, draftImages, loadState } =
     conversation;
+  // One way: the official account's announcements get no composer, replies,
+  // reactions or reports.
+  const isOfficial = isOfficialAccount(friend);
   const canAttachImages = imagesEnabled && conversation.canSend;
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -202,6 +213,7 @@ export function ChatConversationView({
     for (const file of picked) {
       preparingCountRef.current += 1;
       setPreparingCount((count) => count + 1);
+      onPreparingImagesChange(preparingCountRef.current);
 
       void prepareChatImage(file)
         .then((prepared) => {
@@ -229,6 +241,7 @@ export function ChatConversationView({
         .finally(() => {
           preparingCountRef.current -= 1;
           setPreparingCount((count) => count - 1);
+          onPreparingImagesChange(preparingCountRef.current);
         });
     }
 
@@ -481,7 +494,9 @@ export function ChatConversationView({
           <div className="chat-window__empty-text">
             <h2 className="chat-window__empty-title">{t("no_messages")}</h2>
             <p className="chat-window__empty-description">
-              {t("empty_description", { name: friend.displayName })}
+              {isOfficial
+                ? t("official_empty_description")
+                : t("empty_description", { name: friend.displayName })}
             </p>
           </div>
         </div>
@@ -494,7 +509,8 @@ export function ChatConversationView({
           initialMessageIds={initialMessageIds}
           hasMoreBefore={conversation.hasMoreBefore}
           friendName={friend.displayName}
-          canReply={conversation.canSend}
+          canReply={conversation.canSend && !isOfficial}
+          canReport={!isOfficial}
           replyToSeq={replyTarget?.seq ?? null}
           revealSeq={revealSeq}
           onReply={startReply}
@@ -506,227 +522,249 @@ export function ChatConversationView({
         />
       )}
 
-      <div className="chat-window__composer">
-        {isEmojiPickerOpen && (
-          <ChatEmojiPicker
-            label={t("choose_emoji")}
-            className="chat-window__emoji-picker--composer"
-            anchorRef={emojiButtonRef}
-            onPick={insertEmoji}
-            onClose={closeEmojiPicker}
-          />
-        )}
-
-        <div
-          className={cn("chat-window__composer-box", {
-            "chat-window__composer-box--shake": isShaking,
-            "chat-window__composer-box--invalid": isTooLong,
-          })}
-          onAnimationEnd={(event) => {
-            if (event.target === event.currentTarget) {
-              setShakenRejections(rejections);
-            }
-          }}
-        >
-          {replyTarget && (
-            <div className="chat-window__composer-reply">
-              <button
-                type="button"
-                className="chat-window__composer-reply-target"
-                onClick={() =>
-                  replyTarget.seq !== undefined &&
-                  setRevealSeq({ seq: replyTarget.seq })
-                }
-                title={t("show_replied_message")}
-              >
-                <ReplyIcon
-                  size={16}
-                  className="chat-window__composer-reply-icon"
-                />
-                <span className="chat-window__composer-reply-details">
-                  <span className="chat-window__composer-reply-label">
-                    {replyTarget.fromMe ? (
-                      <Trans
-                        i18nKey="replying_to_self"
-                        ns="chat_window"
-                        components={{ strong: <strong /> }}
-                      />
-                    ) : (
-                      <Trans
-                        i18nKey="replying_to"
-                        ns="chat_window"
-                        values={{ name: friend.displayName }}
-                        components={{ strong: <strong /> }}
-                      />
-                    )}
-                  </span>
-                  <span className="chat-window__composer-reply-text">
-                    {replyTarget.text ||
-                      (replyTarget.attachments?.length
-                        ? t("quoted_images", {
-                            count: replyTarget.attachments.length,
-                          })
-                        : "")}
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                className="chat-window__icon-button chat-window__icon-button--small"
-                onClick={cancelReply}
-                title={t("cancel_reply_hint")}
-                aria-label={t("cancel_reply")}
-              >
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
-
-          {hasImages && (
-            <ChatComposerImages
-              images={draftImages}
-              onToggleSpoiler={toggleSpoiler}
-              onRemove={removeImage}
-            />
-          )}
-
-          <div className="chat-window__composer-row">
-            {imagesEnabled && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  hidden
-                  onChange={(event) => {
-                    addImages(Array.from(event.target.files ?? []));
-                    // The same file can be picked again after it is removed.
-                    event.target.value = "";
-                  }}
-                />
-                <button
-                  type="button"
-                  className="chat-window__composer-emoji"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={
-                    !canAttachImages ||
-                    draftImages.length >= CHAT_ATTACHMENTS_PER_MESSAGE
-                  }
-                  title={t("add_images")}
-                  aria-label={t("add_images")}
-                >
-                  <ImageIcon size={16} />
-                </button>
-              </>
-            )}
-            <button
-              ref={emojiButtonRef}
-              type="button"
-              className={cn("chat-window__composer-emoji", {
-                "chat-window__composer-emoji--open": isEmojiPickerOpen,
-              })}
-              onClick={toggleEmojiPicker}
-              disabled={!conversation.canSend}
-              title={t("add_emoji")}
-              aria-label={t("add_emoji")}
-              aria-expanded={isEmojiPickerOpen}
-            >
-              <SmileyIcon size={16} />
-            </button>
-            <div className="chat-window__composer-field">
-              {/* Draws a highlight behind the characters past the limit. */}
-              {overflow && (
-                <div
-                  ref={mirrorRef}
-                  className="chat-window__composer-mirror"
-                  aria-hidden="true"
-                >
-                  {draft.slice(0, overflow[0])}
-                  <mark className="chat-window__composer-overflow">
-                    {draft.slice(overflow[0], overflow[1])}
-                  </mark>
-                  {draft.slice(overflow[1])}
-                  {/* Keeps a trailing newline's line, as the textarea does. */}
-                  {"\u200b"}
-                </div>
-              )}
-              <textarea
-                ref={inputRef}
-                className="chat-window__composer-input"
-                rows={1}
-                value={draft}
-                placeholder={placeholder}
-                aria-label={placeholder}
-                aria-invalid={isTooLong}
-                onChange={(event) => onDraftChange(event.target.value)}
-                onKeyDown={handleKeyDown}
-                onPaste={(event) => {
-                  const files = Array.from(event.clipboardData.files);
-                  if (files.length === 0 || !canAttachImages) return;
-                  event.preventDefault();
-                  addImages(files);
-                }}
-                onScroll={(event) => {
-                  if (mirrorRef.current) {
-                    mirrorRef.current.scrollTop = event.currentTarget.scrollTop;
-                  }
-                }}
-                disabled={!conversation.canSend}
-              />
-            </div>
+      {isOfficial && (
+        <div className="chat-window__composer">
+          <div className="chat-window__read-only">
+            <LockIcon size={14} className="chat-window__read-only-icon" />
+            <span className="chat-window__read-only-text">
+              {t("official_read_only")}
+            </span>
             <button
               type="button"
-              className="chat-window__send"
-              onClick={handleSend}
-              disabled={!canSend || sendCooldown !== null}
-              title={t("send")}
-              aria-label={t("send")}
+              className="chat-window__read-only-button"
+              onClick={() => electron.openChatNotificationSettings()}
             >
-              {sendCooldown ? (
-                <ChatSendCooldownGauge
-                  key={sendCooldown.startedAt}
-                  cooldown={sendCooldown}
-                />
-              ) : (
-                <PaperAirplaneIcon size={16} />
-              )}
+              <BellIcon size={12} />
+              {t("notification_settings")}
             </button>
           </div>
         </div>
+      )}
 
-        {/* Always rendered: it sits in space kept for it, so a hint showing up
-            doesn't move anything. */}
-        <div className="chat-window__composer-meta">
-          {hint && (
-            <p
-              key={hint.kind}
-              className={cn("chat-window__composer-hint", {
-                "chat-window__composer-hint--error": hint.kind === "error",
-              })}
-              role={HINT_ROLES[hint.kind]}
-            >
-              {hint.kind === "typing" && <ChatTypingDots size="small" />}
-              {hint.kind === "offline" && <ChatZzzIcon />}
-              {hint.kind === "error" && (
-                <AlertFillIcon size={12} className="chat-window__hint-icon" />
+      {!isOfficial && (
+        <div className="chat-window__composer">
+          {isEmojiPickerOpen && (
+            <ChatEmojiPicker
+              label={t("choose_emoji")}
+              className="chat-window__emoji-picker--composer"
+              anchorRef={emojiButtonRef}
+              onPick={insertEmoji}
+              onClose={closeEmojiPicker}
+            />
+          )}
+
+          <div
+            className={cn("chat-window__composer-box", {
+              "chat-window__composer-box--shake": isShaking,
+              "chat-window__composer-box--invalid": isTooLong,
+            })}
+            onAnimationEnd={(event) => {
+              if (event.target === event.currentTarget) {
+                setShakenRejections(rejections);
+              }
+            }}
+          >
+            {replyTarget && (
+              <div className="chat-window__composer-reply">
+                <button
+                  type="button"
+                  className="chat-window__composer-reply-target"
+                  onClick={() =>
+                    replyTarget.seq !== undefined &&
+                    setRevealSeq({ seq: replyTarget.seq })
+                  }
+                  title={t("show_replied_message")}
+                >
+                  <ReplyIcon
+                    size={16}
+                    className="chat-window__composer-reply-icon"
+                  />
+                  <span className="chat-window__composer-reply-details">
+                    <span className="chat-window__composer-reply-label">
+                      {replyTarget.fromMe ? (
+                        <Trans
+                          i18nKey="replying_to_self"
+                          ns="chat_window"
+                          components={{ strong: <strong /> }}
+                        />
+                      ) : (
+                        <Trans
+                          i18nKey="replying_to"
+                          ns="chat_window"
+                          values={{ name: friend.displayName }}
+                          components={{ strong: <strong /> }}
+                        />
+                      )}
+                    </span>
+                    <span className="chat-window__composer-reply-text">
+                      {replyTarget.text ||
+                        (replyTarget.attachments?.length
+                          ? t("quoted_images", {
+                              count: replyTarget.attachments.length,
+                            })
+                          : "")}
+                    </span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="chat-window__icon-button chat-window__icon-button--small"
+                  onClick={cancelReply}
+                  title={t("cancel_reply_hint")}
+                  aria-label={t("cancel_reply")}
+                >
+                  <XIcon size={16} />
+                </button>
+              </div>
+            )}
+
+            {hasImages && (
+              <ChatComposerImages
+                images={draftImages}
+                onToggleSpoiler={toggleSpoiler}
+                onRemove={removeImage}
+              />
+            )}
+
+            <div className="chat-window__composer-row">
+              {imagesEnabled && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={(event) => {
+                      addImages(Array.from(event.target.files ?? []));
+                      // The same file can be picked again after it is removed.
+                      event.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="chat-window__composer-emoji"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={
+                      !canAttachImages ||
+                      draftImages.length >= CHAT_ATTACHMENTS_PER_MESSAGE
+                    }
+                    title={t("add_images")}
+                    aria-label={t("add_images")}
+                  >
+                    <ImageIcon size={16} />
+                  </button>
+                </>
               )}
-              <span>{hint.text}</span>
-            </p>
-          )}
+              <button
+                ref={emojiButtonRef}
+                type="button"
+                className={cn("chat-window__composer-emoji", {
+                  "chat-window__composer-emoji--open": isEmojiPickerOpen,
+                })}
+                onClick={toggleEmojiPicker}
+                disabled={!conversation.canSend}
+                title={t("add_emoji")}
+                aria-label={t("add_emoji")}
+                aria-expanded={isEmojiPickerOpen}
+              >
+                <SmileyIcon size={16} />
+              </button>
+              <div className="chat-window__composer-field">
+                {/* Draws a highlight behind the characters past the limit. */}
+                {overflow && (
+                  <div
+                    ref={mirrorRef}
+                    className="chat-window__composer-mirror"
+                    aria-hidden="true"
+                  >
+                    {draft.slice(0, overflow[0])}
+                    <mark className="chat-window__composer-overflow">
+                      {draft.slice(overflow[0], overflow[1])}
+                    </mark>
+                    {draft.slice(overflow[1])}
+                    {/* Keeps a trailing newline's line, as the textarea does. */}
+                    {"\u200b"}
+                  </div>
+                )}
+                <textarea
+                  ref={inputRef}
+                  className="chat-window__composer-input"
+                  rows={1}
+                  value={draft}
+                  placeholder={placeholder}
+                  aria-label={placeholder}
+                  aria-invalid={isTooLong}
+                  onChange={(event) => onDraftChange(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onPaste={(event) => {
+                    const files = Array.from(event.clipboardData.files);
+                    if (files.length === 0 || !canAttachImages) return;
+                    event.preventDefault();
+                    addImages(files);
+                  }}
+                  onScroll={(event) => {
+                    if (mirrorRef.current) {
+                      mirrorRef.current.scrollTop =
+                        event.currentTarget.scrollTop;
+                    }
+                  }}
+                  disabled={!conversation.canSend}
+                />
+              </div>
+              <button
+                type="button"
+                className="chat-window__send"
+                onClick={handleSend}
+                disabled={!canSend || sendCooldown !== null}
+                title={t("send")}
+                aria-label={t("send")}
+              >
+                {sendCooldown ? (
+                  <ChatSendCooldownGauge
+                    key={sendCooldown.startedAt}
+                    cooldown={sendCooldown}
+                  />
+                ) : (
+                  <PaperAirplaneIcon size={16} />
+                )}
+              </button>
+            </div>
+          </div>
 
-          {showCounter && (
-            <span
-              className={cn("chat-window__composer-counter", {
-                "chat-window__composer-counter--over": isTooLong,
-              })}
-            >
-              {numberFormat.format(text.length)} /{" "}
-              {numberFormat.format(CHAT_MESSAGE_MAX_LENGTH)}
-            </span>
-          )}
+          {/* Always rendered: it sits in space kept for it, so a hint showing up
+            doesn't move anything. */}
+          <div className="chat-window__composer-meta">
+            {hint && (
+              <p
+                key={hint.kind}
+                className={cn("chat-window__composer-hint", {
+                  "chat-window__composer-hint--error": hint.kind === "error",
+                })}
+                role={HINT_ROLES[hint.kind]}
+              >
+                {hint.kind === "typing" && <ChatTypingDots size="small" />}
+                {hint.kind === "offline" && <ChatZzzIcon />}
+                {hint.kind === "error" && (
+                  <AlertFillIcon size={12} className="chat-window__hint-icon" />
+                )}
+                <span>{hint.text}</span>
+              </p>
+            )}
+
+            {showCounter && (
+              <span
+                className={cn("chat-window__composer-counter", {
+                  "chat-window__composer-counter--over": isTooLong,
+                })}
+              >
+                {numberFormat.format(text.length)} /{" "}
+                {numberFormat.format(CHAT_MESSAGE_MAX_LENGTH)}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

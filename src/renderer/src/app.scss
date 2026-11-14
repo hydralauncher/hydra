@@ -15,7 +15,7 @@
 
 ::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.15);
-  border-radius: 24px;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -121,6 +121,9 @@ progress[value] {
 
   &__content {
     overflow-y: auto;
+    // Keep the scrollbar's space reserved. Otherwise the whole page narrows
+    // and reflows the moment loaded content first overflows.
+    scrollbar-gutter: stable;
     align-items: center;
     display: flex;
     flex-direction: column;
@@ -131,90 +134,6 @@ progress[value] {
       globals.$dark-background-color 50%,
       globals.$background-color 100%
     );
-  }
-}
-
-.title-bar {
-  display: flex;
-  width: 100%;
-  height: 35px;
-  min-height: 35px;
-  background-color: globals.$dark-background-color;
-  align-items: center;
-  padding: 0 calc(globals.$spacing-unit * 2);
-  -webkit-app-region: drag;
-  z-index: 4;
-  border-bottom: 1px solid globals.$border-color;
-
-  &--windows {
-    padding-right: calc(
-      100vw - env(titlebar-area-width, calc(100vw - 140px)) - env(
-          titlebar-area-x,
-          0px
-        )
-    );
-  }
-
-  &__cloud-text {
-    background: linear-gradient(270deg, #16b195 50%, #3e62c0 100%);
-    background-clip: text;
-    color: transparent;
-  }
-
-  &__big-picture {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: globals.$muted-color;
-    opacity: 0.6;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    margin-left: auto;
-    margin-right: globals.$spacing-unit;
-    font-size: 12px;
-    -webkit-app-region: no-drag;
-    transition:
-      opacity ease 0.1s,
-      background-color ease 0.1s;
-
-    &:hover {
-      opacity: 1;
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-
-  &__window-controls {
-    display: flex;
-    align-self: stretch;
-    margin-right: calc(globals.$spacing-unit * -2);
-    -webkit-app-region: no-drag;
-  }
-
-  &__window-control {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    padding: 0;
-    background: none;
-    border: none;
-    color: globals.$muted-color;
-    cursor: pointer;
-    outline: none;
-    transition:
-      background-color 0.2s ease,
-      color 0.2s ease;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: #dadbe1;
-    }
-
-    &--close:hover {
-      background-color: globals.$error-color;
-      color: #ffffff;
-    }
   }
 }
 

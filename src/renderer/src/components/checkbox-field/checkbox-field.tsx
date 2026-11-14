@@ -14,9 +14,11 @@ export interface CheckboxFieldProps
 export function CheckboxField({
   label,
   indeterminate = false,
+  id: providedId,
   ...props
 }: Readonly<CheckboxFieldProps>) {
-  const id = useId();
+  const generatedId = useId();
+  const id = providedId ?? generatedId;
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

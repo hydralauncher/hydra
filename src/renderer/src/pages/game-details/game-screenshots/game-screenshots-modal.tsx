@@ -1,8 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ImageIcon } from "@primer/octicons-react";
+import { EyeClosedIcon, ImageIcon } from "@primer/octicons-react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import Skeleton from "react-loading-skeleton";
+import { useNavigate } from "react-router-dom";
 import cn from "classnames";
 
 import { Button, CheckboxField, Modal } from "@renderer/components";
@@ -16,6 +17,7 @@ import {
 } from "@renderer/components/screenshots";
 import { GAME_SCREENSHOT_SORT_STORAGE_KEY } from "@renderer/session-state-keys";
 import {
+  HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID,
   INITIAL_SCREENSHOT_SPOILER_PAGING,
   isSpoilerPagingPaused,
   resumeSpoilerPaging,
@@ -222,6 +224,33 @@ function CommunityScreenshotsPanel({
   );
 }
 
+interface CommunityScreenshotsHiddenNoticeProps {
+  onOpenSettings: () => void;
+  onProceed: () => void;
+}
+
+function CommunityScreenshotsHiddenNotice({
+  onOpenSettings,
+  onProceed,
+}: Readonly<CommunityScreenshotsHiddenNoticeProps>) {
+  const { t } = useTranslation("screenshots");
+
+  return (
+    <div className="game-screenshots-modal__empty">
+      <span className="game-screenshots-modal__empty-icon">
+        <EyeClosedIcon size={24} />
+      </span>
+      <span>{t("community_screenshots_hidden")}</span>
+      <div className="game-screenshots-modal__empty-actions">
+        <Button onClick={onOpenSettings}>{t("go_to_settings")}</Button>
+        <Button theme="outline" onClick={onProceed}>
+          {t("proceed_anyway")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export type GameScreenshotsTab = "mine" | "community";
 
 export interface ScreenshotsGame {
@@ -232,6 +261,7 @@ export interface ScreenshotsGame {
 interface GameScreenshotsModalProps {
   visible: boolean;
   showCommentCount: boolean;
+  isCommunityHidden: boolean;
   libraryGame: ScreenshotsGame;
   catalogueGame: ScreenshotsGame;
   writeBus: ScreenshotWriteBus;
@@ -242,6 +272,7 @@ interface GameScreenshotsModalProps {
 export function GameScreenshotsModal({
   visible,
   showCommentCount,
+  isCommunityHidden,
   libraryGame,
   catalogueGame,
   writeBus,
@@ -249,7 +280,9 @@ export function GameScreenshotsModal({
   onClose,
 }: Readonly<GameScreenshotsModalProps>) {
   const { t } = useTranslation("screenshots");
+  const navigate = useNavigate();
   const [tab, setTab] = useState<GameScreenshotsTab>(initialTab);
+  const [hasProceededToCommunity, setHasProceededToCommunity] = useState(false);
   const tabs: { id: GameScreenshotsTab; label: string }[] = [
     { id: "mine", label: t("my_screenshots") },
     { id: "community", label: t("community_screenshots_tab") },
@@ -257,7 +290,36 @@ export function GameScreenshotsModal({
 
   useEffect(() => {
     if (visible) setTab(initialTab);
+    else setHasProceededToCommunity(false);
   }, [initialTab, visible]);
+
+  const openCommunitySettings = () => {
+    onClose();
+    navigate(
+      `/settings?tab=screenshots#${HIDE_COMMUNITY_SCREENSHOTS_SETTING_ID}`
+    );
+  };
+
+  const renderCommunityTab = () => {
+    if (isCommunityHidden && !hasProceededToCommunity) {
+      return (
+        <CommunityScreenshotsHiddenNotice
+          onOpenSettings={openCommunitySettings}
+          onProceed={() => setHasProceededToCommunity(true)}
+        />
+      );
+    }
+
+    return (
+      <CommunityScreenshotsPanel
+        visible={visible}
+        showCommentCount={showCommentCount}
+        shop={catalogueGame.shop}
+        objectId={catalogueGame.objectId}
+        writeBus={writeBus}
+      />
+    );
+  };
 
   return (
     <Modal
@@ -293,13 +355,7 @@ export function GameScreenshotsModal({
           writeBus={writeBus}
         />
       ) : (
-        <CommunityScreenshotsPanel
-          visible={visible}
-          showCommentCount={showCommentCount}
-          shop={catalogueGame.shop}
-          objectId={catalogueGame.objectId}
-          writeBus={writeBus}
-        />
+        renderCommunityTab()
       )}
     </Modal>
   );

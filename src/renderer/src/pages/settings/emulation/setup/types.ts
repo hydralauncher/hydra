@@ -16,7 +16,7 @@ export interface PendingFolder {
 }
 
 export const stepListForSystem = (system: EmulatorSystem): StepKind[] => {
-  if (system === "ps3") {
+  if (system === "ps3" || system === "ps4") {
     return ["find_emulator", "firmware", "rom_folder", "scanning", "done"];
   }
   if (system === "psp" || system === "dolphin") {

@@ -1,10 +1,14 @@
+@use "../../scss/globals.scss";
+
+$add-button-offset: 42px;
+
 .game-item-classics {
   position: relative;
-  background: #0d0d0d;
-  border: 1px solid #1c1c1c;
+  background: globals.$dark-background-color;
+  border: 1px solid globals.$border-color;
   border-radius: 8px;
   overflow: hidden;
-  color: #fafafa;
+  color: globals.$muted-color;
   transition:
     border-color 0.15s ease,
     transform 0.15s ease;
@@ -35,7 +39,7 @@
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
-    color: #fafafa;
+    color: globals.$muted-color;
     padding: 4px;
 
     &:focus-visible {
@@ -120,15 +124,35 @@
     justify-content: center;
   }
 
+  &__recompilation-chip {
+    position: absolute;
+    top: 8px;
+    right: $add-button-offset;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-size: globals.$tiny-font-size;
+    font-weight: 500;
+    color: globals.$muted-color;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
   &__platform-chip {
     position: absolute;
     top: 8px;
     left: 8px;
     z-index: 2;
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: globals.$tiny-font-size;
     font-weight: 500;
-    color: #fafafa;
+    color: globals.$muted-color;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -138,6 +162,10 @@
     max-width: calc(100% - 16px);
     overflow: hidden;
     text-overflow: ellipsis;
+
+    &--beside-recompilation {
+      max-width: calc(100% - 130px);
+    }
   }
 
   &__details {
@@ -148,7 +176,7 @@
   }
 
   &__title {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.8);
     overflow: hidden;
@@ -157,7 +185,7 @@
   }
 
   &__genres {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     color: rgba(255, 255, 255, 0.5);
     overflow: hidden;
     text-overflow: ellipsis;

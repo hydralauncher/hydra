@@ -14,12 +14,12 @@
   z-index: calc(globals.$toast-z-index + 11);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(globals.$spacing-unit / 2);
   padding: 4px 8px;
   border-radius: 6px;
-  background-color: #f0f1f7;
-  color: #0d0d0d;
-  font-size: 12px;
+  background-color: globals.$muted-color;
+  color: globals.$dark-background-color;
+  font-size: globals.$small-font-size;
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;

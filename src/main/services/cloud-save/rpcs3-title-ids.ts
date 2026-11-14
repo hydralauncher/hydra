@@ -1,7 +1,8 @@
 import type { Game } from "@types";
 
+import { normalizeCatalogueTitleId } from "./catalogue-title-ids.js";
+
 const TITLE_ID = /^[A-Z]{4}\d{5}$/;
-const CATALOGUE_TITLE_ID = /^([A-Z]{4}\d{5})[A-Z]*$/;
 
 // Some editions retain the original release's savedata directory ID.
 // These associations apply to savedata only, never to media or savestates.
@@ -13,14 +14,6 @@ export const normalizeRpcs3TitleId = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const normalized = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   return TITLE_ID.test(normalized) ? normalized : null;
-};
-
-export const normalizeRpcs3CatalogueTitleId = (
-  value: unknown
-): string | null => {
-  if (typeof value !== "string") return null;
-  const normalized = value.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  return CATALOGUE_TITLE_ID.exec(normalized)?.[1] ?? null;
 };
 
 export const rpcs3TitleIdsForGame = (game: Game): string[] =>
@@ -35,7 +28,7 @@ export const expandRpcs3SavedataTitleIds = (
 ): string[] => {
   const ids = new Set(
     [...titleIds]
-      .map(normalizeRpcs3CatalogueTitleId)
+      .map(normalizeCatalogueTitleId)
       .filter((id): id is string => id !== null)
   );
   for (const id of [...ids]) {

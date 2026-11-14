@@ -18,7 +18,7 @@ import {
   type LibraryCategory,
 } from "@renderer/pages/library/category-filter";
 import { type LibrarySource } from "@renderer/pages/library/library-category";
-import type { SortOption } from "@renderer/pages/library/filter-options";
+import type { SortOption } from "@renderer/pages/library/library-display-menu";
 import { SourceIcon } from "@renderer/pages/library/source-icon";
 import "./sidebar-filter-menu.scss";
 

@@ -5,16 +5,12 @@
   border-radius: 8px;
   padding: calc(globals.$spacing-unit * 2);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
+  @include globals.page-column;
+  transition: opacity 0.2s ease;
 
-  @media (min-width: 1280px) {
-    width: 60%;
-  }
-
-  @media (min-width: 1536px) {
-    width: 50%;
+  &--pending {
+    visibility: hidden;
+    opacity: 0;
   }
 
   &__content {
@@ -23,7 +19,7 @@
     justify-content: space-between;
     gap: calc(globals.$spacing-unit * 2.5);
 
-    @media (max-width: 768px) {
+    @include globals.page-max-width(900px) {
       flex-direction: column;
       align-items: flex-start;
       gap: calc(globals.$spacing-unit * 2);

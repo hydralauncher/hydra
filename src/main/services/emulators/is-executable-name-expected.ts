@@ -4,7 +4,11 @@ export const isExecutableNameExpectedForBinary = (
   executablePath: string,
   binary: { binary: string }
 ): boolean => {
-  if (binary.binary !== "ppsspp" && binary.binary !== "dolphin") {
+  if (
+    binary.binary !== "ppsspp" &&
+    binary.binary !== "dolphin" &&
+    binary.binary !== "shadps4"
+  ) {
     return true;
   }
 
@@ -13,6 +17,10 @@ export const isExecutableNameExpectedForBinary = (
       ? path.win32.basename(executablePath)
       : path.posix.basename(executablePath);
   const normalizedName = basename.toLowerCase();
+
+  if (binary.binary === "shadps4") {
+    return normalizedName.includes("qtlauncher");
+  }
 
   if (!normalizedName.includes(binary.binary)) return false;
 

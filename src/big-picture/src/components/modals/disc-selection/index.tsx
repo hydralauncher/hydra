@@ -1,6 +1,6 @@
 import type { ClassicsDisc } from "@types";
 import {
-  getSkuRegion,
+  getDiscRegion,
   getSkuRegionFlag,
   type SkuRegion,
 } from "@renderer/helpers";
@@ -77,7 +77,7 @@ export function DiscSelectionModal({
     const regionOrder = new Map<string, number>();
 
     for (const disc of discs) {
-      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      const region = getDiscRegion(disc);
 
       if (region && !regionOrder.has(region)) {
         regionOrder.set(region, regionOrder.size);
@@ -85,7 +85,7 @@ export function DiscSelectionModal({
     }
 
     const rankOf = (disc: ClassicsDisc): number => {
-      const region = disc.sku ? getSkuRegion(disc.sku) : null;
+      const region = getDiscRegion(disc);
       if (!region) return Number.MAX_SAFE_INTEGER;
       return regionOrder.get(region) ?? Number.MAX_SAFE_INTEGER;
     };
@@ -149,7 +149,7 @@ export function DiscSelectionModal({
         >
           {sortedDiscs.map((disc, index) => {
             const isSelected = selectedDiscPath === disc.path;
-            const region = disc.sku ? getSkuRegion(disc.sku) : null;
+            const region = getDiscRegion(disc);
             const previousDisc = sortedDiscs[index - 1] ?? null;
             const nextDisc = sortedDiscs[index + 1] ?? null;
             const navigationOverrides: FocusOverrides = {

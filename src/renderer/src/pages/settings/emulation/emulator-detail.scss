@@ -8,8 +8,8 @@
   &__breadcrumb {
     background: transparent;
     border: 0;
-    color: #8e919b;
-    font-size: 14px;
+    color: globals.$subtle-color;
+    font-size: globals.$body-font-size;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -18,7 +18,7 @@
     align-self: flex-start;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
@@ -48,7 +48,7 @@
   &__hero-title {
     font-size: 32px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     letter-spacing: -0.64px;
     margin: 0;
   }
@@ -56,7 +56,7 @@
   &__hero-meta {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: calc(globals.$spacing-unit * 1.5);
     flex-wrap: wrap;
   }
 
@@ -83,28 +83,28 @@
   }
 
   &__hero-detected {
-    font-size: 13px;
+    font-size: globals.$hint-font-size;
     font-weight: 500;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__hero-version {
-    font-size: 13px;
-    color: #8e919b;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
   }
 
   &__hero-count {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
-    color: #c0c1c7;
+    font-size: globals.$hint-font-size;
+    color: globals.$body-color;
 
     &-dot {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #c0c1c7;
+      background: globals.$body-color;
     }
   }
 
@@ -112,15 +112,15 @@
     width: 3px;
     height: 3px;
     border-radius: 50%;
-    background: #8e919b;
+    background: globals.$subtle-color;
   }
 
   &__bios-note {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    color: #8e919b;
-    font-size: 12px;
+    color: globals.$subtle-color;
+    font-size: globals.$small-font-size;
     line-height: 22px;
     margin: 0;
   }
@@ -138,16 +138,16 @@
     gap: 16px;
 
     h3 {
-      font-size: 21px;
+      font-size: 20px;
       font-weight: 600;
-      color: #fafafa;
+      color: globals.$muted-color;
       letter-spacing: -0.42px;
       margin: 0;
     }
 
     p {
-      font-size: 13px;
-      color: #8e919b;
+      font-size: globals.$hint-font-size;
+      color: globals.$subtle-color;
       line-height: 20px;
       margin: 0;
     }
@@ -169,10 +169,10 @@
   }
 
   &__row {
-    background: #0d0d0d;
-    border: 1px solid #1c1c1c;
-    border-radius: 12px;
-    padding: 16px 24px;
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -191,36 +191,37 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 0;
   }
 
   &__exec-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: globals.$spacing-unit;
     flex-wrap: wrap;
   }
 
   &__exec-name {
     font-size: 16px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__exec-version {
-    font-size: 13px;
-    color: #8e919b;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
   }
 
   &__synced {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
-    color: #c0c1c7;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
     background: rgba(192, 193, 199, 0.12);
-    padding: 4px 12px 4px 10px;
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5)
+      calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 8px;
   }
 
@@ -228,10 +229,11 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
-    color: #c0c1c7;
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
     background: rgba(192, 193, 199, 0.12);
-    padding: 4px 12px 4px 10px;
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5)
+      calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 8px;
   }
 
@@ -245,21 +247,22 @@
   &__res-status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     flex-shrink: 0;
-    padding: 4px 12px 4px 10px;
+    padding: calc(globals.$spacing-unit / 2) calc(globals.$spacing-unit * 1.5)
+      calc(globals.$spacing-unit / 2) globals.$spacing-unit;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 400;
-    color: #d4d5db;
-    background: #26262b;
+    color: globals.$body-color;
+    background: rgba(192, 193, 199, 0.12);
 
     &--found {
-      color: #c0c1c7;
+      color: globals.$body-color;
     }
 
     &--warn {
-      color: #fbbf24;
+      color: globals.$warning-color;
     }
   }
 
@@ -270,27 +273,27 @@
     background: transparent;
     border: 0;
     padding: 0;
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     cursor: pointer;
 
     &:hover {
-      color: #c0c1c7;
+      color: globals.$body-color;
       text-decoration: underline;
     }
   }
 
   &__exec-label {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
-    color: #8e919b;
+    color: globals.$subtle-color;
     text-transform: uppercase;
     letter-spacing: 0.4px;
   }
 
   &__exec-path {
-    font-size: 13px;
-    color: #c0c1c7;
+    font-size: globals.$hint-font-size;
+    color: globals.$body-color;
     word-break: break-all;
   }
 
@@ -304,15 +307,15 @@
     max-width: 100%;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
-    color: #c0c1c7;
+    font-size: globals.$hint-font-size;
+    color: globals.$body-color;
     text-align: left;
     cursor: pointer;
     align-self: flex-start;
 
     &:hover:not(:disabled),
     &:focus-visible {
-      color: #fafafa;
+      color: globals.$muted-color;
 
       .emulator-detail__exec-path-text {
         text-decoration: underline;
@@ -326,9 +329,9 @@
     }
 
     &:focus-visible {
-      outline: 2px solid rgba(12, 241, 202, 0.4);
+      outline: 2px solid rgba(globals.$brand-teal, 0.4);
       outline-offset: 4px;
-      border-radius: 2px;
+      border-radius: 4px;
     }
 
     &:disabled {
@@ -344,7 +347,7 @@
     text-overflow: ellipsis;
 
     &--placeholder {
-      color: #8e919b;
+      color: globals.$subtle-color;
     }
   }
 
@@ -360,7 +363,7 @@
 
   &__exec-actions {
     display: flex;
-    gap: 6px;
+    gap: globals.$spacing-unit;
     flex-shrink: 0;
   }
 
@@ -371,22 +374,22 @@
   }
 
   &__empty {
-    color: #8e919b;
-    font-size: 13px;
+    color: globals.$subtle-color;
+    font-size: globals.$hint-font-size;
   }
 
   &__folder-info {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
     min-width: 200px;
   }
 
   &__folder-path {
-    font-size: clamp(13px, 1.4vw, 16px);
+    font-size: 16px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     word-break: break-all;
   }
 
@@ -394,34 +397,34 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: clamp(11px, 1.1vw, 13px);
-    color: #8e919b;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
   }
 
   &__subfolders-toggle {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: clamp(11px, 1.1vw, 13px);
-    color: #c0c1c7;
+    font-size: globals.$hint-font-size;
+    color: globals.$body-color;
     cursor: pointer;
 
     input {
       cursor: pointer;
-      width: clamp(13px, 1.3vw, 16px);
-      height: clamp(13px, 1.3vw, 16px);
+      width: 16px;
+      height: 16px;
     }
   }
 
   &__remove {
     background: transparent;
     border: 0;
-    color: #8e919b;
+    color: globals.$subtle-color;
     cursor: pointer;
     padding: 4px;
 
     &:hover {
-      color: #e11d48;
+      color: globals.$error-color;
     }
 
     &:disabled {
@@ -437,20 +440,20 @@
   }
 
   &__stat {
-    background: #0d0d0d;
+    background: globals.$dark-background-color;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 24px;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 2);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__stat-head {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #8e919b;
+    color: globals.$subtle-color;
 
     svg {
       flex-shrink: 0;
@@ -458,25 +461,25 @@
   }
 
   &__stat-label {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 500;
-    color: #8e919b;
+    color: globals.$subtle-color;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     overflow-wrap: break-word;
   }
 
   &__stat-value {
-    font-size: clamp(20px, 2.4vw, 30px);
+    font-size: 28px;
     font-weight: 700;
-    color: #fafafa;
+    color: globals.$muted-color;
     letter-spacing: -0.36px;
     overflow-wrap: break-word;
   }
 
   &__stat-caption {
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     line-height: 18px;
     margin-top: auto;
     overflow-wrap: break-word;
@@ -498,7 +501,7 @@
   &__memcard-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: globals.$spacing-unit;
   }
 
   &__memcard-group-header {
@@ -533,7 +536,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #8e919b;
+    color: globals.$subtle-color;
     flex-shrink: 0;
     transition: transform 0.15s ease;
 
@@ -543,9 +546,9 @@
   }
 
   &__memcard-group-title {
-    font-size: 12px;
+    font-size: globals.$small-font-size;
     font-weight: 600;
-    color: #c0c1c7;
+    color: globals.$body-color;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     white-space: nowrap;
@@ -554,8 +557,8 @@
   }
 
   &__memcard-group-count {
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     font-weight: 500;
     flex-shrink: 0;
   }
@@ -568,8 +571,8 @@
   }
 
   &__memcard-backup-progress-label {
-    font-size: 11px;
-    color: #8e919b;
+    font-size: globals.$tiny-font-size;
+    color: globals.$subtle-color;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -579,14 +582,14 @@
     height: 4px;
     width: 100%;
     border-radius: 999px;
-    background: #1c1c1c;
+    background: rgba(255, 255, 255, 0.08);
     overflow: hidden;
   }
 
   &__memcard-backup-progress-fill {
     height: 100%;
     border-radius: 999px;
-    background: #fafafa;
+    background: globals.$muted-color;
     transition: width 0.2s ease;
   }
 
@@ -597,10 +600,10 @@
   }
 
   &__memcard-card {
-    background: #0d0d0d;
-    border: 1px solid #1c1c1c;
-    border-radius: 10px;
-    padding: 10px 12px;
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
+    border-radius: 8px;
+    padding: calc(globals.$spacing-unit * 1.5);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -628,7 +631,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #8e919b;
+    color: globals.$subtle-color;
   }
 
   &__memcard-info {
@@ -640,9 +643,9 @@
   }
 
   &__memcard-title {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -651,15 +654,15 @@
   &__memcard-sub {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #c0c1c7;
+    gap: calc(globals.$spacing-unit / 2);
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
   }
 
   &__memcard-flag {
     width: 18px;
     height: auto;
-    border-radius: 2px;
+    border-radius: 4px;
     flex-shrink: 0;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
@@ -667,8 +670,8 @@
   }
 
   &__memcard-meta {
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
   }
 
   &__memcard-menu {
@@ -680,11 +683,11 @@
     border: 0;
     border-radius: 4px;
     background: transparent;
-    color: #8e919b;
+    color: globals.$subtle-color;
     cursor: pointer;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
@@ -707,15 +710,15 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    border: 1px solid #1c1c1c;
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
     background: transparent;
-    color: #c0c1c7;
+    color: globals.$body-color;
     cursor: pointer;
 
     &:hover:not(:disabled) {
-      color: #fafafa;
-      border-color: #2a2a2a;
+      color: globals.$muted-color;
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     &:disabled {
@@ -725,8 +728,8 @@
   }
 
   &__page-indicator {
-    font-size: 13px;
-    color: #8e919b;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
     min-width: 64px;
     text-align: center;
   }
@@ -782,8 +785,8 @@
     box-sizing: border-box;
     min-width: 0;
     height: 153px;
-    background: #0d0d0d;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
     padding: 16px;
     display: flex;
@@ -818,7 +821,7 @@
   &__cloud-menu {
     background: transparent;
     border: 0;
-    color: #8e919b;
+    color: globals.$subtle-color;
     cursor: pointer;
     padding: 0;
     display: inline-flex;
@@ -826,7 +829,7 @@
     justify-content: center;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
   }
 
@@ -845,7 +848,7 @@
   &__cloud-card-flag {
     width: 20px;
     height: auto;
-    border-radius: 2px;
+    border-radius: 4px;
     flex-shrink: 0;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
@@ -855,10 +858,10 @@
   &__cloud-card-title {
     flex: 0 1 auto;
     min-width: 0;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
-    letter-spacing: 0.18px;
-    color: #c0c1c7;
+    letter-spacing: 0.16px;
+    color: globals.$body-color;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -875,15 +878,15 @@
       display: inline-flex;
       align-items: center;
       gap: 12px;
-      font-size: 14px;
+      font-size: globals.$body-font-size;
       letter-spacing: 0.14px;
-      color: #8e919b;
+      color: globals.$subtle-color;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
 
       svg {
-        color: #8e919b;
+        color: globals.$subtle-color;
         flex-shrink: 0;
       }
     }
@@ -917,13 +920,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #c0c1c7;
+    color: globals.$body-color;
   }
 
   &__cloud-locked-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     margin: 0;
     max-width: 360px;
   }
@@ -957,10 +960,10 @@
     gap: 2px;
     width: 100%;
     text-align: left;
-    background: #0d0d0d;
-    border: 1px solid #1c1c1c;
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: calc(globals.$spacing-unit * 1.5);
     cursor: pointer;
 
     &--selected {
@@ -969,14 +972,14 @@
   }
 
   &__restore-target-name {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
   }
 
   &__restore-target-path {
-    font-size: 12px;
-    color: #8e919b;
+    font-size: globals.$small-font-size;
+    color: globals.$subtle-color;
     word-break: break-all;
   }
 
@@ -998,7 +1001,7 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid globals.$border-color;
   }
 
   &__tab {
@@ -1009,7 +1012,7 @@
     margin-bottom: -1px;
     padding: 12px 16px;
     font-size: 16px;
-    color: #fafafa;
+    color: globals.$muted-color;
     opacity: 0.5;
     cursor: pointer;
     white-space: nowrap;
@@ -1022,13 +1025,13 @@
     &--active {
       opacity: 0.8;
       font-weight: 600;
-      border-bottom-color: #fafafa;
+      border-bottom-color: globals.$muted-color;
     }
 
     &:focus-visible {
-      outline: 2px solid rgba(12, 241, 202, 0.4);
+      outline: 2px solid rgba(globals.$brand-teal, 0.4);
       outline-offset: 2px;
-      border-radius: 2px;
+      border-radius: 4px;
     }
   }
 
@@ -1060,22 +1063,22 @@
     min-width: 240px;
     display: flex;
     align-items: center;
-    background: #0d0d0d;
-    border: 1px solid #1c1c1c;
+    background: globals.$dark-background-color;
+    border: 1px solid globals.$border-color;
     border-radius: 8px;
     padding: 12px 16px;
     cursor: pointer;
     text-align: left;
-    color: #c0c1c7;
+    color: globals.$body-color;
     transition: border-color 120ms ease;
 
     &:hover:not(:disabled),
     &:focus-visible {
-      border-color: #2a2a2a;
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     &:focus-visible {
-      outline: 2px solid rgba(12, 241, 202, 0.4);
+      outline: 2px solid rgba(globals.$brand-teal, 0.4);
       outline-offset: 2px;
     }
 
@@ -1085,7 +1088,7 @@
     }
 
     .emulator-detail__exec-path-text {
-      font-size: 14px;
+      font-size: globals.$body-font-size;
       letter-spacing: 0.14px;
     }
   }
@@ -1109,12 +1112,12 @@
     border: 0;
     padding: 4px 0;
     margin-top: 4px;
-    font-size: 13px;
-    color: #8e919b;
+    font-size: globals.$hint-font-size;
+    color: globals.$subtle-color;
     cursor: pointer;
 
     &:hover:not(:disabled) {
-      color: #e11d48;
+      color: globals.$error-color;
     }
 
     &:disabled {
@@ -1174,9 +1177,9 @@
   }
 
   &__rom-title {
-    font-size: 14px;
+    font-size: globals.$body-font-size;
     font-weight: 600;
-    color: #fafafa;
+    color: globals.$muted-color;
     opacity: 0.8;
     white-space: nowrap;
     overflow: hidden;
@@ -1192,8 +1195,8 @@
 
   &__rom-size {
     flex-shrink: 0;
-    font-size: 14px;
-    color: #fafafa;
+    font-size: globals.$body-font-size;
+    color: globals.$muted-color;
     opacity: 0.5;
   }
 
@@ -1201,13 +1204,13 @@
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: calc(globals.$spacing-unit / 2);
   }
 
   &__rom-flag {
     width: 18px;
     height: auto;
-    border-radius: 2px;
+    border-radius: 4px;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;

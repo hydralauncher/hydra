@@ -78,12 +78,12 @@
 
     &-long {
       display: inline;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
     }
 
     &-short {
       display: none;
-      font-size: 12px;
+      font-size: globals.$small-font-size;
     }
 
     // When the card is narrow (less than 180px), show short format

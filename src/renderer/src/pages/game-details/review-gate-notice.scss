@@ -5,7 +5,7 @@
   align-items: center;
   gap: calc(globals.$spacing-unit * 1.5);
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: calc(globals.$spacing-unit * 1.5) calc(globals.$spacing-unit * 2);
   margin-bottom: calc(globals.$spacing-unit * 2);
@@ -14,7 +14,7 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    color: #ffffff;
+    color: globals.$muted-color;
   }
 
   &__content {
@@ -27,11 +27,11 @@
   &__title {
     font-size: globals.$small-font-size;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.75);
+    color: globals.$body-color;
   }
 
   &__description {
     font-size: globals.$small-font-size;
-    color: rgba(255, 255, 255, 0.45);
+    color: globals.$subtle-color;
   }
 }

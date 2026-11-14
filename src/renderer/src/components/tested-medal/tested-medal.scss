@@ -1,0 +1,16 @@
+.tested-medal {
+  flex-shrink: 0;
+
+  &__inner {
+    stroke: rgba(0, 0, 0, 0.18);
+    stroke-width: 0.75;
+  }
+
+  &__mark {
+    fill: none;
+    stroke: rgba(0, 0, 0, 0.72);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}

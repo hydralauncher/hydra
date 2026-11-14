@@ -3,18 +3,24 @@ import { Button } from "@renderer/components";
 import "./review-prompt-banner.scss";
 
 interface ReviewPromptBannerProps {
+  /** Rendered invisible to hold the banner's space until it is confirmed. */
+  pending?: boolean;
   onYesClick: () => void;
   onLaterClick: () => void;
 }
 
 export function ReviewPromptBanner({
+  pending = false,
   onYesClick,
   onLaterClick,
 }: Readonly<ReviewPromptBannerProps>) {
   const { t } = useTranslation("game_details");
 
   return (
-    <div className="review-prompt-banner">
+    <div
+      className={`review-prompt-banner${pending ? " review-prompt-banner--pending" : ""}`}
+      aria-hidden={pending}
+    >
       <div className="review-prompt-banner__content">
         <div className="review-prompt-banner__text">
           <span className="review-prompt-banner__playtime">

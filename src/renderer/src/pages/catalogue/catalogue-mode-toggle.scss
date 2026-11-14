@@ -1,11 +1,14 @@
+@use "../../scss/globals.scss";
+
 .catalogue-mode-toggle {
   display: flex;
   gap: 2px;
   width: 100%;
-  padding: 3px;
-  background: #0d0d0d;
+  height: 40px;
+  padding: 2px;
+  background: globals.$dark-background-color;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  border-radius: 8px;
 
   &__option {
     flex: 1;
@@ -14,13 +17,13 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 8px 14px;
-    font-size: 13px;
+    padding: 0 calc(globals.$spacing-unit * 1.5);
+    font-size: globals.$hint-font-size;
     font-weight: 600;
-    color: #a1a1aa;
+    color: globals.$subtle-color;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: 6px;
     cursor: pointer;
     white-space: nowrap;
 
@@ -38,13 +41,13 @@
       color 0.15s ease;
 
     &:hover {
-      color: #fafafa;
+      color: globals.$muted-color;
     }
 
     &--active {
       background: rgba(255, 255, 255, 0.04);
-      border-color: rgba(255, 255, 255, 0.08);
-      color: #fafafa;
+      border-color: globals.$border-color;
+      color: globals.$muted-color;
     }
   }
 }

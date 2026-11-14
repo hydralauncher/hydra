@@ -5,6 +5,8 @@ export interface DropdownMenuItem {
   icon?: React.ReactNode;
   label: string;
   disabled?: boolean;
+  /** Red, like the context menu's destructive items. */
+  danger?: boolean;
   show?: boolean;
   onClick?: () => void;
 }
@@ -64,7 +66,7 @@ export function DropdownMenu({
                     key={item.label}
                     aria-label={item.label}
                     onSelect={item.onClick}
-                    className={`dropdown-menu__item ${item.disabled ? "dropdown-menu__item--disabled" : ""}`}
+                    className={`dropdown-menu__item ${item.disabled ? "dropdown-menu__item--disabled" : ""} ${item.danger ? "dropdown-menu__item--danger" : ""}`}
                     disabled={item.disabled}
                   >
                     {item.icon && (

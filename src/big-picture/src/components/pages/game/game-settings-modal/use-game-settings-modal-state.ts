@@ -2,7 +2,7 @@ import type { LibraryGame } from "@types";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { platformToSystem } from "@renderer/helpers";
+import { isPs4GameFolder, platformToSystem } from "@renderer/helpers";
 import { useIsNonSteamExecutable } from "@renderer/hooks/use-non-steam-executable";
 import {
   getGameExecutableFilters,
@@ -664,9 +664,16 @@ export function useGameSettingsModalState({
 
   const handleProcessDiscPath = useCallback(
     async (path: string) => {
+      if (
+        platformToSystem(game?.platform) === "ps4" &&
+        !(await isPs4GameFolder(path))
+      ) {
+        showErrorToast(t("ps4_folder_missing_eboot"));
+        return;
+      }
       await addDiscFromPath(path);
     },
-    [addDiscFromPath]
+    [addDiscFromPath, game?.platform, showErrorToast, t]
   );
 
   const handleProcessDiscExecutablePath = useCallback(
@@ -687,7 +694,10 @@ export function useGameSettingsModalState({
   const handleRemoveAllDiscs = useCallback(async () => {
     if (!game) return;
 
-    const discsToRemove = game.discs ?? [];
+    // Ports leave through their own uninstall, which asks first.
+    const discsToRemove = (game.discs ?? []).filter(
+      (disc) => !disc.recompilationSlug
+    );
     if (discsToRemove.length === 0) return;
 
     for (const disc of discsToRemove) {
@@ -701,6 +711,22 @@ export function useGameSettingsModalState({
 
     await updateGame();
   }, [game, updateClassicsDisc, updateGame]);
+
+  const handleUninstallPort = useCallback(
+    async (slug: string) => {
+      if (!game) return;
+
+      const result = await window.electron.uninstallRecompilation({
+        objectId: game.objectId,
+        slug,
+      });
+      if (!result.ok && result.reason !== "not_installed") {
+        showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+      }
+      await updateGame();
+    },
+    [game, showErrorToast, t, updateGame]
+  );
 
   const isNonSteamExecutable = useIsNonSteamExecutable(game);
 
@@ -777,6 +803,7 @@ export function useGameSettingsModalState({
       onProcessDiscExecutablePath: handleProcessDiscExecutablePath,
       onRemoveSelectedDisc: handleRemoveSelectedDisc,
       onRemoveAllDiscs: handleRemoveAllDiscs,
+      onUninstallPort: handleUninstallPort,
       onToggleHydraPlaytimeEnabled: handleToggleHydraPlaytimeEnabled,
     } satisfies GameLaunchSettingsProps;
   }, [
@@ -796,6 +823,7 @@ export function useGameSettingsModalState({
     handleProcessDiscExecutablePath,
     handleRemoveAllDiscs,
     handleRemoveSelectedDisc,
+    handleUninstallPort,
     handleSelectDisc,
     handleToggleDontAskDiscSelection,
     handleToggleHydraPlaytimeEnabled,

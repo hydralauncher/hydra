@@ -1,5 +1,5 @@
 import { ChevronDownIcon } from "@primer/octicons-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import "./profile-section.scss";
 
 export interface ProfileSectionProps {
@@ -17,17 +17,7 @@ export function ProfileSection({
   children,
   defaultOpen = true,
 }: ProfileSectionProps) {
-  const content = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    if (content.current && content.current.scrollHeight !== height) {
-      setHeight(isOpen ? content.current.scrollHeight : 0);
-    } else if (!isOpen) {
-      setHeight(0);
-    }
-  }, [isOpen, children, height]);
 
   return (
     <div className="profile-section">
@@ -50,14 +40,13 @@ export function ProfileSection({
         {action && <div className="profile-section__action">{action}</div>}
       </div>
 
+      {/* Grid-row collapse instead of a measured max-height: the section
+          renders at full height on the first paint instead of growing. */}
       <div
-        ref={content}
-        className="profile-section__content"
-        style={{
-          maxHeight: `${height}px`,
-        }}
+        className={`profile-section__content${isOpen ? "" : " profile-section__content--closed"}`}
+        aria-hidden={!isOpen}
       >
-        {children}
+        <div className="profile-section__body">{children}</div>
       </div>
     </div>
   );

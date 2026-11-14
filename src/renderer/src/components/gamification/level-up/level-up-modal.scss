@@ -32,11 +32,11 @@
     top: 30%;
     left: 50%;
     z-index: 1;
-    padding: 0 9px;
+    padding: 0 globals.$spacing-unit;
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.08);
-    color: #f0f1f7;
-    font-size: 13px;
+    color: globals.$muted-color;
+    font-size: globals.$hint-font-size;
     line-height: 22px;
     font-weight: 500;
     transform: translateX(-50%);
@@ -56,10 +56,10 @@
   &__continue {
     height: 40px;
     padding: 0 16px;
-    border: 1px solid #f0f1f7;
+    border: 1px solid globals.$muted-color;
     border-radius: 8px;
-    background-color: #f0f1f7;
-    color: #0d0d0d;
+    background-color: globals.$muted-color;
+    color: globals.$dark-background-color;
     font-size: globals.$body-font-size;
     font-weight: 600;
     cursor: pointer;
@@ -70,7 +70,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid #f0f1f7;
+      outline: 2px solid globals.$muted-color;
       outline-offset: 2px;
     }
   }
@@ -79,7 +79,7 @@
     position: absolute;
     bottom: 20px;
     left: 50%;
-    color: #6b6c72;
+    color: globals.$subtle-color;
     font-size: globals.$small-font-size;
     transform: translateX(-50%);
     animation: level-up-in 0.3s ease-out 0.4s both;

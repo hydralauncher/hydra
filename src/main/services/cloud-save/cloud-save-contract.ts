@@ -9,6 +9,7 @@ import type {
 } from "@types";
 
 import { toSteamAccount } from "../steam-login-users.js";
+import { toRecompilationCloudSaveObjectId } from "../../../shared/recompilations.js";
 
 export const CLOUD_SAVE_HASH_PATTERN = /^[a-f0-9]{64}$/;
 
@@ -299,7 +300,12 @@ export const validateRestoreManifest = (
   const snapshot = response.snapshot as Record<string, unknown> | undefined;
   if (
     !snapshot ||
-    !hasOnlyKeys(snapshot, ["id", "version", "shop", "objectId"]) ||
+    !hasOnlyKeys(
+      snapshot,
+      "recompilationSlug" in snapshot
+        ? ["id", "version", "shop", "objectId", "recompilationSlug"]
+        : ["id", "version", "shop", "objectId"]
+    ) ||
     !isNonEmptyString(snapshot.id) ||
     typeof snapshot.version !== "number" ||
     !Number.isSafeInteger(snapshot.version) ||
@@ -307,11 +313,20 @@ export const validateRestoreManifest = (
     (snapshot.shop !== "steam" &&
       snapshot.shop !== "epic" &&
       snapshot.shop !== "launchbox") ||
-    !isNonEmptyString(snapshot.objectId)
+    !isNonEmptyString(snapshot.objectId) ||
+    (snapshot.recompilationSlug != null &&
+      (snapshot.shop !== "launchbox" ||
+        !isNonEmptyString(snapshot.recompilationSlug)))
   ) {
     throw new Error("Invalid restore manifest snapshot");
   }
   const shop = snapshot.shop as GameShop;
+  const objectId = isNonEmptyString(snapshot.recompilationSlug)
+    ? toRecompilationCloudSaveObjectId(
+        snapshot.objectId,
+        snapshot.recompilationSlug
+      )
+    : snapshot.objectId;
   const variants = validateSnapshotVariants(response.variants, shop);
   const files = validateSnapshotFiles(response.files, variants);
   const customPathRawPaths = validateCustomPathRawPaths(
@@ -338,7 +353,7 @@ export const validateRestoreManifest = (
       id: snapshot.id,
       version: snapshot.version,
       shop,
-      objectId: snapshot.objectId,
+      objectId,
     },
     customPathRawPaths,
     variants,

@@ -9,6 +9,7 @@ import { Downloader } from "@shared";
 import { levelKeys, db } from "./level";
 import { refreshGlobalTrackersUrlCache } from "@main/helpers";
 import { syncRetroAchievementsEmulatorCredentials } from "@main/services/retro-achievements/emulator-credentials/emulator-credential-sync";
+import { reconcileRecompilationDiscs } from "@main/events/recompilation/recompilation-disc";
 import { type Download, type UserPreferences } from "../types";
 import path from "node:path";
 import fs from "node:fs";
@@ -129,6 +130,7 @@ export const loadState = async () => {
   }
 
   void watchSteamLibraries();
+  void reconcileRecompilationDiscs();
   void syncRetroAchievementsEmulatorCredentials();
 
   await HydraApi.setupApi().then(async () => {
@@ -139,13 +141,15 @@ export const loadState = async () => {
       logger.warn("Epic integration initialization failed on startup", err);
     }
     uploadGamesBatch();
-    void migrateDownloadSources();
 
     const { syncDownloadSourcesFromApi } = await import("./services/user");
     void syncDownloadSourcesFromApi();
 
     // Check for new download options on startup (if enabled)
     (async () => {
+      await migrateDownloadSources().catch((error) =>
+        logger.error("Failed to migrate download sources", error)
+      );
       await DownloadSourcesChecker.checkForChanges();
     })();
 
