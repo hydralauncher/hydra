@@ -237,3 +237,47 @@ test("metadata cache keeps only metadata JSON files", async (t) => {
     false
   );
 });
+
+test("an interrupted save falls back to the previous cache", async (t) => {
+  const seen: string[][] = [];
+  const f = await fixture(t, async (directory) => {
+    seen.push(
+      (
+        await fs.readdir(path.join(directory, "metadata")).catch(() => [])
+      ).sort()
+    );
+    return "[]";
+  });
+  const cache = path.join(
+    f.root,
+    "epic-legendary-cache",
+    connection.epicAccountId
+  );
+  await fs.mkdir(`${cache}.previous`, { recursive: true });
+  await fs.writeFile(path.join(`${cache}.previous`, "title.json"), "{}");
+  const next = await f.create();
+  await next.library();
+  assert.deepEqual(seen, [["title.json"], ["title.json"]]);
+  assert.deepEqual(await fs.readdir(cache), ["title.json"]);
+  await assert.rejects(fs.access(`${cache}.previous`));
+});
+
+test("an unreadable cache is reported instead of treated as empty", async (t) => {
+  const f = await fixture(t, async () => "[]");
+  const cache = path.join(
+    f.root,
+    "epic-legendary-cache",
+    connection.epicAccountId
+  );
+  await fs.rm(cache, { recursive: true, force: true });
+  await fs.mkdir(path.dirname(cache), { recursive: true });
+  await fs.writeFile(cache, "not a directory");
+  f.logs.length = 0;
+  await f.create();
+  assert.equal(
+    JSON.stringify(f.logs.map(({ level, message }) => [level, message])),
+    JSON.stringify([
+      ["warn", "Epic Legendary metadata cache could not be restored"],
+    ])
+  );
+});

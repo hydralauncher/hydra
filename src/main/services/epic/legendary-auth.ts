@@ -103,6 +103,11 @@ export function executeLegendaryCommand(
     let diagnosticTail = "";
     let sessionExpired = false;
     let rateLimited = false;
+    const failureCode = () => {
+      if (sessionExpired) return "session-expired";
+      if (rateLimited) return "rate-limit";
+      return "auth-failed";
+    };
     let bytes = 0;
     let spawnFailed = false;
     let closed = false;
@@ -192,13 +197,7 @@ export function executeLegendaryCommand(
       if (!interruption)
         settle(
           spawnFailed || code !== 0
-            ? new EpicIntegrationError(
-                sessionExpired
-                  ? "session-expired"
-                  : rateLimited
-                    ? "rate-limit"
-                    : "auth-failed"
-              )
+            ? new EpicIntegrationError(failureCode())
             : undefined
         );
     });

@@ -26,6 +26,10 @@ const METADATA_DIRECTORY = "metadata";
 const METADATA_CACHE_ROOT = "epic-legendary-cache";
 const METADATA_FILE_MAX_BYTES = 4 * 1024 * 1024;
 
+// The replaced cache stays here until the new one is in place, so an
+// interrupted save never loses the progress already cached.
+const PREVIOUS_CACHE_SUFFIX = ".previous";
+
 const getMetadataCacheDirectory = (userData: string, accountId: string) =>
   path.join(userData, METADATA_CACHE_ROOT, accountId);
 
@@ -45,25 +49,34 @@ export function configureLegendaryMetadataCacheLog(write: MetadataCacheLog) {
 const errorCode = (error: unknown) =>
   (error as NodeJS.ErrnoException)?.code ?? "unknown";
 
-/** Copies plain metadata JSON files; null when the source does not exist. */
+/** Copies plain metadata JSON files; null only when the source is missing. */
 async function copyMetadataFiles(from: string, to: string) {
   let entries: Dirent[];
   try {
     entries = await fs.readdir(from, { withFileTypes: true });
-  } catch {
-    return null;
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") return null;
+    throw error;
   }
   await fs.mkdir(to, { recursive: true, mode: 0o700 });
-  let copied = 0;
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
-    const source = path.join(from, entry.name);
-    const stat = await fs.lstat(source);
-    if (!stat.isFile() || stat.size > METADATA_FILE_MAX_BYTES) continue;
-    await fs.copyFile(source, path.join(to, entry.name));
-    copied++;
-  }
-  return copied;
+  const copied = await Promise.all(
+    entries.map(async (entry) => {
+      if (!entry.isFile() || !entry.name.endsWith(".json")) return 0;
+      const source = path.join(from, entry.name);
+      const stat = await fs.lstat(source);
+      if (!stat.isFile() || stat.size > METADATA_FILE_MAX_BYTES) return 0;
+      await fs.copyFile(source, path.join(to, entry.name));
+      return 1;
+    })
+  );
+  return copied.reduce<number>((total, file) => total + file, 0);
+}
+
+async function restoreMetadataCache(cacheDirectory: string, to: string) {
+  return (
+    (await copyMetadataFiles(cacheDirectory, to)) ??
+    (await copyMetadataFiles(`${cacheDirectory}${PREVIOUS_CACHE_SUFFIX}`, to))
+  );
 }
 
 export class LegendarySyncRunner {
@@ -114,7 +127,7 @@ export class LegendarySyncRunner {
       const cacheDirectory = getMetadataCacheDirectory(userData, accountId);
       // A missing or unreadable cache only means Legendary fetches everything.
       try {
-        const restored = await copyMetadataFiles(
+        const restored = await restoreMetadataCache(
           cacheDirectory,
           path.join(directory, METADATA_DIRECTORY)
         );
@@ -264,8 +277,13 @@ export class LegendarySyncRunner {
         staging
       );
       if (copied === null) return null;
-      await fs.rm(this.cacheDirectory, { recursive: true, force: true });
+      const previous = `${this.cacheDirectory}${PREVIOUS_CACHE_SUFFIX}`;
+      await fs.rm(previous, { recursive: true, force: true });
+      await fs.rename(this.cacheDirectory, previous).catch((error) => {
+        if (errorCode(error) !== "ENOENT") throw error;
+      });
       await fs.rename(staging, this.cacheDirectory);
+      await fs.rm(previous, { recursive: true, force: true });
       metadataCacheLog("info", "Epic Legendary metadata cache saved", {
         titles: copied,
       });
