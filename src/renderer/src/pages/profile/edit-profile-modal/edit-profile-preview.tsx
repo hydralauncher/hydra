@@ -1,7 +1,8 @@
 import { useContext } from "react";
-import { Avatar } from "@renderer/components";
+import { FramedAvatar } from "@renderer/components/gamification";
 import { userProfileContext } from "@renderer/context";
 import { useGamificationProgress } from "@renderer/hooks";
+import type { FrameAsset } from "@types";
 import { GamificationPills } from "../profile-hero/profile-gamification-pills";
 
 interface EditProfilePreviewProps {
@@ -9,6 +10,7 @@ interface EditProfilePreviewProps {
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
   showLevel: boolean;
+  frame: FrameAsset | null;
 }
 
 /** The profile as others will see it, with the draft photo and banner. */
@@ -17,6 +19,7 @@ export function EditProfilePreview({
   profileImageUrl,
   backgroundImageUrl,
   showLevel,
+  frame,
 }: Readonly<EditProfilePreviewProps>) {
   const { progress } = useGamificationProgress();
   // Same solid color the profile hero uses when there is no banner.
@@ -39,7 +42,13 @@ export function EditProfilePreview({
       )}
 
       <div className="edit-profile-modal__preview-who">
-        <Avatar size={96} src={profileImageUrl} alt={displayName} />
+        <FramedAvatar
+          size={96}
+          src={profileImageUrl}
+          alt={displayName}
+          frame={frame}
+          isBare={!frame}
+        />
         <div className="edit-profile-modal__preview-text">
           <strong>{displayName}</strong>
           {showLevel && progress && <GamificationPills level={progress} />}

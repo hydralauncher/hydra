@@ -12,7 +12,7 @@ import {
   ModalProps,
   TextField,
 } from "@renderer/components";
-import { CoinIcon } from "@renderer/components/gamification";
+import { CoinIcon, FramedAvatar } from "@renderer/components/gamification";
 import { userProfileContext } from "@renderer/context";
 import {
   useAppSelector,
@@ -27,6 +27,7 @@ import type { UpdateProfileRequest } from "@types";
 import { ProfileImageCropModal } from "../profile-image-crop-modal/profile-image-crop-modal";
 import { EditProfilePreview } from "./edit-profile-preview";
 import { EditProfileTile, EditProfileUploadTile } from "./edit-profile-tile";
+import { useOwnedFrames } from "./use-owned-frames";
 import { usePixelAvatar } from "./use-pixel-avatar";
 import {
   TOP_GAMES_COUNT,
@@ -46,6 +47,8 @@ type EditProfileTab = "photo" | "banner" | "frames";
 // "pixel" is the API's procedural avatar.
 type PhotoDraft = "current" | "new" | "none" | "pixel";
 type BannerDraft = "current" | "new" | "none";
+// undefined keeps the equipped frame; null removes it.
+type FrameDraft = string | null | undefined;
 
 // Same limits as the previous modal and the API (updateUserProfileSchema).
 const DISPLAY_NAME_MIN = 3;
@@ -80,6 +83,7 @@ export function EditProfileModal(
   // Uploads stay local files until Save, so Cancel leaves nothing on the CDN.
   const [newPhotoPath, setNewPhotoPath] = useState<string | null>(null);
   const [newBannerPath, setNewBannerPath] = useState<string | null>(null);
+  const [frameDraft, setFrameDraft] = useState<FrameDraft>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [downloadingBannerKey, setDownloadingBannerKey] = useState<
     string | null
@@ -93,6 +97,7 @@ export function EditProfileModal(
     setBannerDraft("current");
     setNewPhotoPath(null);
     setNewBannerPath(null);
+    setFrameDraft(undefined);
   }, [props.visible]);
 
   const { pickImage, cropImage, cropModalProps } = useProfileImagePicker(
@@ -115,6 +120,12 @@ export function EditProfileModal(
     props.visible ? (userDetails?.id ?? null) : null
   );
 
+  const {
+    frames: ownedFrames,
+    equippedFrameKey,
+    isLoading: isLoadingFrames,
+  } = useOwnedFrames(props.visible && isGamificationEnabled);
+
   if (!userDetails) return null;
 
   const currentPhotoUrl = userDetails.profileImageUrl;
@@ -134,7 +145,15 @@ export function EditProfileModal(
   const nameError = getNameError();
   const isNameValid = !nameError;
 
+  const selectedFrameKey =
+    frameDraft === undefined ? equippedFrameKey : frameDraft;
+  const isFrameChanged =
+    frameDraft !== undefined && frameDraft !== equippedFrameKey;
+  const draftFrame =
+    ownedFrames.find((frame) => frame.key === selectedFrameKey) ?? null;
+
   const isDirty =
+    isFrameChanged ||
     trimmedName !== userDetails.displayName ||
     (photoDraft === "none" ? !!currentPhotoUrl : photoDraft !== "current") ||
     (bannerDraft === "none" ? !!currentBannerUrl : bannerDraft === "new");
@@ -202,7 +221,12 @@ export function EditProfileModal(
         values.backgroundImageUrl = null;
       }
 
-      await patchUser(values);
+      if (isFrameChanged) {
+        await window.electron.hydraApi.put("/profile/frame", {
+          data: { frameKey: frameDraft },
+        });
+      }
+      if (Object.keys(values).length > 0) await patchUser(values);
       if (values.backgroundImageUrl !== undefined) {
         setSelectedBackgroundImage(values.backgroundImageUrl ?? "");
       }
@@ -405,7 +429,6 @@ export function EditProfileModal(
     </>
   );
 
-  // Frames come with the shop API; until then only "no frame" exists.
   const renderFramesPane = () => (
     <div className="edit-profile-modal__grid">
       <EditProfileTile
@@ -413,9 +436,41 @@ export function EditProfileModal(
           <Avatar size={56} src={draftPhotoUrl} alt={userDetails.displayName} />
         }
         label={t("no_frame")}
-        isSelected
-        onClick={() => {}}
+        isSelected={selectedFrameKey === null}
+        onClick={() => setFrameDraft(null)}
       />
+      {isLoadingFrames && ownedFrames.length === 0 && (
+        <div
+          className="edit-profile-modal__tile edit-profile-modal__tile--skeleton"
+          aria-hidden="true"
+        >
+          <span className="edit-profile-modal__tile-art">
+            <Skeleton
+              width="100%"
+              height="100%"
+              borderRadius={0}
+              containerClassName="edit-profile-modal__skeleton-fill"
+            />
+          </span>
+          <span className="edit-profile-modal__tile-label" />
+        </div>
+      )}
+      {ownedFrames.map((frame) => (
+        <EditProfileTile
+          key={frame.key}
+          art={
+            <FramedAvatar
+              size={56}
+              src={draftPhotoUrl}
+              alt={userDetails.displayName}
+              frame={frame}
+            />
+          }
+          label={frame.name}
+          isSelected={selectedFrameKey === frame.key}
+          onClick={() => setFrameDraft(frame.key)}
+        />
+      ))}
       <EditProfileTile
         art={<CoinIcon size={24} />}
         label={t("see_in_shop")}
@@ -450,6 +505,7 @@ export function EditProfileModal(
             profileImageUrl={draftPhotoUrl}
             backgroundImageUrl={draftBannerUrl}
             showLevel={isGamificationEnabled}
+            frame={isGamificationEnabled ? draftFrame : null}
           />
         </div>
 
@@ -465,7 +521,11 @@ export function EditProfileModal(
                   })}
                   onClick={() => setTab(id)}
                 >
-                  {t(`edit_profile_tab_${id}`)}
+                  {id === "frames" && ownedFrames.length > 0
+                    ? t("edit_profile_tab_frames_count", {
+                        count: ownedFrames.length,
+                      })
+                    : t(`edit_profile_tab_${id}`)}
                 </button>
                 {tab === id && (
                   <motion.div
