@@ -3419,7 +3419,7 @@
     "comment_submit_shortcut": "Göndermek için Ctrl + Enter",
     "comment_unavailable": "Bu yorum artık mevcut değil",
     "comment_updated": "Yorum güncellendi",
-    "comment_vote_failed": "Oyun kaydedilemedi",
+    "comment_vote_failed": "Verdiğin oy kaydedilemedi",
     "comments": "Yorumlar",
     "comments_load_failed": "Yorumlar yüklenemedi",
     "comments_not_allowed": "Sahibi bu ekran görüntüsüne kimlerin yorum yapabileceğini sınırlandırmış.",
