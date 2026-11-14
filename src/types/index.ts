@@ -621,6 +621,33 @@ export interface OwnedFrame extends FrameAsset {
   acquiredAt: string;
 }
 
+export interface ShopFrame extends FrameAsset {
+  key: string;
+  name: string;
+  price: number;
+  isOwned: boolean;
+  isEquipped: boolean;
+}
+
+export interface ShopFrameCollection {
+  slug: string;
+  title: string;
+  iconUrl: string | null;
+  author: { name: string; url: string | null };
+  releasedAt: string | null;
+  frames: ShopFrame[];
+}
+
+export interface ShopFramesResponse {
+  collections: ShopFrameCollection[];
+}
+
+export interface FramePurchaseResponse {
+  wasPurchased: boolean;
+  key: string;
+  coins: number;
+}
+
 export interface OwnedFramesResponse {
   equippedFrameKey: string | null;
   frames: OwnedFrame[];

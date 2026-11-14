@@ -21,125 +21,6 @@ $locked: #2a2a2e;
   box-sizing: border-box;
   padding: calc(globals.$spacing-unit * 3);
 
-  // Featured: your banner, your avatar wearing the frame and your display name.
-  &__featured {
-    position: relative;
-    display: flex;
-    align-items: center;
-    min-height: 260px;
-    margin-bottom: 24px;
-    padding: 32px 40px;
-    border-radius: 8px;
-    overflow: hidden;
-    background:
-      radial-gradient(
-        ellipse 45% 90% at 30% 30%,
-        rgba(70, 100, 160, 0.45),
-        transparent 70%
-      ),
-      linear-gradient(90deg, #2a1a0f, #1a1410 45%, #0f1830);
-
-    &::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      background: linear-gradient(
-        90deg,
-        transparent 35%,
-        rgba(13, 13, 13, 0.45) 60%,
-        transparent 90%
-      );
-      pointer-events: none;
-    }
-
-    &--has-banner {
-      background: none;
-    }
-  }
-
-  &__featured-banner {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    mask-image: linear-gradient(90deg, #000 30%, transparent 80%);
-  }
-
-  // Avatar wearing the frame, then your name with the profile pills below it.
-  &__featured-avatar {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 0 24px;
-  }
-
-  &__featured-who {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-
-    > strong {
-      font-size: 24px;
-      line-height: 32px;
-      font-weight: 700;
-      color: $ink;
-    }
-  }
-
-  &__featured-text {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    gap: calc(globals.$spacing-unit * 1.5);
-    width: min(420px, 52%);
-    margin-left: auto;
-
-    h2 {
-      margin: 0;
-      font-size: 32px;
-      line-height: 40px;
-      font-weight: 700;
-      color: $ink;
-    }
-
-    p {
-      margin: 0;
-      font-size: globals.$body-font-size;
-      line-height: 22px;
-      color: $body;
-    }
-  }
-
-  &__chip {
-    align-self: flex-start;
-    padding: 0 globals.$spacing-unit;
-    border-radius: 4px;
-    background-color: $overlay;
-    font-size: globals.$small-font-size;
-    line-height: 18px;
-    color: $ink;
-  }
-
-  &__featured-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-  }
-
-  &__featured-short {
-    font-size: globals.$small-font-size;
-    color: $muted;
-  }
-
   &__bar {
     display: flex;
     flex-wrap: wrap;
@@ -150,31 +31,135 @@ $locked: #2a2a2e;
     border-bottom: 1px solid $line;
   }
 
-  &__tabs {
-    display: flex;
-    gap: 4px;
+  &__balance {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    padding: 6px 12px;
+    margin-bottom: 8px;
+    border: 1px solid $line;
+    border-radius: 8px;
+    font-size: globals.$small-font-size;
+    font-weight: 600;
+    color: $ink;
+    font-variant-numeric: tabular-nums;
   }
 
-  &__tab {
+  &__collection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  &__collection-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__collection-icon {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: $chrome;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__collection-title {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: globals.$spacing-unit calc(globals.$spacing-unit * 1.5);
+    padding: 0;
     border: 0;
-    border-bottom: 2px solid transparent;
     background: none;
-    color: $muted;
-    font-size: globals.$body-font-size;
+    color: $ink;
     cursor: pointer;
 
-    &:hover {
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+    }
+  }
+
+  &__collection-chevron {
+    color: $muted;
+    transition: transform $hover-transition;
+
+    &--collapsed {
+      transform: rotate(-90deg);
+    }
+  }
+
+  &__collection-author {
+    margin-left: auto;
+    font-size: globals.$small-font-size;
+    color: $muted;
+
+    strong {
       color: $ink;
     }
+  }
+
+  &__author-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $ink;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  &__dots {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  &__dot {
+    width: 12px;
+    height: 3px;
+    padding: 0;
+    border: 0;
+    border-radius: 2px;
+    background-color: $line-strong;
+    cursor: pointer;
+    transition:
+      width $hover-transition,
+      background-color $hover-transition;
 
     &--active {
-      border-bottom-color: $ink;
-      color: $ink;
+      width: 20px;
+      background-color: $ink;
     }
+  }
+
+  // One row per collection: it scrolls sideways and never wraps.
+  &__carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__skeleton-card {
+    flex: 0 0 220px;
   }
 
   &__count {
@@ -186,15 +171,9 @@ $locked: #2a2a2e;
     font-variant-numeric: tabular-nums;
   }
 
-  &__bar-right {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding-bottom: 8px;
-  }
-
   &__toggle {
     position: relative;
+    margin-bottom: 8px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -247,13 +226,9 @@ $locked: #2a2a2e;
     }
   }
 
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-  }
-
   &__item {
+    flex: 0 0 220px;
+    scroll-snap-align: start;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -367,28 +342,6 @@ $locked: #2a2a2e;
     border-radius: 8px;
     color: $muted;
     text-align: center;
-  }
-
-  // Narrow pages: stack the avatar above the copy instead of side by side.
-  @include globals.page-max-width(720px) {
-    &__featured {
-      flex-direction: column;
-      align-items: stretch;
-      padding: 24px;
-
-      &::after {
-        background: linear-gradient(
-          180deg,
-          transparent 20%,
-          rgba(13, 13, 13, 0.85) 60%
-        );
-      }
-    }
-
-    &__featured-text {
-      width: auto;
-      margin: 16px 0 0;
-    }
   }
 }
 
