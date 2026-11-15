@@ -8,7 +8,7 @@ import { registerBigPictureI18nResources } from "./locales/register-resources.js
 
 describe("Big Picture i18n resources", () => {
   it("resolves similar-game copy from the namespace root", async () => {
-    const languages = ["en", "es", "fr", "pt-BR", "ru"] as const;
+    const languages = ["en", "es-419", "es-ES", "fr", "pt-BR", "ru"] as const;
     const resourcesByLanguage = Object.fromEntries(
       await Promise.all(
         languages.map(async (language) => {
@@ -38,7 +38,8 @@ describe("Big Picture i18n resources", () => {
 
     const translations = {
       en: ["More like this", "No similar games found"],
-      es: ["Juegos similares", "No se encontraron juegos similares"],
+      "es-419": ["Juegos similares", "No se encontraron juegos similares"],
+      "es-ES": ["Juegos similares", "No se han encontrado juegos similares"],
       fr: ["Jeux similaires", "Aucun jeu similaire trouvé"],
       "pt-BR": ["Ver similares", "Nenhum jogo similar encontrado"],
       ru: ["Похожие игры", "Похожие игры не найдены"],

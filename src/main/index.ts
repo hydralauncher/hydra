@@ -23,7 +23,7 @@ import {
   emulators,
   ScreenshotInputService,
 } from "@main/services";
-import resources from "@locales";
+import resources, { fallbackLng } from "@locales";
 import { TorrentService } from "./services/torrent-service";
 import { DownloadManager } from "./services/download/download-manager";
 import { db, gamesSublevel, levelKeys } from "./level";
@@ -91,7 +91,7 @@ if (process.platform === "linux") {
 i18n.init({
   resources,
   lng: "en",
-  fallbackLng: "en",
+  fallbackLng,
   interpolation: {
     escapeValue: false,
   },

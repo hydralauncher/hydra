@@ -1,7 +1,8 @@
 import en from "./en/translation.json";
 import ptPT from "./pt-PT/translation.json";
 import ptBR from "./pt-BR/translation.json";
-import es from "./es/translation.json";
+import es419 from "./es-419/translation.json";
+import esES from "./es-ES/translation.json";
 import nl from "./nl/translation.json";
 import fr from "./fr/translation.json";
 import hu from "./hu/translation.json";
@@ -34,13 +35,19 @@ import vi from "./vi/translation.json";
 import ja from "./ja/translation.json";
 import sl from "./sl/translation.json";
 
+export const fallbackLng = {
+  es: ["es-419", "en"],
+  default: ["en"],
+};
+
 export default {
   "pt-BR": ptBR,
   "pt-PT": ptPT,
   en,
   de,
   el,
-  es,
+  "es-419": es419,
+  "es-ES": esES,
   nl,
   fr,
   hu,

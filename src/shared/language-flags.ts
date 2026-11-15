@@ -4,7 +4,7 @@ const LANGUAGE_FLAG_MAP = {
   en: "US",
   de: "DE",
   el: "GR",
-  es: "ES",
+  "es-ES": "ES",
   nl: "NL",
   fr: "FR",
   hu: "HU",
@@ -43,12 +43,17 @@ export function resolveLanguageKey(
   language: string | null | undefined,
   supportedLanguages: string[]
 ) {
+  const baseLanguage = language?.split("-")[0];
+
   return (
     supportedLanguages.find(
       (supportedLanguage) => supportedLanguage === language
     ) ??
+    (baseLanguage === "es" && supportedLanguages.includes("es-419")
+      ? "es-419"
+      : undefined) ??
     supportedLanguages.find((supportedLanguage) =>
-      supportedLanguage.startsWith(language?.split("-")[0] ?? "")
+      supportedLanguage.startsWith(baseLanguage ?? "")
     ) ??
     "en"
   );
