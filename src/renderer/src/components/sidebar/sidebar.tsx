@@ -213,13 +213,16 @@ export function Sidebar() {
 
   const [filterQuery, setFilterQuery] = useState("");
 
+  // Clear the search only when the user changes the filters. sortedLibrary
+  // gets a new reference on every library refresh (rescans, syncs), which
+  // used to wipe the query while typing.
   useEffect(() => {
     setFilterQuery("");
 
     if (filterRef.current) {
       filterRef.current.value = "";
     }
-  }, [sortedLibrary]);
+  }, [sidebarCategory, selectedSources, selectedPlatforms]);
 
   const isSearching = filterQuery.trim().length > 0;
 
