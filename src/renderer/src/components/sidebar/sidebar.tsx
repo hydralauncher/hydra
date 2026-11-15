@@ -213,16 +213,16 @@ export function Sidebar() {
 
   const [filterQuery, setFilterQuery] = useState("");
 
-  // Clear the search only when the user changes the filters. sortedLibrary
-  // gets a new reference on every library refresh (rescans, syncs), which
-  // used to wipe the query while typing.
-  useEffect(() => {
+  // The search is cleared only from the user's filter handlers below. An
+  // effect on the library or the selected filters also fired on background
+  // refreshes and automatic platform cleanup, wiping the query while typing.
+  const clearSearch = useCallback(() => {
     setFilterQuery("");
 
     if (filterRef.current) {
       filterRef.current.value = "";
     }
-  }, [sidebarCategory, selectedSources, selectedPlatforms]);
+  }, []);
 
   const isSearching = filterQuery.trim().length > 0;
 
@@ -272,6 +272,22 @@ export function Sidebar() {
     localStorage.setItem(SIDEBAR_SOURCES_STORAGE_KEY, JSON.stringify(next));
   }, []);
 
+  const handleUserPlatformsChange = useCallback(
+    (next: string[]) => {
+      clearSearch();
+      handleSelectedPlatformsChange(next);
+    },
+    [clearSearch, handleSelectedPlatformsChange]
+  );
+
+  const handleUserSourcesChange = useCallback(
+    (next: LibrarySource[]) => {
+      clearSearch();
+      handleSelectedSourcesChange(next);
+    },
+    [clearSearch, handleSelectedSourcesChange]
+  );
+
   const handleTogglePlayableOnly = useCallback(() => {
     setShowPlayableOnly((prev) => !prev);
   }, []);
@@ -285,6 +301,7 @@ export function Sidebar() {
 
   const handleSidebarCategoryChange = useCallback(
     (next: LibraryCategory) => {
+      clearSearch();
       setSidebarCategory(next);
       localStorage.setItem("sidebar-category", next);
       if (!categoryShowsPlatforms(next)) {
@@ -294,7 +311,7 @@ export function Sidebar() {
         handleSelectedSourcesChange([]);
       }
     },
-    [handleSelectedPlatformsChange, handleSelectedSourcesChange]
+    [clearSearch, handleSelectedPlatformsChange, handleSelectedSourcesChange]
   );
 
   const handleSidebarSortChange = useCallback((next: SortOption) => {
@@ -597,13 +614,13 @@ export function Sidebar() {
                 }
                 sources={availableSources}
                 selectedSources={effectiveSources}
-                onSourcesChange={handleSelectedSourcesChange}
+                onSourcesChange={handleUserSourcesChange}
                 showPlatforms={
                   categoryShowsPlatforms(sidebarCategory) && hasPlatforms
                 }
                 platforms={uniquePlatforms}
                 selectedPlatforms={selectedPlatforms}
-                onPlatformsChange={handleSelectedPlatformsChange}
+                onPlatformsChange={handleUserPlatformsChange}
               />
             </div>
 
