@@ -1,4 +1,10 @@
-import { AppTitleBar, Sidebar, Toast } from "@renderer/components";
+import {
+  AppTitleBar,
+  Button,
+  Modal,
+  Sidebar,
+  Toast,
+} from "@renderer/components";
 import { AutoUpdateSubHeader } from "@renderer/components/header/auto-update-sub-header";
 import { ScanGamesProvider } from "@renderer/context";
 import {
@@ -84,6 +90,14 @@ export function App() {
   useDragTextSelection();
 
   const { t } = useTranslation("app");
+  const [showMacosWelcomeModal, setShowMacosWelcomeModal] = useState(false);
+
+  const handleDismissMacosWelcomeModal = useCallback(() => {
+    setShowMacosWelcomeModal(false);
+    void window.electron
+      .updateUserPreferences({ dismissedMacosNotice: true })
+      .catch(() => {});
+  }, []);
 
   const { clearDownload, setLastPacket, lastPacket } = useDownload();
 
@@ -356,6 +370,13 @@ export function App() {
     }
 
     const userPreferences = await window.electron.getUserPreferences();
+    if (
+      window.electron.platform === "darwin" &&
+      !userPreferences?.dismissedMacosNotice
+    ) {
+      setShowMacosWelcomeModal(true);
+    }
+
     const userDetails = await fetchUserDetails().catch(() => null);
 
     if (userDetails) {
@@ -364,7 +385,10 @@ export function App() {
 
     setupWorkWonders(userDetails?.workwondersJwt, userPreferences?.language);
 
-    if (!document.getElementById("external-resources")) {
+    if (
+      import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL &&
+      !document.getElementById("external-resources")
+    ) {
       const $script = document.createElement("script");
       $script.id = "external-resources";
       $script.src = `${import.meta.env.RENDERER_VITE_EXTERNAL_RESOURCES_URL}/bundle.js?t=${Date.now()}`;
@@ -819,6 +843,19 @@ export function App() {
       <ClassicsScanModal />
       <Ps4PkgJobHost />
       <RetroArchScanModal />
+
+      <Modal
+        visible={showMacosWelcomeModal}
+        title={t("macos_welcome_title")}
+        description={t("macos_welcome_description")}
+        onClose={handleDismissMacosWelcomeModal}
+      >
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button theme="primary" onClick={handleDismissMacosWelcomeModal}>
+            {t("macos_welcome_confirm")}
+          </Button>
+        </div>
+      </Modal>
 
       <ScanGamesProvider>
         <main>
