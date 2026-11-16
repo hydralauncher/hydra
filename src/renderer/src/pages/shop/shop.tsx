@@ -4,11 +4,16 @@ import { Navigate } from "react-router-dom";
 import cn from "classnames";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AppsIcon,
   ChevronDownIcon,
+  ImageIcon,
+  PlayIcon,
   SearchIcon,
   SortAscIcon,
   SortDescIcon,
+  TagIcon,
   XIcon,
+  type Icon,
 } from "@primer/octicons-react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { Button } from "@renderer/components";
@@ -49,6 +54,13 @@ type FrameTab = "all" | "animated" | "static" | "not_owned";
 type CollectionSort = "updated" | "oldest" | "name_asc" | "name_desc";
 
 const FRAME_TABS: FrameTab[] = ["all", "animated", "static", "not_owned"];
+// Narrow shops show only these; the label stays for screen readers and the tooltip.
+const FRAME_TAB_ICONS: Record<FrameTab, Icon> = {
+  all: AppsIcon,
+  animated: PlayIcon,
+  static: ImageIcon,
+  not_owned: TagIcon,
+};
 
 const isNewFrame = (frame: ShopFrame) =>
   Date.now() - Date.parse(frame.releasedAt) < NEW_FRAME_DAYS * DAY_MS;
@@ -466,20 +478,25 @@ export default function Shop() {
           role="tablist"
           aria-label={t("type_filter")}
         >
-          {FRAME_TABS.map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={tab === value}
-              className={cn("shop__tab", {
-                "shop__tab--active": tab === value,
-              })}
-              onClick={() => setTab(value)}
-            >
-              {t(`tab_${value}`)}
-            </button>
-          ))}
+          {FRAME_TABS.map((value) => {
+            const TabIcon = FRAME_TAB_ICONS[value];
+            return (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={tab === value}
+                title={t(`tab_${value}`)}
+                className={cn("shop__tab", {
+                  "shop__tab--active": tab === value,
+                })}
+                onClick={() => setTab(value)}
+              >
+                <TabIcon size={14} />
+                <span className="shop__tab-label">{t(`tab_${value}`)}</span>
+              </button>
+            );
+          })}
         </div>
         <FilterDropdown
           placeholder={t("sort_label")}

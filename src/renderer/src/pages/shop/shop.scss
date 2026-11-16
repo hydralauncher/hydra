@@ -13,6 +13,8 @@ $row: #161618;
 $hover-transition: 0.15s ease;
 
 .shop {
+  // The bar adapts to the shop's own width, which the resizable sidebar also changes.
+  container: shop / inline-size;
   display: flex;
   flex-direction: column;
   // The app's content column centers its children; the shop spans the full width.
@@ -35,6 +37,26 @@ $hover-transition: 0.15s ease;
     background-color: globals.$background-color;
   }
 
+  // Narrow shop (small window or a wide sidebar): tabs show only their icon and the
+  // sort drops its "Sort" label. Hidden words stay for screen readers.
+  @container shop (max-width: 900px) {
+    &__bar .filter-dropdown__placeholder,
+    &__tab-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    &__tab {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+
   &__tabs {
     display: inline-flex;
     padding: 3px;
@@ -44,6 +66,9 @@ $hover-transition: 0.15s ease;
   }
 
   &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     height: 28px;
     padding: 0 14px;
     border: 0;
@@ -77,7 +102,7 @@ $hover-transition: 0.15s ease;
     max-width: 260px;
 
     // Full HD and up have room for a wider search.
-    @media (min-width: 1600px) {
+    @container shop (min-width: 1300px) {
       max-width: 420px;
     }
     height: 36px;
