@@ -122,8 +122,8 @@
     "neo_cloud_note": "Cloud-Mitglieder überspringen die Warteschlange: keine Warteliste, keine Freigabe. Ab heute deins.",
     "neo_cloud_cta": "Neo jetzt testen",
     "neo_approved_subtitle": "Du bist dabei. Zum Ansehen darüberfahren",
-    "neo_approved_note": "Du wurdest freigeschaltet. Tritt dem Neo-Discord bei, um den ersten Build herunterzuladen.",
-    "neo_approved_cta": "Discord beitreten"
+    "neo_approved_note": "Dein Platz auf der Warteliste ist dran: Du wurdest freigeschaltet. Ab heute deins.",
+    "neo_approved_cta": "Neo jetzt testen"
   },
   "header": {
     "search": "Spiele suchen",

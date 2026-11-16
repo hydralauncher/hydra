@@ -168,8 +168,8 @@
     "neo_cloud_note": "Assinantes do Cloud furam a fila: sem lista de espera, sem aprovação. Já é seu.",
     "neo_cloud_cta": "Testar o Neo agora",
     "neo_approved_subtitle": "Você entrou. Passe o mouse para ver",
-    "neo_approved_note": "Você foi aprovado. Entre no Discord do Neo para baixar a primeira versão.",
-    "neo_approved_cta": "Entrar no Discord"
+    "neo_approved_note": "Sua vez na lista de espera chegou: você foi aprovado. Já é seu.",
+    "neo_approved_cta": "Testar o Neo agora"
   },
   "header": {
     "leaderboards": "Rankings",

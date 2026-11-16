@@ -122,8 +122,8 @@
     "neo_cloud_note": "Cloud 会员无需排队：不用候补，不用审核，今天就能用。",
     "neo_cloud_cta": "立即试用 Neo",
     "neo_approved_subtitle": "你已获准。悬停查看",
-    "neo_approved_note": "你已通过审核。加入 Neo 的 Discord 下载首个版本。",
-    "neo_approved_cta": "加入 Discord"
+    "neo_approved_note": "候补名单轮到你了：你已通过审核，今天就能用。",
+    "neo_approved_cta": "立即试用 Neo"
   },
   "header": {
     "search": "搜索游戏",

@@ -165,8 +165,8 @@
     "neo_cloud_note": "Los miembros de Cloud se saltan la fila: sin lista de espera ni aprobación. Ya es tuyo.",
     "neo_cloud_cta": "Probar Neo ahora",
     "neo_approved_subtitle": "Ya estás dentro. Pasa el ratón para verlo",
-    "neo_approved_note": "Te aprobaron. Únete al Discord de Neo para descargar la primera versión.",
-    "neo_approved_cta": "Unirme al Discord"
+    "neo_approved_note": "Te llegó el turno en la lista de espera: te aprobaron. Ya es tuyo.",
+    "neo_approved_cta": "Probar Neo ahora"
   },
   "header": {
     "leaderboards": "Clasificaciones",

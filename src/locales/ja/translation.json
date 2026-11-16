@@ -122,8 +122,8 @@
     "neo_cloud_note": "Cloud メンバーは順番待ちなし。ウェイトリストも承認も不要で、今日から使えます。",
     "neo_cloud_cta": "今すぐ Neo を試す",
     "neo_approved_subtitle": "参加が決まりました。ホバーで表示",
-    "neo_approved_note": "承認されました。Neo の Discord に参加して最初のビルドをダウンロードしてください。",
-    "neo_approved_cta": "Discord に参加"
+    "neo_approved_note": "ウェイトリストの順番が来ました。承認済みなので、今日から使えます。",
+    "neo_approved_cta": "今すぐ Neo を試す"
   },
   "header": {
     "search": "ゲームを検索",

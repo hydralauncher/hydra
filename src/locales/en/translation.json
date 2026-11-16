@@ -162,8 +162,8 @@
     "neo_cloud_note": "Cloud members jump the queue: no waitlist, no approval. It’s yours today.",
     "neo_cloud_cta": "Try Neo now",
     "neo_approved_subtitle": "You're in. Hover to peek",
-    "neo_approved_note": "You're approved. Join the Neo Discord to download the first build.",
-    "neo_approved_cta": "Join the Discord"
+    "neo_approved_note": "Your spot on the waitlist came up: you're approved. It’s yours today.",
+    "neo_approved_cta": "Try Neo now"
   },
   "header": {
     "leaderboards": "Leaderboards",

@@ -150,8 +150,8 @@
     "neo_cloud_note": "Członkowie Cloud omijają kolejkę: bez listy oczekujących i bez zatwierdzania. Już jest Twoje.",
     "neo_cloud_cta": "Wypróbuj Neo",
     "neo_approved_subtitle": "Jesteś w środku. Najedź, aby zobaczyć",
-    "neo_approved_note": "Zostałeś zatwierdzony. Dołącz do Discorda Neo, aby pobrać pierwszą wersję.",
-    "neo_approved_cta": "Dołącz do Discorda"
+    "neo_approved_note": "Twoja kolej na liście oczekujących nadeszła: zostałeś zatwierdzony. Już jest Twoje.",
+    "neo_approved_cta": "Wypróbuj Neo"
   },
   "header": {
     "minimize": "Minimalizuj",

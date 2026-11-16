@@ -167,8 +167,8 @@
     "neo_cloud_note": "Подписчики Cloud проходят без очереди: без листа ожидания и одобрения. Уже доступно.",
     "neo_cloud_cta": "Попробовать Neo",
     "neo_approved_subtitle": "Вы в деле. Наведите, чтобы узнать",
-    "neo_approved_note": "Вас одобрили. Зайдите в Discord Neo, чтобы скачать первую сборку.",
-    "neo_approved_cta": "Войти в Discord"
+    "neo_approved_note": "Ваша очередь в листе ожидания подошла: вас одобрили. Уже доступно.",
+    "neo_approved_cta": "Попробовать Neo"
   },
   "header": {
     "leaderboards": "Рейтинги",
