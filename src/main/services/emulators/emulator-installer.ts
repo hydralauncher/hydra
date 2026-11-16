@@ -91,6 +91,8 @@ const emulatorInstallDirectory = async (
 };
 
 const TAR_ARCHIVE_RE = /\.(?:tar\.xz|tar\.gz|tgz|tar)$/i;
+const MACOS_QUARANTINE_TIMEOUT_MS = 15_000;
+const ARCHIVE_EXTRACT_TIMEOUT_MS = 120_000;
 
 const stripMacosQuarantine = async (targetPath: string): Promise<void> => {
   if (process.platform !== "darwin") return;
@@ -98,7 +100,7 @@ const stripMacosQuarantine = async (targetPath: string): Promise<void> => {
   await execFileAsync(
     "/usr/bin/xattr",
     ["-dr", "com.apple.quarantine", targetPath],
-    { timeout: 15_000 }
+    { timeout: MACOS_QUARANTINE_TIMEOUT_MS }
   ).catch(() => {
     // Ignore when the quarantine attribute is not present.
   });
@@ -109,7 +111,7 @@ const extractTarArchive = async (
   extractDir: string
 ): Promise<void> => {
   await execFileAsync("/usr/bin/tar", ["-xf", archivePath, "-C", extractDir], {
-    timeout: 120_000,
+    timeout: ARCHIVE_EXTRACT_TIMEOUT_MS,
   });
 };
 
@@ -133,7 +135,7 @@ const extractArchiveForPlatform = async (
   if (path.extname(archivePath).toLowerCase() === ".zip") {
     // `ditto -xk` preserves macOS framework symlinks inside `.app` bundles.
     await execFileAsync("/usr/bin/ditto", ["-xk", archivePath, extractDir], {
-      timeout: 120_000,
+      timeout: ARCHIVE_EXTRACT_TIMEOUT_MS,
     });
 
     // Some macOS releases (e.g. shadPS4QtLauncher) wrap a `.tar.gz`/`.tar` inside the `.zip`.

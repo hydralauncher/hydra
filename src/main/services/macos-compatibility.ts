@@ -1,12 +1,18 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 import { logsPath } from "@main/constants";
 import { resolveLaunchCommand } from "@main/helpers/resolve-launch-command";
 import type { MacCompatibilityStatus, ProtonVersion } from "@types";
 import { logger } from "./logger";
 import { getSteamLibraryFolders, getSteamLocation } from "./steam";
 import { SystemPath } from "./system-path";
+
+const execFileAsync = promisify(execFile);
+const MAC_PREFIX_PREPARE_TIMEOUT_MS = 120_000;
+const COMPAT_WRAPPER_HASH_LENGTH = 16;
 
 export const NOTPROTON_REQUIRED_ERROR = "notproton-crossover-required";
 
@@ -86,12 +92,20 @@ export const getMacCompatibilityTools = async (): Promise<ProtonVersion[]> => {
       .catch(() => [] as fs.Dirent[]);
 
     for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
+      if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
 
       const candidatePath = path.join(compatibilityRoot, entry.name);
-      if (!isValidNotProtonDirectory(candidatePath)) continue;
+      let realPath: string;
+      try {
+        realPath = await fs.promises.realpath(candidatePath);
+        const targetStat = await fs.promises.stat(realPath);
+        if (!targetStat.isDirectory()) continue;
+      } catch {
+        continue;
+      }
 
-      const realPath = await fs.promises.realpath(candidatePath);
+      if (!isValidNotProtonDirectory(realPath)) continue;
+
       toolsByPath.set(realPath, {
         name: getNotProtonToolName(realPath),
         path: realPath,
@@ -122,18 +136,151 @@ export const getMacCompatibilityStatus =
     };
   };
 
+const ensureCustomCompatDataWrapper = (winePrefixPath: string): string => {
+  const resolvedTarget = path.resolve(winePrefixPath);
+  fs.mkdirSync(resolvedTarget, { recursive: true });
+
+  const digest = crypto
+    .createHash("sha256")
+    .update(resolvedTarget)
+    .digest("hex")
+    .slice(0, COMPAT_WRAPPER_HASH_LENGTH);
+  const compatDir = path.join(
+    SystemPath.getPath("userData"),
+    "wine-compat",
+    digest
+  );
+  fs.mkdirSync(compatDir, { recursive: true });
+
+  const pfxLinkPath = path.join(compatDir, "pfx");
+  try {
+    const existingStat = fs.lstatSync(pfxLinkPath);
+    if (existingStat.isSymbolicLink()) {
+      const currentTarget = fs.readlinkSync(pfxLinkPath);
+      if (path.resolve(compatDir, currentTarget) === resolvedTarget) {
+        return compatDir;
+      }
+      fs.unlinkSync(pfxLinkPath);
+    } else if (existingStat.isDirectory()) {
+      throw new Error(
+        `Unexpected directory at macOS compatibility wrapper: ${pfxLinkPath}`
+      );
+    } else {
+      fs.unlinkSync(pfxLinkPath);
+    }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  fs.symlinkSync(resolvedTarget, pfxLinkPath);
+  return compatDir;
+};
+
 const resolveCompatDataPath = (
   winePrefixPath?: string | null,
   objectId?: string
 ): string => {
   if (winePrefixPath) {
-    return path.basename(winePrefixPath) === "pfx"
-      ? path.dirname(winePrefixPath)
-      : winePrefixPath;
+    if (path.basename(winePrefixPath) === "pfx") {
+      return path.dirname(winePrefixPath);
+    }
+    return ensureCustomCompatDataWrapper(winePrefixPath);
   }
 
   const safeId = (objectId || "default").replaceAll(/[^\w.-]/g, "_");
   return path.join(SystemPath.getPath("userData"), "wine-prefixes", safeId);
+};
+
+interface ResolvedNotProtonRunner {
+  runnerPath: string;
+  runScript: string;
+}
+
+const resolveReadyNotProtonRunner = async (
+  protonPath?: string | null
+): Promise<ResolvedNotProtonRunner> => {
+  const status = await getMacCompatibilityStatus();
+  if (!status.isReady) {
+    throw new Error(NOTPROTON_REQUIRED_ERROR);
+  }
+
+  const runnerPath =
+    protonPath && isValidNotProtonDirectory(protonPath)
+      ? protonPath
+      : status.notProtonTools[0]?.path;
+
+  if (!runnerPath) {
+    throw new Error(NOTPROTON_REQUIRED_ERROR);
+  }
+
+  const runScript = path.join(runnerPath, "run");
+  try {
+    fs.chmodSync(runScript, 0o755);
+  } catch {
+    // Ignore permission errors on read-only paths.
+  }
+
+  return { runnerPath, runScript };
+};
+
+const resolveDefaultSteamClientPath = async (): Promise<string> =>
+  getSteamLocation().catch(() =>
+    path.join(
+      SystemPath.getPath("home"),
+      "Library",
+      "Application Support",
+      "Steam"
+    )
+  );
+
+const buildNotProtonEnvironment = (params: {
+  compatDataPath: string;
+  installPath: string;
+  steamClientPath: string;
+  objectId: string;
+  extraEnv?: NodeJS.ProcessEnv;
+}): NodeJS.ProcessEnv => ({
+  ...process.env,
+  STEAM_COMPAT_DATA_PATH: params.compatDataPath,
+  STEAM_COMPAT_INSTALL_PATH: params.installPath,
+  STEAM_COMPAT_CLIENT_INSTALL_PATH: params.steamClientPath,
+  ...(/^\d+$/.test(params.objectId)
+    ? { STEAM_COMPAT_APP_ID: params.objectId }
+    : {}),
+  ...params.extraEnv,
+});
+
+export interface PrepareMacWinePrefixOptions {
+  winePrefixPath?: string | null;
+  protonPath?: string | null;
+  objectId: string;
+}
+
+export const prepareMacWinePrefix = async (
+  options: PrepareMacWinePrefixOptions
+): Promise<void> => {
+  const { runScript } = await resolveReadyNotProtonRunner(options.protonPath);
+  const compatDataPath = resolveCompatDataPath(
+    options.winePrefixPath,
+    options.objectId
+  );
+  fs.mkdirSync(compatDataPath, { recursive: true });
+
+  const steamClientPath = await resolveDefaultSteamClientPath();
+  const env = buildNotProtonEnvironment({
+    compatDataPath,
+    installPath: options.winePrefixPath ?? compatDataPath,
+    steamClientPath,
+    objectId: options.objectId,
+  });
+
+  await execFileAsync(runScript, ["runinprefix", "wineboot", "--update"], {
+    cwd: compatDataPath,
+    env,
+    timeout: MAC_PREFIX_PREPARE_TIMEOUT_MS,
+  });
 };
 
 export interface LaunchMacWindowsOptions {
@@ -149,26 +296,9 @@ export interface LaunchMacWindowsOptions {
 export const launchWindowsExecutableWithNotProton = async (
   options: LaunchMacWindowsOptions
 ): Promise<number | null> => {
-  const status = await getMacCompatibilityStatus();
-  if (!status.isReady) {
-    throw new Error(NOTPROTON_REQUIRED_ERROR);
-  }
-
-  const runnerPath =
-    options.protonPath && isValidNotProtonDirectory(options.protonPath)
-      ? options.protonPath
-      : status.notProtonTools[0]?.path;
-
-  if (!runnerPath) {
-    throw new Error(NOTPROTON_REQUIRED_ERROR);
-  }
-
-  const runScript = path.join(runnerPath, "run");
-  try {
-    fs.chmodSync(runScript, 0o755);
-  } catch {
-    // Ignore permission errors on read-only paths.
-  }
+  const { runnerPath, runScript } = await resolveReadyNotProtonRunner(
+    options.protonPath
+  );
 
   const compatDataPath = resolveCompatDataPath(
     options.winePrefixPath,
@@ -176,14 +306,7 @@ export const launchWindowsExecutableWithNotProton = async (
   );
   fs.mkdirSync(compatDataPath, { recursive: true });
 
-  const steamClientPath = await getSteamLocation().catch(() =>
-    path.join(
-      SystemPath.getPath("home"),
-      "Library",
-      "Application Support",
-      "Steam"
-    )
-  );
+  const steamClientPath = await resolveDefaultSteamClientPath();
 
   const workingDirectory =
     options.workingDirectory ?? path.dirname(options.executablePath);
@@ -201,16 +324,13 @@ export const launchWindowsExecutableWithNotProton = async (
   const logFilePath = path.join(logsPath, `notproton-${safeObjectId}.log`);
   fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
 
-  const env: NodeJS.ProcessEnv = {
-    ...process.env,
-    STEAM_COMPAT_DATA_PATH: compatDataPath,
-    STEAM_COMPAT_INSTALL_PATH: path.dirname(options.executablePath),
-    STEAM_COMPAT_CLIENT_INSTALL_PATH: steamClientPath,
-    ...(/^\d+$/.test(options.objectId)
-      ? { STEAM_COMPAT_APP_ID: options.objectId }
-      : {}),
-    ...resolvedLaunchCommand.env,
-  };
+  const env = buildNotProtonEnvironment({
+    compatDataPath,
+    installPath: path.dirname(options.executablePath),
+    steamClientPath,
+    objectId: options.objectId,
+    extraEnv: resolvedLaunchCommand.env,
+  });
 
   logger.info("Launching Windows executable via NotProton on macOS", {
     runnerPath,

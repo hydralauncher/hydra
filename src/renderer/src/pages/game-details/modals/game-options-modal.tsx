@@ -981,7 +981,9 @@ export function GameOptionsModal({
     globalThis.window.electron.platform === "darwin";
   const defaultHydraWinePrefixPath =
     game.shop !== "epic" && defaultWinePrefixPath
-      ? `${defaultWinePrefixPath}/${game.objectId}`
+      ? globalThis.window.electron.platform === "darwin"
+        ? `${defaultWinePrefixPath}/${game.objectId}/pfx`
+        : `${defaultWinePrefixPath}/${game.objectId}`
       : null;
   const displayedWinePrefixPath =
     linuxCompatibility?.winePrefixPath ??

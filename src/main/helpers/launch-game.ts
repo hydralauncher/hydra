@@ -28,6 +28,7 @@ import {
   launchedGamePids,
   getMacCompatibilityStatus,
   launchWindowsExecutableWithNotProton,
+  prepareMacWinePrefix,
   NOTPROTON_REQUIRED_ERROR,
   type UmuStatus,
 } from "@main/services";
@@ -305,12 +306,20 @@ const prepareWinePrefixIfNeeded = async (
   if (prefixWasReadyForRestore) return false;
 
   try {
-    await Umu.preparePrefix({
-      winePrefixPath: context.winePrefixPath!,
-      protonPath: context.protonPath,
-      gameId: objectId,
-      onStatus: createUmuStatusReporter(gameKey),
-    });
+    if (process.platform === "darwin") {
+      await prepareMacWinePrefix({
+        winePrefixPath: context.winePrefixPath,
+        protonPath: context.protonPath,
+        objectId,
+      });
+    } else {
+      await Umu.preparePrefix({
+        winePrefixPath: context.winePrefixPath!,
+        protonPath: context.protonPath,
+        gameId: objectId,
+        onStatus: createUmuStatusReporter(gameKey),
+      });
+    }
     return false;
   } catch (error) {
     logger.error("Failed to prepare Wine prefix before cloud save restore", {
@@ -557,17 +566,6 @@ const prepareLinuxCompatibilityForLaunch = async (
     winePrefixPath: await Wine.resolvePrefixPath(requestedWinePrefixPath),
   };
 
-  if (process.platform === "darwin") {
-    const prefixReady =
-      Boolean(context.winePrefixPath) &&
-      Wine.isPrefixReadyForRestore(context.winePrefixPath!);
-
-    return {
-      context,
-      prefixReadyForRestore: prefixReady,
-      prefixSafeForUpload: prefixReady,
-    };
-  }
   logger.info("[Cloud Save] Resolved authoritative launch prefix", {
     shop,
     objectId,
