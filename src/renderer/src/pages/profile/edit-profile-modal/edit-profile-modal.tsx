@@ -64,7 +64,7 @@ export function EditProfileModal(
 
   const { userDetails, patchUser, fetchUserDetails, hasActiveSubscription } =
     useUserDetails();
-  const { getUserProfile, setSelectedBackgroundImage } =
+  const { getUserProfile, setSelectedBackgroundImage, heroBackground } =
     useContext(userProfileContext);
   const { showHydraCloudModal } = useSubscription();
   const { showSuccessToast, showErrorToast } = useToast();
@@ -313,11 +313,11 @@ export function EditProfileModal(
     </>
   );
 
+  // Without a banner the profile shows the color taken from the photo, so "No banner" previews that.
   const renderBannerArt = (url: string | null) => (
     <span
-      className={cn("edit-profile-modal__banner-art", {
-        "edit-profile-modal__banner-art--empty": !url,
-      })}
+      className="edit-profile-modal__banner-art"
+      style={url ? undefined : { background: heroBackground }}
     >
       {url && <img src={url} alt="" decoding="async" />}
     </span>
