@@ -6,6 +6,7 @@ import path from "node:path";
 import { findEmulatorInDownloadDirectories } from "./find-emulator-in-download-directories.js";
 import { getEmulatorVersion } from "./get-emulator-version.js";
 import { isExecutableNameExpectedForBinary } from "./is-executable-name-expected.js";
+import { matchesMacosBundleName } from "./macos-app-bundle.js";
 
 export interface DetectableBinary {
   binary: string;
@@ -274,10 +275,19 @@ const findPlatformInstall = (
 
 const findMacAppBundle = (binary: DetectableBinary): string | null => {
   if (!isMac) return null;
-  return searchInDirs(binary.macosBundleNames, [
-    "/Applications",
-    path.join(homedir(), "Applications"),
-  ]);
+  const searchDirs = ["/Applications", path.join(homedir(), "Applications")];
+  const exactMatch = searchInDirs(binary.macosBundleNames, searchDirs);
+  if (exactMatch) return exactMatch;
+
+  for (const dir of searchDirs) {
+    const entries = safeReaddir(dir);
+    if (!entries) continue;
+    const match = entries.find((entry) =>
+      matchesMacosBundleName(entry, binary.macosBundleNames)
+    );
+    if (match) return path.join(dir, match);
+  }
+  return null;
 };
 
 export const detectEmulator = (

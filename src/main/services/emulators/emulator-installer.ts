@@ -90,6 +90,68 @@ const emulatorInstallDirectory = async (
   return path.join(downloadsRoot, KNOWN_BINARIES[system].displayName);
 };
 
+const TAR_ARCHIVE_RE = /\.(?:tar\.xz|tar\.gz|tgz|tar)$/i;
+
+const stripMacosQuarantine = async (targetPath: string): Promise<void> => {
+  if (process.platform !== "darwin") return;
+
+  await execFileAsync(
+    "/usr/bin/xattr",
+    ["-dr", "com.apple.quarantine", targetPath],
+    { timeout: 15_000 }
+  ).catch(() => {
+    // Ignore when the quarantine attribute is not present.
+  });
+};
+
+const extractTarArchive = async (
+  archivePath: string,
+  extractDir: string
+): Promise<void> => {
+  await execFileAsync("/usr/bin/tar", ["-xf", archivePath, "-C", extractDir], {
+    timeout: 120_000,
+  });
+};
+
+const extractArchiveForPlatform = async (
+  archivePath: string,
+  extractDir: string
+): Promise<void> => {
+  if (process.platform !== "darwin") {
+    await SevenZip.extractFile({
+      filePath: archivePath,
+      outputPath: extractDir,
+    });
+    return;
+  }
+
+  if (TAR_ARCHIVE_RE.test(archivePath)) {
+    await extractTarArchive(archivePath, extractDir);
+    return;
+  }
+
+  if (path.extname(archivePath).toLowerCase() === ".zip") {
+    // `ditto -xk` preserves macOS framework symlinks inside `.app` bundles.
+    await execFileAsync("/usr/bin/ditto", ["-xk", archivePath, extractDir], {
+      timeout: 120_000,
+    });
+
+    // Some macOS releases (e.g. shadPS4QtLauncher) wrap a `.tar.gz`/`.tar` inside the `.zip`.
+    const entries = await fs.promises.readdir(extractDir, {
+      withFileTypes: true,
+    });
+    for (const entry of entries) {
+      if (!entry.isFile() || !TAR_ARCHIVE_RE.test(entry.name)) continue;
+      const nestedArchive = path.join(extractDir, entry.name);
+      await extractTarArchive(nestedArchive, extractDir);
+      await removeFileQuietly(nestedArchive);
+    }
+    return;
+  }
+
+  await SevenZip.extractFile({ filePath: archivePath, outputPath: extractDir });
+};
+
 const installMacosDmg = async (
   dmgPath: string,
   binary: EmulatorBinary,
@@ -135,6 +197,7 @@ const installMacosDmg = async (
       recursive: true,
       preserveTimestamps: true,
     });
+    await stripMacosQuarantine(destinationBundle);
     assertValidEmulatorExecutable(destinationBundle);
     return destinationBundle;
   } finally {
@@ -172,14 +235,16 @@ const extractManagedEmulator = async (
   binary: EmulatorBinary
 ): Promise<string> => {
   await fs.promises.mkdir(extractDir, { recursive: true });
-  await SevenZip.extractFile({ filePath: archivePath, outputPath: extractDir });
+  await extractArchiveForPlatform(archivePath, extractDir);
 
   const knownBinary = KNOWN_BINARIES[BINARY_TO_SYSTEM[binary]];
   if (binary === "shadps4") {
     await ensureExtractedExecutableBit(extractDir, knownBinary);
   }
 
-  return requireManagedEmulatorExecutable(extractDir, knownBinary);
+  const executable = requireManagedEmulatorExecutable(extractDir, knownBinary);
+  await stripMacosQuarantine(executable);
+  return executable;
 };
 
 const installShadps4Core = async (
@@ -209,12 +274,13 @@ const installShadps4Core = async (
       });
     });
     sendProgress({ binary: "shadps4", optionId, phase: "extracting" });
-    await SevenZip.extractFile({
-      filePath: archivePath,
-      outputPath: extractDir,
-    });
+    await extractArchiveForPlatform(archivePath, extractDir);
     await ensureExtractedExecutableBit(extractDir, SHADPS4_CORE_BINARY);
-    requireManagedEmulatorExecutable(extractDir, SHADPS4_CORE_BINARY);
+    const coreExecutable = requireManagedEmulatorExecutable(
+      extractDir,
+      SHADPS4_CORE_BINARY
+    );
+    await stripMacosQuarantine(coreExecutable);
     await writeShadps4VersionRecord(launcherExecutable, option.version).catch(
       (error) => {
         logger.warn("Failed to record shadPS4 version", error);

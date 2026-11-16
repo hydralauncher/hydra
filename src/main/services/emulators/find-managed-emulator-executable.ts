@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import type { KnownBinary } from "./known-binaries";
+import { matchesMacosBundleName } from "./macos-app-bundle.js";
 import { assertValidEmulatorExecutable } from "./validate-emulator-executable.js";
 
 export type ManagedExecutableBinary = Pick<
@@ -21,7 +22,7 @@ const findExecutableInDirectory = (
   directory: string,
   entries: fs.Dirent[],
   executableNames: Set<string>,
-  bundleNames: Set<string>,
+  macosBundleNames: readonly string[],
   pendingDirectories: string[]
 ): string | null => {
   for (const entry of entries) {
@@ -29,7 +30,7 @@ const findExecutableInDirectory = (
     const normalizedName = entry.name.toLowerCase();
 
     if (entry.isDirectory()) {
-      if (bundleNames.has(normalizedName)) return fullPath;
+      if (matchesMacosBundleName(entry.name, macosBundleNames)) return fullPath;
       pendingDirectories.push(fullPath);
     } else if (entry.isFile() && executableNames.has(normalizedName)) {
       return fullPath;
@@ -47,9 +48,6 @@ export const findManagedEmulatorExecutable = (
       name.toLowerCase()
     )
   );
-  const bundleNames = new Set(
-    binary.macosBundleNames.map((name) => name.toLowerCase())
-  );
   const stack = [root];
 
   while (stack.length > 0) {
@@ -63,7 +61,7 @@ export const findManagedEmulatorExecutable = (
       directory,
       entries,
       executableNames,
-      bundleNames,
+      binary.macosBundleNames,
       stack
     );
     if (executable) return executable;
