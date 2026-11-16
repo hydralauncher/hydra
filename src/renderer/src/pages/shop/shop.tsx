@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
 import cn from "classnames";
@@ -38,6 +38,8 @@ import { useShopFrames } from "./use-shop-frames";
 import "./shop.scss";
 
 const NEW_FRAME_DAYS = 14;
+// Typing filters after a short pause, so the list doesn't flash on every key.
+const SEARCH_DELAY_MS = 200;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SKELETON_SECTIONS = 2;
 const SKELETON_CARDS = 5;
@@ -77,18 +79,19 @@ const compareCollections = (sort: CollectionSort, locale: string) => {
   };
 };
 
-function ShopFrameCard({
+// Memoized: a filter change only flips `isHidden`, so the other cards don't re-render.
+const ShopFrameCard = memo(function ShopFrameCard({
   frame,
   collection,
   coins,
-  index,
+  isHidden,
   onOpen,
 }: Readonly<{
   frame: ShopFrame;
   collection: ShopFrameCollection;
   coins: number;
-  index: number;
-  onOpen: () => void;
+  isHidden: boolean;
+  onOpen: (frame: ShopFrame) => void;
 }>) {
   const { t } = useTranslation("shop");
   const { formatNumber } = useFormat();
@@ -152,20 +155,11 @@ function ShopFrameCard({
   };
 
   return (
-    <motion.button
+    <button
       type="button"
       className="shop__item"
-      onClick={onOpen}
-      layout="position"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{
-        duration: 0.25,
-        ease: [0.25, 0.1, 0.25, 1],
-        // A light cascade, capped so long rows don't wait.
-        delay: Math.min(index, 6) * 0.03,
-      }}
+      hidden={isHidden}
+      onClick={() => onOpen(frame)}
     >
       <span className="shop__item-art">
         <FramedAvatar size={64} isFrameOnly frame={frame} />
@@ -183,35 +177,31 @@ function ShopFrameCard({
         <strong>{frame.name}</strong>
         {renderPrice()}
       </span>
-    </motion.button>
+    </button>
   );
-}
+});
 
 function ShopCollectionSection({
   collection,
-  frames,
+  visibleKeys,
   coins,
   onOpen,
 }: Readonly<{
   collection: ShopFrameCollection;
-  frames: ShopFrame[];
+  visibleKeys: ReadonlySet<string>;
   coins: number;
   onOpen: (frame: ShopFrame) => void;
 }>) {
   const { t } = useTranslation("shop");
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { rowRef, pages } = useShopCarousel();
+  const visibleCount = collection.frames.filter((frame) =>
+    visibleKeys.has(frame.key)
+  ).length;
+  const { rowRef, pages } = useShopCarousel(visibleCount);
   const authorUrl = collection.author.url;
 
   return (
-    <motion.section
-      className="shop__collection"
-      layout="position"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-    >
+    <section className="shop__collection" hidden={visibleCount === 0}>
       <header className="shop__collection-header">
         <CollectionIcon
           iconName={collection.iconName}
@@ -265,23 +255,21 @@ function ShopCollectionSection({
             exit="collapsed"
           >
             <ShopCarouselRow rowRef={rowRef}>
-              <AnimatePresence initial={false}>
-                {frames.map((frame, index) => (
-                  <ShopFrameCard
-                    key={frame.key}
-                    frame={frame}
-                    collection={collection}
-                    coins={coins}
-                    index={index}
-                    onOpen={() => onOpen(frame)}
-                  />
-                ))}
-              </AnimatePresence>
+              {collection.frames.map((frame) => (
+                <ShopFrameCard
+                  key={frame.key}
+                  frame={frame}
+                  collection={collection}
+                  coins={coins}
+                  isHidden={!visibleKeys.has(frame.key)}
+                  onOpen={onOpen}
+                />
+              ))}
             </ShopCarouselRow>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.section>
+    </section>
   );
 }
 
@@ -338,8 +326,14 @@ export default function Shop() {
   const [tab, setTab] = useState<FrameTab>("all");
   const [sort, setSort] = useState<CollectionSort>("updated");
   const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [openFrameKey, setOpenFrameKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedQuery(query), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   // The balance decides what can be bought, so it is read fresh on open.
   useEffect(() => {
@@ -352,34 +346,37 @@ export default function Shop() {
     [collections, sort, i18n.language]
   );
 
-  const visibleCollections = useMemo(() => {
-    const term = normalize(query.trim());
-    return sortedCollections
-      .filter((collection) => !selectedSlug || collection.slug === selectedSlug)
-      .map((collection) => {
-        const collectionMatches =
-          !term || normalize(collection.title).includes(term);
-        return {
-          collection,
-          frames: collection.frames.filter(
-            (frame) =>
-              matchesTab(frame, tab) &&
-              (collectionMatches || normalize(frame.name).includes(term))
-          ),
-        };
-      })
-      .filter(({ frames }) => frames.length > 0);
-  }, [sortedCollections, selectedSlug, query, tab]);
+  // Filters hide cards instead of unmounting them: remounting dozens of videos is what made it stall.
+  const visibleKeys = useMemo(() => {
+    const term = normalize(appliedQuery.trim());
+    const keys = new Set<string>();
+    for (const collection of collections ?? []) {
+      if (selectedSlug && collection.slug !== selectedSlug) continue;
+      const collectionMatches =
+        !term || normalize(collection.title).includes(term);
+      for (const frame of collection.frames) {
+        if (
+          matchesTab(frame, tab) &&
+          (collectionMatches || normalize(frame.name).includes(term))
+        ) {
+          keys.add(frame.key);
+        }
+      }
+    }
+    return keys;
+  }, [collections, selectedSlug, appliedQuery, tab]);
+
+  const handleOpenFrame = useCallback(
+    (frame: ShopFrame) => setOpenFrameKey(frame.key),
+    []
+  );
 
   if (!isEnabled) return areFeaturesLoaded ? <Navigate to="/" replace /> : null;
   if (!progress || !userDetails) return null;
 
   const coins = progress.coins;
-  const isFiltering = tab !== "all" || !!selectedSlug || !!query.trim();
-  const resultCount = visibleCollections.reduce(
-    (total, { frames }) => total + frames.length,
-    0
-  );
+  const isFiltering = tab !== "all" || !!selectedSlug || !!appliedQuery.trim();
+  const resultCount = visibleKeys.size;
   // The modal follows purchases and equips, so it reads the frame from the latest catalogue.
   const openFrame = collections
     ?.flatMap((collection) => collection.frames)
@@ -396,6 +393,7 @@ export default function Shop() {
     setTab("all");
     setSelectedSlug(null);
     setQuery("");
+    setAppliedQuery("");
   };
 
   const renderContent = () => {
@@ -423,8 +421,8 @@ export default function Shop() {
           <div className="shop__results" aria-live="polite">
             <span>
               <strong>{t("results_count", { count: resultCount })}</strong>
-              {query.trim() && (
-                <> {t("results_for", { query: query.trim() })}</>
+              {appliedQuery.trim() && (
+                <> {t("results_for", { query: appliedQuery.trim() })}</>
               )}
             </span>
             <button
@@ -438,23 +436,23 @@ export default function Shop() {
           </div>
         )}
 
-        {visibleCollections.length === 0 ? (
-          <div className="shop__empty">
-            {t(collections.length === 0 ? "empty_shop" : "empty_results")}
-          </div>
-        ) : (
-          <AnimatePresence initial={false}>
-            {visibleCollections.map(({ collection, frames }) => (
-              <ShopCollectionSection
-                key={collection.slug}
-                collection={collection}
-                frames={frames}
-                coins={coins}
-                onOpen={(frame) => setOpenFrameKey(frame.key)}
-              />
-            ))}
-          </AnimatePresence>
-        )}
+        {/* Kept mounted across filters: cards are hidden, not removed, so nothing reloads. */}
+        <div>
+          {resultCount === 0 && (
+            <div className="shop__empty">
+              {t(collections.length === 0 ? "empty_shop" : "empty_results")}
+            </div>
+          )}
+          {sortedCollections.map((collection) => (
+            <ShopCollectionSection
+              key={collection.slug}
+              collection={collection}
+              visibleKeys={visibleKeys}
+              coins={coins}
+              onOpen={handleOpenFrame}
+            />
+          ))}
+        </div>
       </>
     );
   };

@@ -10,7 +10,7 @@ $line-strong: rgba(255, 255, 255, 0.24);
 $overlay: rgba(255, 255, 255, 0.08);
 $surface: globals.$background-color;
 $row: #161618;
-$hover-transition: 0.2s ease;
+$hover-transition: 0.15s ease;
 
 .shop {
   display: flex;
@@ -373,7 +373,9 @@ $hover-transition: 0.2s ease;
     flex: 0 0 220px;
   }
 
+  // Runs only when a card is inserted, so cards that stay through a filter don't blink.
   &__item {
+    animation: shop-item-in 0.22s ease-out both;
     flex: 0 0 220px;
     scroll-snap-align: start;
     display: flex;
@@ -492,6 +494,19 @@ $hover-transition: 0.2s ease;
     border-radius: 8px;
     color: $muted;
     text-align: center;
+  }
+}
+
+// Filters toggle [hidden]; these blocks set their own display, so it needs restating.
+.shop__collection[hidden],
+.shop__item[hidden] {
+  display: none;
+}
+
+@keyframes shop-item-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
   }
 }
 

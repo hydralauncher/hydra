@@ -9,7 +9,8 @@ interface ShopCarouselPages {
 }
 
 /** One row that scrolls sideways; the pages feed the dots in the section header. */
-export function useShopCarousel() {
+/** `contentKey` changes when cards are shown or hidden, which resizes the content but not the row. */
+export function useShopCarousel(contentKey?: unknown) {
   const [row, setRow] = useState<HTMLDivElement | null>(null);
   const [pages, setPages] = useState({ count: 1, current: 0 });
 
@@ -41,6 +42,10 @@ export function useShopCarousel() {
       row.removeEventListener("scroll", measure);
     };
   }, [row, measure]);
+
+  useEffect(() => {
+    measure();
+  }, [contentKey, measure]);
 
   const goTo = useCallback(
     (page: number) =>
