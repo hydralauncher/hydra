@@ -11,7 +11,6 @@ $overlay: rgba(255, 255, 255, 0.08);
 $surface: globals.$background-color;
 $row: #161618;
 $hover-transition: 0.2s ease;
-$locked: #2a2a2e;
 
 .shop {
   display: flex;
@@ -21,28 +20,226 @@ $locked: #2a2a2e;
   box-sizing: border-box;
   padding: calc(globals.$spacing-unit * 3);
 
+  // Sticks to the top while the page scrolls, so the balance never leaves the screen.
   &__bar {
+    position: sticky;
+    top: 0;
+    z-index: 3;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px 20px;
-    margin: 4px 0 20px;
-    border-bottom: 1px solid $line;
+    gap: 8px;
+    // Pulled into the page padding above, so nothing scrolls by behind it.
+    margin: calc(globals.$spacing-unit * -3) 0 16px;
+    padding: calc(globals.$spacing-unit * 3) 0 12px;
+    background-color: globals.$background-color;
+  }
+
+  &__tabs {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid $line;
+    border-radius: 8px;
+    background-color: $chrome;
+  }
+
+  &__tab {
+    height: 28px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: $muted;
+    font-size: globals.$hint-font-size;
+    cursor: pointer;
+    transition:
+      background-color $hover-transition,
+      color $hover-transition;
+
+    &:hover {
+      color: $ink;
+    }
+
+    &--active {
+      background-color: $overlay;
+      color: $ink;
+      font-weight: 600;
+    }
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    // Shrinks before the bar wraps.
+    flex: 0 1 260px;
+    min-width: 160px;
+    height: 36px;
+    margin-left: auto;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid $line;
+    border-radius: 8px;
+    background-color: $chrome;
+    color: $muted;
+    transition: border-color $hover-transition;
+
+    &:focus-within {
+      border-color: $line-strong;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: none;
+      background: none;
+      color: $ink;
+      font: inherit;
+      font-size: globals.$hint-font-size;
+    }
   }
 
   &__balance {
     display: inline-flex;
     align-items: center;
     gap: calc(globals.$spacing-unit / 2);
-    padding: 6px 12px;
-    margin-bottom: 8px;
+    height: 36px;
+    padding: 0 14px;
+    box-sizing: border-box;
     border: 1px solid $line;
     border-radius: 8px;
-    font-size: globals.$small-font-size;
+    background-color: rgba(255, 255, 255, 0.04);
+    font-size: globals.$hint-font-size;
     font-weight: 600;
     color: $ink;
     font-variant-numeric: tabular-nums;
+  }
+
+  &__rail-wrapper {
+    position: relative;
+    margin-bottom: 24px;
+  }
+
+  // Not clipped: only the chips that fit are rendered, and the "N more" menu must overflow.
+  &__rail {
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  // Invisible copy of every chip, only for measuring which ones fit. Zero-width, so it never scrolls the page.
+  &__rail-mirror {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  &__rail-mirror-row {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+  }
+
+  &__chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 12px 0 8px;
+    border: 1px solid $line;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: $body;
+    font-size: globals.$hint-font-size;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color $hover-transition,
+      border-color $hover-transition,
+      color $hover-transition;
+
+    &:hover {
+      border-color: $line-strong;
+      color: $ink;
+    }
+
+    &--compact {
+      width: 36px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    &--selected {
+      border-color: $ink;
+      background-color: $ink;
+      color: $chrome;
+      font-weight: 600;
+
+      &:hover {
+        color: $chrome;
+      }
+    }
+  }
+
+  &__chip-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  // The "N more" dropdown opens to the left, since it sits at the end of the row.
+  &__rail-more {
+    flex-shrink: 0;
+
+    .filter-dropdown__menu {
+      left: auto;
+      right: 0;
+    }
+
+    &--selected .filter-dropdown__trigger {
+      border-color: $ink;
+    }
+  }
+
+  &__skeleton-chip {
+    flex-shrink: 0;
+  }
+
+  &__results {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: -8px 0 20px;
+    font-size: globals.$hint-font-size;
+    color: $muted;
+
+    strong {
+      color: $ink;
+    }
+  }
+
+  &__clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    background-color: $overlay;
+    color: $body;
+    font-size: globals.$small-font-size;
+    cursor: pointer;
+
+    &:hover {
+      color: $ink;
+    }
   }
 
   &__collection {
@@ -61,17 +258,16 @@ $locked: #2a2a2e;
   &__collection-icon {
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
     overflow: hidden;
+    box-sizing: border-box;
+    border: 1px solid $line;
     border-radius: 8px;
-    background-color: $chrome;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+    background-color: rgba(255, 255, 255, 0.04);
+    color: $ink;
+    object-fit: cover;
   }
 
   &__collection-title {
@@ -100,14 +296,26 @@ $locked: #2a2a2e;
     }
   }
 
+  &__collection-rule {
+    flex: 1;
+    min-width: 24px;
+    height: 1px;
+    background-color: $line;
+  }
+
   &__collection-author {
-    margin-left: auto;
+    flex-shrink: 0;
     font-size: globals.$small-font-size;
     color: $muted;
 
     strong {
       color: $ink;
     }
+  }
+
+  // Framer animates its height; the clip keeps the row from spilling while it does.
+  &__collection-body {
+    overflow: hidden;
   }
 
   &__author-link {
@@ -148,6 +356,8 @@ $locked: #2a2a2e;
   &__carousel {
     display: flex;
     gap: 16px;
+    // Room for the hover lift, which the scroll box would clip.
+    padding-top: 2px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
@@ -160,70 +370,6 @@ $locked: #2a2a2e;
 
   &__skeleton-card {
     flex: 0 0 220px;
-  }
-
-  &__count {
-    padding: 1px calc(globals.$spacing-unit / 2);
-    border-radius: 6px;
-    background-color: $overlay;
-    font-size: globals.$tiny-font-size;
-    color: $ink;
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__toggle {
-    position: relative;
-    margin-bottom: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: globals.$small-font-size;
-    color: $body;
-    cursor: pointer;
-
-    input {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-    }
-
-    > span {
-      position: relative;
-      width: 30px;
-      height: 18px;
-      border-radius: 999px;
-      background-color: $locked;
-      transition: background-color $hover-transition;
-
-      &::after {
-        content: "";
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 14px;
-        height: 14px;
-        border-radius: 999px;
-        background-color: $muted;
-        transition:
-          transform $hover-transition,
-          background-color $hover-transition;
-      }
-    }
-
-    input:checked + span {
-      background-color: $ink;
-
-      &::after {
-        transform: translateX(12px);
-        background-color: $chrome;
-      }
-    }
-
-    input:focus-visible + span {
-      outline: 2px solid $ink;
-      outline-offset: 2px;
-    }
   }
 
   &__item {
@@ -239,10 +385,13 @@ $locked: #2a2a2e;
     color: inherit;
     text-align: left;
     cursor: pointer;
-    transition: border-color $hover-transition;
+    transition:
+      border-color $hover-transition,
+      transform $hover-transition;
 
     &:hover {
       border-color: $line-strong;
+      transform: translateY(-2px);
     }
   }
 
@@ -345,6 +494,17 @@ $locked: #2a2a2e;
   }
 }
 
+.collection-icon {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+
+  &--image {
+    border-radius: 4px;
+    object-fit: cover;
+  }
+}
+
 .shop-modal {
   &__body {
     display: flex;
@@ -353,25 +513,13 @@ $locked: #2a2a2e;
     width: min(488px, 100%);
   }
 
-  // Mini profile: your banner, your avatar wearing the frame, name and level.
+  // Mini profile: your banner, or your profile's color without one, your avatar wearing the frame.
   &__profile {
     position: relative;
     height: 150px;
     overflow: hidden;
     border: 1px solid $line;
     border-radius: 8px;
-    background:
-      linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.5)),
-      radial-gradient(
-        ellipse 45% 90% at 78% 30%,
-        rgba(70, 100, 160, 0.5),
-        transparent 70%
-      ),
-      linear-gradient(90deg, #2a1a0f, #1a1410 45%, #0f1830);
-
-    &--has-banner {
-      background: none;
-    }
   }
 
   &__banner {

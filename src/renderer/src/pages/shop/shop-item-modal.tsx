@@ -15,6 +15,8 @@ import {
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
+import { getHeroBackgroundFromImageUrl } from "@renderer/helpers";
+import { DEFAULT_USER_PROFILE_BACKGROUND } from "@renderer/context";
 import type { FramePurchaseResponse, ShopFrame } from "@types";
 import { getShopFrameState } from "./shop-frame-state";
 
@@ -41,7 +43,25 @@ export function ShopItemModal({
   const { missions, refreshMissions } = useGamificationMissions();
   const { showSuccessToast, showErrorToast } = useToast();
   const [isPending, setIsPending] = useState(false);
+  const [heroBackground, setHeroBackground] = useState(
+    DEFAULT_USER_PROFILE_BACKGROUND
+  );
   const state = getShopFrameState(item, coins);
+
+  // Same background your profile shows without a banner: the color of your photo.
+  const profileImageUrl = userDetails?.profileImageUrl;
+  useEffect(() => {
+    if (!profileImageUrl) return;
+    let isCancelled = false;
+    getHeroBackgroundFromImageUrl(profileImageUrl)
+      .then((background) => {
+        if (!isCancelled) setHeroBackground(background);
+      })
+      .catch(() => undefined);
+    return () => {
+      isCancelled = true;
+    };
+  }, [profileImageUrl]);
   const kind = t(item.assetType === "VIDEO" ? "kind_animated" : "kind_simple");
 
   const buy = async () => {
@@ -210,9 +230,12 @@ export function ShopItemModal({
     >
       <div className="shop-modal__body">
         <div
-          className={cn("shop-modal__profile", {
-            "shop-modal__profile--has-banner": userDetails.backgroundImageUrl,
-          })}
+          className="shop-modal__profile"
+          style={
+            userDetails.backgroundImageUrl
+              ? undefined
+              : { background: heroBackground }
+          }
         >
           {userDetails.backgroundImageUrl && (
             <img

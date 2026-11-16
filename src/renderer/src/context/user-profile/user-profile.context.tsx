@@ -1,7 +1,7 @@
 import {
   appendProfileLibraryFilterParams,
-  darkenColor,
   ensureArray,
+  getHeroBackgroundFromImageUrl,
   getProfileLibraryFilter,
   readStoredProfilePlatform,
   readStoredProfileSort,
@@ -24,7 +24,6 @@ import {
   getSouvenirKey,
   normalizeProfileSouvenir,
 } from "@shared";
-import { average } from "color.js";
 
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -168,12 +167,6 @@ export function UserProfileContextProvider({
   const libraryRequestIdRef = useRef(0);
 
   const isMe = userDetails?.id === userProfile?.id;
-
-  const getHeroBackgroundFromImageUrl = async (imageUrl: string) => {
-    const output = await average(imageUrl, { amount: 1, format: "hex" });
-
-    return `linear-gradient(135deg, ${darkenColor(output as string, 0.5)}, ${darkenColor(output as string, 0.6, 0.5)})`;
-  };
 
   const getBackgroundImageUrl = () => {
     if (selectedBackgroundImage && isMe)
