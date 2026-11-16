@@ -51,6 +51,8 @@ $hover-transition: 0.2s ease;
     background: none;
     color: $muted;
     font-size: globals.$hint-font-size;
+    // Same weight in every state, so picking a tab never shifts the bar.
+    font-weight: 600;
     cursor: pointer;
     transition:
       background-color $hover-transition,
@@ -63,7 +65,6 @@ $hover-transition: 0.2s ease;
     &--active {
       background-color: $overlay;
       color: $ink;
-      font-weight: 600;
     }
   }
 
@@ -71,9 +72,9 @@ $hover-transition: 0.2s ease;
     display: flex;
     align-items: center;
     gap: 8px;
-    // Shrinks before the bar wraps.
-    flex: 0 1 260px;
-    min-width: 160px;
+    // Grows up to 260px but wraps last: the line break counts its 160px basis.
+    flex: 1 1 160px;
+    max-width: 260px;
     height: 36px;
     margin-left: auto;
     padding: 0 12px;
