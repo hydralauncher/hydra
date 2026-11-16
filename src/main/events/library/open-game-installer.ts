@@ -19,6 +19,7 @@ import {
   findDownloadInstaller,
   getDownloadFolderPath,
 } from "@main/helpers/find-game-installer";
+import { resolveProtonPath } from "@main/helpers/resolve-proton-path";
 import {
   endInstallerRun,
   markInstallerRunLive,
@@ -521,7 +522,7 @@ const openGameInstaller = async (
   const launchResult = await executeGameInstaller(installerPath, {
     gameId: objectId,
     winePrefixPath,
-    protonPath: game?.protonPath,
+    protonPath: await resolveProtonPath(game?.protonPath),
     onExit: (exitCode) =>
       afterLaunchRecorded(() =>
         handleInstallerExit(

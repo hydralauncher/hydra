@@ -1,7 +1,8 @@
 import path from "node:path";
-import type { GameShop, UserPreferences } from "@types";
-import { getNotProtonToolName, Umu } from "@main/services";
-import { db, gamesSublevel, levelKeys } from "@main/level";
+import type { GameShop } from "@types";
+import { resolveProtonPath } from "@main/helpers/resolve-proton-path";
+import { getNotProtonToolName } from "@main/services";
+import { gamesSublevel, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
 
 const getGameLaunchProtonVersion = async (
@@ -15,28 +16,13 @@ const getGameLaunchProtonVersion = async (
 
   const gameKey = levelKeys.game(shop, objectId);
   const game = await gamesSublevel.get(gameKey).catch(() => null);
-  const userPreferences = await db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .catch(() => null);
+  const protonPath = await resolveProtonPath(game?.protonPath);
 
-  const formatName = (protonPath: string) =>
-    process.platform === "darwin"
-      ? getNotProtonToolName(protonPath)
-      : path.basename(protonPath);
+  if (!protonPath) return null;
 
-  const gameProtonPath = game?.protonPath;
-  if (gameProtonPath && Umu.isValidProtonPath(gameProtonPath)) {
-    return formatName(gameProtonPath);
-  }
-
-  const defaultProtonPath = userPreferences?.defaultProtonPath;
-  if (defaultProtonPath && Umu.isValidProtonPath(defaultProtonPath)) {
-    return formatName(defaultProtonPath);
-  }
-
-  return null;
+  return process.platform === "darwin"
+    ? getNotProtonToolName(protonPath)
+    : path.basename(protonPath);
 };
 
 registerEvent("getGameLaunchProtonVersion", getGameLaunchProtonVersion);

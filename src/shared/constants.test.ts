@@ -21,6 +21,7 @@ describe("getGameExecutableFilters", () => {
     });
     assert.ok(filters[0].extensions.includes("exe"));
     assert.ok(filters[0].extensions.includes("app"));
+    assert.ok(!filters[0].extensions.includes("lnk"));
     assert.deepEqual(filters[1], {
       name: labels.allFiles,
       extensions: ["*"],
