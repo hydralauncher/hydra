@@ -25,6 +25,10 @@ const openCheckout = async (
     refreshToken: auth.refreshToken,
   }).then((response) => response.accessToken);
 
+  if (!import.meta.env.MAIN_VITE_CHECKOUT_URL) {
+    return;
+  }
+
   const checkoutUrl = new URL(import.meta.env.MAIN_VITE_CHECKOUT_URL);
 
   if (options?.path && isAllowedPath(options.path)) {

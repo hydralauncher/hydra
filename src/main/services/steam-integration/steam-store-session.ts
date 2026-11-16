@@ -151,7 +151,8 @@ export const openSteamOpenIdWindow = (
     width: 600,
     height: 800,
     parent: parent ?? undefined,
-    modal: Boolean(parent),
+    modal: process.platform !== "darwin" && Boolean(parent),
+    closable: true,
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -164,6 +165,15 @@ export const openSteamOpenIdWindow = (
 
   steamOpenIdWindow = window;
   window.removeMenu();
+  window.webContents.on("before-input-event", (_event, input) => {
+    if (
+      input.type === "keyDown" &&
+      input.key === "Escape" &&
+      !window.isDestroyed()
+    ) {
+      window.close();
+    }
+  });
 
   let finished = false;
 
