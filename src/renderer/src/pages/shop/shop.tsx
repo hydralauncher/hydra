@@ -497,9 +497,21 @@ export default function Shop() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
-        <span className="shop__balance">
+        {/* Just the coin and the number; the full text stays for screen readers and the tooltip. */}
+        <span
+          className="shop__balance"
+          role="img"
+          aria-label={t("coins_balance", {
+            count: coins,
+            amount: formatNumber(coins),
+          })}
+          title={t("coins_balance", {
+            count: coins,
+            amount: formatNumber(coins),
+          })}
+        >
           <CoinIcon />
-          {t("coins_balance", { count: coins, amount: formatNumber(coins) })}
+          {formatNumber(coins)}
         </span>
       </div>
 

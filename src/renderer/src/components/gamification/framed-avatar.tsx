@@ -222,7 +222,8 @@ function FrameVideo({
       loop
       muted
       playsInline
-      preload="metadata"
+      // Loads the first frame up front, so a paused frame never shows an empty box.
+      preload="auto"
       aria-hidden="true"
       onError={onError}
     />

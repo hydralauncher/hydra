@@ -75,6 +75,11 @@ $hover-transition: 0.15s ease;
     // Grows up to 260px but wraps last: the line break counts its 160px basis.
     flex: 1 1 160px;
     max-width: 260px;
+
+    // Full HD and up have room for a wider search.
+    @media (min-width: 1600px) {
+      max-width: 420px;
+    }
     height: 36px;
     margin-left: auto;
     padding: 0 12px;
