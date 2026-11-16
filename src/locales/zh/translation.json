@@ -110,7 +110,20 @@
     "expand_collections": "Expand collections",
     "collapse_collections": "Collapse collections",
     "expand_games": "Expand games",
-    "collapse_games": "Collapse games"
+    "collapse_games": "Collapse games",
+    "neo_aria_label": "Hydra Neo 公告",
+    "neo_title": "认识 Hydra Neo",
+    "neo_description": "我们以原生应用的形式从零重写了 Hydra。占用内存更少，在旧电脑上也更快。",
+    "neo_dismiss": "关闭 Hydra Neo 公告",
+    "neo_waitlist_subtitle": "新东西来了。悬停查看",
+    "neo_waitlist_note": "加入候补名单。通过审核的测试者将免费获得 3 个月 Hydra Cloud。",
+    "neo_waitlist_cta": "预留名额",
+    "neo_cloud_subtitle": "你无需排队。悬停查看",
+    "neo_cloud_note": "Cloud 会员无需排队：不用候补，不用审核，今天就能用。",
+    "neo_cloud_cta": "立即试用 Neo",
+    "neo_approved_subtitle": "你已获准。悬停查看",
+    "neo_approved_note": "你已通过审核。加入 Neo 的 Discord 下载首个版本。",
+    "neo_approved_cta": "加入 Discord"
   },
   "header": {
     "search": "搜索游戏",

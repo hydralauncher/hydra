@@ -1,0 +1,248 @@
+$neo-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+
+@keyframes neo-sidebar-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.neo-sidebar-card {
+  flex: none;
+  padding: 8px 12px 12px;
+
+  &__card {
+    position: relative;
+    border-radius: 8px;
+    background-color: #141416;
+    padding: 10px;
+    animation: neo-sidebar-card-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    transition:
+      background-color 0.4s ease,
+      box-shadow 0.5s $neo-ease-out,
+      transform 0.5s $neo-ease-out;
+
+    &:hover,
+    &:focus-within {
+      background-color: #18181b;
+      box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.9);
+      transform: translateY(-2px);
+    }
+  }
+
+  &__outline {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+  }
+
+  &__border {
+    position: absolute;
+    inset: -10px;
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
+    pointer-events: none;
+  }
+
+  &__body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 24px;
+  }
+
+  &__logo {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    background-color: #050505;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.4s ease;
+  }
+
+  &__card:hover &__logo,
+  &__card:focus-within &__logo {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 4px 14px -4px rgba(220, 222, 230, 0.25);
+  }
+
+  &__heading {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f0f1f7;
+    letter-spacing: -0.01em;
+  }
+
+  &__subtitle {
+    font-size: 11px;
+    color: #8e919b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__detail {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+
+    > div {
+      overflow: hidden;
+      min-height: 0;
+    }
+  }
+
+  &__card:hover &__detail,
+  &__card:focus-within &__detail {
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.5s $neo-ease-out 0.06s;
+  }
+
+  &__detail-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 10px;
+  }
+
+  &__step {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+    transition:
+      opacity 0.18s ease,
+      transform 0.25s ease,
+      filter 0.18s ease;
+  }
+
+  &__card:hover &__step,
+  &__card:focus-within &__step {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+    transition:
+      opacity 0.4s ease,
+      transform 0.55s $neo-ease-out,
+      filter 0.4s ease;
+  }
+
+  @for $index from 1 through 3 {
+    &__card:hover &__step:nth-child(#{$index}),
+    &__card:focus-within &__step:nth-child(#{$index}) {
+      transition-delay: 0.06s + 0.06s * $index;
+    }
+  }
+
+  &__description {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #a3a6b0;
+  }
+
+  &__note {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #8e919b;
+  }
+
+  &__cta {
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    border: 0;
+    border-radius: 6px;
+    background-color: #f0f1f7;
+    color: #0d0d0d;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #ffffff;
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+
+  &__close {
+    position: absolute;
+    top: 14px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #8e919b;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.55;
+    transition:
+      opacity 0.2s ease,
+      background-color 0.2s ease,
+      color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: #f0f1f7;
+    }
+  }
+
+  &__card:hover &__close,
+  &__card:focus-within &__close {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__card,
+    &__card:hover {
+      animation: none;
+      transform: none;
+    }
+
+    &__detail,
+    &__step,
+    &__logo {
+      transition: none !important;
+    }
+
+    &__step {
+      filter: none;
+    }
+  }
+}

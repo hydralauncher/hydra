@@ -110,7 +110,20 @@
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
     "custom_assets_not_sync": "Deine benutzerdefinierten Grafiken werden nicht mit deinem Konto synchronisiert.",
     "confirm": "Confirm",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "neo_aria_label": "Hydra-Neo-Ankündigung",
+    "neo_title": "Das ist Hydra Neo",
+    "neo_description": "Wir haben Hydra von Grund auf als native App neu gebaut. Braucht weniger Speicher und läuft schneller auf älteren PCs.",
+    "neo_dismiss": "Hydra-Neo-Ankündigung ausblenden",
+    "neo_waitlist_subtitle": "Etwas Neues. Zum Ansehen darüberfahren",
+    "neo_waitlist_note": "Trag dich in die Warteliste ein. Freigeschaltete Tester bekommen 3 Monate Hydra Cloud geschenkt.",
+    "neo_waitlist_cta": "Platz sichern",
+    "neo_cloud_subtitle": "Du überspringst die Warteschlange. Darüberfahren",
+    "neo_cloud_note": "Cloud-Mitglieder überspringen die Warteschlange: keine Warteliste, keine Freigabe. Ab heute deins.",
+    "neo_cloud_cta": "Neo jetzt testen",
+    "neo_approved_subtitle": "Du bist dabei. Zum Ansehen darüberfahren",
+    "neo_approved_note": "Du wurdest freigeschaltet. Tritt dem Neo-Discord bei, um den ersten Build herunterzuladen.",
+    "neo_approved_cta": "Discord beitreten"
   },
   "header": {
     "search": "Spiele suchen",

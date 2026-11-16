@@ -110,7 +110,20 @@
     "expand_collections": "Expand collections",
     "collapse_collections": "Collapse collections",
     "expand_games": "Expand games",
-    "collapse_games": "Collapse games"
+    "collapse_games": "Collapse games",
+    "neo_aria_label": "Hydra Neo duyurusu",
+    "neo_title": "Hydra Neo ile tanışın",
+    "neo_description": "Hydra'yı sıfırdan yerel bir uygulama olarak yeniden yaptık. Daha az bellek kullanır, eski PC'lerde daha hızlıdır.",
+    "neo_dismiss": "Hydra Neo duyurusunu kapat",
+    "neo_waitlist_subtitle": "Yeni bir şey var. Görmek için üzerine gel",
+    "neo_waitlist_note": "Bekleme listesine katıl. Onaylanan testçilere 3 ay Hydra Cloud bizden.",
+    "neo_waitlist_cta": "Yerimi ayır",
+    "neo_cloud_subtitle": "Sırayı atlıyorsun. Görmek için üzerine gel",
+    "neo_cloud_note": "Cloud üyeleri sırayı atlar: bekleme listesi yok, onay yok. Bugünden itibaren senin.",
+    "neo_cloud_cta": "Neo'yu dene",
+    "neo_approved_subtitle": "İçeridesin. Görmek için üzerine gel",
+    "neo_approved_note": "Onaylandın. İlk sürümü indirmek için Neo Discord'una katıl.",
+    "neo_approved_cta": "Discord'a katıl"
   },
   "header": {
     "search": "Oyunlarda Ara",

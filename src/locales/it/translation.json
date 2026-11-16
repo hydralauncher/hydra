@@ -110,7 +110,20 @@
     "expand_collections": "Expand collections",
     "collapse_collections": "Collapse collections",
     "expand_games": "Expand games",
-    "collapse_games": "Collapse games"
+    "collapse_games": "Collapse games",
+    "neo_aria_label": "Annuncio di Hydra Neo",
+    "neo_title": "Ecco Hydra Neo",
+    "neo_description": "Abbiamo ricostruito Hydra da zero come app nativa. Più leggera sulla memoria e più veloce sui PC meno recenti.",
+    "neo_dismiss": "Chiudi l'annuncio di Hydra Neo",
+    "neo_waitlist_subtitle": "Qualcosa di nuovo. Passa il mouse per vedere",
+    "neo_waitlist_note": "Unisciti alla lista d'attesa. I tester approvati ricevono 3 mesi di Hydra Cloud in regalo.",
+    "neo_waitlist_cta": "Prenota il mio posto",
+    "neo_cloud_subtitle": "Salti la fila. Passa il mouse per vedere",
+    "neo_cloud_note": "I membri Cloud saltano la fila: niente lista d'attesa, niente approvazione. È già tuo.",
+    "neo_cloud_cta": "Prova Neo ora",
+    "neo_approved_subtitle": "Sei dentro. Passa il mouse per vedere",
+    "neo_approved_note": "Sei stato approvato. Entra nel Discord di Neo per scaricare la prima build.",
+    "neo_approved_cta": "Entra nel Discord"
   },
   "header": {
     "search": "Cerca giochi",

@@ -110,7 +110,20 @@
     "expand_collections": "Expand collections",
     "collapse_collections": "Collapse collections",
     "expand_games": "Expand games",
-    "collapse_games": "Collapse games"
+    "collapse_games": "Collapse games",
+    "neo_aria_label": "Анонс Hydra Neo",
+    "neo_title": "Зустрічайте Hydra Neo",
+    "neo_description": "Ми переписали Hydra з нуля як нативний застосунок. Менше пам'яті й швидше на старих ПК.",
+    "neo_dismiss": "Сховати анонс Hydra Neo",
+    "neo_waitlist_subtitle": "Щось нове. Наведіть, щоб дізнатися",
+    "neo_waitlist_note": "Приєднуйтеся до списку очікування. Схвалені тестувальники отримають 3 місяці Hydra Cloud у подарунок.",
+    "neo_waitlist_cta": "Зайняти місце",
+    "neo_cloud_subtitle": "Ви без черги. Наведіть, щоб дізнатися",
+    "neo_cloud_note": "Підписники Cloud проходять без черги: без списку очікування й схвалення. Уже доступно.",
+    "neo_cloud_cta": "Спробувати Neo",
+    "neo_approved_subtitle": "Ви в грі. Наведіть, щоб дізнатися",
+    "neo_approved_note": "Вас схвалено. Приєднайтеся до Discord Neo, щоб завантажити першу збірку.",
+    "neo_approved_cta": "Приєднатися до Discord"
   },
   "header": {
     "search": "Пошук",

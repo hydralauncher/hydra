@@ -46,6 +46,7 @@ import {
 } from "@renderer/session-state";
 import { SidebarGameList } from "./sidebar-game-list";
 import { SidebarProfile } from "./sidebar-profile";
+import { NeoSidebarCard } from "./neo-sidebar-card";
 
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_INITIAL_WIDTH = 250;
@@ -614,6 +615,8 @@ export function Sidebar() {
             />
           </section>
         </div>
+
+        <NeoSidebarCard />
       </div>
 
       <button

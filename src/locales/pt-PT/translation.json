@@ -125,7 +125,20 @@
     "steamgriddb_artwork_reset": "Arte reposta para a predefinição",
     "classics_hero_layout_warning": "Para mostrar o logo e o hero, ative o esquema logo + hero na página de jogos clássicos.",
     "classics_hero_layout_open_settings": "Abrir definições",
-    "custom_assets_not_sync": "As tuas artes personalizadas não serão sincronizadas com a tua conta."
+    "custom_assets_not_sync": "As tuas artes personalizadas não serão sincronizadas com a tua conta.",
+    "neo_aria_label": "Anúncio do Hydra Neo",
+    "neo_title": "Conhece o Hydra Neo",
+    "neo_description": "Refizemos o Hydra de raiz como uma aplicação nativa. Mais leve na memória e mais rápido em PCs mais antigos.",
+    "neo_dismiss": "Dispensar anúncio do Hydra Neo",
+    "neo_waitlist_subtitle": "Novidade. Passa o rato para ver",
+    "neo_waitlist_note": "Entra na lista de espera. Os testers aprovados recebem 3 meses de Hydra Cloud por nossa conta.",
+    "neo_waitlist_cta": "Guardar o meu lugar",
+    "neo_cloud_subtitle": "Saltas a fila. Passa o rato para ver",
+    "neo_cloud_note": "Os membros do Cloud saltam a fila: sem lista de espera, sem aprovação. Já é teu.",
+    "neo_cloud_cta": "Experimentar o Neo",
+    "neo_approved_subtitle": "Estás dentro. Passa o rato para ver",
+    "neo_approved_note": "Foste aprovado. Entra no Discord do Neo para transferir a primeira versão.",
+    "neo_approved_cta": "Entrar no Discord"
   },
   "header": {
     "minimize": "Minimizar",

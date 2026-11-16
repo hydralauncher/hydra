@@ -107,7 +107,20 @@
     "decky_plugin_installation_error": "Error installing Decky plugin: {{error}}",
     "custom_assets_not_sync": "사용자 지정 아트워크는 계정과 동기화되지 않습니다.",
     "confirm": "Confirm",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "neo_aria_label": "Hydra Neo 공지",
+    "neo_title": "Hydra Neo를 만나보세요",
+    "neo_description": "Hydra를 네이티브 앱으로 처음부터 다시 만들었습니다. 메모리를 덜 쓰고 오래된 PC에서도 더 빠릅니다.",
+    "neo_dismiss": "Hydra Neo 공지 닫기",
+    "neo_waitlist_subtitle": "새로운 소식. 마우스를 올려 보세요",
+    "neo_waitlist_note": "대기 명단에 등록하세요. 승인된 테스터는 Hydra Cloud 3개월을 무료로 받습니다.",
+    "neo_waitlist_cta": "자리 맡기",
+    "neo_cloud_subtitle": "대기 없이 바로. 마우스를 올려 보세요",
+    "neo_cloud_note": "Cloud 멤버는 대기 없이 바로: 대기 명단도, 승인도 필요 없습니다. 오늘부터 사용하세요.",
+    "neo_cloud_cta": "지금 Neo 사용해 보기",
+    "neo_approved_subtitle": "승인되었습니다. 마우스를 올려 보세요",
+    "neo_approved_note": "승인되었습니다. Neo Discord에 참여해 첫 빌드를 다운로드하세요.",
+    "neo_approved_cta": "Discord 참여"
   },
   "header": {
     "search": "게임 검색하기",

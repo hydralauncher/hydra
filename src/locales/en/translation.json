@@ -150,7 +150,20 @@
     "steamgriddb_artwork_reset": "Artwork reset to default",
     "classics_hero_layout_warning": "To display the logo and hero, enable the logo + hero layout on the classic game page.",
     "classics_hero_layout_open_settings": "Open settings",
-    "custom_assets_not_sync": "Your custom artwork will not be synced with your account."
+    "custom_assets_not_sync": "Your custom artwork will not be synced with your account.",
+    "neo_aria_label": "Hydra Neo announcement",
+    "neo_title": "Meet Hydra Neo",
+    "neo_description": "We rebuilt Hydra from scratch as a native app. Lighter on memory and quicker on older PCs.",
+    "neo_dismiss": "Dismiss Hydra Neo announcement",
+    "neo_waitlist_subtitle": "Something new. Hover to peek",
+    "neo_waitlist_note": "Join the waitlist. Approved testers get 3 months of Hydra Cloud on us.",
+    "neo_waitlist_cta": "Save my spot",
+    "neo_cloud_subtitle": "You skip the line. Hover to peek",
+    "neo_cloud_note": "Cloud members jump the queue: no waitlist, no approval. It’s yours today.",
+    "neo_cloud_cta": "Try Neo now",
+    "neo_approved_subtitle": "You're in. Hover to peek",
+    "neo_approved_note": "You're approved. Join the Neo Discord to download the first build.",
+    "neo_approved_cta": "Join the Discord"
   },
   "header": {
     "leaderboards": "Leaderboards",
