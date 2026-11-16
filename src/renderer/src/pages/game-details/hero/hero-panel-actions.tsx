@@ -9,7 +9,12 @@ import {
   PlayIcon,
   PlusCircleIcon,
 } from "@primer/octicons-react";
-import { Button, ConfirmationModal, Modal } from "@renderer/components";
+import {
+  Button,
+  ConfirmationModal,
+  Modal,
+  isNotProtonRequiredError,
+} from "@renderer/components";
 import type { LibraryGame } from "@types";
 import {
   canRetryEpicLaunchWithLocalSaves,
@@ -359,12 +364,29 @@ export function HeroPanelActions() {
 
     const gameExecutablePath = await selectGameExecutable();
     if (gameExecutablePath)
-      window.electron.openGame(
-        game.shop,
-        game.objectId,
-        gameExecutablePath,
-        game.launchOptions
-      );
+      window.electron
+        .openGame(
+          game.shop,
+          game.objectId,
+          gameExecutablePath,
+          game.launchOptions
+        )
+        .catch((error) => {
+          if (isNotProtonRequiredError(error)) {
+            showErrorToast(
+              t("macos_notproton_required_title", {
+                defaultValue:
+                  "Windows (.exe) games on macOS require NotProton + CrossOver",
+              }),
+              t("macos_notproton_required_description", {
+                defaultValue:
+                  "Library repositories contain Windows games. To run them on macOS (or launch them via Add to Steam), you must have both CrossOver and NotProton installed.",
+              })
+            );
+            return;
+          }
+          logger.error("Failed to open game", error);
+        });
   };
   const launchMember = async (
     member: LibraryGame,
@@ -388,6 +410,19 @@ export function HeroPanelActions() {
       );
     } catch (error) {
       if (generation !== launchGeneration.current) return;
+      if (isNotProtonRequiredError(error)) {
+        showErrorToast(
+          t("macos_notproton_required_title", {
+            defaultValue:
+              "Windows (.exe) games on macOS require NotProton + CrossOver",
+          }),
+          t("macos_notproton_required_description", {
+            defaultValue:
+              "Library repositories contain Windows games. To run them on macOS (or launch them via Add to Steam), you must have both CrossOver and NotProton installed.",
+          })
+        );
+        return;
+      }
       const code =
         member.shop === "epic" ? getEpicLaunchError(error) : undefined;
       if (code === "save-conflict") {

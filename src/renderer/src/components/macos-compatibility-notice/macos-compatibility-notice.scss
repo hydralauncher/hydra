@@ -1,0 +1,58 @@
+@use "../../scss/globals.scss";
+
+.macos-compatibility-notice {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 1.5);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  background-color: rgba(255, 193, 7, 0.08);
+  font-size: globals.$small-font-size;
+
+  &--warning {
+    border-color: rgba(255, 99, 71, 0.45);
+    background-color: rgba(255, 99, 71, 0.1);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$body-color;
+  }
+
+  &__description {
+    margin: 0;
+    color: globals.$muted-color;
+    line-height: 1.4;
+  }
+
+  &__checks {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit / 2);
+  }
+
+  &__check-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: globals.$spacing-unit;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit / 2);
+    font-weight: 500;
+
+    &--ok {
+      color: #4caf50;
+    }
+
+    &--missing {
+      color: #ff6b6b;
+    }
+  }
+}

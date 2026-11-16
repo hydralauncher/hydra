@@ -27,6 +27,7 @@ import type {
   AchievementNotificationInfo,
   AchievementNotificationRequest,
   ProtonVersion,
+  MacCompatibilityStatus,
   TorrentFilesResponse,
   DownloadLayoutState,
   EmulatorSystem,
@@ -1264,6 +1265,10 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getInstalledProtonVersions") as Promise<
       ProtonVersion[]
     >,
+  getMacCompatibilityStatus: () =>
+    ipcRenderer.invoke(
+      "getMacCompatibilityStatus"
+    ) as Promise<MacCompatibilityStatus>,
   getGameLaunchProtonVersion: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("getGameLaunchProtonVersion", shop, objectId),
   verifyExecutablePathInUse: (executablePath: string) =>

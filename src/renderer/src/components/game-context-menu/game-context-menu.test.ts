@@ -268,6 +268,7 @@ async function fixture(
     "react-i18next": translation,
     "react-router-dom": router,
     "@renderer/helpers": helpers,
+    "@renderer/components": { isNotProtonRequiredError: () => false },
     "@renderer/logger": { logger: { error: () => {} } },
     "@renderer/context/game-options-modal/game-options-modal.context": {
       useGameOptionsModal: () => ({

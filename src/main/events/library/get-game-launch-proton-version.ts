@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { GameShop, UserPreferences } from "@types";
-import { Umu } from "@main/services";
+import { getNotProtonToolName, Umu } from "@main/services";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { registerEvent } from "../register-event";
 
@@ -9,7 +9,7 @@ const getGameLaunchProtonVersion = async (
   shop: GameShop,
   objectId: string
 ): Promise<string | null> => {
-  if (process.platform !== "linux") {
+  if (process.platform !== "linux" && process.platform !== "darwin") {
     return null;
   }
 
@@ -21,14 +21,19 @@ const getGameLaunchProtonVersion = async (
     })
     .catch(() => null);
 
+  const formatName = (protonPath: string) =>
+    process.platform === "darwin"
+      ? getNotProtonToolName(protonPath)
+      : path.basename(protonPath);
+
   const gameProtonPath = game?.protonPath;
   if (gameProtonPath && Umu.isValidProtonPath(gameProtonPath)) {
-    return path.basename(gameProtonPath);
+    return formatName(gameProtonPath);
   }
 
   const defaultProtonPath = userPreferences?.defaultProtonPath;
   if (defaultProtonPath && Umu.isValidProtonPath(defaultProtonPath)) {
-    return path.basename(defaultProtonPath);
+    return formatName(defaultProtonPath);
   }
 
   return null;

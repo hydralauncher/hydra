@@ -56,7 +56,7 @@ const pinExistingWinePrefixes = async (
   userPreferences: UserPreferences | null
 ) => {
   const shouldPin =
-    process.platform === "linux" &&
+    (process.platform === "linux" || process.platform === "darwin") &&
     Object.hasOwn(preferences, "defaultWinePrefixPath") &&
     preferences.defaultWinePrefixPath !==
       userPreferences?.defaultWinePrefixPath;
