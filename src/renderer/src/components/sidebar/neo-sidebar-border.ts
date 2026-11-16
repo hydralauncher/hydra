@@ -51,7 +51,7 @@ export function useNeoSidebarBorder(
       alpha: true,
       antialias: true,
     });
-    if (!canvas || !gl) return;
+    if (!canvas || !gl || gl.isContextLost()) return;
 
     const compile = (type: number, source: string) => {
       const shader = gl.createShader(type)!;
@@ -67,7 +67,8 @@ export function useNeoSidebarBorder(
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
     gl.useProgram(program);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
       new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
@@ -145,7 +146,8 @@ export function useNeoSidebarBorder(
       cancelAnimationFrame(frameId);
       observer.disconnect();
       canvas.removeEventListener("neo-hover", kick);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      gl.deleteBuffer(buffer);
+      gl.deleteProgram(program);
     };
   }, [canvasRef, hoverRef]);
 }
