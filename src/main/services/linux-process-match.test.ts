@@ -3,7 +3,7 @@ import { beforeEach, describe, it, mock } from "node:test";
 
 import {
   REAL_PATH_CACHE_TTL_MS,
-  clearExecutableRealPathCache,
+  clearRealPathCaches,
   doesSteamCompatDataPathMatchWinePrefix,
   getExecutablePathAliases,
   getWinePrefixAliases,
@@ -240,7 +240,7 @@ describe("executable real path cache", () => {
   const resolvedPath = "/var/home/user/Games/Game/Game.exe";
 
   beforeEach(() => {
-    clearExecutableRealPathCache();
+    clearRealPathCaches();
   });
 
   it("returns only the stored path until a refresh has populated the cache", () => {
@@ -354,7 +354,7 @@ describe("executable symlink resolution", () => {
   });
 
   it("does not alias a symlinked executable to its target", async () => {
-    clearExecutableRealPathCache();
+    clearRealPathCaches();
     await refreshExecutableRealPaths(
       ["/home/user/Games/Game/start"],
       (value) => resolveExecutableRealPath(value, realpath),
@@ -383,7 +383,7 @@ describe("wine prefix real path matching", () => {
     "/var/home/user/.config/hydralauncher/wine-prefixes/10";
 
   beforeEach(() => {
-    clearExecutableRealPathCache();
+    clearRealPathCaches();
   });
 
   it("matches a process whose prefix is reported under the resolved path", async () => {

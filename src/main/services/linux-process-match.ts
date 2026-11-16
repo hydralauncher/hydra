@@ -92,7 +92,7 @@ const createRealPathCache = (defaultResolve: AsyncRealPathResolver) => {
 const executableRealPaths = createRealPathCache(resolveExecutableRealPath);
 const winePrefixRealPaths = createRealPathCache(resolveDirectoryRealPath);
 
-export const clearExecutableRealPathCache = () => {
+export const clearRealPathCaches = () => {
   executableRealPaths.clear();
   winePrefixRealPaths.clear();
 };
