@@ -255,10 +255,6 @@ $hover-transition: 0.15s ease;
       height: 100%;
       object-fit: cover;
     }
-
-    &--empty {
-      background: linear-gradient(90deg, #2a1a0f, #1a1410 45%, #0f1830);
-    }
   }
 
   &__footer {
