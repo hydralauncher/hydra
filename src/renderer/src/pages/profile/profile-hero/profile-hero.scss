@@ -93,6 +93,18 @@
     &:hover {
       box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.7);
     }
+
+    // The frame draws its own border and spills 18px past the photo.
+    &--framed {
+      margin-right: 18px;
+      border-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+
+      &:hover {
+        box-shadow: none;
+      }
+    }
   }
 
   &__information {
