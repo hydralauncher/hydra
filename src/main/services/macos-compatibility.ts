@@ -61,6 +61,45 @@ export const getNotProtonToolName = (directoryPath: string): string => {
   return folderName;
 };
 
+const resolveNotProtonEntry = async (
+  compatibilityRoot: string,
+  entry: fs.Dirent
+): Promise<ProtonVersion | null> => {
+  if (!entry.isDirectory() && !entry.isSymbolicLink()) return null;
+
+  const candidatePath = path.join(compatibilityRoot, entry.name);
+  try {
+    const realPath = await fs.promises.realpath(candidatePath);
+    const targetStat = await fs.promises.stat(realPath);
+    if (!targetStat.isDirectory() || !isValidNotProtonDirectory(realPath)) {
+      return null;
+    }
+
+    return {
+      name: getNotProtonToolName(realPath),
+      path: realPath,
+      source: "compatibility_tools",
+    };
+  } catch {
+    return null;
+  }
+};
+
+const readNotProtonToolsInRoot = async (
+  compatibilityRoot: string
+): Promise<ProtonVersion[]> => {
+  if (!fs.existsSync(compatibilityRoot)) return [];
+
+  const entries = await fs.promises
+    .readdir(compatibilityRoot, { withFileTypes: true })
+    .catch(() => [] as fs.Dirent[]);
+
+  const resolved = await Promise.all(
+    entries.map((entry) => resolveNotProtonEntry(compatibilityRoot, entry))
+  );
+  return resolved.filter((tool): tool is ProtonVersion => tool !== null);
+};
+
 export const getMacCompatibilityTools = async (): Promise<ProtonVersion[]> => {
   if (process.platform !== "darwin") return [];
 
@@ -82,36 +121,13 @@ export const getMacCompatibilityTools = async (): Promise<ProtonVersion[]> => {
     ),
   ];
 
+  const toolsPerRoot = await Promise.all(
+    compatibilityRoots.map((root) => readNotProtonToolsInRoot(root))
+  );
+
   const toolsByPath = new Map<string, ProtonVersion>();
-
-  for (const compatibilityRoot of compatibilityRoots) {
-    if (!fs.existsSync(compatibilityRoot)) continue;
-
-    const entries = await fs.promises
-      .readdir(compatibilityRoot, { withFileTypes: true })
-      .catch(() => [] as fs.Dirent[]);
-
-    for (const entry of entries) {
-      if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
-
-      const candidatePath = path.join(compatibilityRoot, entry.name);
-      let realPath: string;
-      try {
-        realPath = await fs.promises.realpath(candidatePath);
-        const targetStat = await fs.promises.stat(realPath);
-        if (!targetStat.isDirectory()) continue;
-      } catch {
-        continue;
-      }
-
-      if (!isValidNotProtonDirectory(realPath)) continue;
-
-      toolsByPath.set(realPath, {
-        name: getNotProtonToolName(realPath),
-        path: realPath,
-        source: "compatibility_tools",
-      });
-    }
+  for (const tool of toolsPerRoot.flat()) {
+    toolsByPath.set(tool.path, tool);
   }
 
   return Array.from(toolsByPath.values()).sort((a, b) =>
@@ -217,7 +233,10 @@ const resolveReadyNotProtonRunner = async (
 
   const runScript = path.join(runnerPath, "run");
   try {
-    fs.chmodSync(runScript, 0o755);
+    const currentMode = fs.statSync(runScript).mode;
+    if ((currentMode & 0o100) === 0) {
+      fs.chmodSync(runScript, currentMode | 0o100);
+    }
   } catch {
     // Ignore permission errors on read-only paths.
   }
