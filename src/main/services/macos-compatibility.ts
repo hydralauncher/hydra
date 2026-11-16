@@ -225,15 +225,54 @@ const resolveReadyNotProtonRunner = async (
   return { runnerPath, runScript };
 };
 
-const resolveDefaultSteamClientPath = async (): Promise<string> =>
-  getSteamLocation().catch(() =>
-    path.join(
-      SystemPath.getPath("home"),
-      "Library",
-      "Application Support",
-      "Steam"
-    )
+const STEAM_APP_BUNDLE_MACOS_SEGMENTS = [
+  "Steam.AppBundle",
+  "Steam",
+  "Contents",
+  "MacOS",
+] as const;
+
+export const resolveMacSteamClientPath = (
+  steamRoot?: string | null,
+  home = SystemPath.getPath("home"),
+  existsSync: (targetPath: string) => boolean = fs.existsSync
+): { path: string; hasNativeLibrary: boolean } => {
+  const defaultSteamRoot = path.join(
+    home,
+    "Library",
+    "Application Support",
+    "Steam"
   );
+  const roots = [
+    ...new Set([steamRoot, defaultSteamRoot].filter((v): v is string => !!v)),
+  ];
+  const candidates = [
+    ...roots.map((root) => path.join(root, ...STEAM_APP_BUNDLE_MACOS_SEGMENTS)),
+    "/Applications/Steam.app/Contents/MacOS",
+    ...roots,
+  ];
+
+  const matched = candidates.find((candidate) =>
+    existsSync(path.join(candidate, "steamclient.dylib"))
+  );
+
+  if (matched) {
+    return { path: matched, hasNativeLibrary: true };
+  }
+
+  return {
+    path: path.join(
+      steamRoot ?? defaultSteamRoot,
+      ...STEAM_APP_BUNDLE_MACOS_SEGMENTS
+    ),
+    hasNativeLibrary: false,
+  };
+};
+
+const resolveDefaultSteamClientPath = async () => {
+  const steamRoot = await getSteamLocation().catch(() => null);
+  return resolveMacSteamClientPath(steamRoot);
+};
 
 const buildNotProtonEnvironment = (params: {
   compatDataPath: string;
@@ -268,7 +307,7 @@ export const prepareMacWinePrefix = async (
   );
   fs.mkdirSync(compatDataPath, { recursive: true });
 
-  const steamClientPath = await resolveDefaultSteamClientPath();
+  const { path: steamClientPath } = await resolveDefaultSteamClientPath();
   const env = buildNotProtonEnvironment({
     compatDataPath,
     installPath: options.winePrefixPath ?? compatDataPath,
@@ -315,17 +354,15 @@ export const prepareNotProtonLaunch = async (
   );
   fs.mkdirSync(compatDataPath, { recursive: true });
 
-  const steamClientPath = await resolveDefaultSteamClientPath();
+  const { path: steamClientPath, hasNativeLibrary } =
+    await resolveDefaultSteamClientPath();
 
   const workingDirectory =
     options.workingDirectory ?? path.dirname(options.executablePath);
+  const verb = hasNativeLibrary ? "waitforexitandrun" : "runinprefix";
   const resolvedLaunchCommand = resolveLaunchCommand({
     baseCommand: runScript,
-    baseArgs: [
-      "waitforexitandrun",
-      options.executablePath,
-      ...(options.shortcutArgs ?? []),
-    ],
+    baseArgs: [verb, options.executablePath, ...(options.shortcutArgs ?? [])],
     launchOptions: options.launchOptions,
   });
 
