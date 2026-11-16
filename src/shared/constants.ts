@@ -56,6 +56,7 @@ export enum Cracker {
   rle = "RLE",
   razor1911 = "RAZOR1911",
   ali213 = "ALI213",
+  universeLan = "UniverseLAN",
 }
 
 export enum AuthPage {

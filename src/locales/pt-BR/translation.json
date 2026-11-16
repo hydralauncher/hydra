@@ -1599,6 +1599,7 @@
     "replace_saved_big_picture_directory": "Substituir este diretório salvo do Big Picture",
     "replace_and_use_new_path": "Substituir e usar novo caminho",
     "enable_steam_achievements": "Habilitar busca por conquistas da Steam",
+    "enable_gog_achievements": "Registrar conquistas de jogos GOG (instala o UniverseLAN no jogo ao abri-lo)",
     "enable_new_download_options_badges": "Mostrar badges de novas opções de download",
     "persist_filters_and_sorting": "Manter ordenação e filtros após reiniciar o Hydra",
     "enable_achievement_custom_notifications": "Habilitar notificações customizadas de conquistas",

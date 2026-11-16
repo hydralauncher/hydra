@@ -10,6 +10,11 @@ import {
   readDirectorySafe,
 } from "./game-directory.js";
 import { findSteamSettingsDirectories } from "./metadata-export/find-steam-settings-directories.js";
+import {
+  UNIVERSE_LAN_ACHIEVEMENTS_FILE_NAME,
+  UNIVERSE_LAN_DATA_DIR_NAME,
+  resolveUniverseLanDataDirectories,
+} from "./universe-lan-locations.js";
 
 const OBJECT_ID_DIR_PATTERN = /^\d+$/;
 
@@ -25,16 +30,22 @@ const RELATIVE_FILE_LOCATIONS: { type: Cracker; segments: string[] }[] = [
     type: Cracker.ali213,
     segments: ["Profile", ANY_PROFILE_DIR, "Stats", "Achievements.Bin"],
   },
+  {
+    type: Cracker.universeLan,
+    segments: [UNIVERSE_LAN_DATA_DIR_NAME, UNIVERSE_LAN_ACHIEVEMENTS_FILE_NAME],
+  },
 ];
 
 export interface GameDirectoryLocations {
   bases: string[];
   steamSettingsDirectories: string[];
+  universeLanDataDirectories: string[];
 }
 
 export const EMPTY_GAME_DIRECTORY_LOCATIONS: GameDirectoryLocations = {
   bases: [],
   steamSettingsDirectories: [],
+  universeLanDataDirectories: [],
 };
 
 export const resolveGameDirectoryLocations = async (
@@ -47,7 +58,10 @@ export const resolveGameDirectoryLocations = async (
     findSteamSettingsDirectories(executablePath),
   ]);
 
-  return { bases, steamSettingsDirectories };
+  const universeLanDataDirectories =
+    await resolveUniverseLanDataDirectories(bases);
+
+  return { bases, steamSettingsDirectories, universeLanDataDirectories };
 };
 
 const resolveCandidatePaths = async (base: string, segments: string[]) => {
@@ -116,16 +130,44 @@ const findSteamSettingsFiles = async (steamSettingsDirectories: string[]) => {
   return achievementFiles;
 };
 
+const findUniverseLanFiles = async (universeLanDataDirectories: string[]) => {
+  const achievementFiles: AchievementFile[] = [];
+
+  await Promise.all(
+    universeLanDataDirectories.map(async (dataDirectory) => {
+      const filePath = path.join(
+        dataDirectory,
+        UNIVERSE_LAN_ACHIEVEMENTS_FILE_NAME
+      );
+
+      if (await isFile(filePath)) {
+        achievementFiles.push({ type: Cracker.universeLan, filePath });
+      }
+    })
+  );
+
+  return achievementFiles;
+};
+
 export const findAchievementFilesInLocations = async ({
   bases,
   steamSettingsDirectories,
+  universeLanDataDirectories = [],
 }: GameDirectoryLocations): Promise<AchievementFile[]> => {
-  if (!bases.length && !steamSettingsDirectories.length) return [];
+  if (
+    !bases.length &&
+    !steamSettingsDirectories.length &&
+    !universeLanDataDirectories.length
+  ) {
+    return [];
+  }
 
-  const [relativeFiles, steamSettingsFiles] = await Promise.all([
-    findRelativeFiles(bases),
-    findSteamSettingsFiles(steamSettingsDirectories),
-  ]);
+  const [relativeFiles, steamSettingsFiles, universeLanFiles] =
+    await Promise.all([
+      findRelativeFiles(bases),
+      findSteamSettingsFiles(steamSettingsDirectories),
+      findUniverseLanFiles(universeLanDataDirectories),
+    ]);
 
-  return [...relativeFiles, ...steamSettingsFiles];
+  return [...relativeFiles, ...steamSettingsFiles, ...universeLanFiles];
 };

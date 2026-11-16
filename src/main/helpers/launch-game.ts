@@ -39,6 +39,7 @@ import { dispatchSteamProtocolLaunch } from "@main/services/steam-integration/st
 import { resolveSteamProtocolLaunch } from "@main/services/steam-integration/steam-protocol-launch";
 import { CommonRedistManager } from "@main/services/common-redist-manager";
 import { runAchievementMetadataExport } from "@main/services/achievements/metadata-export";
+import { prepareUniverseLanForLaunch } from "@main/services/achievements/universe-lan";
 import {
   parseExecutablePath,
   readExecutableShortcut,
@@ -982,6 +983,12 @@ const launchGameWithCloudSaveChecks = async (
   // Run preflight check for common redistributables (Windows only)
   // Wrapped in try/catch to ensure game launch is never blocked
   await runCommonRedistPreflight(shop, objectId);
+
+  // GOG games: swap in UniverseLAN and start its server before the game loads
+  // the Galaxy DLL. Never throws, so it cannot block the launch.
+  if (!steamProtocolLaunch) {
+    await prepareUniverseLanForLaunch(gameKey, parsedPath);
+  }
 
   if (updatedGame) {
     void runAchievementMetadataExport(gameKey, updatedGame);

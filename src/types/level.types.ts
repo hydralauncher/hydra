@@ -236,6 +236,8 @@ export interface UserPreferences {
   extractFilesByDefault?: boolean;
   deleteArchiveFilesAfterExtractionByDefault?: boolean;
   enableSteamAchievements?: boolean;
+  /** Installs UniverseLAN into GOG games so their achievements are tracked. */
+  enableGogAchievements?: boolean;
   enableAchievementSouvenirs?: boolean;
   achievementScreenshotsPath?: string;
   autoplayGameTrailers?: boolean;

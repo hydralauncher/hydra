@@ -254,6 +254,46 @@ export const processRld = (
   return newUnlockedAchievements;
 };
 
+// Mirrors CSimpleIniA::GetBoolValue, which UniverseLAN uses to read the file:
+// "true", "yes", "1" (any value starting with t, y or 1) and "on" are truthy.
+const isIniTruthy = (value: unknown) => {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+
+  return /^[ty1]/.test(normalized) || normalized === "on";
+};
+
+/**
+ * UniverseLAN (GOG Galaxy emulator) Achievements.ini:
+ *
+ * [ACHIEVEMENT_API_KEY]
+ * Description=
+ * Unlocked=true
+ * UnlockTime=1700000000
+ */
+export const processUniverseLan = (
+  unlockedAchievements: Record<string, Record<string, string | number>>
+): UnlockedAchievement[] => {
+  const newUnlockedAchievements: UnlockedAchievement[] = [];
+
+  for (const [name, achievement] of Object.entries(unlockedAchievements)) {
+    if (!name || !isIniTruthy(achievement?.Unlocked)) continue;
+
+    const unlockTime = Number(achievement.UnlockTime);
+
+    newUnlockedAchievements.push({
+      name,
+      unlockTime:
+        Number.isFinite(unlockTime) && unlockTime > 0
+          ? unlockTime * 1000
+          : Date.now(),
+    });
+  }
+
+  return newUnlockedAchievements;
+};
+
 export const processUserStats = (
   unlockedAchievements: any
 ): UnlockedAchievement[] => {

@@ -17,6 +17,7 @@ import { PowerSaveBlockerManager } from "./power-save-blocker";
 import path from "node:path";
 import { AchievementWatcherManager } from "./achievements/achievement-watcher-manager";
 import { abortAchievementMetadataExport } from "./achievements/metadata-export";
+import { releaseUniverseLanServer } from "./achievements/universe-lan";
 import { INTERVALS } from "@main/constants";
 import { Wine } from "./wine";
 import { NativeAddon } from "./native-addon";
@@ -724,6 +725,7 @@ const onCloseGame = (game: Game, options: { isShutdown?: boolean } = {}) => {
   stopLinuxGameCaptureSession(gameKey);
   PowerSaveBlockerManager.markGameClosed(gameKey);
   abortAchievementMetadataExport(gameKey);
+  releaseUniverseLanServer(gameKey);
 
   const { localDelta: delta, syncDelta: deltaToSync } = getGamePlaytimeDeltas(
     gamePlaytime,

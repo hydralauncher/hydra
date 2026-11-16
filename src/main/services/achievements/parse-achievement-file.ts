@@ -13,6 +13,7 @@ import {
   processRazor1911,
   processRld,
   processSkidrow,
+  processUniverseLan,
   processUserStats,
 } from "./parse-achievement-formats";
 
@@ -68,6 +69,7 @@ const ACHIEVEMENT_PARSERS: Partial<
   [Cracker.creamAPI]: (filePath) => processCreamAPI(iniParse(filePath)),
   [Cracker.empress]: (filePath) => processGoldberg(jsonParse(filePath)),
   [Cracker.razor1911]: processRazor1911,
+  [Cracker.universeLan]: (filePath) => processUniverseLan(iniParse(filePath)),
   [Cracker.Steam]: (filePath) =>
     processSteamCacheAchievement(jsonParse(filePath)),
 };
