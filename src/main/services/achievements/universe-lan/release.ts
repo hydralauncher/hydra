@@ -30,7 +30,8 @@ export interface UniverseLanPackage {
 const SHA256_DIGEST_PATTERN = /^sha256:([a-f0-9]{64})$/i;
 
 const assetNamePattern = (sdkVersion: string) => {
-  const escapedSdkVersion = sdkVersion.replaceAll(".", "\\.");
+  const escapedDot = String.raw`\.`;
+  const escapedSdkVersion = sdkVersion.replaceAll(".", escapedDot);
 
   return new RegExp(
     String.raw`^UniverseLAN-${escapedSdkVersion}-Build-(\d+)-x64_x86\.zip$`
