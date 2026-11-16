@@ -242,37 +242,6 @@ $hover-transition: 0.15s ease;
     flex-shrink: 0;
   }
 
-  &__results {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: -8px 0 20px;
-    font-size: globals.$hint-font-size;
-    color: $muted;
-
-    strong {
-      color: $ink;
-    }
-  }
-
-  &__clear {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 26px;
-    padding: 0 10px;
-    border: 0;
-    border-radius: 6px;
-    background-color: $overlay;
-    color: $body;
-    font-size: globals.$small-font-size;
-    cursor: pointer;
-
-    &:hover {
-      color: $ink;
-    }
-  }
-
   &__collection {
     display: flex;
     flex-direction: column;

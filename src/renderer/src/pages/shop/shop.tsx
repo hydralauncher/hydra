@@ -12,7 +12,6 @@ import {
   SortAscIcon,
   SortDescIcon,
   TagIcon,
-  XIcon,
   type Icon,
 } from "@primer/octicons-react";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
@@ -387,7 +386,6 @@ export default function Shop() {
   if (!progress || !userDetails) return null;
 
   const coins = progress.coins;
-  const isFiltering = tab !== "all" || !!selectedSlug || !!appliedQuery.trim();
   const resultCount = visibleKeys.size;
   // The modal follows purchases and equips, so it reads the frame from the latest catalogue.
   const openFrame = collections
@@ -400,13 +398,6 @@ export default function Shop() {
     { value: "name_asc", label: t("sort_name_asc"), icon: SortAscIcon },
     { value: "name_desc", label: t("sort_name_desc"), icon: SortDescIcon },
   ];
-
-  const clearFilters = () => {
-    setTab("all");
-    setSelectedSlug(null);
-    setQuery("");
-    setAppliedQuery("");
-  };
 
   const renderContent = () => {
     if (hasFailed) {
@@ -428,25 +419,6 @@ export default function Shop() {
           selectedSlug={selectedSlug}
           onSelect={setSelectedSlug}
         />
-
-        {isFiltering && (
-          <div className="shop__results" aria-live="polite">
-            <span>
-              <strong>{t("results_count", { count: resultCount })}</strong>
-              {appliedQuery.trim() && (
-                <> {t("results_for", { query: appliedQuery.trim() })}</>
-              )}
-            </span>
-            <button
-              type="button"
-              className="shop__clear"
-              onClick={clearFilters}
-            >
-              <XIcon size={12} />
-              {t("clear_filters")}
-            </button>
-          </div>
-        )}
 
         {/* Kept mounted across filters: cards are hidden, not removed, so nothing reloads. */}
         <div>

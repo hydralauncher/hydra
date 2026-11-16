@@ -3138,10 +3138,6 @@
     "collections_label": "Coleções",
     "all_collections": "Todas",
     "more_collections": "Mais {{count}}",
-    "results_count_one": "{{count}} moldura",
-    "results_count_other": "{{count}} molduras",
-    "results_for": "para “{{query}}”",
-    "clear_filters": "Limpar",
     "empty_results": "Nenhuma moldura encontrada.",
     "collection_icon": "Ícone de {{title}}"
   },

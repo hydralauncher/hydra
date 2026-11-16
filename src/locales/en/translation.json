@@ -3128,10 +3128,6 @@
     "collections_label": "Collections",
     "all_collections": "All",
     "more_collections": "{{count}} more",
-    "results_count_one": "{{count}} frame",
-    "results_count_other": "{{count}} frames",
-    "results_for": "for “{{query}}”",
-    "clear_filters": "Clear",
     "empty_results": "No frames found.",
     "collection_icon": "{{title}} icon"
   },
