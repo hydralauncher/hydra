@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import cn from "classnames";
@@ -12,30 +12,90 @@ import {
   useFormat,
   useGamificationMissions,
   useGamificationProgress,
+  useToast,
   useUserDetails,
 } from "@renderer/hooks";
-import { getShopItemState, type ShopItem } from "./shop-catalog";
+import { getHeroBackgroundFromImageUrl } from "@renderer/helpers";
+import { DEFAULT_USER_PROFILE_BACKGROUND } from "@renderer/context";
+import type { FramePurchaseResponse, ShopFrame } from "@types";
+import { getShopFrameState } from "./shop-frame-state";
 
 interface ShopItemModalProps {
-  item: ShopItem | null;
-  level: number;
+  frame: ShopFrame;
   coins: number;
+  onPurchase: (key: string) => Promise<FramePurchaseResponse>;
+  onEquip: (key: string | null) => Promise<void>;
   onClose: () => void;
 }
 
 export function ShopItemModal({
-  item,
-  level,
+  frame: item,
   coins,
+  onPurchase,
+  onEquip,
   onClose,
 }: Readonly<ShopItemModalProps>) {
   const { t } = useTranslation("shop");
   const { formatNumber } = useFormat();
   const navigate = useNavigate();
   const { userDetails } = useUserDetails();
-  const { progress } = useGamificationProgress();
+  const { progress, refreshProgress } = useGamificationProgress();
   const { missions, refreshMissions } = useGamificationMissions();
-  const state = item ? getShopItemState(item, level, coins) : null;
+  const { showSuccessToast, showErrorToast } = useToast();
+  const [isPending, setIsPending] = useState(false);
+  const [heroBackground, setHeroBackground] = useState(
+    DEFAULT_USER_PROFILE_BACKGROUND
+  );
+  const state = getShopFrameState(item, coins);
+
+  // Same background your profile shows without a banner: the color of your photo.
+  const profileImageUrl = userDetails?.profileImageUrl;
+  useEffect(() => {
+    if (!profileImageUrl) return;
+    let isCancelled = false;
+    getHeroBackgroundFromImageUrl(profileImageUrl)
+      .then((background) => {
+        if (!isCancelled) setHeroBackground(background);
+      })
+      .catch(() => undefined);
+    return () => {
+      isCancelled = true;
+    };
+  }, [profileImageUrl]);
+  const kind = t(item.assetType === "VIDEO" ? "kind_animated" : "kind_simple");
+
+  const buy = async () => {
+    setIsPending(true);
+    try {
+      await onPurchase(item.key);
+      await refreshProgress();
+      showSuccessToast(
+        t("purchased_title", {
+          price: formatNumber(item.price),
+          kind,
+          name: item.name,
+        }),
+        t("purchased_hint")
+      );
+    } catch {
+      showErrorToast(t("purchase_failed"), t("purchase_failed_hint"));
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const toggleEquipped = async () => {
+    setIsPending(true);
+    try {
+      await onEquip(item.isEquipped ? null : item.key);
+      showSuccessToast(t(item.isEquipped ? "removed_title" : "equipped_title"));
+      onClose();
+    } catch {
+      showErrorToast(t("equip_failed"));
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   // The "not enough coins" hint counts today's unclaimed dailies, so cached missions from before
   // the daily reset are fetched again.
@@ -56,7 +116,7 @@ export function ShopItemModal({
     }
   }, [state, missions, isDailyExpired, refreshMissions]);
 
-  if (!item || !state || !userDetails) return null;
+  if (!userDetails) return null;
 
   const coinsLeftToday = (
     isDailyExpired ? [] : (missions?.daily.missions ?? [])
@@ -113,8 +173,10 @@ export function ShopItemModal({
               <Button theme="outline" onClick={onClose}>
                 {t("cancel")}
               </Button>
-              <Button>
-                {t("buy_for_coins", { price: formatNumber(item.price) })}
+              <Button onClick={() => void buy()} disabled={isPending}>
+                {isPending
+                  ? t("confirming")
+                  : t("buy_for_coins", { price: formatNumber(item.price) })}
               </Button>
             </div>
           </>
@@ -140,29 +202,19 @@ export function ShopItemModal({
             </div>
           </>
         );
-      case "locked":
-        return (
-          <>
-            <div className="shop-modal__row">
-              {t("locked_row", {
-                level: item.levelRequired,
-                current: level,
-              })}
-            </div>
-            <div className="shop-modal__actions">
-              <Button theme="outline" onClick={onClose}>
-                {t("close")}
-              </Button>
-            </div>
-          </>
-        );
       default:
         return (
           <div className="shop-modal__actions">
             <Button theme="outline" onClick={onClose}>
               {t("close")}
             </Button>
-            <Button>{t(item.isEquipped ? "tag_equipped" : "equip")}</Button>
+            <Button
+              theme={item.isEquipped ? "outline" : "primary"}
+              onClick={() => void toggleEquipped()}
+              disabled={isPending}
+            >
+              {t(item.isEquipped ? "remove" : "equip")}
+            </Button>
           </div>
         );
     }
@@ -171,19 +223,19 @@ export function ShopItemModal({
   return (
     <Modal
       visible
-      title={t("modal_title", {
-        kind: t(item.isAnimated ? "kind_animated" : "kind_simple"),
-        name: item.name,
-      })}
+      title={t("modal_title", { kind, name: item.name })}
       description={t("frame_hint")}
       onClose={onClose}
       className="shop-modal"
     >
       <div className="shop-modal__body">
         <div
-          className={cn("shop-modal__profile", {
-            "shop-modal__profile--has-banner": userDetails.backgroundImageUrl,
-          })}
+          className="shop-modal__profile"
+          style={
+            userDetails.backgroundImageUrl
+              ? undefined
+              : { background: heroBackground }
+          }
         >
           {userDetails.backgroundImageUrl && (
             <img
@@ -198,6 +250,7 @@ export function ShopItemModal({
               size={72}
               src={userDetails.profileImageUrl}
               alt={userDetails.displayName}
+              frame={item}
             />
             <div className="shop-modal__who-text">
               <strong>{userDetails.displayName}</strong>

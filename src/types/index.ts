@@ -621,6 +621,39 @@ export interface OwnedFrame extends FrameAsset {
   acquiredAt: string;
 }
 
+export interface ShopFrame extends FrameAsset {
+  key: string;
+  name: string;
+  price: number;
+  /** When it went on sale: its collection's release, or when it was added, if later. */
+  releasedAt: string;
+  isOwned: boolean;
+  isEquipped: boolean;
+}
+
+export interface ShopFrameCollection {
+  slug: string;
+  title: string;
+  iconUrl: string | null;
+  /** Octicon name, used when there is no iconUrl. */
+  iconName: string | null;
+  author: { name: string; url: string | null };
+  releasedAt: string | null;
+  /** Moves when the collection goes on sale or gets a new frame. */
+  updatedAt: string | null;
+  frames: ShopFrame[];
+}
+
+export interface ShopFramesResponse {
+  collections: ShopFrameCollection[];
+}
+
+export interface FramePurchaseResponse {
+  wasPurchased: boolean;
+  key: string;
+  coins: number;
+}
+
 export interface OwnedFramesResponse {
   equippedFrameKey: string | null;
   frames: OwnedFrame[];

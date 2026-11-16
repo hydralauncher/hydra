@@ -17,6 +17,7 @@ import {
 } from "@shared";
 
 import Color from "color";
+import { average } from "color.js";
 import i18next from "i18next";
 import { v4 as uuidv4 } from "uuid";
 import { THEME_WEB_STORE_URL } from "./constants";
@@ -306,6 +307,13 @@ export const buildGameAchievementPath = (
 
 export const darkenColor = (color: string, amount: number, alpha: number = 1) =>
   new Color(color).darken(amount).alpha(alpha).toString();
+
+/** The profile hero's background when there is no banner: a gradient from the photo's average color. */
+export const getHeroBackgroundFromImageUrl = async (imageUrl: string) => {
+  const output = await average(imageUrl, { amount: 1, format: "hex" });
+
+  return `linear-gradient(135deg, ${darkenColor(output as string, 0.5)}, ${darkenColor(output as string, 0.6, 0.5)})`;
+};
 
 export const injectCustomCss = (
   css: string,

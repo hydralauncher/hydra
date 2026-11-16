@@ -1,8 +1,20 @@
-import { useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
 import cn from "classnames";
-import { LockIcon } from "@primer/octicons-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AppsIcon,
+  ChevronDownIcon,
+  ImageIcon,
+  PlayIcon,
+  SearchIcon,
+  SortAscIcon,
+  SortDescIcon,
+  TagIcon,
+  type Icon,
+} from "@primer/octicons-react";
+import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import { Button } from "@renderer/components";
 import { CoinIcon, FramedAvatar } from "@renderer/components/gamification";
 import {
@@ -11,104 +23,100 @@ import {
   useGamificationProgress,
   useUserDetails,
 } from "@renderer/hooks";
+import type { ShopFrame, ShopFrameCollection } from "@types";
 import {
-  FEATURED_ITEM,
-  SHOP_ITEMS,
-  getShopItemState,
-  type ShopCategory,
-  type ShopItem,
-} from "./shop-catalog";
+  FilterDropdown,
+  type FilterDropdownOption,
+} from "../profile/profile-content/filter-dropdown";
+import { sectionVariants } from "../profile/profile-content/profile-animations";
+import { CollectionIcon } from "./collection-icon";
+import {
+  ShopCarouselDots,
+  ShopCarouselRow,
+  useShopCarousel,
+} from "./shop-carousel";
+import { ShopCollectionRail } from "./shop-collection-rail";
+import { getShopFrameState } from "./shop-frame-state";
 import { ShopItemModal } from "./shop-item-modal";
-import { GamificationPills } from "../profile/profile-hero/profile-gamification-pills";
+import { useShopFrames } from "./use-shop-frames";
 import "./shop.scss";
 
-const CATEGORIES: ShopCategory[] = ["all", "animated", "simple"];
+const NEW_FRAME_DAYS = 14;
+// Typing filters after a short pause, so the list doesn't flash on every key.
+const SEARCH_DELAY_MS = 200;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const SKELETON_SECTIONS = 2;
+const SKELETON_CARDS = 5;
+const SKELETON_CHIPS = [90, 150, 130, 190, 140];
 
-const isInCategory = (item: ShopItem, category: ShopCategory) =>
-  category === "all" || (category === "animated") === item.isAnimated;
+type FrameTab = "all" | "animated" | "static" | "not_owned";
+type CollectionSort = "updated" | "oldest" | "name_asc" | "name_desc";
 
-// Interface only: there is no shop API yet (LBX-1255), so buying and equipping do nothing.
-export default function Shop() {
+const FRAME_TABS: FrameTab[] = ["all", "animated", "static", "not_owned"];
+// Narrow shops show only these; the label stays for screen readers and the tooltip.
+const FRAME_TAB_ICONS: Record<FrameTab, Icon> = {
+  all: AppsIcon,
+  animated: PlayIcon,
+  static: ImageIcon,
+  not_owned: TagIcon,
+};
+
+const isNewFrame = (frame: ShopFrame) =>
+  Date.now() - Date.parse(frame.releasedAt) < NEW_FRAME_DAYS * DAY_MS;
+
+const matchesTab = (frame: ShopFrame, tab: FrameTab) => {
+  if (tab === "animated") return frame.assetType === "VIDEO";
+  if (tab === "static") return frame.assetType === "IMAGE";
+  if (tab === "not_owned") return !frame.isOwned;
+  return true;
+};
+
+// Accents and case don't matter: "relampago" finds "Relâmpago".
+const normalize = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
+const updatedTime = (collection: ShopFrameCollection) =>
+  Date.parse(collection.updatedAt ?? collection.releasedAt ?? "") || 0;
+
+const compareCollections = (sort: CollectionSort, locale: string) => {
+  return (a: ShopFrameCollection, b: ShopFrameCollection) => {
+    if (sort === "name_asc") return a.title.localeCompare(b.title, locale);
+    if (sort === "name_desc") return b.title.localeCompare(a.title, locale);
+    const difference = updatedTime(b) - updatedTime(a);
+    return sort === "oldest" ? -difference : difference;
+  };
+};
+
+// Memoized: a filter change only flips `isHidden`, so the other cards don't re-render.
+const ShopFrameCard = memo(function ShopFrameCard({
+  frame,
+  collection,
+  coins,
+  isHidden,
+  onOpen,
+}: Readonly<{
+  frame: ShopFrame;
+  collection: ShopFrameCollection;
+  coins: number;
+  isHidden: boolean;
+  onOpen: (frame: ShopFrame) => void;
+}>) {
   const { t } = useTranslation("shop");
   const { formatNumber } = useFormat();
-  const { userDetails } = useUserDetails();
-  const { progress } = useGamificationProgress();
-  const isEnabled = useAppSelector(
-    (state) => state.gamification.isEnabled && state.gamification.isShopEnabled
-  );
-  const areFeaturesLoaded = useAppSelector(
-    (state) => state.gamification.areFeaturesLoaded
-  );
-  const [category, setCategory] = useState<ShopCategory>("all");
-  const [hideOwned, setHideOwned] = useState(false);
-  const [openItem, setOpenItem] = useState<ShopItem | null>(null);
+  const state = getShopFrameState(frame, coins);
 
-  const level = progress?.level ?? 1;
-  const coins = progress?.coins ?? 0;
-
-  const visibleItems = useMemo(
-    () =>
-      SHOP_ITEMS.filter(
-        (item) => isInCategory(item, category) && (!hideOwned || !item.isOwned)
-      ),
-    [category, hideOwned]
-  );
-
-  if (!isEnabled) return areFeaturesLoaded ? <Navigate to="/" replace /> : null;
-  if (!progress || !userDetails) return null;
-
-  const countIn = (target: ShopCategory) =>
-    SHOP_ITEMS.filter(
-      (item) => isInCategory(item, target) && (!hideOwned || !item.isOwned)
-    ).length;
-  const ownedCount = SHOP_ITEMS.filter((item) => item.isOwned).length;
-
-  const renderPrice = (item: ShopItem) => {
-    switch (getShopItemState(item, level, coins)) {
-      case "owned":
-        return item.isEquipped ? (
-          <span className="shop__price shop__price--muted">
-            {t("equipped_on_profile")}
-          </span>
-        ) : (
-          <span className="shop__price shop__price--equip">{t("equip")}</span>
-        );
-      case "locked":
-        return (
-          <span className="shop__price shop__price--muted">
-            <LockIcon size={14} />
-            {t("level_required", { level: item.levelRequired })}
-          </span>
-        );
-      case "short":
-        return (
-          <span className="shop__price shop__price--muted">
-            <CoinIcon />
-            {t("price_short", {
-              price: formatNumber(item.price),
-              missing: formatNumber(item.price - coins),
-            })}
-          </span>
-        );
-      default:
-        return (
-          <span className="shop__price">
-            <CoinIcon />
-            {formatNumber(item.price)}
-          </span>
-        );
-    }
-  };
-
-  const renderTag = (item: ShopItem) => {
-    if (item.isEquipped) {
+  const renderTag = () => {
+    if (frame.isEquipped) {
       return (
         <span className="shop__tag shop__tag--equipped">
           {t("tag_equipped")}
         </span>
       );
     }
-    if (item.isOwned) {
+    if (frame.isOwned) {
       return (
         <span
           className="shop__owned-check"
@@ -122,157 +130,391 @@ export default function Shop() {
         </span>
       );
     }
-    if (item.isNew) {
+    if (isNewFrame(frame)) {
       return <span className="shop__tag shop__tag--new">{t("tag_new")}</span>;
     }
     return null;
   };
 
-  const featuredState = getShopItemState(FEATURED_ITEM, level, coins);
-
-  const renderFeaturedAction = () => {
-    if (featuredState === "owned") {
-      return FEATURED_ITEM.isEquipped ? (
-        <Button theme="outline">{t("remove")}</Button>
+  const renderPrice = () => {
+    if (state === "owned") {
+      return frame.isEquipped ? (
+        <span className="shop__price shop__price--muted">
+          {t("equipped_on_profile")}
+        </span>
       ) : (
-        <Button>{t("equip")}</Button>
+        <span className="shop__price shop__price--equip">{t("equip")}</span>
       );
     }
-    if (featuredState === "locked") {
+    if (state === "short") {
       return (
         <span className="shop__price shop__price--muted">
-          <LockIcon size={14} />
-          {t("level_required", { level: FEATURED_ITEM.levelRequired })}
+          <CoinIcon />
+          {t("price_short", {
+            price: formatNumber(frame.price),
+            missing: formatNumber(frame.price - coins),
+          })}
         </span>
       );
     }
     return (
-      <>
-        <Button onClick={() => setOpenItem(FEATURED_ITEM)}>
-          {t("buy_for")}
-          <CoinIcon />
-          {formatNumber(FEATURED_ITEM.price)}
-        </Button>
-        {featuredState === "short" && (
-          <span className="shop__featured-short">
-            {t("missing_coins", {
-              count: FEATURED_ITEM.price - coins,
-              amount: formatNumber(FEATURED_ITEM.price - coins),
+      <span className="shop__price">
+        <CoinIcon />
+        {formatNumber(frame.price)}
+      </span>
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      className="shop__item"
+      hidden={isHidden}
+      onClick={() => onOpen(frame)}
+    >
+      <span className="shop__item-art">
+        <FramedAvatar size={64} isFrameOnly frame={frame} />
+        {renderTag()}
+      </span>
+      <span className="shop__item-meta">
+        <small>
+          {t("kind_by_author", {
+            kind: t(
+              frame.assetType === "VIDEO" ? "kind_animated" : "kind_simple"
+            ),
+            author: collection.author.name,
+          })}
+        </small>
+        <strong>{frame.name}</strong>
+        {renderPrice()}
+      </span>
+    </button>
+  );
+});
+
+function ShopCollectionSection({
+  collection,
+  visibleKeys,
+  coins,
+  onOpen,
+}: Readonly<{
+  collection: ShopFrameCollection;
+  visibleKeys: ReadonlySet<string>;
+  coins: number;
+  onOpen: (frame: ShopFrame) => void;
+}>) {
+  const { t } = useTranslation("shop");
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const visibleCount = collection.frames.filter((frame) =>
+    visibleKeys.has(frame.key)
+  ).length;
+  const { rowRef, pages } = useShopCarousel(visibleCount);
+  const authorUrl = collection.author.url;
+
+  return (
+    <section className="shop__collection" hidden={visibleCount === 0}>
+      <header className="shop__collection-header">
+        <CollectionIcon
+          iconName={collection.iconName}
+          iconUrl={collection.iconUrl}
+          size={16}
+          className="shop__collection-icon"
+        />
+        <button
+          type="button"
+          className="shop__collection-title"
+          aria-expanded={!isCollapsed}
+          onClick={() => setIsCollapsed((value) => !value)}
+        >
+          <h2>{collection.title}</h2>
+          <ChevronDownIcon
+            size={16}
+            className={cn("shop__collection-chevron", {
+              "shop__collection-chevron--collapsed": isCollapsed,
             })}
-          </span>
+          />
+        </button>
+        {/* The rule fills the row up to the author, so a short row never looks empty. */}
+        <span className="shop__collection-rule" aria-hidden="true" />
+        <span className="shop__collection-author">
+          {t("by")}{" "}
+          {authorUrl ? (
+            <button
+              type="button"
+              className="shop__author-link"
+              onClick={() => void window.electron.openExternal(authorUrl)}
+            >
+              @{collection.author.name}
+            </button>
+          ) : (
+            <strong>@{collection.author.name}</strong>
+          )}
+        </span>
+        {!isCollapsed && (
+          <ShopCarouselDots pages={pages} label={collection.title} />
         )}
+      </header>
+
+      <AnimatePresence initial={false}>
+        {!isCollapsed && (
+          <motion.div
+            key="row"
+            className="shop__collection-body"
+            variants={sectionVariants}
+            initial="collapsed"
+            animate="expanded"
+            exit="collapsed"
+          >
+            <ShopCarouselRow rowRef={rowRef}>
+              {collection.frames.map((frame) => (
+                <ShopFrameCard
+                  key={frame.key}
+                  frame={frame}
+                  collection={collection}
+                  coins={coins}
+                  isHidden={!visibleKeys.has(frame.key)}
+                  onOpen={onOpen}
+                />
+              ))}
+            </ShopCarouselRow>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
+function ShopSkeleton() {
+  return (
+    <SkeletonTheme baseColor="#1c1c1c" highlightColor="#444">
+      <div className="shop__rail" aria-hidden="true">
+        {SKELETON_CHIPS.map((width) => (
+          <Skeleton
+            key={width}
+            width={width}
+            height={36}
+            borderRadius={8}
+            containerClassName="shop__skeleton-chip"
+          />
+        ))}
+      </div>
+      {Array.from({ length: SKELETON_SECTIONS }, (_, section) => (
+        <section key={section} className="shop__collection" aria-hidden="true">
+          <div className="shop__collection-header">
+            <Skeleton width={32} height={32} borderRadius={8} />
+            <Skeleton width={180} height={20} />
+          </div>
+          <div className="shop__carousel">
+            {Array.from({ length: SKELETON_CARDS }, (_, card) => (
+              <Skeleton
+                key={card}
+                width={220}
+                height={232}
+                borderRadius={4}
+                containerClassName="shop__skeleton-card"
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </SkeletonTheme>
+  );
+}
+
+export default function Shop() {
+  const { t, i18n } = useTranslation("shop");
+  const { formatNumber } = useFormat();
+  const { userDetails } = useUserDetails();
+  const { progress, refreshProgress } = useGamificationProgress();
+  const isEnabled = useAppSelector(
+    (state) => state.gamification.isEnabled && state.gamification.isShopEnabled
+  );
+  const areFeaturesLoaded = useAppSelector(
+    (state) => state.gamification.areFeaturesLoaded
+  );
+  const { collections, hasFailed, reload, purchase, equip } =
+    useShopFrames(isEnabled);
+  const [tab, setTab] = useState<FrameTab>("all");
+  const [sort, setSort] = useState<CollectionSort>("updated");
+  const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [openFrameKey, setOpenFrameKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedQuery(query), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // The balance decides what can be bought, so it is read fresh on open.
+  useEffect(() => {
+    if (isEnabled) void refreshProgress();
+  }, [isEnabled, refreshProgress]);
+
+  const sortedCollections = useMemo(
+    () =>
+      [...(collections ?? [])].sort(compareCollections(sort, i18n.language)),
+    [collections, sort, i18n.language]
+  );
+
+  // Filters hide cards instead of unmounting them: remounting dozens of videos is what made it stall.
+  const visibleKeys = useMemo(() => {
+    const term = normalize(appliedQuery.trim());
+    const keys = new Set<string>();
+    for (const collection of collections ?? []) {
+      if (selectedSlug && collection.slug !== selectedSlug) continue;
+      const collectionMatches =
+        !term || normalize(collection.title).includes(term);
+      for (const frame of collection.frames) {
+        if (
+          matchesTab(frame, tab) &&
+          (collectionMatches || normalize(frame.name).includes(term))
+        ) {
+          keys.add(frame.key);
+        }
+      }
+    }
+    return keys;
+  }, [collections, selectedSlug, appliedQuery, tab]);
+
+  const handleOpenFrame = useCallback(
+    (frame: ShopFrame) => setOpenFrameKey(frame.key),
+    []
+  );
+
+  if (!isEnabled) return areFeaturesLoaded ? <Navigate to="/" replace /> : null;
+  if (!progress || !userDetails) return null;
+
+  const coins = progress.coins;
+  const resultCount = visibleKeys.size;
+  // The modal follows purchases and equips, so it reads the frame from the latest catalogue.
+  const openFrame = collections
+    ?.flatMap((collection) => collection.frames)
+    .find((frame) => frame.key === openFrameKey);
+
+  const sortOptions: FilterDropdownOption<CollectionSort>[] = [
+    { value: "updated", label: t("sort_updated"), icon: SortDescIcon },
+    { value: "oldest", label: t("sort_oldest"), icon: SortAscIcon },
+    { value: "name_asc", label: t("sort_name_asc"), icon: SortAscIcon },
+    { value: "name_desc", label: t("sort_name_desc"), icon: SortDescIcon },
+  ];
+
+  const renderContent = () => {
+    if (hasFailed) {
+      return (
+        <div className="shop__empty">
+          <p>{t("load_failed")}</p>
+          <Button theme="outline" onClick={() => void reload()}>
+            {t("try_again")}
+          </Button>
+        </div>
+      );
+    }
+    if (!collections) return <ShopSkeleton />;
+
+    return (
+      <>
+        <ShopCollectionRail
+          collections={sortedCollections}
+          selectedSlug={selectedSlug}
+          onSelect={setSelectedSlug}
+        />
+
+        {/* Kept mounted across filters: cards are hidden, not removed, so nothing reloads. */}
+        <div>
+          {resultCount === 0 && (
+            <div className="shop__empty">
+              {t(collections.length === 0 ? "empty_shop" : "empty_results")}
+            </div>
+          )}
+          {sortedCollections.map((collection) => (
+            <ShopCollectionSection
+              key={collection.slug}
+              collection={collection}
+              visibleKeys={visibleKeys}
+              coins={coins}
+              onOpen={handleOpenFrame}
+            />
+          ))}
+        </div>
       </>
     );
   };
 
   return (
     <div className="shop">
-      <section
-        className={cn("shop__featured", {
-          "shop__featured--has-banner": userDetails.backgroundImageUrl,
-        })}
-      >
-        {userDetails.backgroundImageUrl && (
-          <img
-            src={userDetails.backgroundImageUrl}
-            alt=""
-            className="shop__featured-banner"
-          />
-        )}
-
-        <div className="shop__featured-avatar">
-          <FramedAvatar
-            size={132}
-            src={userDetails.profileImageUrl}
-            alt={userDetails.displayName}
-          />
-          <div className="shop__featured-who">
-            <strong>{userDetails.displayName}</strong>
-            <GamificationPills
-              level={{
-                level: progress.level,
-                xp: progress.xp,
-                xpToNextLevel: progress.xpToNextLevel,
-              }}
-              coins={coins}
-            />
-          </div>
-        </div>
-
-        <div className="shop__featured-text">
-          <span className="shop__chip">{t("featured_chip")}</span>
-          <h2>{FEATURED_ITEM.name}</h2>
-          <p>{FEATURED_ITEM.description}</p>
-          <div className="shop__featured-actions">{renderFeaturedAction()}</div>
-        </div>
-      </section>
-
+      {/* Sticks to the top while scrolling, so the balance is always in view. */}
       <div className="shop__bar">
-        <div className="shop__tabs" role="tablist">
-          {CATEGORIES.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={category === id}
-              className={cn("shop__tab", {
-                "shop__tab--active": category === id,
-              })}
-              onClick={() => setCategory(id)}
-            >
-              {t(`tab_${id}`)}
-              <span className="shop__count">{countIn(id)}</span>
-            </button>
-          ))}
+        <div
+          className="shop__tabs"
+          role="tablist"
+          aria-label={t("type_filter")}
+        >
+          {FRAME_TABS.map((value) => {
+            const TabIcon = FRAME_TAB_ICONS[value];
+            return (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={tab === value}
+                title={t(`tab_${value}`)}
+                className={cn("shop__tab", {
+                  "shop__tab--active": tab === value,
+                })}
+                onClick={() => setTab(value)}
+              >
+                <TabIcon size={14} />
+                <span className="shop__tab-label">{t(`tab_${value}`)}</span>
+              </button>
+            );
+          })}
         </div>
-
-        <div className="shop__bar-right">
-          <label className="shop__toggle">
-            <input
-              type="checkbox"
-              checked={hideOwned}
-              onChange={(event) => setHideOwned(event.target.checked)}
-            />
-            <span />
-            {t("hide_owned")}
-            <small className="shop__count">{ownedCount}</small>
-          </label>
-        </div>
+        <FilterDropdown
+          placeholder={t("sort_label")}
+          value={sort}
+          options={sortOptions}
+          onChange={setSort}
+        />
+        <label className="shop__search">
+          <SearchIcon size={14} />
+          <input
+            type="search"
+            value={query}
+            placeholder={t("search_placeholder")}
+            aria-label={t("search_placeholder")}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </label>
+        {/* Just the coin and the number; the full text stays for screen readers and the tooltip. */}
+        <span
+          className="shop__balance"
+          role="img"
+          aria-label={t("coins_balance", {
+            count: coins,
+            amount: formatNumber(coins),
+          })}
+          title={t("coins_balance", {
+            count: coins,
+            amount: formatNumber(coins),
+          })}
+        >
+          <CoinIcon />
+          {formatNumber(coins)}
+        </span>
       </div>
 
-      {visibleItems.length === 0 ? (
-        <div className="shop__empty">{t("empty_category")}</div>
-      ) : (
-        <div className="shop__grid">
-          {visibleItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="shop__item"
-              onClick={() => setOpenItem(item)}
-            >
-              <span className="shop__item-art">
-                <FramedAvatar size={64} isFrameOnly />
-                {renderTag(item)}
-              </span>
-              <span className="shop__item-meta">
-                <small>
-                  {t(item.isAnimated ? "kind_animated" : "kind_simple")}
-                </small>
-                <strong>{item.name}</strong>
-                {renderPrice(item)}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+      {renderContent()}
 
-      <ShopItemModal
-        item={openItem}
-        level={level}
-        coins={coins}
-        onClose={() => setOpenItem(null)}
-      />
+      {openFrame && (
+        <ShopItemModal
+          frame={openFrame}
+          coins={coins}
+          onPurchase={purchase}
+          onEquip={equip}
+          onClose={() => setOpenFrameKey(null)}
+        />
+      )}
     </div>
   );
 }

@@ -180,6 +180,56 @@ export interface FramedAvatarProps {
   className?: string;
 }
 
+/**
+ * An animated frame that only plays while on screen. The shop can hold dozens of
+ * these at once; decoding the ones scrolled away is what makes it stutter.
+ */
+function FrameVideo({
+  src,
+  style,
+  onError,
+}: Readonly<{
+  src: string;
+  style: { width: number; height: number };
+  onError: () => void;
+}>) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => undefined);
+        } else {
+          video.pause();
+        }
+      },
+      { rootMargin: "100px" }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [src]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      className="framed-avatar__frame"
+      style={style}
+      loop
+      muted
+      playsInline
+      // Loads the first frame up front, so a paused frame never shows an empty box.
+      preload="auto"
+      aria-hidden="true"
+      onError={onError}
+    />
+  );
+}
+
 export function FramedAvatar({
   size,
   src,
@@ -253,16 +303,10 @@ export function FramedAvatar({
       <Avatar size={size} src={src} alt={alt} />
       {showsFrameAsset &&
         (frame.assetType === "VIDEO" ? (
-          <video
+          <FrameVideo
             key={frame.assetUrl}
             src={frame.assetUrl}
-            className="framed-avatar__frame"
             style={frameStyle}
-            autoPlay
-            loop
-            muted
-            playsInline
-            aria-hidden="true"
             onError={() => setFailedFrameUrl(frame.assetUrl)}
           />
         ) : (
