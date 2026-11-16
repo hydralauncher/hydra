@@ -9,6 +9,8 @@ import { db, levelKeys } from "@main/level";
 import { achievementsLogger } from "../../logger";
 import { SevenZip } from "../../7zip";
 import { SystemPath } from "../../system-path";
+import { gamesPlaytime } from "../../game-running-state";
+import { launchedGamePids } from "../../launched-game-pids";
 import { resolveGameDirectoryLocations } from "../scan-game-directory-achievement-files";
 import { UNIVERSE_LAN_DIR_NAME } from "../universe-lan-locations";
 import {
@@ -55,9 +57,32 @@ const REQUIRED_PACKAGE_FILES = [
   path.join("UniverseLANServerData", CLIENT_CONFIG_FILE_NAME),
 ];
 
-const serverManager = new UniverseLanServerManager(undefined, (error) =>
-  achievementsLogger.error("UniverseLAN server failed", error)
-);
+const isProcessAlive = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+};
+
+/**
+ * A game counts as running while the process watcher tracks it or while the
+ * process Hydra started is alive (covers launchers the watcher doesn't match).
+ */
+const isGameRunning = (gameKey: string) => {
+  if (gamesPlaytime.has(gameKey)) return true;
+
+  const pid = launchedGamePids.get(gameKey);
+
+  return pid !== undefined && isProcessAlive(pid);
+};
+
+const serverManager = new UniverseLanServerManager({
+  onError: (error) =>
+    achievementsLogger.error("UniverseLAN server failed", error),
+  isHolderRunning: isGameRunning,
+});
 
 const pendingPackages = new Map<string, Promise<string | null>>();
 
@@ -166,7 +191,7 @@ const ensurePackage = (sdkVersion: string) => {
   const packageDirectory = path.join(PACKAGE_CACHE_PATH, sdkVersion);
   const pending = pendingPackages.get(sdkVersion);
 
-  if (pending) return pending;
+  if (pending !== undefined) return pending;
 
   const promise = isPackageReady(packageDirectory)
     .then((ready) => (ready ? packageDirectory : downloadPackage(sdkVersion)))
@@ -282,14 +307,15 @@ const installIfOriginal = async (dll: GalaxyDll): Promise<GalaxyDll> => {
   return { ...dll, kind: "universe-lan" };
 };
 
-const restoreHydraInstalledDlls = async (dlls: GalaxyDll[]) => {
-  for (const dll of dlls) {
-    if (!(await readInstallMarker(dll.filePath))) continue;
+const restoreHydraInstalledDlls = (dlls: GalaxyDll[]) =>
+  Promise.all(
+    dlls.map(async (dll) => {
+      if (!(await readInstallMarker(dll.filePath))) return;
 
-    const result = await restoreGalaxyDll(dll.filePath);
-    achievementsLogger.info(`Restore of ${dll.filePath}: ${result}`);
-  }
-};
+      const result = await restoreGalaxyDll(dll.filePath);
+      achievementsLogger.info(`Restore of ${dll.filePath}: ${result}`);
+    })
+  );
 
 const hasLegacyUniverseLanSetup = async (directories: string[]) => {
   const checks = await Promise.all(
@@ -301,18 +327,7 @@ const hasLegacyUniverseLanSetup = async (directories: string[]) => {
   return checks.some(Boolean);
 };
 
-/**
- * Called right before a game starts. For GOG games it swaps the original
- * Galaxy DLL for the matching UniverseLAN build (keeping a backup) and starts
- * the local UniverseLAN server, so achievements end up in a file Hydra reads.
- * Never throws: a failure here must not prevent the game from launching.
- */
-export const prepareUniverseLanForLaunch = async (
-  gameKey: string,
-  executablePath: string
-) => {
-  if (process.platform !== "win32") return;
-
+const prepareUniverseLan = async (gameKey: string, executablePath: string) => {
   try {
     const localAppDataUniverseLanPath = getLocalAppDataUniverseLanPath();
     if (!localAppDataUniverseLanPath) return;
@@ -341,19 +356,18 @@ export const prepareUniverseLanForLaunch = async (
       return;
     }
 
-    const preparedDlls: GalaxyDll[] = [];
-
-    for (const dll of dlls) {
-      preparedDlls.push(
-        await installIfOriginal(dll).catch((error) => {
+    // Each DLL is a different file; ensurePackage de-duplicates downloads.
+    const preparedDlls = await Promise.all(
+      dlls.map((dll) =>
+        installIfOriginal(dll).catch((error) => {
           achievementsLogger.error(
             `Failed to install UniverseLAN into ${dll.filePath}`,
             error
           );
           return dll;
         })
-      );
-    }
+      )
+    );
 
     const activeDll =
       preparedDlls.find(
@@ -374,7 +388,7 @@ export const prepareUniverseLanForLaunch = async (
       locations.universeLanDataDirectories
     );
 
-    serverManager.acquire(
+    const serverStarted = serverManager.acquire(
       gameKey,
       path.join(
         packageDirectory,
@@ -384,12 +398,19 @@ export const prepareUniverseLanForLaunch = async (
       )
     );
 
+    if (!serverStarted) {
+      achievementsLogger.warn(
+        `UniverseLAN server for Galaxy SDK ${activeDll.sdkVersion} not started for ${gameKey}: another running game uses a different UniverseLAN server`
+      );
+      return;
+    }
+
+    const installedBy = (await isHydraInstalled(activeDll.filePath))
+      ? "Hydra"
+      : "the user";
+
     achievementsLogger.info(
-      `UniverseLAN ready for ${gameKey} (Galaxy SDK ${activeDll.sdkVersion}, ${
-        (await isHydraInstalled(activeDll.filePath))
-          ? "installed by Hydra"
-          : "installed by the user"
-      })`
+      `UniverseLAN ready for ${gameKey} (Galaxy SDK ${activeDll.sdkVersion}, installed by ${installedBy})`
     );
   } catch (error) {
     achievementsLogger.error(
@@ -397,6 +418,31 @@ export const prepareUniverseLanForLaunch = async (
       error
     );
   }
+};
+
+let preparationQueue: Promise<void> = Promise.resolve();
+
+/**
+ * Called right before a game starts. For GOG games it swaps the original
+ * Galaxy DLL for the matching UniverseLAN build (keeping a backup) and starts
+ * the local UniverseLAN server, so achievements end up in a file Hydra reads.
+ * Preparations run one at a time so overlapping launches never inspect or
+ * back up a DLL another preparation is replacing. Never throws: a failure here
+ * must not prevent the game from launching.
+ */
+export const prepareUniverseLanForLaunch = (
+  gameKey: string,
+  executablePath: string
+) => {
+  if (process.platform !== "win32") return Promise.resolve();
+
+  const preparation = preparationQueue.then(() =>
+    prepareUniverseLan(gameKey, executablePath)
+  );
+
+  preparationQueue = preparation.catch(() => {});
+
+  return preparation;
 };
 
 export const releaseUniverseLanServer = (gameKey: string) =>

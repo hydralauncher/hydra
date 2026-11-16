@@ -29,10 +29,13 @@ export interface UniverseLanPackage {
 
 const SHA256_DIGEST_PATTERN = /^sha256:([a-f0-9]{64})$/i;
 
-const assetNamePattern = (sdkVersion: string) =>
-  new RegExp(
-    String.raw`^UniverseLAN-${sdkVersion.replaceAll(".", String.raw`\.`)}-Build-(\d+)-x64_x86\.zip$`
+const assetNamePattern = (sdkVersion: string) => {
+  const escapedSdkVersion = sdkVersion.replaceAll(".", "\\.");
+
+  return new RegExp(
+    String.raw`^UniverseLAN-${escapedSdkVersion}-Build-(\d+)-x64_x86\.zip$`
   );
+};
 
 /**
  * Picks the newest stable release that ships a build for this exact Galaxy SDK

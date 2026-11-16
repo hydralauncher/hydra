@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
+import nodeFs from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -391,6 +392,98 @@ describe("installUniverseLanDll / restoreGalaxyDll", () => {
     await assert.rejects(fs.access(getBackupPath(dllPath)));
   });
 
+  it("rolls back when the DLL cannot be swapped", async (t) => {
+    const { dllPath, replacementPath, original, dll } = await setUp(t);
+    const originalRename = nodeFs.promises.rename;
+
+    t.mock.method(
+      nodeFs.promises,
+      "rename",
+      async (source: string, target: string) => {
+        if (target === dllPath) throw new Error("file in use");
+        return originalRename(source, target);
+      }
+    );
+
+    await assert.rejects(
+      installUniverseLanDll({
+        dll,
+        replacementPath,
+        sdkVersion: "1.148.3",
+        build: "813",
+      }),
+      /file in use/
+    );
+
+    assert.deepEqual(await fs.readFile(dllPath), original);
+    await assert.rejects(fs.access(getBackupPath(dllPath)));
+    await assert.rejects(fs.access(getMarkerPath(dllPath)));
+  });
+
+  it("keeps the recovery record when only the swap succeeded", async (t) => {
+    const { dllPath, replacementPath, dll } = await setUp(t);
+    const originalWriteFile = nodeFs.promises.writeFile;
+    let markerWrittenBeforeSwap = false;
+
+    t.mock.method(
+      nodeFs.promises,
+      "writeFile",
+      async (...args: Parameters<typeof originalWriteFile>) => {
+        if (args[0] === getMarkerPath(dllPath)) {
+          const current = await fs.readFile(dllPath);
+          markerWrittenBeforeSwap = current.includes(
+            Buffer.from("GOG Galaxy", "utf16le")
+          );
+        }
+        return originalWriteFile(...args);
+      }
+    );
+
+    await installUniverseLanDll({
+      dll,
+      replacementPath,
+      sdkVersion: "1.148.3",
+      build: "813",
+    });
+
+    assert.equal(markerWrittenBeforeSwap, true);
+    assert.equal(await isHydraInstalled(dllPath), true);
+  });
+
+  it("fails before touching anything if the package DLL is missing", async (t) => {
+    const { root, dllPath, original, dll } = await setUp(t);
+
+    await assert.rejects(
+      installUniverseLanDll({
+        dll,
+        replacementPath: path.join(root, "missing", "Galaxy64.dll"),
+        sdkVersion: "1.148.3",
+        build: "813",
+      })
+    );
+
+    assert.deepEqual(await fs.readFile(dllPath), original);
+    await assert.rejects(fs.access(getBackupPath(dllPath)));
+  });
+
+  it("re-checks the DLL right before replacing it", async (t) => {
+    const { dllPath, replacementPath, replacement, dll } = await setUp(t);
+
+    // Another preparation swapped the file after this one inspected it.
+    await fs.writeFile(dllPath, replacement);
+
+    await assert.rejects(
+      installUniverseLanDll({
+        dll,
+        replacementPath,
+        sdkVersion: "1.148.3",
+        build: "813",
+      }),
+      /non GOG Galaxy DLL/
+    );
+    await assert.rejects(fs.access(getBackupPath(dllPath)));
+  });
+
   it("does nothing for DLLs Hydra never installed", async (t) => {
     const { dllPath, original } = await setUp(t);
 
@@ -429,11 +522,11 @@ describe("UniverseLanServerManager", () => {
 
   it("runs one server while any game holds it", () => {
     const { spawn, spawned } = createFakeSpawn();
-    const manager = new UniverseLanServerManager(spawn);
+    const manager = new UniverseLanServerManager({ spawnServer: spawn });
     const server = path.join("cache", "1.148.3", "UniverseLANServer64.exe");
 
-    manager.acquire("game-a", server);
-    manager.acquire("game-b", server);
+    assert.equal(manager.acquire("game-a", server), true);
+    assert.equal(manager.acquire("game-b", server), true);
 
     assert.equal(spawned.length, 1);
     assert.equal(spawned[0].cwd, path.dirname(server));
@@ -446,24 +539,40 @@ describe("UniverseLanServerManager", () => {
     assert.equal(spawned[0].child.killed, true);
   });
 
-  it("replaces the server when another SDK version is needed", () => {
+  it("never replaces a server another running game depends on", () => {
     const { spawn, spawned } = createFakeSpawn();
-    const manager = new UniverseLanServerManager(spawn);
+    const manager = new UniverseLanServerManager({ spawnServer: spawn });
 
     manager.acquire("game-a", "a/UniverseLANServer64.exe");
-    manager.acquire("game-b", "b/UniverseLANServer64.exe");
 
-    assert.equal(spawned.length, 2);
-    assert.equal(spawned[0].child.killed, true);
+    assert.equal(manager.acquire("game-b", "b/UniverseLANServer64.exe"), false);
+    assert.equal(spawned.length, 1);
+    assert.equal(spawned[0].child.killed, false);
+    assert.equal(manager.runningExecutablePath, "a/UniverseLANServer64.exe");
+    assert.deepEqual(manager.holderKeys, ["game-a"]);
+
+    manager.release("game-a");
+    assert.equal(manager.acquire("game-b", "b/UniverseLANServer64.exe"), true);
     assert.equal(manager.runningExecutablePath, "b/UniverseLANServer64.exe");
 
     manager.stopAll();
     assert.equal(spawned[1].child.killed, true);
   });
 
+  it("switches servers when the only holder needs another SDK version", () => {
+    const { spawn, spawned } = createFakeSpawn();
+    const manager = new UniverseLanServerManager({ spawnServer: spawn });
+
+    manager.acquire("game-a", "a/UniverseLANServer64.exe");
+
+    assert.equal(manager.acquire("game-a", "b/UniverseLANServer64.exe"), true);
+    assert.equal(spawned[0].child.killed, true);
+    assert.equal(manager.runningExecutablePath, "b/UniverseLANServer64.exe");
+  });
+
   it("restarts the server if it exited on its own", () => {
     const { spawn, spawned } = createFakeSpawn();
-    const manager = new UniverseLanServerManager(spawn);
+    const manager = new UniverseLanServerManager({ spawnServer: spawn });
 
     manager.acquire("game-a", "a/UniverseLANServer64.exe");
     spawned[0].child.emit("exit", 1);
@@ -475,11 +584,41 @@ describe("UniverseLanServerManager", () => {
 
   it("ignores releases from games that never acquired the server", () => {
     const { spawn } = createFakeSpawn();
-    const manager = new UniverseLanServerManager(spawn);
+    const manager = new UniverseLanServerManager({ spawnServer: spawn });
 
     manager.acquire("game-a", "a/UniverseLANServer64.exe");
     manager.release("unknown-game");
 
     assert.equal(manager.isRunning, true);
+  });
+
+  it("releases games that never started or already stopped running", () => {
+    const { spawn, spawned } = createFakeSpawn();
+    const running = new Set<string>(["game-a"]);
+    const manager = new UniverseLanServerManager({
+      spawnServer: spawn,
+      isHolderRunning: (key) => running.has(key),
+      launchGraceMs: 1000,
+      checkIntervalMs: 60_000,
+    });
+
+    manager.acquire("game-a", "a/UniverseLANServer64.exe");
+    manager.acquire("game-b", "a/UniverseLANServer64.exe");
+
+    // Within the launch grace period nobody is released.
+    manager.releaseStaleHolders(Date.now());
+    assert.deepEqual(manager.holderKeys.sort(), ["game-a", "game-b"]);
+
+    // game-b never showed up as running (e.g. the launch failed).
+    manager.releaseStaleHolders(Date.now() + 5000);
+    assert.deepEqual(manager.holderKeys, ["game-a"]);
+    assert.equal(manager.isRunning, true);
+
+    // game-a closed without the process watcher noticing.
+    running.delete("game-a");
+    manager.releaseStaleHolders(Date.now() + 5000);
+    assert.deepEqual(manager.holderKeys, []);
+    assert.equal(manager.isRunning, false);
+    assert.equal(spawned[0].child.killed, true);
   });
 });

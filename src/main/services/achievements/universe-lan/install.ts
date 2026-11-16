@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-import type { GalaxyDll } from "./galaxy-dll.js";
+import { inspectGalaxyDll, type GalaxyDll } from "./galaxy-dll.js";
 import { sha256 } from "./release.js";
 
 /**
@@ -83,34 +83,50 @@ export const installUniverseLanDll = async ({
   sdkVersion: string;
   build: string;
 }): Promise<UniverseLanInstallMarker> => {
-  if (dll.kind !== "gog") {
+  // Inspect the file again right before touching it: only a genuine GOG DLL
+  // (possibly updated by the game) may become the backup.
+  const current =
+    dll.kind === "gog"
+      ? await inspectGalaxyDll(dll.filePath, dll.architecture)
+      : dll;
+
+  if (current.kind !== "gog") {
     throw new Error(
       `Refusing to replace a non GOG Galaxy DLL: ${dll.filePath}`
     );
   }
 
   const backupPath = getBackupPath(dll.filePath);
+  const markerPath = getMarkerPath(dll.filePath);
 
-  // The DLL on disk is a genuine GOG one (possibly updated by the game), so it
-  // is the right file to keep as the backup.
+  // Read the replacement first so a missing package fails before any change.
+  const installedSha256 = await readFileSha256(replacementPath);
+
   await replaceFile(dll.filePath, backupPath);
-
-  const originalSha256 = await readFileSha256(backupPath);
-
-  await replaceFile(replacementPath, dll.filePath);
 
   const marker: UniverseLanInstallMarker = {
     sdkVersion,
     build,
-    originalSha256,
-    installedSha256: await readFileSha256(dll.filePath),
+    originalSha256: await readFileSha256(backupPath),
+    installedSha256,
     installedAt: new Date().toISOString(),
   };
 
-  await fs.promises.writeFile(
-    getMarkerPath(dll.filePath),
-    JSON.stringify(marker, null, 2)
-  );
+  // The recovery record is written before the swap, so an interrupted install
+  // can always be restored.
+  await fs.promises.writeFile(markerPath, JSON.stringify(marker, null, 2));
+
+  try {
+    await replaceFile(replacementPath, dll.filePath);
+  } catch (error) {
+    // replaceFile never leaves a partial DLL, so the original is still in
+    // place: drop the recovery files instead of leaving a stale backup.
+    await Promise.all([
+      fs.promises.rm(backupPath, { force: true }),
+      fs.promises.rm(markerPath, { force: true }),
+    ]);
+    throw error;
+  }
 
   return marker;
 };

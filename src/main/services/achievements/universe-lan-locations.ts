@@ -67,7 +67,7 @@ export const findGogRootGameIds = async (directories: string[]) => {
     })
   );
 
-  return [...rootGameIds].sort();
+  return [...rootGameIds].sort((a, b) => a.localeCompare(b));
 };
 
 const getDefaultLocalAppDataPath = () =>

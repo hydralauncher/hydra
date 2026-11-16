@@ -257,9 +257,9 @@ export const processRld = (
 // Mirrors CSimpleIniA::GetBoolValue, which UniverseLAN uses to read the file:
 // "true", "yes", "1" (any value starting with t, y or 1) and "on" are truthy.
 const isIniTruthy = (value: unknown) => {
-  const normalized = String(value ?? "")
-    .trim()
-    .toLowerCase();
+  if (typeof value !== "string" && typeof value !== "number") return false;
+
+  const normalized = String(value).trim().toLowerCase();
 
   return /^[ty1]/.test(normalized) || normalized === "on";
 };
