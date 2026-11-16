@@ -293,9 +293,18 @@ export interface LaunchMacWindowsOptions {
   workingDirectory?: string | null;
 }
 
-export const launchWindowsExecutableWithNotProton = async (
+export interface PreparedNotProtonLaunch {
+  runnerPath: string;
+  compatDataPath: string;
+  command: string;
+  args: string[];
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+}
+
+export const prepareNotProtonLaunch = async (
   options: LaunchMacWindowsOptions
-): Promise<number | null> => {
+): Promise<PreparedNotProtonLaunch> => {
   const { runnerPath, runScript } = await resolveReadyNotProtonRunner(
     options.protonPath
   );
@@ -320,10 +329,6 @@ export const launchWindowsExecutableWithNotProton = async (
     launchOptions: options.launchOptions,
   });
 
-  const safeObjectId = options.objectId.replaceAll(/[^\w.-]/g, "_");
-  const logFilePath = path.join(logsPath, `notproton-${safeObjectId}.log`);
-  fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
-
   const env = buildNotProtonEnvironment({
     compatDataPath,
     installPath: path.dirname(options.executablePath),
@@ -332,26 +337,41 @@ export const launchWindowsExecutableWithNotProton = async (
     extraEnv: resolvedLaunchCommand.env,
   });
 
-  logger.info("Launching Windows executable via NotProton on macOS", {
+  return {
     runnerPath,
-    executablePath: options.executablePath,
     compatDataPath,
+    command: resolvedLaunchCommand.command,
+    args: resolvedLaunchCommand.args,
+    cwd: workingDirectory,
+    env,
+  };
+};
+
+export const launchWindowsExecutableWithNotProton = async (
+  options: LaunchMacWindowsOptions
+): Promise<number | null> => {
+  const prepared = await prepareNotProtonLaunch(options);
+
+  const safeObjectId = options.objectId.replaceAll(/[^\w.-]/g, "_");
+  const logFilePath = path.join(logsPath, `notproton-${safeObjectId}.log`);
+  fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+
+  logger.info("Launching Windows executable via NotProton on macOS", {
+    runnerPath: prepared.runnerPath,
+    executablePath: options.executablePath,
+    compatDataPath: prepared.compatDataPath,
     logFilePath,
   });
 
   const logFd = fs.openSync(logFilePath, "a");
   try {
-    const child = spawn(
-      resolvedLaunchCommand.command,
-      resolvedLaunchCommand.args,
-      {
-        shell: false,
-        detached: true,
-        stdio: ["ignore", logFd, logFd],
-        cwd: workingDirectory,
-        env,
-      }
-    );
+    const child = spawn(prepared.command, prepared.args, {
+      shell: false,
+      detached: true,
+      stdio: ["ignore", logFd, logFd],
+      cwd: prepared.cwd,
+      env: prepared.env,
+    });
 
     await new Promise<void>((resolve, reject) => {
       child.once("spawn", () => resolve());

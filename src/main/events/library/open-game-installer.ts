@@ -9,6 +9,7 @@ import type { Download, GameShop } from "@types";
 import {
   GameFilesManager,
   logger,
+  prepareNotProtonLaunch,
   Umu,
   Wine,
   WindowManager,
@@ -313,6 +314,36 @@ const executeLinuxInstaller = async (
   return await openUntracked(filePath);
 };
 
+const executeDarwinInstaller = async (
+  filePath: string,
+  options: InstallerLaunchOptions
+): Promise<InstallerLaunchResult> => {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".exe" || ext === ".msi") {
+    try {
+      const prepared = await prepareNotProtonLaunch({
+        executablePath: filePath,
+        objectId: options.gameId ?? "installer",
+        winePrefixPath: options.winePrefixPath,
+        protonPath: options.protonPath,
+      });
+      const notProton = await spawnInstaller({
+        command: prepared.command,
+        args: prepared.args,
+        cwd: prepared.cwd,
+        env: prepared.env,
+        failureMessage: "Failed to execute game installer with NotProton",
+        onExit: options.onExit,
+      });
+      if (notProton.spawned) return trackedLaunch(filePath, "with NotProton");
+    } catch (error) {
+      logger.error("Failed to execute game installer with NotProton", error);
+    }
+  }
+
+  return await openUntracked(filePath);
+};
+
 const executeGameInstaller = async (
   filePath: string,
   options: InstallerLaunchOptions
@@ -323,6 +354,10 @@ const executeGameInstaller = async (
 
   if (process.platform === "linux") {
     return await executeLinuxInstaller(filePath, options);
+  }
+
+  if (process.platform === "darwin") {
+    return await executeDarwinInstaller(filePath, options);
   }
 
   return await openUntracked(filePath);
