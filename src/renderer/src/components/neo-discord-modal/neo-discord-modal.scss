@@ -22,12 +22,34 @@ $neo-chrome: linear-gradient(180deg, #ffffff 0%, #e4e5e8 45%, #b9bbc1 100%);
   width: 520px;
   min-width: 0;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 64px);
+  max-height: min(640px, calc(100vh - 120px));
   overflow-y: auto;
+  scrollbar-gutter: stable;
   background-color: $neo-card;
   border: 1px solid $neo-line;
   border-radius: 16px;
   color: $neo-text;
+
+  &::-webkit-scrollbar {
+    width: 9px;
+    background-color: transparent;
+  }
+
+  &::-webkit-scrollbar-track {
+    margin: 16px 0;
+    background-color: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
 
   &__close {
     position: absolute;
@@ -54,11 +76,14 @@ $neo-chrome: linear-gradient(180deg, #ffffff 0%, #e4e5e8 45%, #b9bbc1 100%);
   }
 
   &__hero {
-    display: block;
-    width: 100%;
-    aspect-ratio: 2 / 1;
-    object-fit: cover;
-    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: center;
+    padding: 32px 0 12px;
+
+    img {
+      height: 96px;
+      width: auto;
+    }
   }
 
   &__body {
@@ -210,14 +235,5 @@ $neo-chrome: linear-gradient(180deg, #ffffff 0%, #e4e5e8 45%, #b9bbc1 100%);
 
   &__bar-row--neo &__bar-value {
     font-weight: 500;
-  }
-
-  &__safety {
-    margin-top: 36px;
-    padding-top: 22px;
-    border-top: 1px solid $neo-line;
-    font-size: 13px;
-    line-height: 20px;
-    color: $neo-muted;
   }
 }

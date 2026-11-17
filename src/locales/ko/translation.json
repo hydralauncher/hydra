@@ -128,7 +128,6 @@
     "neo_discord_stats_memory": "홈 화면 메모리",
     "neo_discord_stats_speed": "실행 시간",
     "neo_discord_stats_faster": "12배 빠름",
-    "neo_discord_safety": "비밀번호나 결제 정보는 절대 요청하지 않으며, Neo를 첨부 파일로 보내지도 않아요. 공식 Neo Discord에서만 다운로드하세요.",
     "neo_waitlist_subtitle": "새로운 소식. 마우스를 올려 보세요",
     "neo_waitlist_note": "대기 명단에 등록하세요. 승인된 테스터는 Hydra Cloud 3개월을 무료로 받습니다.",
     "neo_waitlist_cta": "자리 맡기",

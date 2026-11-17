@@ -89,7 +89,9 @@ function NeoDiscordDialog({
           <XIcon size={16} />
         </button>
 
-        <img className="neo-discord-modal__hero" src={neoHero} alt="" />
+        <div className="neo-discord-modal__hero">
+          <img src={neoHero} alt="" />
+        </div>
 
         <div className="neo-discord-modal__body">
           <p className="neo-discord-modal__eyebrow">
@@ -171,8 +173,6 @@ function NeoDiscordDialog({
               </div>
             ))}
           </section>
-
-          <p className="neo-discord-modal__safety">{t("neo_discord_safety")}</p>
         </div>
       </dialog>
     </Backdrop>,
