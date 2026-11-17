@@ -166,7 +166,8 @@
     "neo_cloud_cta": "Probar Neo ahora",
     "neo_approved_subtitle": "Ya estás dentro. Pasa el ratón para verlo",
     "neo_approved_note": "Te llegó el turno en la lista de espera: te aprobaron. Ya es tuyo.",
-    "neo_approved_cta": "Probar Neo ahora"
+    "neo_approved_cta": "Probar Neo ahora",
+    "neo_not_approved": "Tu acceso a Neo todavía no está habilitado. Inténtalo de nuevo más tarde."
   },
   "header": {
     "leaderboards": "Clasificaciones",

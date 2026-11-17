@@ -123,7 +123,8 @@
     "neo_cloud_cta": "Спробувати Neo",
     "neo_approved_subtitle": "Ви в грі. Наведіть, щоб дізнатися",
     "neo_approved_note": "Ваша черга у списку очікування настала: вас схвалено. Уже доступно.",
-    "neo_approved_cta": "Спробувати Neo"
+    "neo_approved_cta": "Спробувати Neo",
+    "neo_not_approved": "Ваш доступ до Neo ще не відкрито. Спробуйте пізніше."
   },
   "header": {
     "search": "Пошук",

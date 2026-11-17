@@ -123,7 +123,8 @@
     "neo_cloud_cta": "Neo jetzt testen",
     "neo_approved_subtitle": "Du bist dabei. Zum Ansehen darüberfahren",
     "neo_approved_note": "Dein Platz auf der Warteliste ist dran: Du wurdest freigeschaltet. Ab heute deins.",
-    "neo_approved_cta": "Neo jetzt testen"
+    "neo_approved_cta": "Neo jetzt testen",
+    "neo_not_approved": "Dein Zugang zu Neo ist noch nicht freigeschaltet. Versuche es später erneut."
   },
   "header": {
     "search": "Spiele suchen",

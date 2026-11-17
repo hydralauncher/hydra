@@ -123,7 +123,8 @@
     "neo_cloud_cta": "Prova Neo ora",
     "neo_approved_subtitle": "Sei dentro. Passa il mouse per vedere",
     "neo_approved_note": "È arrivato il tuo turno nella lista d'attesa: sei stato approvato. È già tuo.",
-    "neo_approved_cta": "Prova Neo ora"
+    "neo_approved_cta": "Prova Neo ora",
+    "neo_not_approved": "Il tuo accesso a Neo non è ancora attivo. Riprova più tardi."
   },
   "header": {
     "search": "Cerca giochi",

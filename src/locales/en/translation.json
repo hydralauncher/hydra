@@ -163,7 +163,8 @@
     "neo_cloud_cta": "Try Neo now",
     "neo_approved_subtitle": "You're in. Hover to peek",
     "neo_approved_note": "Your spot on the waitlist came up: you're approved. It’s yours today.",
-    "neo_approved_cta": "Try Neo now"
+    "neo_approved_cta": "Try Neo now",
+    "neo_not_approved": "Your Neo access isn't open yet. Try again later."
   },
   "header": {
     "leaderboards": "Leaderboards",

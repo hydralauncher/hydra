@@ -120,7 +120,8 @@
     "neo_cloud_cta": "지금 Neo 사용해 보기",
     "neo_approved_subtitle": "승인되었습니다. 마우스를 올려 보세요",
     "neo_approved_note": "대기 명단에서 차례가 왔습니다. 승인되었으니 오늘부터 사용하세요.",
-    "neo_approved_cta": "지금 Neo 사용해 보기"
+    "neo_approved_cta": "지금 Neo 사용해 보기",
+    "neo_not_approved": "Neo 이용 권한이 아직 열리지 않았습니다. 나중에 다시 시도해 주세요."
   },
   "header": {
     "search": "게임 검색하기",

@@ -168,7 +168,8 @@
     "neo_cloud_cta": "Попробовать Neo",
     "neo_approved_subtitle": "Вы в деле. Наведите, чтобы узнать",
     "neo_approved_note": "Ваша очередь в листе ожидания подошла: вас одобрили. Уже доступно.",
-    "neo_approved_cta": "Попробовать Neo"
+    "neo_approved_cta": "Попробовать Neo",
+    "neo_not_approved": "Ваш доступ к Neo ещё не открыт. Попробуйте позже."
   },
   "header": {
     "leaderboards": "Рейтинги",

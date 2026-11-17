@@ -123,7 +123,8 @@
     "neo_cloud_cta": "Neo'yu dene",
     "neo_approved_subtitle": "İçeridesin. Görmek için üzerine gel",
     "neo_approved_note": "Bekleme listesinde sıra sana geldi: onaylandın. Bugünden itibaren senin.",
-    "neo_approved_cta": "Neo'yu dene"
+    "neo_approved_cta": "Neo'yu dene",
+    "neo_not_approved": "Neo erişimin henüz açılmadı. Daha sonra tekrar dene."
   },
   "header": {
     "search": "Oyunlarda Ara",

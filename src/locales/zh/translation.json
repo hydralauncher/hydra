@@ -123,7 +123,8 @@
     "neo_cloud_cta": "立即试用 Neo",
     "neo_approved_subtitle": "你已获准。悬停查看",
     "neo_approved_note": "候补名单轮到你了：你已通过审核，今天就能用。",
-    "neo_approved_cta": "立即试用 Neo"
+    "neo_approved_cta": "立即试用 Neo",
+    "neo_not_approved": "你的 Neo 访问权限尚未开放，请稍后再试。"
   },
   "header": {
     "search": "搜索游戏",

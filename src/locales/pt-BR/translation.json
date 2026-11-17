@@ -169,7 +169,8 @@
     "neo_cloud_cta": "Testar o Neo agora",
     "neo_approved_subtitle": "Você entrou. Passe o mouse para ver",
     "neo_approved_note": "Sua vez na lista de espera chegou: você foi aprovado. Já é seu.",
-    "neo_approved_cta": "Testar o Neo agora"
+    "neo_approved_cta": "Testar o Neo agora",
+    "neo_not_approved": "Seu acesso ao Neo ainda não foi liberado. Tente de novo mais tarde."
   },
   "header": {
     "leaderboards": "Rankings",

@@ -123,7 +123,8 @@
     "neo_cloud_cta": "今すぐ Neo を試す",
     "neo_approved_subtitle": "参加が決まりました。ホバーで表示",
     "neo_approved_note": "ウェイトリストの順番が来ました。承認済みなので、今日から使えます。",
-    "neo_approved_cta": "今すぐ Neo を試す"
+    "neo_approved_cta": "今すぐ Neo を試す",
+    "neo_not_approved": "Neo へのアクセスはまだ開放されていません。後でもう一度お試しください。"
   },
   "header": {
     "search": "ゲームを検索",

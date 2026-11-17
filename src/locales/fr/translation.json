@@ -158,7 +158,8 @@
     "neo_cloud_cta": "Essayer Neo",
     "neo_approved_subtitle": "Vous y êtes. Survolez pour voir",
     "neo_approved_note": "Votre tour sur la liste d'attente est arrivé : vous êtes approuvé. C'est à vous dès aujourd'hui.",
-    "neo_approved_cta": "Essayer Neo"
+    "neo_approved_cta": "Essayer Neo",
+    "neo_not_approved": "Votre accès à Neo n'est pas encore ouvert. Réessayez plus tard."
   },
   "header": {
     "search": "Rechercher",

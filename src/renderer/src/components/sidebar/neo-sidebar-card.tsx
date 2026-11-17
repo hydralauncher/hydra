@@ -116,8 +116,12 @@ function NeoCard({
     setIsOpening(true);
     try {
       await openNeo();
-    } catch {
-      showErrorToast(t("error_boundary_title", { ns: "app" }));
+    } catch (error) {
+      showErrorToast(
+        error instanceof Error && error.message.includes("neo/not-approved")
+          ? t("neo_not_approved")
+          : t("error_boundary_title", { ns: "app" })
+      );
       onFailure();
     } finally {
       setIsOpening(false);
