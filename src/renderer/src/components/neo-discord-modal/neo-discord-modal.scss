@@ -1,0 +1,44 @@
+@use "../../scss/globals.scss";
+
+.neo-discord-modal {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 1.5);
+  padding-top: calc(globals.$spacing-unit * 2);
+  border-top: solid 1px globals.$border-color;
+
+  &__label {
+    font-family: monospace;
+    font-size: 11px;
+    color: globals.$subtle-color;
+  }
+
+  &__steps {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 1.5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__step {
+    display: flex;
+    gap: calc(globals.$spacing-unit * 1.5);
+    font-size: 14px;
+    line-height: 22px;
+  }
+
+  &__number {
+    flex-shrink: 0;
+    font-family: monospace;
+    font-size: 11px;
+    color: globals.$muted-color;
+  }
+
+  &__safety {
+    font-size: 12px;
+    line-height: 18px;
+    color: globals.$subtle-color;
+  }
+}

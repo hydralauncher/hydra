@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
-import { ConfirmationModal } from "@renderer/components";
+import { ConfirmationModal, NeoDiscordModal } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
 
 import { useNeoSidebarBorder } from "./neo-sidebar-border";
@@ -93,6 +93,7 @@ function NeoCard({
   const hoverRef = useRef(0);
   const [isOpening, setIsOpening] = useState(false);
   const [isConfirmingDismiss, setIsConfirmingDismiss] = useState(false);
+  const [isExplainingDiscord, setIsExplainingDiscord] = useState(false);
   const { showErrorToast } = useToast();
 
   useNeoSidebarBorder(canvasRef, hoverRef);
@@ -179,7 +180,11 @@ function NeoCard({
                 <button
                   type="button"
                   className="neo-sidebar-card__cta neo-sidebar-card__step"
-                  onClick={handleAction}
+                  onClick={
+                    variant === "waitlist"
+                      ? handleAction
+                      : () => setIsExplainingDiscord(true)
+                  }
                   disabled={isOpening}
                 >
                   {t(`neo_${variant}_cta`)}
@@ -223,6 +228,15 @@ function NeoCard({
           </svg>
         </button>
       </aside>
+
+      <NeoDiscordModal
+        visible={isExplainingDiscord}
+        onClose={() => setIsExplainingDiscord(false)}
+        onConfirm={() => {
+          setIsExplainingDiscord(false);
+          handleAction();
+        }}
+      />
 
       <ConfirmationModal
         visible={isConfirmingDismiss}
