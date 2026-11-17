@@ -53,13 +53,13 @@
 - Unlock achievements with in-game notifications and a custom unlock sound
 - Steam and Epic achievements merged into a single list per game
 - RetroAchievements integration for classic games, plus trophy tracking in RPCS3 and shadPS4
-- Souvenirs: a screenshot saved at the moment an achievement unlocks
 
 ### Hydra Cloud
 
 - Save your game progress in the cloud, with automatic sync and conflict resolution
 - Cloud saves for emulator games, memory cards included
 - Save your achievements on the cloud, then show and compare them with other users
+- Souvenirs: a screenshot saved at the moment an achievement unlocks
 - Animated profile pictures and banners
 
 ### Social
