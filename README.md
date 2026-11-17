@@ -81,7 +81,7 @@
 
 Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/knowledge)
 
-Official builds are published for Windows and Linux only. There are no official macOS builds.
+Official builds are published for Windows and Linux only. There are no official macOS builds for now.
 
 ### Local development requirements
 
