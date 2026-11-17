@@ -1,0 +1,50 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    arr-pm (0.0.12)
+    backports (3.25.3)
+    cabin (0.9.1)
+    clamp (1.5.2)
+    dotenv (2.8.1)
+    fpm (1.17.0)
+      arr-pm (~> 0.0.11)
+      backports (>= 2.6.2)
+      cabin (>= 0.9.1)
+      clamp (>= 1.0.0)
+      pleaserun (~> 0.0.29)
+      rexml
+      stud
+    insist (1.0.0)
+    mustache (0.99.8)
+    pleaserun (0.0.34)
+      cabin (> 0)
+      clamp
+      dotenv (~> 2)
+      insist
+      mustache (= 0.99.8)
+      stud
+    rexml (3.4.4)
+    stud (0.0.23)
+
+PLATFORMS
+  ruby
+  x86_64-linux-gnu
+
+DEPENDENCIES
+  fpm (= 1.17.0)
+
+CHECKSUMS
+  arr-pm (0.0.12) sha256=fdff482f75239239201f4d667d93424412639aad0b3b0ad4d827e7c637e0ad39
+  backports (3.25.3) sha256=94298d32dc3c40ca15633b54e282780b49e2db0c045f602ea1907e4f63a17235
+  cabin (0.9.1) sha256=dcc9385af8039ba8fb6e33f0a9036e9e9fedec71c842343ce8e6101776e0322d
+  clamp (1.5.2) sha256=2fed212e5c9b60447eb5097af39d4c12c3c7e6788e8d791e9c436e0e755f4adc
+  dotenv (2.8.1) sha256=c5944793349ae03c432e1780a2ca929d60b88c7d14d52d630db0508c3a8a17d8
+  fpm (1.17.0) sha256=a8453a2eefe995294c511282ac36b716e34273647b16450b1477c0796d8db791
+  insist (1.0.0) sha256=6f6759eee583dc4e00a6cc3f713cfa7c570572958ba1f5d65595046d795b832f
+  mustache (0.99.8) sha256=826a96db895819c13fffa4fa3c20b85e80b60aaec1f28f79e7db80092abdb0bc
+  pleaserun (0.0.34) sha256=da8d5408885ae23c2ebcf4948bb27d6cf1f3672d5b49daebb2b71355ddb5d7bd
+  rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
+  stud (0.0.23) sha256=6ba26fa28fc50a8d59229b296a733b48d50f1473b1e3e7f5e339d5bbd829eb62
+
+BUNDLED WITH
+   2.6.7

@@ -78,7 +78,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           rustup target add x86_64-pc-windows-gnu
-          sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool gcc-mingw-w64-x86-64
+          sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool gcc-mingw-w64-x86-64 ruby-bundler
+          bundle config set --global frozen true
+          bundle config set --global path "$RUNNER_TEMP/fpm"
+          bundle config set --global bin "$RUNNER_TEMP/fpm/bin"
+          bundle install --gemfile .github/fpm/Gemfile
+          echo "$RUNNER_TEMP/fpm/bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
@@ -96,6 +101,7 @@ jobs:
         run: |
           yarn build:linux
         env:
+          USE_SYSTEM_FPM: "true"
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_STAGING_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_STAGING_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_STAGING_CHECKOUT_URL }}
@@ -219,7 +225,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           rustup target add x86_64-pc-windows-gnu
-          sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool gcc-mingw-w64-x86-64
+          sudo apt-get update && sudo apt-get install -y build-essential cmake ninja-build pkg-config curl zip unzip tar autoconf automake libtool gcc-mingw-w64-x86-64 ruby-bundler
+          bundle config set --global frozen true
+          bundle config set --global path "$RUNNER_TEMP/fpm"
+          bundle config set --global bin "$RUNNER_TEMP/fpm/bin"
+          bundle install --gemfile .github/fpm/Gemfile
+          echo "$RUNNER_TEMP/fpm/bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: yarn --frozen-lockfile
@@ -237,6 +248,7 @@ jobs:
         run: |
           yarn build:linux
         env:
+          USE_SYSTEM_FPM: "true"
           MAIN_VITE_API_URL: ${{ vars.MAIN_VITE_API_URL }}
           MAIN_VITE_AUTH_URL: ${{ vars.MAIN_VITE_AUTH_URL }}
           MAIN_VITE_CHECKOUT_URL: ${{ vars.MAIN_VITE_CHECKOUT_URL }}
