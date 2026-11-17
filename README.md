@@ -79,7 +79,7 @@
 
 ## Build from source and contributing
 
-Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/getting-started)
+Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/knowledge)
 
 Hydra is built and released for Windows and Linux. macOS is not supported.
 
