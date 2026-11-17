@@ -15,6 +15,8 @@ import { AlertFillIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 import "./hero-panel-playtime.scss";
 
+const HERO_PANEL_TOOLTIP_Z_INDEX = 9999;
+
 export function HeroPanelPlaytime() {
   const [lastTimePlayed, setLastTimePlayed] = useState("");
 
@@ -174,7 +176,7 @@ export function HeroPanelPlaytime() {
           </p>
           <Tooltip
             id="last-played-date"
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: HERO_PANEL_TOOLTIP_Z_INDEX }}
             openOnClick={false}
           />
         </>
@@ -184,7 +186,7 @@ export function HeroPanelPlaytime() {
         <Tooltip
           id="manual-playtime-warning"
           style={{
-            zIndex: 9999,
+            zIndex: HERO_PANEL_TOOLTIP_Z_INDEX,
           }}
           openOnClick={false}
         />
