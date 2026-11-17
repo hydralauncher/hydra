@@ -14,23 +14,6 @@ const CLOSE_ANIMATION_MS = 200;
 
 const STEPS = ["neo_discord_step_close_hydra", "neo_discord_step_logs"];
 
-const STATS = [
-  {
-    label: "neo_discord_stats_memory",
-    neo: "150 MB",
-    neoWidth: 17,
-    today: "890 MB",
-    note: null,
-  },
-  {
-    label: "neo_discord_stats_speed",
-    neo: "~0.5 s",
-    neoWidth: 8,
-    today: "~6 s",
-    note: "neo_discord_stats_faster",
-  },
-];
-
 export interface NeoDiscordModalProps {
   visible: boolean;
   onClose: () => void;
@@ -129,49 +112,6 @@ function NeoDiscordDialog({
                 </li>
               ))}
             </ol>
-          </section>
-
-          <section className="neo-discord-modal__section">
-            <p className="neo-discord-modal__label">
-              {t("neo_discord_stats_title")}
-            </p>
-            {STATS.map((stat) => (
-              <div key={stat.label} className="neo-discord-modal__stat">
-                <p className="neo-discord-modal__stat-title">
-                  {t(stat.label)}
-                  {stat.note && (
-                    <span className="neo-discord-modal__stat-note">
-                      {" · "}
-                      {t(stat.note)}
-                    </span>
-                  )}
-                </p>
-                <div className="neo-discord-modal__bar-row neo-discord-modal__bar-row--neo">
-                  <span className="neo-discord-modal__bar-label">Neo</span>
-                  <span className="neo-discord-modal__bar-track">
-                    <span
-                      className="neo-discord-modal__bar"
-                      style={{ width: `${stat.neoWidth}%` }}
-                    />
-                  </span>
-                  <span className="neo-discord-modal__bar-value">
-                    {stat.neo}
-                  </span>
-                </div>
-                <div className="neo-discord-modal__bar-row">
-                  <span className="neo-discord-modal__bar-label">Hydra</span>
-                  <span className="neo-discord-modal__bar-track">
-                    <span
-                      className="neo-discord-modal__bar"
-                      style={{ width: "100%" }}
-                    />
-                  </span>
-                  <span className="neo-discord-modal__bar-value">
-                    {stat.today}
-                  </span>
-                </div>
-              </div>
-            ))}
           </section>
         </div>
       </dialog>

@@ -3,8 +3,7 @@ $neo-line: #1a1a1c;
 $neo-text: #f0f1f5;
 $neo-body: #a6a8b0;
 $neo-muted: #82848c;
-$neo-track: #2c2d30;
-$neo-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+$neo$neo-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 $neo-metal: linear-gradient(
   180deg,
   #f4f4f6 0%,
@@ -24,7 +23,6 @@ $neo-chrome: linear-gradient(180deg, #ffffff 0%, #e4e5e8 45%, #b9bbc1 100%);
   max-width: calc(100vw - 32px);
   max-height: 80vh;
   overflow-y: auto;
-  scrollbar-gutter: stable;
   background-color: $neo-card;
   border: 1px solid $neo-line;
   border-radius: 16px;
@@ -179,61 +177,5 @@ $neo-chrome: linear-gradient(180deg, #ffffff 0%, #e4e5e8 45%, #b9bbc1 100%);
     font-size: 11px;
     line-height: 20px;
     color: $neo-text;
-  }
-
-  &__stat-title {
-    padding: 18px 0 10px;
-    font-size: 13px;
-    line-height: 18px;
-    color: $neo-body;
-  }
-
-  &__stat-note {
-    color: $neo-text;
-  }
-
-  &__bar-row {
-    display: grid;
-    grid-template-columns: 64px 1fr auto;
-    align-items: center;
-    gap: 12px;
-    padding-bottom: 8px;
-    color: $neo-muted;
-
-    &--neo {
-      color: $neo-text;
-    }
-  }
-
-  &__bar-label {
-    font-family: $neo-mono;
-    font-size: 11px;
-    line-height: 16px;
-  }
-
-  &__bar-track {
-    display: block;
-    height: 8px;
-  }
-
-  &__bar {
-    display: block;
-    height: 8px;
-    border-radius: 4px;
-    background: $neo-track;
-  }
-
-  &__bar-row--neo &__bar {
-    background: $neo-metal;
-  }
-
-  &__bar-value {
-    font-size: 14px;
-    line-height: 16px;
-    white-space: nowrap;
-  }
-
-  &__bar-row--neo &__bar-value {
-    font-weight: 500;
   }
 }
