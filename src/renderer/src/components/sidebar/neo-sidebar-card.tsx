@@ -17,6 +17,15 @@ interface NeoAccess {
 type NeoCardVariant = "waitlist" | "cloud" | "approved";
 
 const FOCUS_REFRESH_INTERVAL_MS = 30_000;
+const NEO_LANDING_PAGE_URL = "https://neo.hydralauncher.gg";
+const NEO_STAGING_LANDING_PAGE_URL = "https://neo-staging.hydralauncher.gg";
+
+const openNeoLandingPage = async () => {
+  const isStaging = await window.electron.isStaging();
+  await window.electron.openExternal(
+    isStaging ? NEO_STAGING_LANDING_PAGE_URL : NEO_LANDING_PAGE_URL
+  );
+};
 
 const getDismissedKey = (userId: string, variant: NeoCardVariant) =>
   `neo-sidebar-card-dismissed:${userId}:${variant}`;
@@ -105,7 +114,7 @@ function NeoCard({
 
   const openNeo = async () => {
     if (variant === "waitlist") {
-      await window.electron.openNeoLandingPage();
+      await openNeoLandingPage();
       return;
     }
 
@@ -133,7 +142,7 @@ function NeoCard({
 
   const openLandingPage = (event: React.MouseEvent) => {
     event.preventDefault();
-    window.electron.openNeoLandingPage().catch(() => {
+    openNeoLandingPage().catch(() => {
       showErrorToast(t("error_boundary_title", { ns: "app" }));
     });
   };
@@ -248,7 +257,7 @@ function NeoCard({
             components={{
               site: (
                 <a
-                  href="https://neo.hydralauncher.gg"
+                  href={NEO_LANDING_PAGE_URL}
                   className="link neo-sidebar-card__dismiss-link"
                   onClick={openLandingPage}
                 >

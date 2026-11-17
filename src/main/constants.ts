@@ -14,12 +14,6 @@ export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
 export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
 
-export const neoLandingPageUrl =
-  import.meta.env.MAIN_VITE_NEO_URL ||
-  (isStaging
-    ? "https://neo-staging.hydralauncher.gg"
-    : "https://neo.hydralauncher.gg");
-
 export const windowsStartMenuPath = path.join(
   SystemPath.getPath("appData"),
   "Microsoft",
