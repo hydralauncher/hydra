@@ -45,7 +45,6 @@
 
 - Point Hydra at your ROM folders and get a matched library with covers, metadata and one-click play
 - Works with DuckStation, PCSX2, RPCS3, shadPS4, PPSSPP, Dolphin and RetroArch, and can find or install them for you
-- Installs RetroArch cores, checks BIOS and firmware, and installs PS4 PKG files
 - Recomps: install community recompiled classics that run natively on PC, then point Hydra to your ROM and play
 
 ### Achievements
