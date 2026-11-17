@@ -27,7 +27,7 @@ export function HeroPanelPlaytime() {
   const { t } = useTranslation("game_details");
   const { numberFormatter } = useFormat();
   const { progress, lastPacket } = useDownload();
-  const { formatDistance } = useDate();
+  const { formatDistance, formatDateTime } = useDate();
   const extraction = useAppSelector((state) => state.download.extraction);
 
   const isExtracting = extraction?.visibleId === game?.id;
@@ -158,11 +158,26 @@ export function HeroPanelPlaytime() {
       {isExtracting && extractionInProgressInfo}
       {!isExtracting && hasDownload && downloadInProgressInfo}
       {!isExtracting && !hasDownload && !!lastTimePlayed && (
-        <p>
-          {t("last_time_played", {
-            period: lastTimePlayed,
-          })}
-        </p>
+        <>
+          <p
+            data-tooltip-id="last-played-date"
+            data-tooltip-place="right"
+            data-tooltip-content={
+              game.lastTimePlayed
+                ? formatDateTime(game.lastTimePlayed)
+                : undefined
+            }
+          >
+            {t("last_time_played", {
+              period: lastTimePlayed,
+            })}
+          </p>
+          <Tooltip
+            id="last-played-date"
+            style={{ zIndex: 9999 }}
+            openOnClick={false}
+          />
+        </>
       )}
 
       {game.hasManuallyUpdatedPlaytime && (
