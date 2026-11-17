@@ -32,10 +32,12 @@ import {
   FolderOpen,
   ChevronDown,
   Disc3,
+  PackagePlus,
   RefreshCw,
 } from "lucide-react";
 import { gameDetailsContext } from "@renderer/context";
 import { useFileIcons } from "@renderer/hooks/use-file-icons";
+import { usePs4FolderVersions } from "@renderer/hooks/use-ps4-folder-versions";
 import { usePs4PkgPicker } from "@renderer/components/ps4-pkg-job/ps4-pkg-job-host";
 import {
   getDiscRegion,
@@ -66,12 +68,19 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     [game.platform]
   );
 
-  const { showErrorToast } = useToast();
-  const ps4Pkg = usePs4PkgPicker(game.shop, game.objectId, "any", () => {
-    void updateGame();
-  });
+  const { showErrorToast, showSuccessToast } = useToast();
+  const ps4Pkg = usePs4PkgPicker(
+    game.shop,
+    game.objectId,
+    "any",
+    () => {
+      void updateGame();
+    },
+    (pkgPath) => addDiscFromPath(pkgPath)
+  );
   const ps4Update = usePs4PkgPicker(game.shop, game.objectId, "update");
-  const isPkgBusy = ps4Pkg.isBusy || ps4Update.isBusy;
+  const ps4Dlc = usePs4PkgPicker(game.shop, game.objectId, "dlc");
+  const isPkgBusy = ps4Pkg.isBusy || ps4Update.isBusy || ps4Dlc.isBusy;
   // An update needs a PS4 game folder: a disc's or an installed port's.
   const [hasPs4GameFolder, setHasPs4GameFolder] = useState(false);
   const discKey = discs.map((disc) => disc.path).join("|");
@@ -92,6 +101,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
       active = false;
     };
   }, [system, game.shop, game.objectId, discKey]);
+  const [isPortLinked, setIsPortLinked] = useState(false);
   const [portToUninstall, setPortToUninstall] = useState<ClassicsDisc | null>(
     null
   );
@@ -267,20 +277,58 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     await addDiscFromPath(res.filePaths[0]);
   };
 
+  const ps4Versions = usePs4FolderVersions(
+    discs
+      .filter((disc) => !disc.recompilationSlug && !disc.isExecutable)
+      .map((disc) => disc.path),
+    system === "ps4"
+  );
+
+  const renderDiscLabel = (disc: ClassicsDisc) => {
+    const version = ps4Versions[disc.path];
+    return (
+      <>
+        {getClassicsDiscLabel(disc)}
+        {version && (
+          <span className="disc-field__version">
+            {" · v"}
+            {version}
+          </span>
+        )}
+      </>
+    );
+  };
+
   const discSubtitle = (disc: ClassicsDisc) =>
     disc.recompilationSlug ? t("pc_version") : disc.fileName;
 
   const uninstallPort = async () => {
     const slug = portToUninstall?.recompilationSlug;
+    const name = portToUninstall?.label ?? "";
     setPortToUninstall(null);
     if (!slug) return;
 
-    const result = await window.electron.uninstallRecompilation({
-      objectId: game.objectId,
-      slug,
-    });
-    if (!result.ok && result.reason !== "not_installed") {
-      showErrorToast(t("uninstall_failed", { ns: "recompilation" }));
+    const ref = { objectId: game.objectId, slug };
+    const result = isPortLinked
+      ? await window.electron.unlinkRecompilation(ref)
+      : await window.electron.uninstallRecompilation(ref);
+    if (result.ok && result.folderMissing) {
+      showSuccessToast(
+        t("removed_folder_missing", { ns: "recompilation", name })
+      );
+    } else if (result.ok) {
+      showSuccessToast(
+        t(isPortLinked ? "unlink_done" : "uninstall_done", {
+          ns: "recompilation",
+          name,
+        })
+      );
+    } else if (result.reason !== "not_installed") {
+      showErrorToast(
+        t(isPortLinked ? "unlink_failed" : "uninstall_failed", {
+          ns: "recompilation",
+        })
+      );
     }
     await updateGame();
   };
@@ -289,7 +337,14 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
     const port = discs.find(
       (disc) => disc.path === path && disc.recompilationSlug
     );
-    if (port) {
+    if (port?.recompilationSlug) {
+      const state = await window.electron
+        .getRecompilationInstallState({
+          objectId: game.objectId,
+          slug: port.recompilationSlug,
+        })
+        .catch(() => null);
+      setIsPortLinked(state?.linked === true);
       setPortToUninstall(port);
       return;
     }
@@ -325,7 +380,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 {renderDiscIcon(selectedDisc)}
                 <span className="disc-field__text">
                   <span className="disc-field__label">
-                    {selectedDisc && getClassicsDiscLabel(selectedDisc)}
+                    {selectedDisc && renderDiscLabel(selectedDisc)}
                   </span>
                   <span className="disc-field__filename">
                     {selectedDisc && discSubtitle(selectedDisc)}
@@ -358,7 +413,7 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                       {renderDiscIcon(disc)}
                       <span className="disc-field__text">
                         <span className="disc-field__label">
-                          {getClassicsDiscLabel(disc)}
+                          {renderDiscLabel(disc)}
                         </span>
                         <span className="disc-field__filename">
                           {discSubtitle(disc)}
@@ -471,6 +526,18 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
                 <ButtonLabel>{t("apply_ps4_update")}</ButtonLabel>
               </Button>
             )}
+            {hasPs4GameFolder && (
+              <Button
+                type="button"
+                theme="outline"
+                onClick={() => void ps4Dlc.pick()}
+                disabled={isPkgBusy}
+                title={t("apply_ps4_dlc")}
+              >
+                <PackagePlus size={14} />
+                <ButtonLabel>{t("apply_ps4_dlc")}</ButtonLabel>
+              </Button>
+            )}
             {selectedDisc && (
               <Button
                 type="button"
@@ -488,12 +555,17 @@ function ClassicsDiscSection({ game }: Readonly<ClassicsDiscSectionProps>) {
 
       <ConfirmationModal
         visible={portToUninstall !== null}
-        title={t("uninstall_title", {
+        title={t(isPortLinked ? "unlink_title" : "uninstall_title", {
           ns: "recompilation",
           name: portToUninstall?.label,
         })}
-        descriptionText={t("uninstall_description", { ns: "recompilation" })}
-        confirmButtonLabel={t("uninstall", { ns: "recompilation" })}
+        descriptionText={t(
+          isPortLinked ? "unlink_description" : "uninstall_description",
+          { ns: "recompilation" }
+        )}
+        confirmButtonLabel={t(isPortLinked ? "unlink" : "uninstall", {
+          ns: "recompilation",
+        })}
         cancelButtonLabel={t("cancel", { ns: "recompilation" })}
         onClose={() => setPortToUninstall(null)}
         onConfirm={() => void uninstallPort()}

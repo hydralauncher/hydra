@@ -127,20 +127,30 @@ export const deleteEmulatorGameRunning = (gameKey: string) => {
   if (emulatorGamesRunning.delete(gameKey)) notifyTrackedGamesRunningChange();
 };
 
+export interface RecompilationGameSession {
+  gameKey: string;
+  recompilationSlug: string;
+  startedAt: number;
+  processId?: number;
+  installDirectory?: string;
+}
+
 export const recompilationGameSessions = new Map<
   string,
-  { gameKey: string; recompilationSlug: string; startedAt: number }
+  RecompilationGameSession
 >();
 
 export const setRecompilationGameRunning = (
   portKey: string,
   gameKey: string,
-  recompilationSlug: string
+  recompilationSlug: string,
+  details: Pick<RecompilationGameSession, "processId" | "installDirectory"> = {}
 ) => {
   recompilationGameSessions.set(portKey, {
     gameKey,
     recompilationSlug,
     startedAt: performance.now(),
+    ...details,
   });
   notifyTrackedGamesRunningChange();
 };

@@ -455,6 +455,11 @@ $disc-menu-transition-duration: 0.15s;
     white-space: nowrap;
   }
 
+  &__version {
+    font-weight: 400;
+    color: globals.$subtle-color;
+  }
+
   &__filename {
     font-size: globals.$small-font-size;
     color: globals.$subtle-color;

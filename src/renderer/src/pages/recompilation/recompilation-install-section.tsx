@@ -9,16 +9,16 @@ import {
 import type { RecompilationDetails, RecompilationReleaseAsset } from "@types";
 import { formatBytes } from "@shared";
 
-import {
-  InstallProgressBar,
-  type InstallProgressLike,
-} from "@renderer/components/setup-modal/install-progress-bar";
 import { SidebarSection } from "../game-details/sidebar-section/sidebar-section";
 import { splitRomRequirement } from "./rom-requirement";
 import type { RecompilationInstall } from "./use-recompilation-install";
 import type { RecompilationRom } from "./use-recompilation-rom";
 import "@renderer/components/setup-modal/setup-modal.scss";
 import { formatRecompilationVersion } from "./recompilation-version";
+import { isIdentifyingVersion } from "./extraction-progress";
+import { InstallProgressBar } from "@renderer/components/setup-modal/install-progress-bar";
+import { isProtonAsset, isProtonInstall } from "./proton-build";
+import { usePs4FolderVersions } from "@renderer/hooks/use-ps4-folder-versions";
 import "./recompilation-install-section.scss";
 
 const shortPath = (fullPath: string) => {
@@ -132,39 +132,37 @@ export function RecompilationInstallSection({
 }: Readonly<RecompilationInstallSectionProps>) {
   const { t } = useTranslation("recompilation");
   const { state, progress } = install;
+  const isIdentifying =
+    isIdentifyingVersion(progress) || state?.isIdentifyingVersion === true;
 
-  const isDownloading = progress?.phase === "downloading";
-  const isExtracting = progress?.phase === "extracting";
   const isInstalled = state?.installed === true;
 
   const romState = rom.state;
-  const isRomDownloading = rom.downloadPhase !== null;
-  const romPercent = Math.round((rom.downloadProgress ?? 0) * 100);
   const romFile = romState?.romPath ?? null;
+  const romVersion = usePs4FolderVersions(
+    romFile ? [romFile] : [],
+    romState?.isFolder === true
+  )[romFile ?? ""];
   const { romName, romDetails } = splitRomRequirement(details.romRequirement);
   const cover =
     details.game.coverImageUrl ??
     details.game.libraryImageUrl ??
     details.game.iconUrl;
 
+  const getInstalledVersionLabel = () => {
+    if (state?.version) return formatRecompilationVersion(state.version);
+    if (state?.isIdentifyingVersion) return t("version_checking");
+    return t("version_unknown");
+  };
+
   const renderPort = () => {
-    if (isDownloading || isExtracting) {
-      const percent =
-        isDownloading && progress.total && progress.loaded !== undefined
-          ? Math.min(100, Math.round((progress.loaded / progress.total) * 100))
-          : null;
+    if (isInstalled && isIdentifying) {
       return (
         <>
           <p className="recompilation-install-section__sub">
-            {isExtracting || percent === null
-              ? t("extracting")
-              : t("downloading_value", {
-                  loaded: formatBytes(progress.loaded ?? 0),
-                  total: formatBytes(progress.total ?? 0),
-                  percent,
-                })}
+            {t("version_checking")}
           </p>
-          <InstallProgressBar progress={progress} />
+          <InstallProgressBar progress={{ phase: "extracting" }} />
         </>
       );
     }
@@ -174,7 +172,7 @@ export function RecompilationInstallSection({
       return (
         <>
           <p className="recompilation-install-section__sub">
-            <strong>{formatRecompilationVersion(state.version)}</strong>
+            <strong>{getInstalledVersionLabel()}</strong>
             {" · "}
             {hasUpdate
               ? t("version_available", {
@@ -182,6 +180,11 @@ export function RecompilationInstallSection({
                 })
               : t("version_latest_long")}
           </p>
+          {isProtonInstall(state.executablePath) && (
+            <p className="recompilation-install-section__sub">
+              {t("windows_via_proton")}
+            </p>
+          )}
           {state.installPath && (
             <LocationRow
               path={state.installPath}
@@ -202,28 +205,20 @@ export function RecompilationInstallSection({
     }
 
     return (
-      <p className="recompilation-install-section__sub">
-        {t("not_installed")} · {formatBytes(installAsset.size)}
-      </p>
+      <>
+        <p className="recompilation-install-section__sub">
+          {t("not_installed")} · {formatBytes(installAsset.size)}
+        </p>
+        {isProtonAsset(installAsset) && (
+          <p className="recompilation-install-section__sub">
+            {t("windows_via_proton")}
+          </p>
+        )}
+      </>
     );
   };
 
   const renderRom = () => {
-    if (isRomDownloading) {
-      const isRomExtracting = rom.downloadPhase === "extracting";
-      const romProgress: InstallProgressLike = isRomExtracting
-        ? { phase: "extracting" }
-        : { phase: "downloading", loaded: romPercent, total: 100 };
-      return (
-        <>
-          <p className="recompilation-install-section__sub">
-            {isRomExtracting ? t("rom_extracting") : `${romPercent}%`}
-          </p>
-          <InstallProgressBar progress={romProgress} />
-        </>
-      );
-    }
-
     if (romFile) {
       return (
         <>
@@ -240,6 +235,12 @@ export function RecompilationInstallSection({
             <div className="recompilation-install-section__rom-text">
               <strong title={fileName(romFile)}>
                 {withoutExtension(fileName(romFile))}
+                {romVersion && (
+                  <span className="recompilation-install-section__rom-version">
+                    {" · v"}
+                    {romVersion}
+                  </span>
+                )}
               </strong>
               {romDetails && <span>{romDetails}</span>}
             </div>

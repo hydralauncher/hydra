@@ -112,6 +112,10 @@ export interface RecompilationRef {
 export type RecompilationInstallPhase =
   | "downloading"
   | "extracting"
+  | "uninstalling"
+  | "uninstalled"
+  | "identifying"
+  | "changed"
   | "done"
   | "error";
 
@@ -132,6 +136,15 @@ export interface RecompilationInstallState {
   installParentPath: string;
   executablePath: string | null;
   hasCloudSaves: boolean;
+  progress?: RecompilationInstallProgress | null;
+  // Picked with "Select folder": unlinking keeps every file.
+  linked?: boolean;
+  // Hydra confirmed a linked folder is this port (its program or its release).
+  verified?: boolean;
+  // Hydra is working out which release a linked folder holds.
+  isIdentifyingVersion?: boolean;
+  // Files Hydra wrote into a linked folder, which Uninstall removes.
+  installedFileCount?: number;
 }
 
 export interface RecompilationRomMeta {
@@ -210,6 +223,7 @@ export interface RecompilationActionResult {
   isUpdate?: boolean;
   /** Set when an update finished and the port started preparing again. */
   preparing?: boolean;
+  folderMissing?: boolean;
   /** The game folder a picked file resolves to, for the folder ports. */
   path?: string;
 }

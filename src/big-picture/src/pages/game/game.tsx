@@ -199,6 +199,24 @@ const CLASSICS_LAUNCH_NOTICES: Partial<
     message: "Add or rescan discs for this Classics game before launching.",
     kind: "error",
   },
+  DISC_MISSING: {
+    title: "Game file not found",
+    message:
+      "This game's file isn't where it used to be. If you moved it, choose its new location in Hydra.",
+    kind: "error",
+  },
+  RECOMPILATION_FOLDER_MISSING: {
+    title: "Game folder not found",
+    message:
+      "This game's folder isn't where it used to be. If you moved it, link it again in Hydra.",
+    kind: "error",
+  },
+  RECOMPILATION_PROGRAM_MISSING: {
+    title: "Game program not found",
+    message:
+      "This game's program is missing from its folder. Update or reinstall it in Hydra.",
+    kind: "error",
+  },
   PKG_INSTALLING: {
     title: "Installing PKG",
     message:

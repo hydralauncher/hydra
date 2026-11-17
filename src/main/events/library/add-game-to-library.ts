@@ -79,6 +79,13 @@ const addGameToLibrary = async (
   }
 
   if (game) {
+    if (shop === "launchbox") {
+      const { linkRecompilationsOfGame } = await import(
+        "../recompilation/recompilation-disc"
+      );
+      await linkRecompilationsOfGame(objectId).catch(() => {});
+    }
+
     await createGame(game).catch(() => {});
 
     AchievementWatcherManager.syncGameAchievementFiles(

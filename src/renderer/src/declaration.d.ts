@@ -698,7 +698,12 @@ declare global {
               unmatched: number;
               unmatchedFiles: {
                 name: string;
-                reason: "wrong_platform" | "unmatched" | "unsupported_package";
+                reason:
+                  | "wrong_platform"
+                  | "unmatched"
+                  | "unsupported_package"
+                  | "update_package"
+                  | "dlc_package";
               }[];
             }
           | {
@@ -813,7 +818,16 @@ declare global {
       ref: RecompilationRef,
       parentDirectory?: string
     ) => Promise<RecompilationActionResult>;
+    linkRecompilationFolder: (
+      ref: RecompilationRef,
+      directory: string,
+      options?: { force?: boolean }
+    ) => Promise<RecompilationActionResult>;
+    warmRecompilationFolderCheck: (ref: RecompilationRef) => Promise<void>;
     uninstallRecompilation: (
+      ref: RecompilationRef
+    ) => Promise<RecompilationActionResult>;
+    unlinkRecompilation: (
       ref: RecompilationRef
     ) => Promise<RecompilationActionResult>;
     openRecompilationFolder: (
@@ -841,6 +855,9 @@ declare global {
       pkgPath: string
     ) => Promise<RecompilationActionResult>;
     hasPs4GameFolder: (shop: GameShop, objectId: string) => Promise<boolean>;
+    getPs4FolderVersions: (
+      discPaths: string[]
+    ) => Promise<Record<string, string | null>>;
     checkPs4Pkg: (
       shop: GameShop,
       objectId: string,
@@ -848,6 +865,11 @@ declare global {
       accept: Ps4PkgAccept
     ) => Promise<Ps4PkgCheck>;
     applyPs4Update: (
+      shop: GameShop,
+      objectId: string,
+      pkgPath: string
+    ) => Promise<Ps4PkgResult>;
+    applyPs4Dlc: (
       shop: GameShop,
       objectId: string,
       pkgPath: string
@@ -1128,7 +1150,12 @@ declare global {
       cb: (shop: GameShop, objectId: string) => void
     ) => () => Electron.IpcRenderer;
     onExtractionProgress: (
-      cb: (shop: GameShop, objectId: string, progress: number) => void
+      cb: (
+        shop: GameShop,
+        objectId: string,
+        progress: number,
+        stage?: "install" | "update" | "dlc"
+      ) => void
     ) => () => Electron.IpcRenderer;
     onExtractionFailed: (
       cb: (

@@ -1,6 +1,8 @@
 import "./get-recompilation-install-state";
 import "./install-recompilation";
+import "./link-recompilation-folder";
 import "./uninstall-recompilation";
+import "./unlink-recompilation";
 import "./open-recompilation-folder";
 import "./play-recompilation";
 import "./prepare-recompilation";

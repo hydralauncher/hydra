@@ -536,9 +536,11 @@ export function App() {
         updateLibrary();
       }),
       window.electron.onSignOut(() => clearUserDetails()),
-      window.electron.onExtractionProgress((shop, objectId, progress) => {
-        dispatch(setExtractionProgress({ shop, objectId, progress }));
-      }),
+      window.electron.onExtractionProgress(
+        (shop, objectId, progress, stage) => {
+          dispatch(setExtractionProgress({ shop, objectId, progress, stage }));
+        }
+      ),
       window.electron.onExtractionComplete(() => {
         dispatch(clearExtraction());
         updateLibrary();

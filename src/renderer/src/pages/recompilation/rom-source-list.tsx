@@ -26,6 +26,7 @@ import {
   getDefaultDownloader,
   getDownloadOptions,
 } from "../game-details/modals/use-download-options";
+import { splitRomRequirement } from "./rom-requirement";
 import "../game-details/modals/repacks-modal.scss";
 import "./recompilation-install-modal.scss";
 
@@ -253,12 +254,19 @@ export function RomSourceList(props: Readonly<RomSourceListProps>) {
   );
 }
 
+interface RomSourcesPanelProps
+  extends Omit<RomSourceListProps, "downloadPath"> {
+  romRequirement?: string | null;
+}
+
 export function RomSourcesPanel({
   objectId,
   gameTitle,
+  romRequirement = null,
   onStarted,
-}: Readonly<Omit<RomSourceListProps, "downloadPath">>) {
+}: Readonly<RomSourcesPanelProps>) {
   const { t } = useTranslation("recompilation");
+  const { romName, romDetails } = splitRomRequirement(romRequirement);
   const userPreferences = useAppSelector(
     (state) => state.userPreferences.value
   );
@@ -283,6 +291,13 @@ export function RomSourcesPanel({
 
   return (
     <>
+      {romName && (
+        <p className="setup-modal__body-intro">
+          {t("rom_needs")}{" "}
+          <strong className="recompilation-install__strong">{romName}</strong>
+          {romDetails && ` (${romDetails})`}
+        </p>
+      )}
       <div className="recompilation-install__location">
         <span className="recompilation-install__choice-text">
           <span className="recompilation-install__choice-info">

@@ -226,6 +226,8 @@ export const handleClassicsLaunchError = (
     showErrorToast(t("platform_unknown_toast"));
   } else if (code === "NO_DISC") {
     showErrorToast(t("no_disc_toast"));
+  } else if (code === "DISC_MISSING") {
+    showErrorToast(t("disc_missing_toast"));
   } else if (code === "PKG_INSTALLING") {
     showSuccessToast(t("pkg_installing_toast"));
   } else if (code === "PKG_UNREADABLE") {
@@ -235,6 +237,9 @@ export const handleClassicsLaunchError = (
   } else if (code === "RECOMPILATION_NEEDS_SETUP") {
     const port = getRecompilationFromLaunchError(error);
     if (port) navigate(`/recompilation/${port.objectId}/${port.slug}?rom=1`);
+  } else if (code === "RECOMPILATION_NEEDS_PORT_UPDATE") {
+    const port = getRecompilationFromLaunchError(error);
+    if (port) navigate(`/recompilation/${port.objectId}/${port.slug}`);
   } else if (code === "RECOMPILATION_NEEDS_UPDATE") {
     const port = getRecompilationFromLaunchError(error);
     if (port) {
@@ -242,6 +247,10 @@ export const handleClassicsLaunchError = (
     }
   } else if (code === "RECOMPILATION_ALREADY_RUNNING") {
     showErrorToast(t("recompilation_already_running_toast"));
+  } else if (code === "RECOMPILATION_FOLDER_MISSING") {
+    showErrorToast(t("recompilation_folder_missing_toast"));
+  } else if (code === "RECOMPILATION_PROGRAM_MISSING") {
+    showErrorToast(t("recompilation_program_missing_toast"));
   } else if (code === "PS4_PKG_JOB_RUNNING") {
     showErrorToast(t("ps4_pkg_busy"));
   } else if (code === "PS4_PKG_NEEDS_EXTRACTION") {
@@ -424,6 +433,7 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "BIOS_NOT_CONFIGURED",
   "PLATFORM_UNKNOWN",
   "NO_DISC",
+  "DISC_MISSING",
   "EMULATOR_ALREADY_RUNNING",
   "PKG_INSTALLING",
   "PKG_UNREADABLE",
@@ -433,6 +443,9 @@ const CLASSICS_LAUNCH_ERROR_CODES = [
   "RECOMPILATION_ALREADY_RUNNING",
   "RECOMPILATION_LAUNCH_FAILED",
   "RECOMPILATION_NEEDS_UPDATE",
+  "RECOMPILATION_NEEDS_PORT_UPDATE",
+  "RECOMPILATION_FOLDER_MISSING",
+  "RECOMPILATION_PROGRAM_MISSING",
   "PS4_PKG_NEEDS_EXTRACTION",
   "PS4_PKG_JOB_RUNNING",
 ] as const;

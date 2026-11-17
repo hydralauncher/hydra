@@ -36,11 +36,20 @@ export const launchRecompilationDisc = async (
   ) {
     return;
   }
+  if (result.reason === "port_update_required") {
+    throw codedError("RECOMPILATION_NEEDS_PORT_UPDATE", objectId, slug);
+  }
   if (result.reason === "rom_update_required") {
     throw codedError("RECOMPILATION_NEEDS_UPDATE", objectId, slug);
   }
   if (result.reason === "already_running") {
     throw codedError("RECOMPILATION_ALREADY_RUNNING", objectId, slug);
+  }
+  if (result.reason === "folder_missing") {
+    throw codedError("RECOMPILATION_FOLDER_MISSING", objectId, slug);
+  }
+  if (result.reason === "program_missing") {
+    throw codedError("RECOMPILATION_PROGRAM_MISSING", objectId, slug);
   }
   throw launchError("RECOMPILATION_LAUNCH_FAILED", objectId, slug);
 };
