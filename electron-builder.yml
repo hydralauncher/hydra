@@ -137,6 +137,9 @@ linux:
     - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
+deb:
+  fpm:
+    - --deb-compression-level=9
 npmRebuild: false
 publish:
   provider: github
