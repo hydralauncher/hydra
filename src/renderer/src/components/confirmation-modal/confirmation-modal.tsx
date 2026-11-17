@@ -7,7 +7,7 @@ import "./confirmation-modal.scss";
 export interface ConfirmationModalProps extends Omit<ModalProps, "children"> {
   confirmButtonLabel: string;
   cancelButtonLabel: string;
-  descriptionText: string;
+  descriptionText: ReactNode;
 
   onConfirm: () => void;
   onCancel?: () => void;

@@ -261,3 +261,7 @@ $neo-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
     }
   }
 }
+
+.link.neo-sidebar-card__dismiss-link {
+  text-decoration: underline;
+}

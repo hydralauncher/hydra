@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
+import { ConfirmationModal } from "@renderer/components";
 import { useToast, useUserDetails } from "@renderer/hooks";
 
 import { useNeoSidebarBorder } from "./neo-sidebar-border";
@@ -91,6 +92,7 @@ function NeoCard({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hoverRef = useRef(0);
   const [isOpening, setIsOpening] = useState(false);
+  const [isConfirmingDismiss, setIsConfirmingDismiss] = useState(false);
   const { showErrorToast } = useToast();
 
   useNeoSidebarBorder(canvasRef, hoverRef);
@@ -126,6 +128,13 @@ function NeoCard({
     } finally {
       setIsOpening(false);
     }
+  };
+
+  const openLandingPage = (event: React.MouseEvent) => {
+    event.preventDefault();
+    window.electron.openNeoLandingPage().catch(() => {
+      showErrorToast(t("error_boundary_title", { ns: "app" }));
+    });
   };
 
   return (
@@ -199,7 +208,7 @@ function NeoCard({
           type="button"
           className="neo-sidebar-card__close"
           aria-label={t("neo_dismiss")}
-          onClick={onDismiss}
+          onClick={() => setIsConfirmingDismiss(true)}
         >
           <svg
             width="12"
@@ -214,6 +223,35 @@ function NeoCard({
           </svg>
         </button>
       </aside>
+
+      <ConfirmationModal
+        visible={isConfirmingDismiss}
+        title={t("neo_dismiss_title")}
+        descriptionText={
+          <Trans
+            i18nKey="neo_dismiss_description"
+            ns="sidebar"
+            components={{
+              site: (
+                <a
+                  href="https://neo.hydralauncher.gg"
+                  className="link neo-sidebar-card__dismiss-link"
+                  onClick={openLandingPage}
+                >
+                  neo.hydralauncher.gg
+                </a>
+              ),
+            }}
+          />
+        }
+        confirmButtonLabel={t("neo_dismiss_confirm")}
+        cancelButtonLabel={t("neo_dismiss_cancel")}
+        onConfirm={() => {
+          setIsConfirmingDismiss(false);
+          onDismiss();
+        }}
+        onClose={() => setIsConfirmingDismiss(false)}
+      />
     </div>
   );
 }
