@@ -1227,6 +1227,7 @@ declare global {
     /* Misc */
     openExternal: (src: string) => Promise<void>;
     openCheckout: (options?: OpenCheckoutOptions) => Promise<void>;
+    openNeoLandingPage: () => Promise<void>;
     getCloudIframeUrl: () => Promise<string>;
     getVersion: () => Promise<string>;
     getAppSessionId: () => Promise<string>;

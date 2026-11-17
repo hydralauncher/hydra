@@ -1729,6 +1729,7 @@ contextBridge.exposeInMainWorld("electron", {
   openExternal: (src: string) => ipcRenderer.invoke("openExternal", src),
   openCheckout: (options?: OpenCheckoutOptions) =>
     ipcRenderer.invoke("openCheckout", options),
+  openNeoLandingPage: () => ipcRenderer.invoke("openNeoLandingPage"),
   notifyCloudGiftResolved: (giftId: string) =>
     ipcRenderer.invoke("notifyCloudGiftResolved", giftId),
   getCloudIframeUrl: () => ipcRenderer.invoke("getCloudIframeUrl"),

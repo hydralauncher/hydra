@@ -15,8 +15,6 @@ interface NeoAccess {
 
 type NeoCardVariant = "waitlist" | "cloud" | "approved";
 
-const NEO_LANDING_PAGE_URL = "https://neo.hydralauncher.gg/#register";
-
 const getDismissedKey = (userId: string, variant: NeoCardVariant) =>
   `neo-sidebar-card-dismissed:${userId}:${variant}`;
 
@@ -93,7 +91,10 @@ function NeoCard({
 
   const handleAction = async () => {
     if (variant === "waitlist") {
-      window.electron.openExternal(NEO_LANDING_PAGE_URL);
+      setIsOpening(true);
+      await window.electron
+        .openNeoLandingPage()
+        .finally(() => setIsOpening(false));
       return;
     }
 
