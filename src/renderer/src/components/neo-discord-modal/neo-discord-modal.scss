@@ -1,0 +1,181 @@
+$neo-card: #0c0c0d;
+$neo-line: #1a1a1c;
+$neo-text: #f0f1f5;
+$neo-body: #a6a8b0;
+$neo-muted: #82848c;
+$neo-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+$neo-metal: linear-gradient(
+  180deg,
+  #f4f4f6 0%,
+  #b9bbc1 42%,
+  #6c6e74 58%,
+  #d9dade 100%
+);
+$neo-chrome: linear-gradient(180deg, #ffffff 0%, #e4e5e8 45%, #b9bbc1 100%);
+
+.neo-discord-modal {
+  position: relative;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  width: 520px;
+  min-width: 0;
+  max-width: calc(100vw - 32px);
+  max-height: 80vh;
+  overflow-y: auto;
+  background-color: $neo-card;
+  border: 1px solid $neo-line;
+  border-radius: 16px;
+  color: $neo-text;
+
+  &::-webkit-scrollbar {
+    width: 9px;
+    background-color: transparent;
+  }
+
+  &::-webkit-scrollbar-track {
+    margin: 16px 0;
+    background-color: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
+
+  &__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.4);
+    border: none;
+    border-radius: 6px;
+    color: $neo-body;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      color: $neo-text;
+      background: rgba(255, 255, 255, 0.08);
+    }
+  }
+
+  &__hero {
+    display: flex;
+    justify-content: center;
+    padding: 32px 0 12px;
+
+    img {
+      height: 124px;
+      width: auto;
+    }
+  }
+
+  &__body {
+    padding: 8px 40px 36px;
+  }
+
+  &__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: $neo-mono;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 0.02em;
+    color: $neo-body;
+  }
+
+  &__diamond {
+    width: 7px;
+    height: 7px;
+    background: $neo-metal;
+    transform: rotate(45deg);
+  }
+
+  &__title {
+    margin: 16px 0 20px;
+    font-size: 34px;
+    line-height: 40px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: $neo-text;
+  }
+
+  &__text {
+    font-size: 16px;
+    line-height: 26px;
+    color: $neo-body;
+  }
+
+  &__cta {
+    margin-top: 28px;
+    padding: 13px 22px;
+    background: $neo-chrome;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+    color: #0a0a0a;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      filter: brightness(1.05);
+    }
+  }
+
+  &__section {
+    margin-top: 22px;
+    padding-top: 22px;
+    border-top: 1px solid $neo-line;
+  }
+
+  &__label {
+    font-family: $neo-mono;
+    font-size: 11px;
+    line-height: 16px;
+    letter-spacing: 0.02em;
+    color: $neo-muted;
+  }
+
+  &__steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__step {
+    display: flex;
+    gap: 12px;
+    font-size: 15px;
+    line-height: 24px;
+    color: $neo-body;
+  }
+
+  &__number {
+    flex-shrink: 0;
+    padding-top: 3px;
+    font-family: $neo-mono;
+    font-size: 11px;
+    line-height: 20px;
+    color: $neo-text;
+  }
+}

@@ -34,3 +34,13 @@ export const trustLinkHost = (host: string) => {
     // Storage is unavailable; the prompt keeps showing for this site.
   }
 };
+
+export const isNeoDiscordInviteLink = (link: string) => {
+  const url = parseWebUrl(link);
+  return (
+    url?.protocol === "https:" &&
+    (url.hostname === "hydralauncher.gg" ||
+      url.hostname.endsWith(".hydralauncher.gg")) &&
+    url.pathname === "/neo/discord/join"
+  );
+};

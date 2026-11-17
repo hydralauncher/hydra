@@ -20,7 +20,11 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import cn from "classnames";
 
-import { ContextMenu, type ContextMenuItemData } from "@renderer/components";
+import {
+  ContextMenu,
+  NeoDiscordModal,
+  type ContextMenuItemData,
+} from "@renderer/components";
 
 import { LARGE_EMOJI_MAX_COUNT, countEmojiOnly } from "./chat-emoji";
 import {
@@ -51,7 +55,7 @@ import {
   countFriendMessagesAfter,
   findFirstFriendMessageAfter,
 } from "./chat-state";
-import { isTrustedLink } from "./chat-trusted-links";
+import { isNeoDiscordInviteLink, isTrustedLink } from "./chat-trusted-links";
 
 const electron = globalThis.electron as Electron;
 
@@ -247,6 +251,7 @@ export function ChatMessageList({
   const [pendingJumpSeq, setPendingJumpSeq] = useState<number | null>(null);
   // A link waiting for the user to confirm leaving Hydra.
   const [leavingUrl, setLeavingUrl] = useState<string | null>(null);
+  const [neoInviteUrl, setNeoInviteUrl] = useState<string | null>(null);
 
   // The message whose quick reaction bar or full emoji picker is open, and
   // the button that opened it.
@@ -571,6 +576,11 @@ export function ChatMessageList({
   }, [reportSentId]);
 
   const openLink = (url: string) => {
+    if (isNeoDiscordInviteLink(url)) {
+      setNeoInviteUrl(url);
+      return;
+    }
+
     if (isTrustedLink(url)) {
       void electron.openExternal(url);
       return;
@@ -949,6 +959,15 @@ export function ChatMessageList({
           onClose={() => setLightbox(null)}
         />
       )}
+
+      <NeoDiscordModal
+        visible={neoInviteUrl !== null}
+        onClose={() => setNeoInviteUrl(null)}
+        onConfirm={() => {
+          if (neoInviteUrl) void electron.openExternal(neoInviteUrl);
+          setNeoInviteUrl(null);
+        }}
+      />
 
       {leavingUrl && (
         <ChatLeavingModal
