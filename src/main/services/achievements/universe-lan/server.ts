@@ -10,6 +10,11 @@ import path from "node:path";
 
 type SpawnServer = (executablePath: string, cwd: string) => ChildProcess;
 
+/** How long a game may take to show up as running after it was launched. */
+export const DEFAULT_LAUNCH_GRACE_IN_MS = 3 * 60_000;
+/** How often holders are checked for games that are no longer running. */
+export const DEFAULT_HOLDER_CHECK_INTERVAL_IN_MS = 60_000;
+
 const defaultSpawnServer: SpawnServer = (executablePath, cwd) =>
   spawn(executablePath, [], {
     cwd,
@@ -21,12 +26,12 @@ export interface UniverseLanServerManagerOptions {
   spawnServer?: SpawnServer;
   onError?: (error: unknown) => void;
   /**
-   * Whether the game holding the server is running. Holders that never show up
-   * as running within `launchGraceMs` (failed launch, cancelled UAC prompt, a
-   * game that exits before the process watcher sees it) or that stopped running
-   * are released, so the server never outlives every game.
+   * Whether the game holding the server is running. It should err on the side
+   * of `true`: a holder is only released once this returns false after the
+   * launch grace period (failed launch, cancelled UAC prompt) or after the game
+   * was seen running, so the server never outlives every game.
    */
-  isHolderRunning?: (holderKey: string) => boolean;
+  isHolderRunning?: (holderKey: string) => boolean | Promise<boolean>;
   launchGraceMs?: number;
   checkIntervalMs?: number;
 }
@@ -36,14 +41,22 @@ interface RunningServer {
   process: ChildProcess;
 }
 
+interface Holder {
+  acquiredAt: number;
+  seenRunning: boolean;
+}
+
 export class UniverseLanServerManager {
   private running: RunningServer | null = null;
-  private readonly holders = new Map<string, number>();
+  private readonly holders = new Map<string, Holder>();
   private watchdog: ReturnType<typeof setInterval> | null = null;
+  private isCheckingHolders = false;
 
   private readonly spawnServer: SpawnServer;
   private readonly onError: (error: unknown) => void;
-  private readonly isHolderRunning?: (holderKey: string) => boolean;
+  private readonly isHolderRunning?: (
+    holderKey: string
+  ) => boolean | Promise<boolean>;
   private readonly launchGraceMs: number;
   private readonly checkIntervalMs: number;
 
@@ -51,8 +64,8 @@ export class UniverseLanServerManager {
     spawnServer = defaultSpawnServer,
     onError = () => {},
     isHolderRunning,
-    launchGraceMs = 3 * 60_000,
-    checkIntervalMs = 60_000,
+    launchGraceMs = DEFAULT_LAUNCH_GRACE_IN_MS,
+    checkIntervalMs = DEFAULT_HOLDER_CHECK_INTERVAL_IN_MS,
   }: UniverseLanServerManagerOptions = {}) {
     this.spawnServer = spawnServer;
     this.onError = onError;
@@ -93,7 +106,7 @@ export class UniverseLanServerManager {
       this.stopProcess();
     }
 
-    this.holders.set(holderKey, Date.now());
+    this.holders.set(holderKey, { acquiredAt: Date.now(), seenRunning: false });
 
     if (!this.running) this.startProcess(executablePath);
 
@@ -118,24 +131,43 @@ export class UniverseLanServerManager {
   }
 
   /** Releases holders whose game is not running. Exposed for tests. */
-  public releaseStaleHolders(now = Date.now()) {
-    if (!this.isHolderRunning) return;
+  public async releaseStaleHolders(now = Date.now()) {
+    if (!this.isHolderRunning || this.isCheckingHolders) return;
 
-    for (const [holderKey, acquiredAt] of this.holders) {
-      if (now - acquiredAt < this.launchGraceMs) continue;
-      if (this.isHolderRunning(holderKey)) continue;
+    this.isCheckingHolders = true;
 
-      this.release(holderKey);
+    try {
+      for (const [holderKey, holder] of [...this.holders]) {
+        const isRunning = await Promise.resolve(
+          this.isHolderRunning(holderKey)
+        ).catch(() => true);
+
+        // The holder may have been released or re-acquired meanwhile.
+        if (this.holders.get(holderKey) !== holder) continue;
+
+        if (isRunning) {
+          holder.seenRunning = true;
+          continue;
+        }
+
+        const isWithinLaunchGrace =
+          now - holder.acquiredAt < this.launchGraceMs;
+
+        if (!holder.seenRunning && isWithinLaunchGrace) continue;
+
+        this.release(holderKey);
+      }
+    } finally {
+      this.isCheckingHolders = false;
     }
   }
 
   private startWatchdog() {
     if (this.watchdog || !this.isHolderRunning) return;
 
-    this.watchdog = setInterval(
-      () => this.releaseStaleHolders(),
-      this.checkIntervalMs
-    );
+    this.watchdog = setInterval(() => {
+      this.releaseStaleHolders().catch(this.onError);
+    }, this.checkIntervalMs);
     this.watchdog.unref?.();
   }
 

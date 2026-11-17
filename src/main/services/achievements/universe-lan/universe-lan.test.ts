@@ -592,12 +592,12 @@ describe("UniverseLanServerManager", () => {
     assert.equal(manager.isRunning, true);
   });
 
-  it("releases games that never started or already stopped running", () => {
+  it("releases games that never started or already stopped running", async () => {
     const { spawn, spawned } = createFakeSpawn();
     const running = new Set<string>(["game-a"]);
     const manager = new UniverseLanServerManager({
       spawnServer: spawn,
-      isHolderRunning: (key) => running.has(key),
+      isHolderRunning: async (key) => running.has(key),
       launchGraceMs: 1000,
       checkIntervalMs: 60_000,
     });
@@ -606,19 +606,56 @@ describe("UniverseLanServerManager", () => {
     manager.acquire("game-b", "a/UniverseLANServer64.exe");
 
     // Within the launch grace period nobody is released.
-    manager.releaseStaleHolders(Date.now());
+    await manager.releaseStaleHolders(Date.now());
     assert.deepEqual(manager.holderKeys.sort(), ["game-a", "game-b"]);
 
     // game-b never showed up as running (e.g. the launch failed).
-    manager.releaseStaleHolders(Date.now() + 5000);
+    await manager.releaseStaleHolders(Date.now() + 5000);
     assert.deepEqual(manager.holderKeys, ["game-a"]);
     assert.equal(manager.isRunning, true);
 
     // game-a closed without the process watcher noticing.
     running.delete("game-a");
-    manager.releaseStaleHolders(Date.now() + 5000);
+    await manager.releaseStaleHolders(Date.now() + 5000);
     assert.deepEqual(manager.holderKeys, []);
     assert.equal(manager.isRunning, false);
     assert.equal(spawned[0].child.killed, true);
+  });
+
+  it("releases a game that stopped even within the launch grace period", async () => {
+    const { spawn } = createFakeSpawn();
+    const running = new Set<string>(["game-a"]);
+    const manager = new UniverseLanServerManager({
+      spawnServer: spawn,
+      isHolderRunning: (key) => running.has(key),
+      launchGraceMs: 60_000,
+    });
+
+    manager.acquire("game-a", "a/UniverseLANServer64.exe");
+
+    await manager.releaseStaleHolders();
+    assert.deepEqual(manager.holderKeys, ["game-a"]);
+
+    running.delete("game-a");
+    await manager.releaseStaleHolders();
+    assert.deepEqual(manager.holderKeys, []);
+  });
+
+  it("keeps the server when the running check fails", async () => {
+    const { spawn } = createFakeSpawn();
+    const manager = new UniverseLanServerManager({
+      spawnServer: spawn,
+      isHolderRunning: async () => {
+        throw new Error("cannot inspect the game");
+      },
+      launchGraceMs: 0,
+    });
+
+    manager.acquire("game-a", "a/UniverseLANServer64.exe");
+    await manager.releaseStaleHolders(Date.now() + 5000);
+
+    assert.deepEqual(manager.holderKeys, ["game-a"]);
+    assert.equal(manager.isRunning, true);
+    manager.stopAll();
   });
 });
