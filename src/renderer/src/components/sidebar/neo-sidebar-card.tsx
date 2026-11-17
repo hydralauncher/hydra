@@ -15,6 +15,8 @@ interface NeoAccess {
 
 type NeoCardVariant = "waitlist" | "cloud" | "approved";
 
+const FOCUS_REFRESH_INTERVAL_MS = 30_000;
+
 const getDismissedKey = (userId: string, variant: NeoCardVariant) =>
   `neo-sidebar-card-dismissed:${userId}:${variant}`;
 
@@ -79,7 +81,12 @@ function HydraChromeLogo() {
 function NeoCard({
   variant,
   onDismiss,
-}: Readonly<{ variant: NeoCardVariant; onDismiss: () => void }>) {
+  onFailure,
+}: Readonly<{
+  variant: NeoCardVariant;
+  onDismiss: () => void;
+  onFailure: () => void;
+}>) {
   const { t } = useTranslation("sidebar");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hoverRef = useRef(0);
@@ -111,6 +118,7 @@ function NeoCard({
       await openNeo();
     } catch {
       showErrorToast(t("error_boundary_title", { ns: "app" }));
+      onFailure();
     } finally {
       setIsOpening(false);
     }
@@ -212,9 +220,11 @@ export function NeoSidebarCard() {
   const [access, setAccess] = useState<NeoAccess | null>(null);
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
   const latestRequest = useRef(0);
+  const lastLoadedAt = useRef(0);
 
   const loadAccess = useCallback(() => {
     const request = ++latestRequest.current;
+    lastLoadedAt.current = Date.now();
 
     if (!userId) {
       setAccess(null);
@@ -232,9 +242,15 @@ export function NeoSidebarCard() {
   }, [userId]);
 
   useEffect(() => {
+    const refreshOnFocus = () => {
+      if (Date.now() - lastLoadedAt.current >= FOCUS_REFRESH_INTERVAL_MS) {
+        loadAccess();
+      }
+    };
+
     loadAccess();
-    window.addEventListener("focus", loadAccess);
-    return () => window.removeEventListener("focus", loadAccess);
+    window.addEventListener("focus", refreshOnFocus);
+    return () => window.removeEventListener("focus", refreshOnFocus);
   }, [loadAccess]);
 
   const variant = getVariant(access, hasActiveSubscription);
@@ -248,5 +264,12 @@ export function NeoSidebarCard() {
     setDismissed((current) => ({ ...current, [dismissedKey]: true }));
   };
 
-  return <NeoCard key={variant} variant={variant} onDismiss={handleDismiss} />;
+  return (
+    <NeoCard
+      key={variant}
+      variant={variant}
+      onDismiss={handleDismiss}
+      onFailure={loadAccess}
+    />
+  );
 }

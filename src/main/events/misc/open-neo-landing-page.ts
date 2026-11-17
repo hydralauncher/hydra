@@ -29,7 +29,7 @@ const openNeoLandingPage = async () => {
 
   if (token) url.searchParams.set("token", token);
 
-  shell.openExternal(url.toString());
+  await shell.openExternal(url.toString());
 };
 
 registerEvent("openNeoLandingPage", openNeoLandingPage);
