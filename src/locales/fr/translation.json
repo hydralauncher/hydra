@@ -45,6 +45,7 @@
     "filter_sort_tooltip": "Trier et filtrer",
     "platforms_label": "Plateformes",
     "consoles_label": "Consoles",
+    "libraries_label": "Bibliothèques",
     "show_favorites_first": "Favoris",
     "custom_game_modal": "Ajouter un jeu personnalisé",
     "custom_game_modal_description": "Ajoutez un jeu personnalisé à votre bibliothèque en sélectionnant un fichier exécutable",
@@ -2539,6 +2540,8 @@
     "imported_from_steam": "Importé depuis la bibliothèque Steam liée à ce profil.",
     "category_classics": "Classiques",
     "all_consoles": "Toutes les consoles",
+    "show_installed_only": "Afficher uniquement les jeux installés",
+    "all_libraries": "Toutes les bibliothèques",
     "importing_classics_title": "Importation de vos classiques",
     "importing_classics_description": "Nous analysons vos dossiers ROM pour ramener vos classiques. Cela peut prendre un moment.",
     "context_menu_accessible_label": "Menu contextuel du jeu",
@@ -2558,7 +2561,9 @@
     "imported_from_steam_and_epic": "Importé des bibliothèques Steam et Epic Games liées à ce profil.",
     "available_on_steam_and_epic": "Disponible sur Steam et Epic Games",
     "available_on_steam": "Disponible sur Steam",
-    "available_on_epic": "Disponible sur Epic Games"
+    "available_on_epic": "Disponible sur Epic Games",
+    "filters": "Filtres",
+    "clear_filters": "Effacer les filtres"
   },
   "notifications_page": {
     "cloud_gift_received_title": "Vous avez reçu Hydra Cloud",
