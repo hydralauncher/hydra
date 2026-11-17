@@ -8,21 +8,24 @@ const FRAGMENT_SHADER = [
   "uniform vec2 uRes;uniform float uTime;uniform float uDpr;uniform float uBw;uniform float uHover;",
   "float beam(float a,float p,float w){float d=abs(fract(a-p+.5)-.5);float e=abs(fract(a-p)-.5);return exp(-d*d/(w*w))+.55*exp(-e*e/(w*w*1.4));}",
   "const float ANGLE=70.0;const float REP=2.0;const float SHR=0.3;const float SHB=0.3;const float DIST=0.07;",
+  "const float CORNER_RADIUS=8.;const float CANVAS_PADDING=10.;const float EDGE_SOFTNESS=1.1;const float HALO_FALLOFF=3.5;const float INNER_FALLOFF=16.;",
+  "const float WAVE_X_FREQUENCY=3.;const float WAVE_X_SPEED=.5;const float WAVE_Y_FREQUENCY=2.5;const float WAVE_Y_SPEED=.35;const float WAVE_GAIN=3.;",
+  "const float DIRECTION_WEIGHT=.25;const float METAL_DRIFT_SPEED=.04;const float BEAM_WIDTH=.075;const float BEAM_WIDTH_HOVER=.12;const float BEAM_SPEED=.06;const float BEAM_WAVE=.4;const float CHROMA_OFFSET=.025;",
   "float sdRR(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}",
   "vec3 metal(float t){float f=fract(t);",
   " vec3 a=vec3(0.957,0.957,0.965),b=vec3(0.725,0.733,0.757),c=vec3(0.424,0.431,0.455),d=vec3(0.851,0.855,0.871);",
   " vec3 col=f<.25?mix(a,b,smoothstep(0.,.25,f)):f<.5?mix(b,c,smoothstep(.25,.5,f)):f<.75?mix(c,d,smoothstep(.5,.75,f)):mix(d,a,smoothstep(.75,1.,f));",
   " col+=pow(max(0.,sin(f*6.2832)),6.)*0.3;return col;}",
-  "void main(){vec2 px=gl_FragCoord.xy;vec2 c=uRes*.5;float r=8.*uDpr;float pad=10.*uDpr;",
-  " float d=sdRR(px-c,c-pad,r);float bw=uBw*uDpr;float fe=1.1*uDpr;",
+  "void main(){vec2 px=gl_FragCoord.xy;vec2 c=uRes*.5;float r=CORNER_RADIUS*uDpr;float pad=CANVAS_PADDING*uDpr;",
+  " float d=sdRR(px-c,c-pad,r);float bw=uBw*uDpr;float fe=EDGE_SOFTNESS*uDpr;",
   " float ring=smoothstep(-bw-fe,-bw+fe,d)*(1.-smoothstep(-fe*.6,fe,d));",
-  " float halo=exp(-abs(d+bw*.5)/(3.5*uDpr));float inner=exp(d/(16.*uDpr))*step(d,0.);",
+  " float halo=exp(-abs(d+bw*.5)/(HALO_FALLOFF*uDpr));float inner=exp(d/(INNER_FALLOFF*uDpr))*step(d,0.);",
   " vec2 uv=(px-c)/uRes.y;float a=radians(ANGLE);vec2 dir=vec2(cos(a),sin(a));",
   " float ang=atan(px.y-c.y,(px.x-c.x)*uRes.y/uRes.x)/6.2832;",
-  " float w=DIST*(sin(uv.x*3.+uTime*.5)*cos(uv.y*2.5-uTime*.35))*3.;",
-  " float t=ang*REP+dot(uv,dir)*.25*REP+w+uTime*.04;",
-  " float bwid=mix(.075,.12,uHover);float p0=uTime*.06+w*.4;",
-  " vec3 hl=vec3(beam(ang+SHR*.025,p0,bwid),beam(ang,p0,bwid),beam(ang-SHB*.025,p0,bwid));",
+  " float w=DIST*(sin(uv.x*WAVE_X_FREQUENCY+uTime*WAVE_X_SPEED)*cos(uv.y*WAVE_Y_FREQUENCY-uTime*WAVE_Y_SPEED))*WAVE_GAIN;",
+  " float t=ang*REP+dot(uv,dir)*DIRECTION_WEIGHT*REP+w+uTime*METAL_DRIFT_SPEED;",
+  " float bwid=mix(BEAM_WIDTH,BEAM_WIDTH_HOVER,uHover);float p0=uTime*BEAM_SPEED+w*BEAM_WAVE;",
+  " vec3 hl=vec3(beam(ang+SHR*CHROMA_OFFSET,p0,bwid),beam(ang,p0,bwid),beam(ang-SHB*CHROMA_OFFSET,p0,bwid));",
   " float h=hl.g;",
   " vec3 col=metal(t)*(.30+.22*uHover)+hl*metal(t+.35)*1.25;",
   " col=min(col,vec3(1.));",
@@ -100,9 +103,6 @@ export function useNeoSidebarBorder(
       gl.uniform1f(uDpr, dpr);
     };
 
-    const observer = new ResizeObserver(resize);
-    observer.observe(canvas);
-
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
@@ -141,6 +141,9 @@ export function useNeoSidebarBorder(
       frameId = requestAnimationFrame(frame);
     };
     canvas.addEventListener("neo-hover", kick);
+
+    const observer = new ResizeObserver(kick);
+    observer.observe(canvas);
 
     return () => {
       cancelAnimationFrame(frameId);

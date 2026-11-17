@@ -248,8 +248,12 @@ $neo-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
 
     &__detail,
     &__step,
-    &__logo {
-      transition: none !important;
+    &__logo,
+    &__card:hover &__detail,
+    &__card:focus-within &__detail,
+    &__card:hover &__step,
+    &__card:focus-within &__step {
+      transition: none;
     }
 
     &__step {

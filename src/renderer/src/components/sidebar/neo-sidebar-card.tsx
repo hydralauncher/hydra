@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useUserDetails } from "@renderer/hooks";
+import { useToast, useUserDetails } from "@renderer/hooks";
 
 import { useNeoSidebarBorder } from "./neo-sidebar-border";
 import "./neo-sidebar-card.scss";
@@ -26,6 +26,15 @@ const readDismissed = (key: string) => {
   }
 };
 
+const writeDismissed = (key: string) => {
+  try {
+    window.localStorage.setItem(key, "true");
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const getVariant = (
   access: NeoAccess | null,
   hasCloud: boolean
@@ -41,13 +50,7 @@ function HydraChromeLogo() {
   const gradientId = useId();
 
   return (
-    <svg
-      width="22"
-      height="20"
-      viewBox="0 0 55 49"
-      role="img"
-      aria-label="Hydra logo"
-    >
+    <svg width="22" height="20" viewBox="0 0 55 49" aria-hidden>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f4f4f6" />
@@ -81,6 +84,7 @@ function NeoCard({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hoverRef = useRef(0);
   const [isOpening, setIsOpening] = useState(false);
+  const { showErrorToast } = useToast();
 
   useNeoSidebarBorder(canvasRef, hoverRef);
 
@@ -89,23 +93,24 @@ function NeoCard({
     canvasRef.current?.dispatchEvent(new Event("neo-hover"));
   };
 
-  const handleAction = async () => {
+  const openNeo = async () => {
     if (variant === "waitlist") {
-      setIsOpening(true);
-      await window.electron
-        .openNeoLandingPage()
-        .finally(() => setIsOpening(false));
+      await window.electron.openNeoLandingPage();
       return;
     }
 
+    const { authorizationUrl } = await window.electron.hydraApi.get<{
+      authorizationUrl: string;
+    }>("/neo/discord/start", { needsAuth: true });
+    await window.electron.openExternal(authorizationUrl);
+  };
+
+  const handleAction = async () => {
     setIsOpening(true);
     try {
-      const { authorizationUrl } = await window.electron.hydraApi.get<{
-        authorizationUrl: string;
-      }>("/neo/discord/start", { needsAuth: true });
-      window.electron.openExternal(authorizationUrl);
+      await openNeo();
     } catch {
-      return;
+      showErrorToast(t("error_boundary_title", { ns: "app" }));
     } finally {
       setIsOpening(false);
     }
@@ -206,17 +211,24 @@ export function NeoSidebarCard() {
   const userId = userDetails?.id ?? null;
   const [access, setAccess] = useState<NeoAccess | null>(null);
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({});
+  const latestRequest = useRef(0);
 
   const loadAccess = useCallback(() => {
+    const request = ++latestRequest.current;
+
     if (!userId) {
       setAccess(null);
       return;
     }
 
+    const apply = (next: NeoAccess | null) => {
+      if (request === latestRequest.current) setAccess(next);
+    };
+
     window.electron.hydraApi
       .get<NeoAccess>("/neo/me", { needsAuth: true })
-      .then(setAccess)
-      .catch(() => setAccess(null));
+      .then(apply)
+      .catch(() => apply(null));
   }, [userId]);
 
   useEffect(() => {
@@ -232,13 +244,8 @@ export function NeoSidebarCard() {
   if (dismissed[dismissedKey] ?? readDismissed(dismissedKey)) return null;
 
   const handleDismiss = () => {
-    try {
-      window.localStorage.setItem(dismissedKey, "true");
-    } catch {
-      return;
-    } finally {
-      setDismissed((current) => ({ ...current, [dismissedKey]: true }));
-    }
+    writeDismissed(dismissedKey);
+    setDismissed((current) => ({ ...current, [dismissedKey]: true }));
   };
 
   return <NeoCard key={variant} variant={variant} onDismiss={handleDismiss} />;
