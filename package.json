@@ -143,6 +143,8 @@
     "@types/winreg": "^1.2.36",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.2.1",
+    "app-builder-lib": "^26.18.1",
+    "builder-util": "^26.18.1",
     "electron": "^41.10.3",
     "electron-builder": "^26.18.1",
     "electron-vite": "^4.0.1",

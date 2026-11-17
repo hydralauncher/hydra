@@ -3872,7 +3872,7 @@ ansi-styles@^4.0.0, ansi-styles@^4.1.0:
   dependencies:
     color-convert "^2.0.1"
 
-app-builder-lib@26.18.1:
+app-builder-lib@26.18.1, app-builder-lib@^26.18.1:
   version "26.18.1"
   resolved "https://registry.yarnpkg.com/app-builder-lib/-/app-builder-lib-26.18.1.tgz#1a577f107cf9b417039c947e9cdbd6d49b1c6b7d"
   integrity sha512-HxHcSQoy8RmiFCSxgKyt5Lrwx8HCURh5834TRaHEjkDkVS2wVt3RnkQDkG0zaQZfhz3d8WQtF8zv914xSm0ZpA==
@@ -4292,7 +4292,7 @@ builder-util-runtime@9.7.1:
     debug "^4.3.4"
     sax "^1.2.4"
 
-builder-util@26.18.1:
+builder-util@26.18.1, builder-util@^26.18.1:
   version "26.18.1"
   resolved "https://registry.yarnpkg.com/builder-util/-/builder-util-26.18.1.tgz#e365352cb81374abab4032df473589e619ee1bad"
   integrity sha512-t+1Xnzj8jQ2FnJWtQOKVCuzv3QGjvNhE6er757omlKFysQexdrCVI9eM/uu4+39IiMCtM2l/30O1Yrqqbt4HQw==
