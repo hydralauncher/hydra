@@ -27,11 +27,7 @@ const openNeoLandingPage = async () => {
   const url = new URL(neoLandingPageUrl);
   const token = await getNeoToken();
 
-  if (token) {
-    url.searchParams.set("token", token);
-  } else {
-    url.hash = "register";
-  }
+  if (token) url.searchParams.set("token", token);
 
   shell.openExternal(url.toString());
 };
