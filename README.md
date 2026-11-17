@@ -81,6 +81,8 @@
 
 Please, refer to our Documentation pages: [docs.hydralauncher.gg](https://docs.hydralauncher.gg/getting-started)
 
+Hydra is built and released for Windows and Linux. macOS is not supported.
+
 ### Local development requirements
 
 - Node.js + Yarn
