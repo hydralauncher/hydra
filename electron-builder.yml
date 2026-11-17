@@ -140,6 +140,8 @@ appImage:
 deb:
   fpm:
     - --deb-compression-level=9
+snap:
+  allowNativeWayland: false
 npmRebuild: false
 publish:
   provider: github
