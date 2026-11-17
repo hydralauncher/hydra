@@ -136,12 +136,20 @@ export class UniverseLanServerManager {
 
     this.isCheckingHolders = true;
 
-    try {
-      for (const [holderKey, holder] of [...this.holders]) {
-        const isRunning = await Promise.resolve(
-          this.isHolderRunning(holderKey)
-        ).catch(() => true);
+    const isHolderRunning = this.isHolderRunning;
 
+    try {
+      const checks = await Promise.all(
+        Array.from(this.holders, async ([holderKey, holder]) => ({
+          holderKey,
+          holder,
+          isRunning: await Promise.resolve(isHolderRunning(holderKey)).catch(
+            () => true
+          ),
+        }))
+      );
+
+      for (const { holderKey, holder, isRunning } of checks) {
         // The holder may have been released or re-acquired meanwhile.
         if (this.holders.get(holderKey) !== holder) continue;
 
