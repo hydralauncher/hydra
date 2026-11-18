@@ -132,13 +132,14 @@ export function GameOptionsModal({
     achievements,
     shopDetails,
     isTransferring,
+    transferProgress,
+    transferSpeed,
+    transferETA,
+    cancelTransfer,
     isGameRunning,
   } = useContext(gameDetailsContext);
 
-  const [transferProgress, setTransferProgress] = useState(0);
   const [drives, setDrives] = useState<any[]>([]);
-  const [transferSpeed, setTransferSpeed] = useState(0);
-  const [transferETA, setTransferETA] = useState(0);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const [pendingRemoveFilesTarget, setPendingRemoveFilesTarget] =
@@ -413,31 +414,10 @@ export function GameOptionsModal({
   }, [game.shop, game.objectId]);
 
   useEffect(() => {
-    const onProgress = (
-      _: unknown,
-      shop: string,
-      oid: string,
-      progress: number,
-      details?: any
-    ) => {
-      if (shop === game.shop && oid === game.objectId) {
-        setTransferProgress(progress);
-        if (details) {
-          setTransferSpeed(details.speed);
-          setTransferETA(details.eta);
-        }
-      }
-    };
-    (globalThis.window.electron as any).on(
-      "on-game-transfer-progress",
-      onProgress
-    );
-    return () =>
-      (globalThis.window.electron as any).off(
-        "on-game-transfer-progress",
-        onProgress
-      );
-  }, [game]);
+    if (!visible || !isTransferring) {
+      setShowCancelConfirm(false);
+    }
+  }, [visible, isTransferring, game.shop, game.objectId]);
 
   const debounceUpdateLaunchOptions = useRef(
     debounce(async (value: string) => {
@@ -486,13 +466,10 @@ export function GameOptionsModal({
     }
   };
 
-  const handleCancelTransfer = () => {
-    globalThis.window.electron.cancelGameTransfer?.(game.shop, game.objectId);
-    setTransferProgress(0);
-    setTransferSpeed(0);
-    setTransferETA(0);
+  const handleCancelTransfer = useCallback(() => {
+    cancelTransfer();
     setShowCancelConfirm(false);
-  };
+  }, [cancelTransfer]);
 
   const getTransferErrorToast = (
     result: Awaited<
