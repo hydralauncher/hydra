@@ -1,0 +1,39 @@
+@use "../../scss/globals.scss";
+
+.settings-local-api {
+  &__description {
+    margin: 0;
+    color: globals.$muted-color;
+    font-size: globals.$small-font-size;
+    line-height: 1.5;
+  }
+
+  &__fields {
+    display: flex;
+    flex-direction: column;
+    gap: calc(globals.$spacing-unit * 2);
+    margin-top: calc(globals.$spacing-unit * 2);
+  }
+
+  &__example {
+    font: inherit;
+    font-size: globals.$small-font-size;
+    color: inherit;
+    cursor: pointer;
+    padding: 2px 4px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &__hinted-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    small {
+      font-size: globals.$small-font-size;
+      opacity: 0.6;
+    }
+  }
+}
