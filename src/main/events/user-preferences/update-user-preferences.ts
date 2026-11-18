@@ -7,7 +7,13 @@ import i18next from "i18next";
 import { defaultDownloadsPath } from "@main/constants";
 import { db, gamesSublevel, levelKeys } from "@main/level";
 import { patchUserProfile } from "../profile/update-profile";
-import { DownloadManager, ScreenshotInputService, Wine } from "@main/services";
+import {
+  DownloadManager,
+  generateLocalApiToken,
+  LocalApi,
+  ScreenshotInputService,
+  Wine,
+} from "@main/services";
 import { WindowManager } from "@main/services/window-manager";
 import { getDownloadDirectoryPreferences } from "@shared";
 import {
@@ -206,6 +212,12 @@ const updateUserPreferences = async (
     ...normalizedDownloadDirectoryPreferences,
   };
 
+  // Mint a token the first time the local API is enabled, and after a
+  // regenerate request (token set back to null) while it stays enabled.
+  if (updatedPreferences.localApiEnabled && !updatedPreferences.localApiToken) {
+    updatedPreferences.localApiToken = generateLocalApiToken();
+  }
+
   await db.put<string, UserPreferences>(
     levelKeys.userPreferences,
     updatedPreferences,
@@ -226,6 +238,7 @@ const updateUserPreferences = async (
 
   Wine.syncUserPreferences(updatedPreferences);
   ScreenshotInputService.syncUserPreferences(updatedPreferences);
+  await LocalApi.syncUserPreferences(updatedPreferences);
 
   await updateEmulatorAchievementTracking(preferences, updatedPreferences);
   await unlinkRetroAchievementsEmulatorAccount(preferences);

@@ -276,6 +276,10 @@ export interface UserPreferences {
   screenshotDefaultVisibility?: ProfileVisibility;
   showSensitiveScreenshots?: boolean;
   hideCommunityScreenshots?: boolean;
+  localApiEnabled?: boolean;
+  localApiPort?: number;
+  localApiToken?: string | null;
+  localApiBindLan?: boolean;
 }
 
 export interface NetworkInterface {

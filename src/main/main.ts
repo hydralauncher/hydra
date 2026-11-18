@@ -33,6 +33,7 @@ import {
   Wine,
   WindowManager,
   ScreenshotInputService,
+  LocalApi,
   logger,
   migrateCloudSaveAutomaticSyncDefaults,
   groupedSouvenirWorker,
@@ -91,6 +92,7 @@ export const loadState = async () => {
     logger.error("Tracked games running listener failed", error)
   );
   ScreenshotInputService.syncUserPreferences(userPreferences);
+  await LocalApi.syncUserPreferences(userPreferences);
 
   await import("./events");
 

@@ -22,6 +22,7 @@ import {
   SSEClient,
   emulators,
   ScreenshotInputService,
+  LocalApi,
 } from "@main/services";
 import resources from "@locales";
 import { TorrentService } from "./services/torrent-service";
@@ -492,6 +493,7 @@ app.on("before-quit", async (e) => {
       saveRecompilationPlaytimeOnQuit(),
       emulators.stopAllEmulatorSouvenirCaptureSessions(),
       flushScreenshotTelemetry(SCREENSHOT_TELEMETRY_QUIT_FLUSH_TIMEOUT_MS),
+      LocalApi.shutdown(),
     ]);
     for (const result of results) {
       if (result.status === "rejected") {
