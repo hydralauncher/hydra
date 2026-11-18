@@ -1,0 +1,245 @@
+// similar-games.tsx + similar-games.scss + vertical-cover-card.scss
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, RoundButton, Skeleton } from "../../components/widgets.slint";
+import { SimilarGame } from "../../types.slint";
+import { T } from "../../globals.slint";
+
+// vertical-cover-card.tsx: the cover, the classics layout (contained cover
+// over its blurred copy) or the placeholder with the image icon.
+component CoverMedia inherits Rectangle {
+    in property <SimilarGame> game;
+    clip: true;
+    if !root.game.classics && !root.game.missing: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.game.cover;
+        image-fit: cover;
+    }
+    if root.game.classics && !root.game.missing: Rectangle {
+        background: Theme.dark-background;
+        // blur(16px) saturate(1.1), opacity .65, scale(1.25)
+        Image {
+            x: -parent.width * 0.125;
+            y: -parent.height * 0.125;
+            width: parent.width * 1.25;
+            height: parent.height * 1.25;
+            source: root.game.backdrop;
+            image-fit: cover;
+            opacity: 0.65;
+        }
+        // max 80% each way, object-fit: contain, 1px border, 4px radius
+        property <float> aspect: root.game.cover.width > 0 ? root.game.cover.width / root.game.cover.height : 0.7;
+        property <length> fit-w: Math.min(parent.width * 0.8, parent.height * 0.8 * self.aspect);
+        property <length> fit-h: self.fit-w / self.aspect;
+        Rectangle {
+            width: parent.fit-w;
+            height: parent.fit-h;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.12);
+            drop-shadow-offset-y: 5px;
+            drop-shadow-blur: 5px;
+            drop-shadow-color: rgba(0, 0, 0, 0.09);
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.game.cover;
+                image-fit: contain;
+            }
+        }
+    }
+    if root.game.missing: Rectangle {
+        background: @linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.08) 100%);
+        Icon {
+            source: Icons.image;
+            width: 48px;
+            height: 48px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+    }
+}
+
+export component SimilarGames inherits VerticalLayout {
+    // getSimilarGamesSectionState: "loading" | "ready" | "empty"
+    in property <string> state: "ready";
+    in property <[SimilarGame]> games;
+    callback game-clicked(int);
+    spacing: 12px;
+
+    property <int> per-page: 3;
+    property <int> count: root.games.length;
+    property <int> pages: Math.ceil(root.count / root.per-page);
+    in-out property <int> page;
+    property <bool> can-prev: root.page > 0;
+    property <bool> can-next: root.page < root.pages - 1;
+    // flex: 0 0 calc(100% / 3) with 8px side padding, container margin-inline: -8px
+    property <length> slide-width: (root.width + 16px) / root.per-page;
+    property <length> card-width: root.slide-width - 16px;
+    property <length> card-height: root.card-width * 3 / 2;
+    property <bool> any-card-hovered;
+
+    // embla drag
+    property <bool> dragging;
+    property <length> drag-dx;
+    property <bool> suppress-click;
+
+    Text {
+        text: T.tr("game_details.similar_games");
+        font-size: 20px;
+        font-weight: 700; // 600 in scss; Electron has no SemiBold face
+        color: Theme.body;
+    }
+
+    // SimilarGamesSkeleton: three 2:3 skeleton slides
+    if root.state == "loading": Rectangle {
+        height: root.card-height + 6px;
+        for i in 3: Skeleton {
+            x: i * root.slide-width;
+            y: 3px;
+            width: root.card-width;
+            height: root.card-height;
+        }
+    }
+
+    // .similar-games__empty: aspect-ratio 2/1, centered muted text
+    if root.state == "empty": Rectangle {
+        height: root.width / 2;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        Text {
+            x: 16px;
+            width: parent.width - 32px;
+            text: T.tr("game_details.no_similar_games");
+            color: Theme.muted;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+
+    if root.state == "ready": carousel := Rectangle {
+        height: root.card-height + 6px;
+
+        // overflow: clip with overflow-clip-margin growing to 14px while a card is hovered,
+        // so the 1.05x card isn't cut. The margin shrinks back after the 0.2s hover-out.
+        property <length> clip-margin: root.any-card-hovered ? 14px : 0;
+        animate clip-margin { duration: 0ms; delay: root.any-card-hovered ? 0ms : 200ms; }
+
+        clip-box := Rectangle {
+            x: -carousel.clip-margin;
+            y: -carousel.clip-margin;
+            width: carousel.width + 2 * carousel.clip-margin;
+            height: carousel.height + 2 * carousel.clip-margin;
+            border-radius: 6px;
+            clip: true;
+
+            viewport-touch := TouchArea {
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel)) {
+                        root.suppress-click = root.dragging;
+                        if (root.dragging) {
+                            let delta = root.drag-dx < -40px ? 1 : root.drag-dx > 40px ? -1 : 0;
+                            root.page = Math.clamp(root.page + delta, 0, root.pages - 1);
+                        }
+                        root.dragging = false;
+                        root.drag-dx = 0;
+                    }
+                }
+                moved => {
+                    if (self.pressed) {
+                        let dx = self.mouse-x - self.pressed-x;
+                        if (!root.dragging && Math.abs(dx) > 5px) {
+                            root.dragging = true;
+                        }
+                        if (root.dragging) {
+                            root.drag-dx = dx;
+                        }
+                    }
+                }
+
+                track := Rectangle {
+                    property <length> page-x: -root.page * root.per-page * root.slide-width;
+                    // containScroll: "trimSnaps" -> the last page is aligned to the end.
+                    property <length> min-x: -Math.max(0, root.count * root.slide-width - (carousel.width + 16px));
+                    property <length> target: Math.max(self.min-x, self.page-x);
+                    x: carousel.clip-margin - 8px + (root.dragging ? self.target + root.drag-dx * ((root.can-prev || root.drag-dx < 0) && (root.can-next || root.drag-dx > 0) ? 1 : 0.25) : self.target);
+                    animate x {
+                        // duration: 20 -> embla's quicker settle
+                        duration: root.dragging ? 0ms : 380ms;
+                        easing: cubic-bezier(0.25, 1, 0.5, 1);
+                    }
+                    y: carousel.clip-margin;
+                    width: root.count * root.slide-width;
+                    height: carousel.height;
+
+                    for game[i] in root.games: Rectangle {
+                        x: i * root.slide-width + 8px;
+                        y: 3px;
+                        width: root.card-width;
+                        height: root.card-height;
+
+                        card := Rectangle {
+                            border-radius: 4px;
+                            background: Theme.background;
+                            drop-shadow-offset-y: 8px;
+                            drop-shadow-blur: 10px;
+                            drop-shadow-spread: -2px;
+                            drop-shadow-color: rgba(0, 0, 0, 0.5);
+                            transform-scale: card-touch.has-hover ? 1.05 : 1;
+                            opacity: card-touch.pressed ? Theme.active-opacity : 1;
+                            animate transform-scale, opacity { duration: 200ms; easing: ease; }
+
+                            CoverMedia {
+                                border-radius: 4px;
+                                game: game;
+                            }
+
+                            card-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                changed has-hover => {
+                                    root.any-card-hovered = self.has-hover;
+                                }
+                                clicked => {
+                                    if (root.suppress-click) {
+                                        root.suppress-click = false;
+                                        return;
+                                    }
+                                    root.game-clicked(i);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // .similar-games__control: slide 16px + fade in on viewport hover, hidden at the ends.
+                RoundButton {
+                    icon: Icons.chevron-left;
+                    property <bool> show: viewport-touch.has-hover && root.can-prev;
+                    x: carousel.clip-margin + 8px + (self.show ? 0 : -16px);
+                    y: carousel.clip-margin + (carousel.height - self.height) / 2;
+                    opacity: self.show ? 1 : 0;
+                    visible: root.can-prev || self.opacity > 0;
+                    transform-scale: self.pressed ? 0.95 : 1;
+                    animate x, opacity, transform-scale { duration: 300ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+                    clicked => {
+                        root.page = Math.max(0, root.page - 1);
+                    }
+                }
+                RoundButton {
+                    icon: Icons.chevron-right;
+                    property <bool> show: viewport-touch.has-hover && root.can-next;
+                    x: carousel.clip-margin + carousel.width - self.width - 8px + (self.show ? 0 : 16px);
+                    y: carousel.clip-margin + (carousel.height - self.height) / 2;
+                    opacity: self.show ? 1 : 0;
+                    visible: root.can-next || self.opacity > 0;
+                    transform-scale: self.pressed ? 0.95 : 1;
+                    animate x, opacity, transform-scale { duration: 300ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+                    clicked => {
+                        root.page = Math.min(root.pages - 1, root.page + 1);
+                    }
+                }
+            }
+        }
+    }
+}

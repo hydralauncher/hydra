@@ -1,0 +1,1181 @@
+// pages/friends-window/friends-window.{tsx,scss}: the Friends window, a
+// separate OS window (420x780, min 260x360, frameless unless the platform
+// draws decorations). friends_window.rs fills FriendsData.
+import { Theme } from "theme.slint";
+import { Icon, HydraButton, ScrollBar } from "components/widgets.slint";
+import { SmoothScroll, ScrollTween } from "components/smooth-scroll.slint";
+import { ToastHost } from "components/toast.slint";
+import { T } from "globals.slint";
+import { SocialIcons, Css, SocialAvatar, AvatarWithOrb, UnreadBadge, OfficialBadge, SocialWindowControl } from "social/common.slint";
+
+export struct FriendRow {
+    id: string,
+    name: string,
+    avatar: image,
+    // The profile background (lazy, at the row's size); width 0 without one.
+    banner: image,
+    online: bool,
+    // currentGame.title; "" when not playing
+    game: string,
+    game-icon: image,
+    // currentGame.iconUrl is set (else the Steam logo stands in)
+    game-has-icon: bool,
+    unread: int,
+    // "Message {name}" / unread label (title attribute)
+    message-label: string,
+    official: bool,
+}
+
+export global FriendsData {
+    in property <bool> native-decorations;
+
+    // The signed-in user (profile hero)
+    in property <string> profile-id;
+    in property <string> profile-name;
+    in property <image> profile-avatar;
+    in property <image> profile-banner;
+    // gameRunning (title, icon)
+    in property <string> self-game;
+    in property <image> self-game-icon;
+    in property <bool> self-game-has-icon;
+
+    // The search field holds the search or, in add mode, the friend code.
+    in-out property <bool> add-mode;
+    in-out property <string> field;
+    in property <bool> sending;
+    // Bumped to focus the field (toggling add mode, an add-friend request).
+    in property <int> focus-field;
+
+    // Lists. `searching`: a search is active (searchResults !== null).
+    in property <bool> skeleton;
+    in property <bool> searching;
+    in property <[FriendRow]> official;
+    in property <[FriendRow]> sent;
+    in property <[FriendRow]> received;
+    in property <[FriendRow]> online;
+    in property <[FriendRow]> offline;
+    in property <bool> sent-collapsed;
+    in property <bool> received-collapsed;
+    in property <bool> online-collapsed;
+    in property <bool> offline-collapsed;
+
+    callback field-edited(string);
+    callback toggle-add-mode();
+    callback send-request();
+    callback open-code-profile();
+    callback open-profile(string);
+    callback message(string);
+    callback accept(string);
+    callback refuse(string);
+    callback cancel-request(string);
+    // "sent" | "received" | "online" | "offline"
+    callback toggle-section(string);
+    // The list's scroll offset and height, for lazy images.
+    callback list-viewport(length, length);
+    callback minimize();
+    callback close();
+    callback drag();
+}
+
+// .friends-window__title-bar: 35px, the title and the window controls.
+component TitleBar inherits Rectangle {
+    in property <bool> clear;
+    height: 35px;
+    background: root.clear ? transparent : Theme.dark-background;
+    drag := TouchArea {
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                FriendsData.drag();
+            }
+        }
+    }
+    Text {
+        x: 16px;
+        text: T.tr("friends_window.title");
+        font-size: Theme.small-size;
+        font-weight: 500;
+        color: Theme.muted;
+        vertical-alignment: center;
+        height: parent.height;
+    }
+    HorizontalLayout {
+        x: parent.width - self.width;
+        width: 70px;
+        SocialWindowControl {
+            width: 35px;
+            icon: SocialIcons.dash;
+            label: T.tr("friends_window.minimize");
+            clicked => {
+                FriendsData.minimize();
+            }
+        }
+        SocialWindowControl {
+            width: 35px;
+            icon: SocialIcons.x;
+            close: true;
+            label: T.tr("friends_window.close");
+            clicked => {
+                FriendsData.close();
+            }
+        }
+    }
+    if !root.clear: Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.border;
+    }
+}
+
+// Text with the hover underline Chromium draws for `text-decoration: underline`.
+component UnderlinedText inherits Rectangle {
+    in property <string> text;
+    in property <bool> underline;
+    in property <color> text-color: Theme.muted;
+    in property <length> font-size: Theme.body-size;
+    in property <int> font-weight: 400;
+    out property <length> natural-width: label.preferred-width;
+    height: label.preferred-height;
+    label := Text {
+        width: root.width;
+        text: root.text;
+        color: root.text-color;
+        font-size: root.font-size;
+        font-weight: root.font-weight;
+        overflow: elide;
+    }
+    if root.underline: Rectangle {
+        y: root.font-size * 1.07 + 1.4px;
+        width: Math.min(root.width, label.preferred-width);
+        height: 1px;
+        background: root.text-color;
+    }
+}
+
+// .friends-window__profile: avatar, name, friend code and status.
+component ProfileHero inherits Rectangle {
+    in property <bool> banner;
+    // a hidden TextInput gives Slint's clipboard access (navigator.clipboard)
+    property <bool> copied;
+    copier := TextInput {
+        visible: false;
+        width: 0;
+        height: 0;
+    }
+    Timer {
+        interval: 1200ms;
+        running: root.copied;
+        triggered => {
+            root.copied = false;
+        }
+    }
+    height: 88px;
+    HorizontalLayout {
+        padding: 16px;
+        spacing: 12px;
+        // .friends-window__profile-avatar: opacity 0.7 on hover
+        Rectangle {
+            width: 56px;
+            height: 56px;
+            opacity: avatar-touch.has-hover && FriendsData.profile-id != "" ? Theme.active-opacity : 1;
+            animate opacity { duration: 200ms; easing: ease; }
+            AvatarWithOrb {
+                size: 56px;
+                source: FriendsData.profile-avatar;
+                online: true;
+                orb-size: 15px;
+                orb-ring: 3px;
+                orb-inset: 2px;
+            }
+            avatar-touch := TouchArea {
+                mouse-cursor: FriendsData.profile-id != "" ? pointer : default;
+                clicked => {
+                    if (FriendsData.profile-id != "") {
+                        FriendsData.open-profile(FriendsData.profile-id);
+                    }
+                }
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 4px;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                name := Rectangle {
+                    horizontal-stretch: 0;
+                    min-width: 0;
+                    preferred-width: name-text.natural-width;
+                    height: 19px;
+                    name-text := UnderlinedText {
+                        width: parent.width;
+                        text: FriendsData.profile-name;
+                        font-weight: 700;
+                        underline: name-touch.has-hover && FriendsData.profile-id != "";
+                    }
+                    name-touch := TouchArea {
+                        mouse-cursor: FriendsData.profile-id != "" ? pointer : default;
+                        clicked => {
+                            if (FriendsData.profile-id != "") {
+                                FriendsData.open-profile(FriendsData.profile-id);
+                            }
+                        }
+                    }
+                }
+                // .friends-window__friend-code: the id slides out on hover or after copying
+                if FriendsData.profile-id != "": code := Rectangle {
+                    property <bool> open: code-touch.has-hover || root.copied;
+                    property <length> value-width: Math.min(160px, value.preferred-width);
+                    width: self.revealed + 14px;
+                    property <length> revealed: self.open ? self.value-width + 4px : 0px;
+                    animate revealed { duration: 200ms; easing: ease; }
+                    height: 19px;
+                    Rectangle {
+                        x: 0;
+                        width: Math.max(0px, code.revealed - 4px);
+                        clip: true;
+                        value := Text {
+                            x: 0;
+                            text: root.copied ? T.tr("friends_window.copied") : FriendsData.profile-id;
+                            font-family: "Consolas";
+                            font-size: Theme.small-size;
+                            color: Theme.muted;
+                            opacity: code.open ? 1 : 0;
+                            animate opacity { duration: 200ms; easing: ease; }
+                            vertical-alignment: center;
+                            height: 19px;
+                        }
+                    }
+                    Icon {
+                        x: code.revealed;
+                        width: 14px;
+                        height: 14px;
+                        source: SocialIcons.copy;
+                        color: code.open ? Theme.muted : Theme.body;
+                        animate color { duration: 200ms; easing: ease; }
+                    }
+                    code-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            copier.text = FriendsData.profile-id;
+                            copier.select-all();
+                            copier.copy();
+                            root.copied = true;
+                        }
+                    }
+                }
+            }
+            if FriendsData.self-game != "": HorizontalLayout {
+                spacing: 4px;
+                alignment: start;
+                if FriendsData.self-game-has-icon: Rectangle {
+                    width: 16px;
+                    height: 16px;
+                    y: (parent.height - 16px) / 2;
+                    border-radius: 4px;
+                    clip: true;
+                    Image {
+                        source: FriendsData.self-game-icon;
+                        width: 16px;
+                        height: 16px;
+                    }
+                }
+                if !FriendsData.self-game-has-icon: Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: SocialIcons.steam;
+                    color: Theme.body;
+                }
+                Text {
+                    text: FriendsData.self-game;
+                    font-size: Theme.small-size;
+                    color: Theme.body;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+            }
+            if FriendsData.self-game == "": Text {
+                text: T.tr("friends_window.online");
+                font-size: Theme.small-size;
+                color: Theme.body;
+                opacity: root.banner ? 1 : 0.7;
+            }
+        }
+    }
+}
+
+// .friends-window__search: the search field, or the friend code in add mode.
+component SearchField inherits Rectangle {
+    property <bool> add: FriendsData.add-mode;
+    height: 40px;
+    border-radius: 8px;
+    background: Theme.dark-background;
+    border-width: 1px;
+    border-color: input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : root.add ? rgba(255, 255, 255, 0.3) : Theme.border;
+    animate border-color { duration: 200ms; easing: ease; }
+    hover := TouchArea {
+        mouse-cursor: MouseCursor.text;
+        clicked => {
+            input.focus();
+        }
+    }
+    HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 13px;
+        spacing: 8px;
+        Icon {
+            y: (parent.height - 16px) / 2;
+            width: 16px;
+            height: 16px;
+            source: root.add ? SocialIcons.person-add : SocialIcons.search;
+            color: Theme.body;
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+            // Chromium's <input> keeps its UA padding (1px 2px)
+            placeholder := Text {
+                x: 2px;
+                width: parent.width - 4px;
+                visible: input.text == "";
+                text: root.add ? T.tr("user_profile.friend_code") : T.tr("friends_window.search_placeholder");
+                color: Theme.body;
+                opacity: 0.6;
+                font-size: Theme.body-size;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+            input := TextInput {
+                x: 2px;
+                width: parent.width - 4px;
+                height: parent.height;
+                text: FriendsData.field;
+                color: Theme.muted;
+                font-size: Theme.body-size;
+                font-family: root.add && self.text != "" ? "Consolas" : "Noto Sans";
+                letter-spacing: root.add && self.text != "" ? 0.7px : 0px;
+                vertical-alignment: center;
+                single-line: true;
+                selection-background-color: #3e62c0;
+                edited => {
+                    FriendsData.field-edited(self.text);
+                    // the backend normalizes the friend code (trim, 8 chars)
+                    if (self.text != FriendsData.field) {
+                        self.text = FriendsData.field;
+                    }
+                }
+                key-pressed(event) => {
+                    if (!FriendsData.add-mode) {
+                        return reject;
+                    }
+                    if (event.text == Key.Return) {
+                        FriendsData.send-request();
+                        return accept;
+                    }
+                    if (event.text == Key.Escape) {
+                        FriendsData.toggle-add-mode();
+                        return accept;
+                    }
+                    reject
+                }
+            }
+            property <string> backend-text: FriendsData.field;
+            changed backend-text => {
+                if (input.text != self.backend-text) {
+                    input.text = self.backend-text;
+                }
+            }
+            property <int> focus-request: FriendsData.focus-field;
+            changed focus-request => {
+                input.focus();
+            }
+        }
+        if FriendsData.field != "": Rectangle {
+            width: 16px;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: SocialIcons.x;
+                color: Theme.body;
+                opacity: clear.has-hover ? 1 : 0.7;
+                animate opacity { duration: 200ms; easing: ease; }
+            }
+            clear := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    FriendsData.field-edited("");
+                    input.focus();
+                }
+            }
+        }
+    }
+}
+
+// .friends-window__add-friend: two stacked faces that cross-fade.
+component AddFriendToggle inherits Rectangle {
+    width: 40px;
+    height: 40px;
+    property <bool> active: FriendsData.add-mode;
+    Rectangle {
+        border-radius: 8px;
+        background: touch.has-hover ? #dadbe1 : Theme.muted;
+        animate background { duration: 200ms; easing: ease; }
+        opacity: root.active ? 0 : 1;
+        animate opacity { duration: 200ms; easing: ease; }
+        Icon {
+            width: 16px;
+            height: 16px;
+            source: SocialIcons.person-add;
+            color: Theme.dark-background;
+        }
+    }
+    Rectangle {
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        background: touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+        animate background { duration: 200ms; easing: ease; }
+        opacity: root.active ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease; }
+        Icon {
+            width: 16px;
+            height: 16px;
+            source: SocialIcons.x;
+            color: Theme.muted;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            FriendsData.toggle-add-mode();
+        }
+    }
+}
+
+// .friends-window__add-actions: slides in under the field (0.15s ease-out).
+component AddActions inherits Rectangle {
+    property <bool> entered;
+    init => {
+        self.entered = true;
+    }
+    height: 40px;
+    opacity: self.entered ? 1 : 0;
+    property <length> shift: self.entered ? 0px : -4px;
+    animate opacity, shift { duration: 150ms; easing: ease-out; }
+    HorizontalLayout {
+        y: root.shift;
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 8px;
+        HydraButton {
+            horizontal-stretch: 1;
+            kind: "primary";
+            icon: SocialIcons.person-add;
+            text: FriendsData.sending ? T.tr("user_profile.sending") : T.tr("friends_window.send_friend_request");
+            enabled: !FriendsData.sending;
+            clicked => {
+                FriendsData.send-request();
+            }
+        }
+        HydraButton {
+            horizontal-stretch: 1;
+            kind: "outline";
+            text: T.tr("user_profile.see_profile");
+            enabled: !FriendsData.sending;
+            clicked => {
+                FriendsData.open-code-profile();
+            }
+        }
+    }
+}
+
+// .friends-window__skeleton: #1c1c1c with a #333 sweep (1.4s ease-in-out,
+// background-position 150% -> -50%), started `delay` after the row mounts.
+component Shimmer inherits Rectangle {
+    in property <duration> delay;
+    in property <length> radius: 4px;
+    property <duration> mounted;
+    init => {
+        self.mounted = animation-tick();
+    }
+    border-radius: root.radius;
+    background: #1c1c1c;
+    clip: true;
+    property <duration> elapsed: animation-tick() - root.mounted - root.delay;
+    property <float> phase: self.elapsed < 0ms ? -1 : Math.mod(self.elapsed / 1400ms, 1);
+    // the 200%-wide gradient's left edge: 0 before the delay, then -1.5w -> +0.5w
+    Rectangle {
+        x: root.phase < 0 ? 0px : -1.5 * root.width + 2 * root.width * Css.ease-in-out(root.phase);
+        width: 2 * root.width;
+        background: @linear-gradient(90deg, rgba(51, 51, 51, 0) 0%, #333333 50%, rgba(51, 51, 51, 0) 100%);
+    }
+}
+
+// .friends-window__count: a pill, green for online and gray for offline.
+component CountPill inherits Rectangle {
+    in property <int> count;
+    in property <string> tone;
+    height: 18px;
+    width: Math.max(18px, label.preferred-width + 8px);
+    border-radius: 9px;
+    background: root.tone == "online" ? #157a3b : root.tone == "offline" ? #6d6d6d : rgba(255, 255, 255, 0.12);
+    label := Text {
+        text: root.count;
+        color: root.tone == "" ? Theme.muted : #ffffff;
+        font-size: Theme.tiny-size;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// .friends-window__section-header: sticky, opaque, toggles its section.
+component SectionHeader inherits Rectangle {
+    in property <string> title;
+    in property <int> count;
+    in property <string> tone;
+    in property <bool> collapsed;
+    // the skeleton's header: same look, nothing to toggle
+    in property <bool> static;
+    callback toggled();
+    height: 34px;
+    background: Theme.background;
+    property <color> fg: touch.has-hover && !root.static ? Theme.muted : Theme.body;
+    animate fg { duration: 200ms; easing: ease; }
+    touch := TouchArea {
+        mouse-cursor: root.static ? default : pointer;
+        clicked => {
+            if (!root.static) {
+                root.toggled();
+            }
+        }
+    }
+    HorizontalLayout {
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 4px;
+        alignment: start;
+        Icon {
+            y: (parent.height - 16px) / 2;
+            width: 16px;
+            height: 16px;
+            source: root.collapsed ? SocialIcons.chevron-right : SocialIcons.chevron-down;
+            color: root.fg;
+        }
+        Text {
+            text: root.title.to-uppercase();
+            font-size: Theme.small-size;
+            font-weight: 700;
+            letter-spacing: 0.48px;
+            color: root.fg;
+            vertical-alignment: center;
+        }
+        if !root.static: Rectangle {
+            width: pill.width + 4px;
+            pill := CountPill {
+                x: 4px;
+                y: (parent.height - self.height) / 2;
+                count: root.count;
+                tone: root.tone;
+            }
+        }
+        if root.static: Rectangle {
+            width: 22px;
+            Shimmer {
+                x: 4px;
+                y: (parent.height - 18px) / 2;
+                width: 18px;
+                height: 18px;
+                radius: 9px;
+            }
+        }
+    }
+}
+
+// .friends-window__skeleton-row: the box of a friend row (56px).
+component SkeletonRow inherits Rectangle {
+    in property <length> name-width;
+    in property <length> status-width;
+    in property <int> index;
+    height: 56px;
+    HorizontalLayout {
+        padding: 8px;
+        spacing: 12px;
+        alignment: start;
+        Shimmer {
+            width: 40px;
+            height: 40px;
+            delay: root.index * 90ms;
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            Shimmer {
+                width: root.name-width;
+                height: 12px;
+                delay: root.index * 90ms;
+            }
+            Shimmer {
+                width: root.status-width;
+                height: 9px;
+                delay: root.index * 90ms;
+            }
+        }
+    }
+}
+
+// The game a friend is playing: its icon (or the Steam logo) and title.
+component GameInfo inherits HorizontalLayout {
+    in property <string> title;
+    in property <image> icon;
+    in property <bool> has-icon;
+    in property <color> color: Theme.body;
+    spacing: 4px;
+    alignment: start;
+    if root.has-icon: Rectangle {
+        width: 16px;
+        height: 16px;
+        y: (parent.height - 16px) / 2;
+        border-radius: 4px;
+        clip: true;
+        Image {
+            source: root.icon;
+            width: 16px;
+            height: 16px;
+        }
+    }
+    if !root.has-icon: Icon {
+        width: 16px;
+        height: 16px;
+        source: SocialIcons.steam;
+        color: root.color;
+    }
+    Text {
+        text: root.title;
+        font-size: Theme.small-size;
+        color: root.color;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+// .friends-window__request-action: a 28px round button.
+component RequestAction inherits Rectangle {
+    in property <image> icon;
+    in property <bool> accept;
+    callback clicked();
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: touch.has-hover ? (root.accept ? Theme.success : Theme.error) : Theme.border;
+    background: touch.has-hover ? (root.accept ? Theme.success : Theme.error) : rgba(255, 255, 255, 0.04);
+    animate background, border-color { duration: 200ms; easing: ease; }
+    Icon {
+        width: 16px;
+        height: 16px;
+        source: root.icon;
+        color: touch.has-hover ? #ffffff : Theme.body;
+        animate color { duration: 200ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .friends-window__friend: a friend, a request or the official account.
+// `kind`: "friend" | "official" | "received" | "sent"
+component FriendRowView inherits Rectangle {
+    in property <FriendRow> friend;
+    in property <string> kind: "friend";
+    property <bool> banner: root.friend.banner.width > 0;
+    property <bool> request: root.kind == "received" || root.kind == "sent";
+    height: 56px;
+    border-radius: 8px;
+    background: row-touch.has-hover && !root.banner ? Theme.dark-background : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    // image rows only fade on hover (no re-raster of the photo)
+    opacity: root.banner && row-touch.has-hover ? 0.9 : 1;
+
+    if root.banner: Rectangle {
+        border-radius: 8px;
+        clip: true;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.friend.banner;
+            image-fit: cover;
+        }
+        Rectangle {
+            background: @linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.64) 36%, rgba(0, 0, 0, 0) 80%);
+        }
+    }
+
+    row-touch := TouchArea {
+        HorizontalLayout {
+            // .friends-window__friend-button: padding 8, gap 12
+            button := Rectangle {
+                horizontal-stretch: 1;
+                button-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (root.kind == "official") {
+                            FriendsData.message(root.friend.id);
+                        } else {
+                            FriendsData.open-profile(root.friend.id);
+                        }
+                    }
+                }
+                HorizontalLayout {
+                    padding: 8px;
+                    spacing: 12px;
+                    AvatarWithOrb {
+                        size: 40px;
+                        source: root.friend.avatar;
+                        official: root.friend.official;
+                        online: root.friend.online;
+                        show-orb: !root.request && !root.friend.official;
+                    }
+                    if root.request: Text {
+                        horizontal-stretch: 1;
+                        text: root.friend.name;
+                        font-size: Theme.body-size;
+                        color: root.banner ? #ffffff : Theme.muted;
+                        overflow: elide;
+                        vertical-alignment: center;
+                    }
+                    if !root.request: VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        spacing: 2px;
+                        HorizontalLayout {
+                            spacing: 4px;
+                            alignment: start;
+                            Text {
+                                text: root.friend.name;
+                                font-size: Theme.body-size;
+                                color: root.banner ? #ffffff : Theme.muted;
+                                overflow: elide;
+                            }
+                            if root.friend.official: OfficialBadge {
+                                y: (parent.height - 14px) / 2;
+                                size: 14px;
+                            }
+                        }
+                        if root.kind == "official": Text {
+                            text: T.tr("chat_window.official_subtitle");
+                            font-size: Theme.small-size;
+                            color: Theme.subtle;
+                            overflow: elide;
+                        }
+                        if root.kind == "friend" && root.friend.game != "": GameInfo {
+                            title: root.friend.game;
+                            icon: root.friend.game-icon;
+                            has-icon: root.friend.game-has-icon;
+                            color: root.banner ? #ffffff : Theme.body;
+                        }
+                        if root.kind == "friend" && root.friend.game == "": Text {
+                            text: root.friend.online ? T.tr("friends_window.online") : T.tr("friends_window.offline");
+                            font-size: Theme.small-size;
+                            color: root.banner ? #ffffff : Theme.subtle;
+                        }
+                    }
+                }
+            }
+
+            // .friends-window__message-button (32px, margin-right 8)
+            if !root.request: Rectangle {
+                width: 40px;
+                message := Rectangle {
+                    x: 0;
+                    y: (parent.height - 32px) / 2;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    property <bool> lit: message-touch.has-hover || row-touch.has-hover || root.friend.unread > 0 || root.banner;
+                    background: message-touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+                    animate background { duration: 200ms; easing: ease; }
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: SocialIcons.comment;
+                        color: root.banner ? #ffffff : message.lit ? Theme.muted : Theme.body;
+                        opacity: message.lit ? 1 : 0.7;
+                        animate color, opacity { duration: 200ms; easing: ease; }
+                    }
+                    if root.friend.unread > 0: UnreadBadge {
+                        x: 32px + 4px - self.width;
+                        y: -2px;
+                        label: root.friend.unread > 99 ? "99+" : root.friend.unread;
+                    }
+                    message-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            FriendsData.message(root.friend.id);
+                        }
+                    }
+                }
+            }
+
+            // .friends-window__request-actions (gap 4, margin-right 8)
+            if root.request: HorizontalLayout {
+                padding-right: 8px;
+                spacing: 4px;
+                alignment: center;
+                if root.kind == "received": VerticalLayout {
+                    alignment: center;
+                    RequestAction {
+                        icon: SocialIcons.check;
+                        accept: true;
+                        clicked => {
+                            FriendsData.accept(root.friend.id);
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: center;
+                    RequestAction {
+                        icon: SocialIcons.x;
+                        clicked => {
+                            if (root.kind == "sent") {
+                                FriendsData.cancel-request(root.friend.id);
+                            } else {
+                                FriendsData.refuse(root.friend.id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .friends-window__section: a header that sticks to the top of the list
+// while its rows scroll under it.
+component Section inherits Rectangle {
+    in property <string> title;
+    in property <int> count;
+    in property <string> tone;
+    in property <bool> collapsed;
+    in property <bool> static;
+    // How far the list is scrolled past this section's top.
+    in property <length> scrolled;
+    callback toggled();
+    VerticalLayout {
+        spacing: 8px;
+        Rectangle {
+            height: 34px;
+        }
+        @children
+    }
+    SectionHeader {
+        y: Math.clamp(root.scrolled, 0px, Math.max(0px, root.height - 34px));
+        title: root.title;
+        count: root.count;
+        tone: root.tone;
+        collapsed: root.collapsed;
+        static: root.static;
+        toggled => {
+            root.toggled();
+        }
+    }
+}
+
+component EmptyText inherits Text {
+    font-size: Theme.small-size;
+    color: Theme.subtle;
+    wrap: word-wrap;
+}
+
+component EmptyRow inherits VerticalLayout {
+    in property <string> text;
+    padding: 8px;
+    EmptyText {
+        text: root.text;
+    }
+}
+
+export component FriendsWindow inherits Window {
+    title: T.tr("friends_window.title");
+    preferred-width: 420px;
+    preferred-height: 780px;
+    min-width: 260px;
+    min-height: 360px;
+    background: Theme.background;
+    default-font-family: "Noto Sans";
+    default-font-size: Theme.body-size;
+    no-frame: !FriendsData.native-decorations;
+
+    // list scrolling (Chromium wheel tween)
+    property <length> max-scroll: Math.max(0, list.content-height - list.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    property <length> shown-scroll: root.tween.active ? -SmoothScroll.value(root.tween, animation-tick()) : -root.scroll-y;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+        FriendsData.list-viewport(-root.scroll-y, list.height);
+    }
+    changed max-scroll => {
+        if (-root.scroll-y > root.max-scroll) {
+            root.tween.active = false;
+            root.scroll-y = -root.max-scroll;
+        }
+        FriendsData.list-viewport(-root.scroll-y, list.height);
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+
+    property <bool> header-banner: FriendsData.profile-banner.width > 0;
+
+    VerticalLayout {
+        // .friends-window__header
+        header := Rectangle {
+            height: (FriendsData.native-decorations ? 0px : 35px) + 88px;
+            if root.header-banner: Image {
+                width: parent.width;
+                height: parent.height;
+                source: FriendsData.profile-banner;
+                image-fit: cover;
+            }
+            if root.header-banner: Rectangle {
+                background: @linear-gradient(135deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.18) 100%);
+            }
+            VerticalLayout {
+                if !FriendsData.native-decorations: TitleBar {
+                    clear: root.header-banner;
+                }
+                ProfileHero {
+                    banner: root.header-banner;
+                }
+            }
+        }
+
+        // .friends-window__content: padding 16 0, gap 16
+        VerticalLayout {
+            vertical-stretch: 1;
+            padding-top: 16px;
+            padding-bottom: 16px;
+            spacing: 16px;
+
+            VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    spacing: 8px;
+                    SearchField {
+                        horizontal-stretch: 1;
+                    }
+                    AddFriendToggle { }
+                }
+                if FriendsData.add-mode: AddActions { }
+            }
+
+            // .friends-window__list-container
+            list-box := Rectangle {
+                vertical-stretch: 1;
+                list := Flickable {
+                    x: 0;
+                    width: parent.width - (root.max-scroll > 0 ? 9px : 0px);
+                    height: parent.height;
+                    interactive: false;
+                    content-height: Math.max(column.preferred-height, self.height);
+                    content-y: -root.shown-scroll;
+                    TouchArea {
+                        width: list.width;
+                        height: list.content-height;
+                        scroll-event(event) => {
+                            root.wheel-by(event.delta-y);
+                            accept
+                        }
+                        column := VerticalLayout {
+                            x: 16px;
+                            width: list.width - 32px;
+                            alignment: start;
+                            spacing: 16px;
+
+                            // the official row has no section header
+                            if FriendsData.official.length > 0: VerticalLayout {
+                                spacing: 8px;
+                                for row in FriendsData.official: FriendRowView {
+                                    friend: row;
+                                    kind: "official";
+                                }
+                            }
+
+                            if FriendsData.skeleton: Section {
+                                title: T.tr("friends_window.online");
+                                static: true;
+                                scrolled: root.shown-scroll - self.y;
+                                VerticalLayout {
+                                    spacing: 8px;
+                                    SkeletonRow {
+                                        name-width: 128px;
+                                        status-width: 92px;
+                                        index: 0;
+                                    }
+                                    SkeletonRow {
+                                        name-width: 96px;
+                                        status-width: 52px;
+                                        index: 1;
+                                    }
+                                    SkeletonRow {
+                                        name-width: 150px;
+                                        status-width: 108px;
+                                        index: 2;
+                                    }
+                                }
+                            }
+                            if FriendsData.skeleton: Section {
+                                title: T.tr("friends_window.offline");
+                                static: true;
+                                scrolled: root.shown-scroll - self.y;
+                                VerticalLayout {
+                                    spacing: 8px;
+                                    SkeletonRow {
+                                        name-width: 112px;
+                                        status-width: 48px;
+                                        index: 3;
+                                    }
+                                    SkeletonRow {
+                                        name-width: 140px;
+                                        status-width: 48px;
+                                        index: 4;
+                                    }
+                                    SkeletonRow {
+                                        name-width: 84px;
+                                        status-width: 48px;
+                                        index: 5;
+                                    }
+                                    SkeletonRow {
+                                        name-width: 124px;
+                                        status-width: 48px;
+                                        index: 6;
+                                        opacity: 0.75;
+                                    }
+                                    SkeletonRow {
+                                        name-width: 100px;
+                                        status-width: 48px;
+                                        index: 7;
+                                        opacity: 0.5;
+                                    }
+                                    SkeletonRow {
+                                        name-width: 136px;
+                                        status-width: 48px;
+                                        index: 8;
+                                        opacity: 0.25;
+                                    }
+                                }
+                            }
+
+                            if !FriendsData.skeleton && FriendsData.add-mode && FriendsData.sent.length > 0: Section {
+                                title: T.tr("user_profile.pending");
+                                count: FriendsData.sent.length;
+                                collapsed: FriendsData.sent-collapsed;
+                                scrolled: root.shown-scroll - self.y;
+                                toggled => {
+                                    FriendsData.toggle-section("sent");
+                                }
+                                if !FriendsData.sent-collapsed: VerticalLayout {
+                                    spacing: 8px;
+                                    for row in FriendsData.sent: FriendRowView {
+                                        friend: row;
+                                        kind: "sent";
+                                    }
+                                }
+                            }
+
+                            if !FriendsData.skeleton && FriendsData.received.length > 0: Section {
+                                title: T.tr("friends_window.friend_requests");
+                                count: FriendsData.received.length;
+                                collapsed: FriendsData.received-collapsed;
+                                scrolled: root.shown-scroll - self.y;
+                                toggled => {
+                                    FriendsData.toggle-section("received");
+                                }
+                                if !FriendsData.received-collapsed: VerticalLayout {
+                                    spacing: 8px;
+                                    for row in FriendsData.received: FriendRowView {
+                                        friend: row;
+                                        kind: "received";
+                                    }
+                                }
+                            }
+
+                            if !FriendsData.skeleton: Section {
+                                title: T.tr("friends_window.online");
+                                count: FriendsData.online.length;
+                                tone: "online";
+                                collapsed: FriendsData.online-collapsed;
+                                scrolled: root.shown-scroll - self.y;
+                                toggled => {
+                                    FriendsData.toggle-section("online");
+                                }
+                                if !FriendsData.online-collapsed && FriendsData.online.length > 0: VerticalLayout {
+                                    spacing: 8px;
+                                    for row in FriendsData.online: FriendRowView {
+                                        friend: row;
+                                    }
+                                }
+                                if !FriendsData.online-collapsed && FriendsData.online.length == 0: EmptyRow {
+                                    text: FriendsData.searching ? T.tr("friends_window.no_results") : T.tr("friends_window.no_friends");
+                                }
+                            }
+
+                            if !FriendsData.skeleton && FriendsData.offline.length > 0: Section {
+                                title: T.tr("friends_window.offline");
+                                count: FriendsData.offline.length;
+                                tone: "offline";
+                                collapsed: FriendsData.offline-collapsed;
+                                scrolled: root.shown-scroll - self.y;
+                                toggled => {
+                                    FriendsData.toggle-section("offline");
+                                }
+                                if !FriendsData.offline-collapsed: VerticalLayout {
+                                    spacing: 8px;
+                                    for row in FriendsData.offline: FriendRowView {
+                                        friend: row;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if root.max-scroll > 0: ScrollBar {
+                    x: parent.width - self.width;
+                    height: parent.height;
+                    content-height: list.content-height;
+                    viewport-height: list.height;
+                    content-y <=> root.scroll-y;
+                    shown-offset: root.shown-scroll;
+                }
+            }
+        }
+    }
+
+    ToastHost {
+        width: root.width;
+        height: root.height;
+        stretch: true;
+    }
+}

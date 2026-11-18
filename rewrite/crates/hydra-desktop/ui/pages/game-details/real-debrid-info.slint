@@ -1,0 +1,68 @@
+// modals/real-debrid-info-modal.tsx: opened from the download settings for a
+// debrid service that isn't set up. The description, the "create an
+// account" link and "Go to settings" (Integrations).
+import { Theme } from "../../theme.slint";
+import { Icon, HydraButton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+
+export global RealDebridInfo {
+    in-out property <bool> open;
+    // The page with the settings modal, blurred (a third stacked level).
+    in property <image> backdrop;
+    callback create-account();
+    callback go-to-settings();
+}
+
+// __content: column, gap 20px, max-width 500px
+export component RealDebridInfoBody inherits VerticalLayout {
+    spacing: 20px;
+    max-width: 500px;
+    // __description-container: gap 12px
+    VerticalLayout {
+        spacing: 12px;
+        Text {
+            text: T.tr("settings.real_debrid_description");
+            font-size: Theme.body-size;
+            color: Theme.body;
+            wrap: word-wrap;
+        }
+        // __create-account: an underlined link with the external icon
+        HorizontalLayout {
+            alignment: start;
+            spacing: 4px;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/link-external.svg");
+                    color: Theme.body;
+                }
+            }
+            link := Text {
+                text: T.tr("settings.create_real_debrid_account");
+                font-size: Theme.body-size;
+                color: Theme.body;
+                vertical-alignment: center;
+                Rectangle {
+                    y: parent.height - 2px;
+                    height: 1px;
+                    background: Theme.body;
+                }
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        RealDebridInfo.create-account();
+                    }
+                }
+            }
+        }
+    }
+    HydraButton {
+        kind: "primary";
+        text: T.tr("game_details.go_to_settings");
+        clicked => {
+            RealDebridInfo.go-to-settings();
+        }
+    }
+}

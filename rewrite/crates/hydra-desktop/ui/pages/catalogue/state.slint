@@ -1,0 +1,126 @@
+// Catalogue page data and actions; the backend (catalogue_page.rs) fills this.
+import { SelectOption } from "../../components/fields.slint";
+
+// pages/catalogue/game-item.tsx (CatalogueSearchResult)
+export struct CatalogueItem {
+    title: string,
+    // Localized genres joined with ", "; empty shows "no_genres".
+    genres: string,
+    cover: image,
+    has-cover: bool,
+    sources: [string],
+    added: bool,
+    adding: bool,
+    // Classics (game-item-classics.tsx)
+    platform: string,
+    recompilation: bool,
+    // The cover blurred for __cover-backdrop (blur 14px, saturate 1.1).
+    backdrop: image,
+}
+
+// filter-section__group-tab (classics platforms: Sony / Nintendo / Other)
+export struct FilterGroup {
+    value: string,
+    label: string,
+    // formatNumber(selected in this group), empty when none
+    count: string,
+    active: bool,
+}
+
+export struct FilterOption {
+    label: string,
+    value: string,
+    checked: bool,
+}
+
+// pages/catalogue/filter-section.tsx
+export struct FilterSectionData {
+    key: string,
+    title: string,
+    color: color,
+    // formatNumber(selected || total)
+    count: string,
+    selected: int,
+    // "N available" / "Clear filters (N)"
+    hint: string,
+    loading: bool,
+    // All items (the section hides when there are none and it isn't loading).
+    total: int,
+    // The items matching the section's own search box.
+    items: [FilterOption],
+    groups: [FilterGroup],
+}
+
+// An active filter chip (filter-item.tsx).
+export struct FilterChip {
+    label: string,
+    kind: string,
+    color: color,
+    key: string,
+    value: string,
+    // Laid out by Rust: flex-wrap rows inside the wrapper.
+    x: length,
+    y: length,
+    width: length,
+}
+
+
+export global CatalogueData {
+    in property <string> result-count;
+    in property <bool> show-hint;
+    in property <string> sort: "popularity:desc";
+    in property <[SelectOption]> sort-options;
+    in property <string> sort-label;
+    in property <bool> loading: true;
+    in property <[CatalogueItem]> items;
+    in property <int> page: 1;
+    in property <int> total-pages;
+    // "modern" | "classics"
+    in property <string> mode: "modern";
+    in property <[FilterChip]> chips;
+    // The wrapped chips' height (rows of 32px, 8px apart).
+    in property <length> chips-height: 32px;
+    // The wrapper's width changed: Rust lays the chips out again.
+    callback chips-width(length);
+    in property <string> clear-all-label;
+    // t("active_filters"), uppercased
+    in property <string> active-filters-label;
+    in property <[FilterSectionData]> sections;
+    // Release year (1970 .. current year); `year-active` when narrowed.
+    in property <int> year-min: 1970;
+    in property <int> year-max: 2026;
+    in property <int> year-gte: 1970;
+    in property <int> year-lte: 2026;
+    in property <bool> year-active;
+    // Bumped when the page changes: results scroll back to the top.
+    in property <int> scroll-reset;
+    // Classics: the RECOMPILATIONS feature and its filter.
+    in property <bool> recompilations-enabled;
+    in property <bool> recompilation-only;
+    // Linux: the ProtonDB / Steam Deck section ("" | silver_plus | gold_plus | platinum_only)
+    in property <bool> show-proton;
+    in property <string> proton-tier;
+    in property <bool> deck-compatible;
+    callback set-proton-tier(string);
+    callback set-deck(bool);
+
+    callback open-item(int);
+    callback add-item(int);
+    callback set-sort(string);
+    callback set-mode(string);
+    callback set-page(int);
+    callback remove-chip(string, string);
+    callback clear-all();
+    callback toggle-option(string, string);
+    callback clear-section(string);
+    callback search-section(string, string);
+    callback set-years(int, int);
+    callback clear-years();
+    callback visible-range(int, int);
+    callback select-group(string, string);
+    callback set-recompilation(bool);
+    // formatNumber (Intl.NumberFormat of the UI language)
+    pure callback format-page(int) -> string;
+    // onJumpChange: digits only, clamped to 1..total ("" stays empty)
+    pure callback jump-value(string, int) -> string;
+}

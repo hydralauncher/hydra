@@ -1,0 +1,698 @@
+// chat-image-lightbox.tsx, the drop target (chat-conversation.tsx),
+// chat-report-modal.{tsx,scss}, chat-leaving-modal.{tsx,scss}, the report
+// confirmation toast (chat-message-list.tsx) and chat-report-check.tsx.
+import { Theme } from "../theme.slint";
+import { Icon, HydraButton } from "../components/widgets.slint";
+import { T } from "../globals.slint";
+import { SocialIcons, Css } from "../social/common.slint";
+import { ChatData } from "state.slint";
+import { IconButton } from "sidebar.slint";
+
+// .chat-window__lightbox: the image over the whole window (fades in 0.16s).
+export component Lightbox inherits Rectangle {
+    property <bool> entered;
+    init => {
+        self.entered = true;
+    }
+    background: rgba(8, 8, 8, 0.94);
+    opacity: self.entered ? 1 : 0;
+    animate opacity { duration: 160ms; easing: ease; }
+    // a click anywhere closes it
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            ChatData.lightbox-closed();
+        }
+    }
+    HorizontalLayout {
+        y: 0;
+        height: 48px;
+        padding-left: 16px;
+        padding-right: 8px;
+        Text {
+            horizontal-stretch: 1;
+            text: ChatData.lightbox-caption;
+            font-size: Theme.small-size;
+            color: Theme.subtle;
+            vertical-alignment: center;
+        }
+        Rectangle {
+            y: 4px;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            background: close.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: SocialIcons.x;
+                color: Theme.muted;
+            }
+            close := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ChatData.lightbox-closed();
+                }
+            }
+        }
+    }
+    // .chat-window__lightbox-stage: padding 0 24 48, the image contained
+    Rectangle {
+        x: 24px;
+        y: 48px;
+        width: parent.width - 48px;
+        height: parent.height - 48px - 48px;
+        property <float> ratio: ChatData.lightbox-image.width / Math.max(1, ChatData.lightbox-image.height);
+        property <length> fit-w: Math.min(self.width, self.height * self.ratio, ChatData.lightbox-image.width * 1px);
+        Rectangle {
+            width: parent.fit-w;
+            height: parent.fit-w / parent.ratio;
+            border-radius: 4px;
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: ChatData.lightbox-image;
+                image-fit: contain;
+            }
+        }
+    }
+}
+
+// .chat-window__drop: covers messages and composer while files are dragged in.
+export component DropTarget inherits Rectangle {
+    property <bool> entered;
+    init => {
+        self.entered = true;
+    }
+    background: rgba(18, 18, 18, 0.88);
+    opacity: self.entered ? 1 : 0;
+    animate opacity { duration: 160ms; easing: ease; }
+    Rectangle {
+        x: 12px;
+        y: 12px;
+        width: parent.width - 24px;
+        height: parent.height - 24px;
+        border-width: 1px;
+        // 1px dashed (Slint draws it solid)
+        border-color: rgba(240, 241, 247, 0.45);
+        border-radius: 8px;
+        VerticalLayout {
+            alignment: center;
+            spacing: 12px;
+            Icon {
+                x: (parent.width - 24px) / 2;
+                width: 24px;
+                height: 24px;
+                source: SocialIcons.image-24;
+                color: Theme.muted;
+            }
+            Text {
+                text: ChatData.drop-title;
+                font-weight: 700;
+                color: Theme.muted;
+                horizontal-alignment: center;
+            }
+            Text {
+                text: ChatData.drop-description;
+                font-size: Theme.small-size;
+                color: Theme.subtle;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}
+
+// .backdrop + .modal: rgba(0,0,0,0.7) fading in over 0.4s; the dialog
+// scales from 0.5 (scale-fade-in 0.2s cubic-bezier(0.33, 1, 0.68, 1)) and
+// back out when closing.
+component ModalFrame inherits Rectangle {
+    in property <bool> closing;
+    in property <length> dialog-width: 400px;
+    in property <length> dialog-height;
+    property <bool> entered;
+    init => {
+        self.entered = true;
+    }
+    background: self.entered && !root.closing ? rgba(0, 0, 0, 0.7) : rgba(0, 0, 0, root.closing ? 0 : 0.5);
+    animate background { duration: root.closing ? 200ms : 400ms; easing: ease; }
+    // presses outside the dialog stay here
+    TouchArea { }
+    dialog := Rectangle {
+        width: Math.min(root.dialog-width, root.width - 48px);
+        height: Math.min(root.dialog-height, root.height - 48px);
+        background: Theme.background;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: Theme.border;
+        clip: true;
+        opacity: root.entered && !root.closing ? 1 : 0;
+        animate opacity { duration: 200ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+        transform-scale: root.entered && !root.closing ? 1 : 0.5;
+        animate transform-scale { duration: 200ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+        TouchArea { }
+        @children
+    }
+}
+
+// The modal's close button (28px, top/right 12px).
+component ModalClose inherits Rectangle {
+    callback clicked();
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+    animate background { duration: 150ms; easing: ease; }
+    Icon {
+        width: 16px;
+        height: 16px;
+        source: SocialIcons.x;
+        color: touch.has-hover ? Theme.muted : Theme.body;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .chat-report-modal__reason: a 30px pill radio.
+component ReasonPill inherits Rectangle {
+    in property <string> reason;
+    property <bool> selected: ChatData.report-reason == root.reason;
+    height: 30px;
+    width: label.preferred-width + 26px;
+    border-radius: 15px;
+    background: root.selected ? Theme.muted : transparent;
+    border-width: 1px;
+    border-color: root.selected ? transparent : touch.has-hover ? rgba(255, 255, 255, 0.3) : rgba(255, 255, 255, 0.12);
+    animate background, border-color { duration: 150ms; easing: ease; }
+    label := Text {
+        text: T.tr("chat_window.report_reason_" + root.reason);
+        font-size: Theme.hint-size;
+        color: root.selected ? Theme.background : touch.has-hover ? Theme.muted : Theme.body;
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            if (!ChatData.report-sending) {
+                ChatData.report-reason = root.reason;
+            }
+        }
+    }
+}
+
+// chat-report-modal.tsx
+export component ReportModal inherits ModalFrame {
+    closing: ChatData.report-closing;
+    dialog-height: form.preferred-height;
+    form := VerticalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 20px;
+        padding-bottom: 16px;
+        spacing: 16px;
+        Text {
+            text: T.tr("chat_window.report_message");
+            font-size: 18px;
+            font-weight: 700;
+            color: Theme.muted;
+            height: 24px;
+            vertical-alignment: center;
+        }
+        VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: T.tr("chat_window.report_reason_label");
+                font-size: Theme.small-size;
+                font-weight: 700;
+                color: Theme.muted;
+            }
+            // .chat-report-modal__reason-list (wraps)
+            Rectangle {
+                property <[string]> reasons: ["harassment", "scam", "sexual_content", "hate", "self_harm", "personal_information", "other"];
+                height: 30px * 3 + 16px;
+                VerticalLayout {
+                    spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        ReasonPill {
+                            reason: "harassment";
+                        }
+                        ReasonPill {
+                            reason: "scam";
+                        }
+                        ReasonPill {
+                            reason: "sexual_content";
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        ReasonPill {
+                            reason: "hate";
+                        }
+                        ReasonPill {
+                            reason: "self_harm";
+                        }
+                        ReasonPill {
+                            reason: "personal_information";
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        ReasonPill {
+                            reason: "other";
+                        }
+                    }
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 8px;
+            HorizontalLayout {
+                spacing: 8px;
+                Text {
+                    text: T.tr("chat_window.report_details");
+                    font-size: Theme.small-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: T.tr("chat_window.report_details_optional");
+                    font-size: Theme.small-size;
+                    color: Theme.subtle;
+                }
+                Text {
+                    text: ChatData.report-details.character-count + " / 500";
+                    font-size: Theme.tiny-size;
+                    color: Theme.subtle;
+                }
+            }
+            details := Rectangle {
+                height: 5 * 18px + 16px + 2px;
+                background: Theme.dark-background;
+                border-width: 1px;
+                border-color: details-input.has-focus ? #dadbe1 : details-touch.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+                animate border-color { duration: 200ms; easing: ease; }
+                border-radius: 8px;
+                details-touch := TouchArea {
+                    mouse-cursor: MouseCursor.text;
+                    clicked => {
+                        details-input.focus();
+                    }
+                }
+                Text {
+                    x: 13px;
+                    y: 9px;
+                    visible: details-input.text == "";
+                    text: T.tr("chat_window.report_details_placeholder");
+                    font-size: Theme.hint-size;
+                    color: Theme.subtle;
+                }
+                details-input := TextInput {
+                    x: 13px;
+                    y: 9px;
+                    width: parent.width - 26px;
+                    height: parent.height - 18px;
+                    text: ChatData.report-details;
+                    font-size: Theme.hint-size;
+                    color: Theme.muted;
+                    wrap: word-wrap;
+                    single-line: false;
+                    enabled: !ChatData.report-sending;
+                    edited => {
+                        // maxLength 500
+                        if (self.text.character-count > 500) {
+                            self.text = ChatData.report-details;
+                        }
+                        ChatData.report-details = self.text;
+                    }
+                }
+            }
+        }
+        if ChatData.report-error != "": Rectangle {
+            height: error-row.preferred-height + 18px;
+            background: rgba(225, 29, 72, 0.12);
+            border-width: 1px;
+            border-color: rgba(225, 29, 72, 0.35);
+            border-radius: 8px;
+            error-row := HorizontalLayout {
+                x: 13px;
+                y: 9px;
+                width: parent.width - 26px;
+                spacing: 8px;
+                Icon {
+                    y: 1px;
+                    width: 14px;
+                    height: 14px;
+                    source: SocialIcons.alert-14;
+                    color: #fda4af;
+                }
+                Text {
+                    horizontal-stretch: 1;
+                    text: ChatData.report-error == "rate_limited" ? T.tr("chat_window.report_rate_limited") : T.tr("chat_window.report_failed");
+                    font-size: Theme.small-size;
+                    color: #fda4af;
+                    wrap: word-wrap;
+                }
+            }
+        }
+        HorizontalLayout {
+            padding-top: 4px;
+            spacing: 8px;
+            HydraButton {
+                horizontal-stretch: 1;
+                kind: "outline";
+                text: T.tr("chat_window.cancel");
+                clicked => {
+                    ChatData.report-cancel();
+                }
+            }
+            HydraButton {
+                horizontal-stretch: 1;
+                kind: "primary";
+                text: T.tr("chat_window.report_send");
+                enabled: ChatData.report-reason != "" && ChatData.report-error != "rate_limited";
+                clicked => {
+                    if (!ChatData.report-sending) {
+                        ChatData.report-submit();
+                    }
+                }
+            }
+        }
+    }
+    ModalClose {
+        x: parent.dialog-width - 12px - 28px;
+        y: 12px;
+        clicked => {
+            ChatData.report-cancel();
+        }
+    }
+}
+
+// chat-leaving-modal.tsx ChatLeavingIcon: Hydra's mark with an alert badge
+// cut into its corner (viewBox -4 0 67 55 at 72x59).
+component LeavingIcon inherits Rectangle {
+    in property <bool> insecure;
+    width: 72px;
+    height: 59px;
+    property <float> k: 72 / 67;
+    Image {
+        x: 4 * root.k * 1px;
+        y: 0;
+        width: 55 * root.k * 1px;
+        height: 49 * root.k * 1px;
+        source: SocialIcons.hydra;
+        colorize: Theme.muted;
+    }
+    // the cut-out (r 10.5) in the dialog color, then the badge (r 8)
+    Rectangle {
+        x: (54 + 4 - 10.5) * root.k * 1px;
+        y: (46 - 10.5) * root.k * 1px;
+        width: 21 * root.k * 1px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: Theme.background;
+    }
+    Rectangle {
+        x: (54 + 4 - 8) * root.k * 1px;
+        y: (46 - 8) * root.k * 1px;
+        width: 16 * root.k * 1px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: root.insecure ? Theme.warning : Theme.muted;
+    }
+    // the "!": a 2.2-wide stroke from y 41.6 to 46.4, and a dot at 50
+    Rectangle {
+        x: (54 + 4 - 1.1) * root.k * 1px;
+        y: (41.6 - 1.1) * root.k * 1px;
+        width: 2.2 * root.k * 1px;
+        height: (4.8 + 2.2) * root.k * 1px;
+        border-radius: self.width / 2;
+        background: Theme.background;
+    }
+    Rectangle {
+        x: (54 + 4 - 1.3) * root.k * 1px;
+        y: (50 - 1.3) * root.k * 1px;
+        width: 2.6 * root.k * 1px;
+        height: self.width;
+        border-radius: self.width / 2;
+        background: Theme.background;
+    }
+}
+
+// chat-leaving-modal.tsx: asks before a message link opens in the browser.
+export component LeavingModal inherits ModalFrame {
+    closing: ChatData.leaving-closing;
+    dialog-height: column.preferred-height;
+    column := VerticalLayout {
+        // __header: padding 32 24 0, gap 16, centered
+        VerticalLayout {
+            padding-left: 24px;
+            padding-right: 24px;
+            padding-top: 32px;
+            spacing: 16px;
+            LeavingIcon {
+                x: (parent.width - 72px) / 2;
+                insecure: ChatData.leaving-insecure;
+            }
+            VerticalLayout {
+                spacing: 4px;
+                Text {
+                    text: T.tr("chat_window.leaving_title");
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    horizontal-alignment: center;
+                    height: 24px;
+                    vertical-alignment: center;
+                }
+                Text {
+                    text: T.tr("chat_window.leaving_description");
+                    font-size: Theme.hint-size;
+                    color: Theme.subtle;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+            }
+        }
+        // __content: padding 24 16 16, gap 16
+        VerticalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-top: 24px;
+            padding-bottom: 16px;
+            spacing: 16px;
+            Rectangle {
+                height: destination.preferred-height + 26px;
+                background: Theme.dark-background;
+                border-width: 1px;
+                border-color: ChatData.leaving-insecure ? rgba(255, 193, 7, 0.35) : Theme.border;
+                border-radius: 8px;
+                destination := VerticalLayout {
+                    x: 13px;
+                    y: 13px;
+                    width: parent.width - 26px;
+                    spacing: 4px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Icon {
+                            y: (parent.height - 14px) / 2;
+                            width: 14px;
+                            height: 14px;
+                            source: ChatData.leaving-insecure ? SocialIcons.unlock : SocialIcons.lock;
+                            color: ChatData.leaving-insecure ? Theme.warning : Theme.subtle;
+                        }
+                        Text {
+                            horizontal-stretch: 1;
+                            text: ChatData.leaving-host;
+                            font-size: Theme.body-size;
+                            font-weight: 700;
+                            color: Theme.muted;
+                            overflow: elide;
+                        }
+                        if ChatData.leaving-insecure: Rectangle {
+                            y: (parent.height - self.height) / 2;
+                            height: not-secure.preferred-height + 4px;
+                            width: not-secure.preferred-width + 16px;
+                            border-radius: self.height / 2;
+                            background: rgba(255, 193, 7, 0.12);
+                            not-secure := Text {
+                                text: T.tr("chat_window.leaving_not_secure");
+                                font-size: Theme.tiny-size;
+                                font-weight: 700;
+                                color: Theme.warning;
+                            }
+                        }
+                    }
+                    Text {
+                        text: ChatData.leaving-url;
+                        font-size: Theme.small-size;
+                        color: Theme.subtle;
+                        wrap: char-wrap;
+                        overflow: elide;
+                        max-height: 4 * 18px;
+                    }
+                }
+            }
+            Text {
+                text: ChatData.leaving-insecure ? T.tr("chat_window.leaving_insecure_warning") : T.tr("chat_window.leaving_warning");
+                font-size: Theme.hint-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            // only secure sites can skip the prompt
+            if !ChatData.leaving-insecure: Rectangle {
+                height: trust-row.preferred-height;
+                trust-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        ChatData.leaving-trust = !ChatData.leaving-trust;
+                    }
+                }
+                trust-row := HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Rectangle {
+                    y: (parent.height - 18px) / 2;
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 4px;
+                    background: ChatData.leaving-trust ? Theme.muted : Theme.dark-background;
+                    border-width: 1px;
+                    border-color: ChatData.leaving-trust ? Theme.muted : Theme.border;
+                    if ChatData.leaving-trust: Icon {
+                        width: 12px;
+                        height: 12px;
+                        source: SocialIcons.check;
+                        color: Theme.background;
+                    }
+                }
+                for part[i] in ChatData.leaving-trust-label: Text {
+                    text: part;
+                    font-size: Theme.body-size;
+                    font-weight: Math.mod(i, 2) == 1 ? 700 : 400;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+                }
+            }
+            HorizontalLayout {
+                padding-top: 4px;
+                spacing: 8px;
+                HydraButton {
+                    horizontal-stretch: 1;
+                    kind: "outline";
+                    text: T.tr("chat_window.go_back");
+                    clicked => {
+                        ChatData.leaving-cancel();
+                    }
+                }
+                HydraButton {
+                    horizontal-stretch: 1;
+                    kind: "primary";
+                    text: ChatData.leaving-insecure ? T.tr("chat_window.open_anyway") : T.tr("chat_window.open_link");
+                    icon: SocialIcons.link-external-14;
+                    icon-size: 14px;
+                    icon-after: true;
+                    clicked => {
+                        ChatData.leaving-open-link();
+                    }
+                }
+            }
+        }
+    }
+    ModalClose {
+        x: (parent.width + parent.dialog-width) / 2 - 12px - 28px;
+        y: (parent.height - parent.dialog-height) / 2 + 12px;
+        clicked => {
+            ChatData.leaving-cancel();
+        }
+    }
+}
+
+// The report confirmation: springs up and sinks back (framer-motion), the
+// check drawing itself in.
+export component ReportToast inherits Rectangle {
+    in property <bool> shown;
+    property <duration> started;
+    init => {
+        self.started = animation-tick();
+    }
+    // spring stiffness 420, damping 34, mass 0.75: settles in ~0.35s
+    property <float> t: Math.clamp((animation-tick() - root.started) / 350ms, 0, 1);
+    property <float> eased: Css.bezier(0.16, 1, 0.3, 1, root.t);
+    width: Math.min(360px, root.room - 120px);
+    in property <length> room;
+    height: 53px;
+    background: #1c1c1c;
+    border-width: 1px;
+    border-color: Theme.border;
+    border-radius: 8px;
+    drop-shadow-blur: 24px;
+    drop-shadow-offset-y: 8px;
+    drop-shadow-color: rgba(0, 0, 0, 0.5);
+    opacity: root.eased;
+    transform-scale: 0.96 + 0.04 * root.eased;
+    HorizontalLayout {
+        y: 22px * (1 - root.eased);
+        padding-left: 13px;
+        padding-right: 9px;
+        spacing: 12px;
+        Rectangle {
+            y: (parent.height - 24px) / 2;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            background: Theme.success;
+            // the check draws in after 0.16s (0.35s)
+            property <float> draw: Math.clamp((animation-tick() - root.started - 160ms) / 350ms, 0, 1);
+            Path {
+                width: 14px;
+                height: 14px;
+                viewbox-width: 24;
+                viewbox-height: 24;
+                fill: transparent;
+                stroke: #ffffff;
+                stroke-width: 3px * 14 / 24;
+                stroke-line-cap: round;
+                stroke-line-join: round;
+                property <float> p: Css.bezier(0.16, 1, 0.3, 1, parent.draw);
+                // M5 13 l4 4 L19 7: 5.66 then 14.14 units long
+                commands: self.p <= 0 ? "" : self.p < 0.286 ? "M 5 13 L " + (5 + 4 * self.p / 0.286) + " " + (13 + 4 * self.p / 0.286) : "M 5 13 L 9 17 L " + (9 + 10 * (self.p - 0.286) / 0.714) + " " + (17 - 10 * (self.p - 0.286) / 0.714);
+            }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 1px;
+            Text {
+                text: T.tr("chat_window.report_sent");
+                font-size: Theme.hint-size;
+                font-weight: 700;
+                color: Theme.muted;
+            }
+            Text {
+                text: T.tr("chat_window.report_sent_description");
+                font-size: Theme.small-size;
+                color: Theme.subtle;
+                overflow: elide;
+            }
+        }
+        IconButton {
+            y: (parent.height - 28px) / 2;
+            width: 28px;
+            height: 28px;
+            icon: SocialIcons.x-14;
+            icon-size: 14px;
+            clicked => {
+                ChatData.toast-dismissed();
+            }
+        }
+    }
+}

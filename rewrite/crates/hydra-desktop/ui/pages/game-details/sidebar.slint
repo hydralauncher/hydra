@@ -1,0 +1,457 @@
+// sidebar/sidebar.tsx + sidebar-section.tsx and the section components.
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { Achievement, HltbCategory, Language } from "../../types.slint";
+
+// sidebar-section.tsx: header toggles; content max-height animates with
+// cubic-bezier(0, 1, 0, 1) over 0.4s; chevron rotates 180deg over 0.2s.
+export component SidebarSection inherits Rectangle {
+    in property <string> title;
+    in property <bool> skeleton-title;
+    in property <length> skeleton-title-width: 88px;
+    in-out property <bool> open: true;
+
+    background: Theme.background;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.05);
+    drop-shadow-offset-y: 4px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: rgba(0, 0, 0, 0.1);
+    clip: true;
+    height: header.height + content.height;
+
+    header := Rectangle {
+        y: 0;
+        height: 20px + 20px + 20px;
+        background: header-touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+        animate background { duration: 200ms; easing: ease; }
+
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 8px;
+            alignment: start;
+            opacity: header-touch.pressed ? Theme.active-opacity : 1;
+            animate opacity { duration: 200ms; }
+            if !root.skeleton-title: VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: Icons.chevron-down;
+                    width: 16px;
+                    height: 16px;
+                    transform-rotation: root.open ? 180deg : 0deg;
+                    animate transform-rotation { duration: 200ms; easing: ease; }
+                }
+            }
+            if !root.skeleton-title: Text {
+                text: root.title;
+                color: Theme.muted;
+                font-size: Theme.body-size;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+            if root.skeleton-title: VerticalLayout {
+                alignment: center;
+                Skeleton {
+                    width: 18px;
+                    height: 18px;
+                }
+            }
+            if root.skeleton-title: VerticalLayout {
+                alignment: center;
+                Skeleton {
+                    width: root.skeleton-title-width;
+                    height: 18px;
+                }
+            }
+        }
+
+        header-touch := TouchArea {
+            enabled: !root.skeleton-title;
+            mouse-cursor: pointer;
+            clicked => {
+                root.open = !root.open;
+            }
+        }
+    }
+
+    content := Rectangle {
+        y: header.height;
+        height: root.open ? inner.preferred-height : 0;
+        animate height { duration: 400ms; easing: cubic-bezier(0, 1, 0, 1); }
+        background: Theme.dark-background;
+        clip: true;
+
+        inner := VerticalLayout {
+            y: 0;
+            height: self.preferred-height;
+            @children
+        }
+    }
+}
+
+// .list__item (achievements)
+component AchievementRow inherits Rectangle {
+    in property <Achievement> achievement;
+    in property <bool> blurred;
+    border-radius: 4px;
+    background: touch.has-hover && !root.blurred ? rgba(255, 255, 255, 0.15) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+
+    HorizontalLayout {
+        padding: 8px;
+        spacing: 16px;
+        Rectangle {
+            width: 54px;
+            height: 54px;
+            border-radius: 4px;
+            clip: true;
+            if !root.achievement.concealed: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.achievement.icon;
+                image-fit: cover;
+            }
+            // .list__item-image--concealed
+            if root.achievement.concealed: Rectangle {
+                background: rgba(255, 255, 255, 0.08);
+                Icon {
+                    source: Icons.eye-closed;
+                    width: 20px;
+                    height: 20px;
+                    color: Theme.muted;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Text {
+                text: root.achievement.concealed ? T.tr("achievement.hidden_achievement") : root.achievement.name;
+                color: Theme.muted;
+                font-size: Theme.body-size;
+            }
+            Text {
+                text: root.achievement.date;
+                color: Theme.muted;
+                font-size: 11.6px;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+    }
+}
+
+component Link inherits Text {
+    callback clicked();
+    color: Theme.body;
+    font-size: Theme.body-size;
+    property <bool> hovered: touch.has-hover;
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component AchievementsSection inherits SidebarSection {
+    in property <[Achievement]> achievements;
+    callback see-all();
+    in property <int> unlocked;
+    in property <int> total;
+    title: root.total > 0 ? T.tr-with("game_details.achievements_count", ["unlockedCount", "" + root.unlocked, "achievementsCount", "" + root.total]) : T.tr("game_details.achievements");
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 16px;
+        for achievement in root.achievements: AchievementRow {
+            achievement: achievement;
+        }
+        Link {
+            text: T.tr("game_details.see_all_achievements");
+            clicked => {
+                root.see-all();
+            }
+        }
+    }
+}
+
+// sidebar.tsx stats: one row per stat, label left and value right.
+export component StatsSection inherits SidebarSection {
+    in property <string> downloads;
+    in property <string> players;
+    // averageScore.toFixed(1), or "…" with no rating yet (StarRating)
+    in property <string> rating;
+    title: T.tr("game_details.stats");
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+        for stat in [
+            { icon: Icons.download, label: T.tr("game_details.download_count"), value: root.downloads, star: false },
+            { icon: Icons.people, label: T.tr("game_details.player_count"), value: root.players, star: false },
+            { icon: Icons.star, label: T.tr("game_details.rating_count"), value: root.rating, star: true },
+        ]: HorizontalLayout {
+            spacing: 4px;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: stat.icon;
+                        width: 18px;
+                        height: 18px;
+                    }
+                }
+                Text {
+                    text: stat.label;
+                    color: Theme.body;
+                    font-size: Theme.small-size;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                alignment: end;
+                if stat.star: VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        source: Icons.star-fill;
+                        width: 16px;
+                        height: 16px;
+                        color: #ffffff;
+                    }
+                }
+                Text {
+                    text: stat.value;
+                    color: stat.star ? Theme.muted : Theme.body;
+                    font-size: stat.star ? Theme.small-size : Theme.body-size;
+                    font-weight: stat.star ? 500 : 400;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+// how-long-to-beat-section.tsx: three skeleton rows while loading.
+export component HowLongToBeatSection inherits SidebarSection {
+    in property <[HltbCategory]> categories;
+    in property <bool> loading;
+    title: "HowLongToBeat";
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 16px;
+        if root.loading: VerticalLayout {
+            spacing: 16px;
+            for i in 3: Rectangle {
+                height: 80px;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: Theme.border;
+                clip: true;
+                Skeleton {
+                    x: 1px;
+                    y: 1px;
+                    width: parent.width - 2px;
+                    height: parent.height - 2px;
+                }
+            }
+        }
+        for category in root.categories: Rectangle {
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: Theme.border;
+            background: @linear-gradient(90deg, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0.02) 100%);
+            VerticalLayout {
+                padding-top: 9px;
+                padding-bottom: 9px;
+                padding-left: 17px;
+                padding-right: 17px;
+                spacing: 4px;
+                Text {
+                    text: category.title;
+                    color: Theme.muted;
+                    font-weight: 700;
+                }
+                Text {
+                    text: category.duration;
+                    color: Theme.muted;
+                }
+                if category.accuracy != "": Text {
+                    text: T.tr-with("game_details.accuracy", ["accuracy", category.accuracy]);
+                    color: Theme.body;
+                    font-size: 11.67px;
+                }
+            }
+        }
+    }
+}
+
+export component ControllerSection inherits SidebarSection {
+    // "full" | "partial" (controller-support-section.tsx)
+    in property <string> support: "full";
+    title: T.tr("game_details.controller_support");
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            spacing: 12px;
+            padding-bottom: 4px;
+            Icon {
+                source: Icons.xbox;
+                width: 36px;
+                height: 36px;
+                color: Theme.body;
+            }
+            Icon {
+                source: Icons.playstation;
+                width: 47px;
+                height: 36px;
+                color: Theme.body;
+            }
+        }
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: badge.preferred-width + 32px;
+                height: badge.preferred-height + 8px;
+                border-radius: self.height / 2;
+                background: root.support == "full" ? rgba(154, 205, 50, 0.15) : rgba(255, 165, 0, 0.15);
+                badge := Text {
+                    text: root.support == "full" ? "FULL SUPPORT" : "PARTIAL SUPPORT";
+                    color: root.support == "full" ? #9acd32 : #ffa500;
+                    font-size: Theme.small-size;
+                    font-weight: 700;
+                }
+            }
+        }
+        Text {
+            text: root.support == "full" ? "Plays great with Xbox and PlayStation controllers." : "Some menus may require a keyboard and mouse.";
+            color: Theme.body;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+}
+
+export component RequirementsSection inherits SidebarSection {
+    in property <styled-text> minimum;
+    in property <styled-text> recommended;
+    in-out property <bool> show-recommended;
+    title: T.tr("game_details.requirements");
+
+    HorizontalLayout {
+        HydraButton {
+            text: T.tr("game_details.minimum");
+            kind: root.show-recommended ? "outline" : "primary";
+            square-corners: true;
+            horizontal-stretch: 1;
+            clicked => {
+                root.show-recommended = false;
+            }
+        }
+        HydraButton {
+            text: T.tr("game_details.recommended");
+            kind: root.show-recommended ? "primary" : "outline";
+            square-corners: true;
+            horizontal-stretch: 1;
+            clicked => {
+                root.show-recommended = true;
+            }
+        }
+    }
+    VerticalLayout {
+        padding: 16px;
+        StyledText {
+            text: root.show-recommended ? root.recommended : root.minimum;
+            default-color: Theme.body;
+            default-font-size: Theme.body-size;
+        }
+    }
+}
+
+export component LanguageSection inherits SidebarSection {
+    in property <[Language]> languages;
+    title: T.tr("game_details.language");
+
+    Rectangle {
+        background: rgba(255, 255, 255, 0.02);
+        VerticalLayout {
+            Rectangle {
+                background: rgba(255, 255, 255, 0.05);
+                HorizontalLayout {
+                    for label[i] in [T.tr("game_details.language"), T.tr("game_details.caption"), T.tr("game_details.audio")]: Text {
+                        text: label;
+                        color: Theme.muted;
+                        font-size: Theme.small-size;
+                        font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                        horizontal-stretch: i == 0 ? 1 : 0;
+                        min-width: i == 0 ? 0 : 60px;
+                        max-width: i == 0 ? 100000px : 60px;
+                        vertical-alignment: center;
+                        height: 12px + 16px + 12px;
+                    }
+                    padding-left: 20px;
+                }
+                Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: Theme.border;
+                }
+            }
+            for language[i] in root.languages: row := Rectangle {
+                background: row-touch.has-hover ? rgba(255, 255, 255, 0.03) : transparent;
+                animate background { duration: 200ms; easing: ease; }
+                height: 12px + 20px + 12px;
+                HorizontalLayout {
+                    padding-left: 20px;
+                    Text {
+                        text: language.name;
+                        color: Theme.body;
+                        font-weight: 500;
+                        overflow: elide;
+                        horizontal-stretch: 1;
+                        vertical-alignment: center;
+                    }
+                    Rectangle {
+                        width: 60px;
+                        Icon {
+                            x: 20px;
+                            source: Icons.check;
+                            width: 14px;
+                            height: 14px;
+                            color: Theme.body;
+                        }
+                    }
+                    Rectangle {
+                        width: 60px;
+                        Icon {
+                            x: 20px;
+                            source: language.audio ? Icons.check : Icons.x;
+                            width: 14px;
+                            height: 14px;
+                            color: Theme.body;
+                        }
+                    }
+                }
+                if i < root.languages.length - 1: Rectangle {
+                    y: parent.height - 1px;
+                    height: 1px;
+                    background: rgba(255, 255, 255, 0.05);
+                }
+                row-touch := TouchArea { }
+            }
+        }
+    }
+}

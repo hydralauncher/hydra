@@ -1,0 +1,932 @@
+// src/renderer/src/components/sidebar/{sidebar,sidebar-game-list,sidebar-game-item,
+// sidebar-profile,routes}.{tsx,scss}, text-field/text-field.scss, avatar/avatar.scss
+import { SmoothScroll, ScrollTween } from "../components/smooth-scroll.slint";
+import { Theme, Icons, Tip } from "../theme.slint";
+import { Icon, Skeleton, ScrollBar } from "../components/widgets.slint";
+import { T, Nav, Session, SidebarState, SidebarGame, Popup } from "../globals.slint";
+import { DownloadIcon } from "download-icon.slint";
+import { Flight } from "flight.slint";
+
+// .sidebar__menu-item + .sidebar__menu-item-button
+component MenuItem inherits Rectangle {
+    in property <image> icon;
+    in property <bool> downloads-icon;
+    in property <string> label;
+    in property <bool> active;
+    callback clicked();
+    height: 36px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.15) : root.active ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+
+    // FLASH_KEYFRAMES: once a flight lands the row flashes (8% of 1s to
+    // rgba(255,255,255,0.14), ease-out), then returns to its background.
+    property <int> flash-count: root.downloads-icon ? SidebarState.download-catch : 0;
+    property <bool> flashing;
+    property <duration> flash-start;
+    changed flash-count => {
+        root.flash-start = animation-tick();
+        root.flashing = true;
+    }
+    Timer {
+        interval: 1050ms;
+        running: root.flashing;
+        triggered => {
+            root.flashing = false;
+        }
+    }
+    property <float> flash-t: root.flashing ? Math.min(1, (animation-tick() - root.flash-start) / 1000ms) : 1;
+    property <float> flash-alpha: root.flash-t < 0.08 ? 1 - (1 - root.flash-t / 0.08) * (1 - root.flash-t / 0.08) : 1 - (root.flash-t - 0.08) / 0.92;
+    if root.flashing: Rectangle {
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.14 * root.flash-alpha);
+    }
+    accessible-role: button;
+    accessible-label: root.label;
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 8px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            if !root.downloads-icon: Icon {
+                source: root.icon;
+                width: 16px;
+                height: 16px;
+                color: Theme.muted;
+            }
+            if root.downloads-icon: DownloadIcon {
+                phase: SidebarState.download-phase;
+                progress: SidebarState.download-progress;
+                has-progress: SidebarState.download-has-progress;
+                games: SidebarState.download-games;
+                catch-count: SidebarState.download-catch;
+                // The flight's target ([data-sidebar-downloads-icon])
+                property <Point> pos: self.absolute-position;
+                init => {
+                    Flight.icon-x = self.absolute-position.x + 8px;
+                    Flight.icon-y = self.absolute-position.y + 8px;
+                }
+                changed pos => {
+                    Flight.icon-x = self.pos.x + 8px;
+                    Flight.icon-y = self.pos.y + 8px;
+                }
+            }
+        }
+        Text {
+            text: root.label;
+            color: Theme.muted;
+            font-size: Theme.button-size;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .profile-avatar
+export component Avatar inherits Rectangle {
+    in property <image> source;
+    in property <length> size: 35px;
+    width: root.size;
+    height: root.size;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.background;
+    clip: true;
+    if root.source.width > 0: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.source;
+        image-fit: cover;
+    }
+    if root.source.width == 0: Icon {
+        source: Icons.person;
+        width: root.size * 0.6;
+        height: root.size * 0.6;
+        color: Theme.muted;
+    }
+}
+
+// .sidebar-profile
+component SidebarProfile inherits VerticalLayout {
+    property <bool> open: Popup.open == "profile-menu";
+    padding-left: 16px;
+    // 16px inside the 1px border-right (border-box)
+    padding-right: 17px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    button := Rectangle {
+        border-radius: 4px;
+        background: touch.has-hover || root.open ? rgba(255, 255, 255, 0.15) : transparent;
+        animate background { duration: 100ms; easing: ease; }
+        HorizontalLayout {
+            padding: 8px;
+            spacing: 12px;
+            Rectangle {
+                width: 35px;
+                height: 35px;
+                Avatar {
+                    size: 35px;
+                    source: Session.avatar;
+                }
+                // __unread-dot: 10px, error color, 2px dark border, top/right -2px
+                if Session.signed-in && Session.unread-chat > 0: Rectangle {
+                    x: parent.width - 8px;
+                    y: -2px;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 5px;
+                    background: Theme.error;
+                    border-width: 2px;
+                    border-color: Theme.dark-background;
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Text {
+                    text: Session.signed-in ? Session.display-name : T.tr("sidebar.sign_in");
+                    color: Theme.muted;
+                    font-weight: 700;
+                    font-size: Theme.body-size;
+                    overflow: elide;
+                }
+                if Session.signed-in && Session.running-title != "": Text {
+                    text: Session.running-title;
+                    color: Theme.muted;
+                    font-size: 11.67px;
+                    overflow: elide;
+                }
+            }
+            // gameRunningDetails: the icon (24px wide), or the Steam logo
+            if Session.signed-in && Session.running-title != "": VerticalLayout {
+                alignment: center;
+                if Session.running-icon.width > 0: Rectangle {
+                    width: 24px;
+                    height: 24px * Session.running-icon.height / Math.max(1, Session.running-icon.width);
+                    border-radius: 4px;
+                    clip: true;
+                    Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: Session.running-icon;
+                    }
+                }
+                if Session.running-icon.width == 0: Icon {
+                    width: 24px;
+                    height: 24px;
+                    source: Icons.steam-logo;
+                    color: Theme.muted;
+                }
+            }
+            if Session.signed-in: VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: Icons.chevron-down-12;
+                    width: 12px;
+                    height: 12px;
+                    color: Theme.muted;
+                    opacity: root.open ? 1 : 0.5;
+                    transform-rotation: root.open ? 180deg : 0deg;
+                    animate opacity, transform-rotation { duration: 150ms; easing: ease; }
+                }
+            }
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                if (!Session.signed-in) {
+                    Session.sign-in();
+                } else {
+                    Popup.toggle("profile-menu", button.absolute-position.x, button.absolute-position.y, button.width, button.height);
+                    if (Popup.open == "profile-menu") {
+                        Session.prefetch-friends();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .sidebar-profile__dropdown-item
+component ProfileMenuItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> danger;
+    in property <string> badge;
+    in property <string> badge2;
+    callback clicked();
+    // padding 8px around Chromium's 19px line box, or the 20px badge
+    height: (root.badge != "" || root.badge2 != "" ? 20px : 19px) + 16px;
+    border-radius: 4px;
+    background: touch.has-hover ? (root.danger ? rgba(225, 29, 72, 0.18) : rgba(255, 255, 255, 0.15)) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+    property <color> fg: root.danger ? Theme.error : touch.has-hover ? Theme.body : Theme.muted;
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.icon;
+                color: root.fg;
+            }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: root.fg;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        // __dropdown-badge (--online: success), --unread: error
+        if root.badge != "": VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 20px;
+                width: Math.max(20px, badge-text.preferred-width + 8px);
+                border-radius: 10px;
+                background: Theme.success;
+                badge-text := Text {
+                    text: root.badge;
+                    font-size: Theme.tiny-size;
+                    font-weight: 700;
+                    color: white;
+                }
+            }
+        }
+        if root.badge2 != "": VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 20px;
+                width: Math.max(20px, badge2-text.preferred-width + 8px);
+                border-radius: 10px;
+                background: Theme.error;
+                badge2-text := Text {
+                    text: root.badge2;
+                    font-size: Theme.tiny-size;
+                    font-weight: 700;
+                    color: white;
+                }
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// .sidebar-profile__dropdown: rgba(0,0,0,.4) with blur(20px) over the sidebar.
+// Fades in from -8px (200ms ease-out) and back out (150ms ease-in).
+component ProfileMenu inherits Rectangle {
+    in property <bool> closing;
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+            root.publish-box();
+        }
+    }
+    changed height => {
+        root.publish-box();
+    }
+    function publish-box() {
+        Popup.box-x = root.absolute-position.x;
+        Popup.box-y = root.absolute-position.y;
+        Popup.box-width = root.width;
+        Popup.box-height = root.height;
+    }
+    // close without the fade (the sign-out modal snapshots the window next)
+    callback hide-now();
+    function close() {
+        Popup.open = "";
+    }
+    height: items.preferred-height;
+    opacity: root.entered && !root.closing ? 1 : 0;
+    animate opacity { duration: root.closing ? 150ms : 200ms; easing: root.closing ? ease-in : ease-out; }
+    property <length> lift: root.entered && !root.closing ? 0 : -8px;
+    animate lift { duration: root.closing ? 150ms : 200ms; easing: root.closing ? ease-in : ease-out; }
+    // box-shadow: 0 4px 12px rgba(0,0,0,.4)
+    Rectangle {
+        y: root.lift;
+        border-radius: 6px;
+        drop-shadow-offset-y: 4px;
+        drop-shadow-blur: 12px;
+        drop-shadow-color: rgba(0, 0, 0, 0.4);
+        // Slint has no backdrop blur. Under the menu the sidebar is flat, so
+        // the blurred backdrop is one color: #080808 as Chromium paints it.
+        background: #080808;
+        border-width: 1px;
+        border-color: Theme.border;
+        TouchArea { }
+        items := VerticalLayout {
+            padding: 5px;
+            ProfileMenuItem {
+                icon: Icons.person;
+                label: T.tr("user_profile.see_profile");
+                clicked => {
+                    root.close();
+                    Session.open-profile();
+                }
+            }
+            ProfileMenuItem {
+                icon: Icons.bell;
+                label: T.tr("sidebar.notifications");
+                badge: Session.unread-notifications > 99 ? "99+" : Session.unread-notifications > 0 ? Session.unread-notifications : "";
+                clicked => {
+                    root.close();
+                    Session.open-notifications();
+                }
+            }
+            ProfileMenuItem {
+                icon: Icons.people;
+                label: T.tr("sidebar.friends");
+                badge: Session.friends-online > 0 ? Session.friends-online : "";
+                badge2: Session.unread-chat > 99 ? "99+" : Session.unread-chat > 0 ? Session.unread-chat : "";
+                clicked => {
+                    root.close();
+                    Session.open-friends();
+                }
+            }
+            if Session.has-subscription: ProfileMenuItem {
+                icon: Icons.comment-discussion;
+                label: T.tr("sidebar.need_help");
+                clicked => {
+                    root.close();
+                    Session.open-support();
+                }
+            }
+            // __dropdown-separator: 1px, margin 4px 0
+            Rectangle {
+                height: 9px;
+                Rectangle {
+                    height: 1px;
+                    background: Theme.border;
+                }
+            }
+            ProfileMenuItem {
+                icon: Icons.sign-out;
+                label: T.tr("user_profile.sign_out");
+                danger: true;
+                clicked => {
+                    root.close();
+                    root.hide-now();
+                    Session.sign-out();
+                }
+            }
+        }
+    }
+}
+
+// .text-field-container__text-field--dark (sidebar filter)
+component FilterField inherits Rectangle {
+    callback edited(string);
+    height: 40px;
+    border-radius: 8px;
+    border-width: 1px;
+    background: Theme.background;
+    border-color: input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+    animate border-color { duration: 200ms; easing: ease; }
+    hover := TouchArea {
+        mouse-cursor: input.has-focus ? text : default;
+        clicked => {
+            input.focus();
+        }
+    }
+    Rectangle {
+        x: 8px;
+        width: parent.width - 16px;
+        Text {
+            x: 0;
+            width: parent.width;
+            text: T.tr("sidebar.filter");
+            color: #757575;
+            // Chromium doesn't inherit font-size into <input>: 13.33px.
+            font-size: Theme.button-size;
+            vertical-alignment: center;
+            overflow: elide;
+            visible: input.text == "";
+        }
+        input := TextInput {
+            width: parent.width;
+            height: parent.height;
+            color: #dadbe1;
+            font-size: Theme.button-size;
+            vertical-alignment: center;
+            single-line: true;
+            accessible-label: T.tr("sidebar.filter");
+            edited => {
+                root.edited(self.text);
+            }
+        }
+    }
+}
+
+// .sidebar__play-button / filter menu trigger
+component IconToggle inherits Rectangle {
+    in property <image> icon;
+    in property <bool> active;
+    in property <string> tooltip;
+    in property <int> tip-id;
+    callback clicked();
+    width: 16px;
+    height: 16px;
+    Icon {
+        source: root.icon;
+        width: 16px;
+        height: 16px;
+        color: root.active ? (touch.has-hover ? rgba(255, 255, 255, 0.7) : #ffffff) : (touch.has-hover ? rgba(255, 255, 255, 0.8) : Theme.muted);
+        animate color { duration: 150ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// sidebar-game-item.tsx: 42px rows (SIDEBAR_GAME_ITEM_HEIGHT)
+component GameRow inherits Rectangle {
+    in property <SidebarGame> game;
+    in property <bool> active;
+    callback clicked();
+    callback double-clicked();
+    callback context-menu(length, length);
+    height: 36px;
+    border-radius: 4px;
+    opacity: root.game.muted && !touch.has-hover ? Theme.disabled-opacity : 1;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.15) : root.active ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background, opacity { duration: 100ms; easing: ease; }
+    accessible-role: button;
+    accessible-label: root.game.title;
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 20px;
+                height: 20px;
+                if root.game.icon.width > 0: Rectangle {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 4px;
+                    clip: true;
+                    Image {
+                        width: 20px;
+                        height: 20px;
+                        source: root.game.icon;
+                        image-fit: cover;
+                    }
+                }
+                if root.game.icon.width == 0 && root.game.fallback == 1: Icon {
+                    width: 20px;
+                    height: 20px;
+                    source: Icons.steam-logo;
+                    color: Theme.muted;
+                }
+                if root.game.icon.width == 0 && root.game.fallback == 2: Icon {
+                    width: 20px;
+                    height: 20px;
+                    source: Icons.epic-logo;
+                    color: Theme.muted;
+                }
+                // .steam-library-badge--sidebar: 12px at right/bottom -3px.
+                // backdrop-filter: blur(4px) over the 20px icon is not drawn
+                // (no backdrop filters in Slint); the 60% black reads the same at 12px.
+                if root.game.library-badge != 0: Rectangle {
+                    width: root.game.badge-both ? 20px : 12px;
+                    height: 12px;
+                    x: parent.width + 3px - self.width;
+                    y: parent.height + 3px - self.height;
+                    border-radius: root.game.badge-both ? 6px : 6px;
+                    background: rgba(0, 0, 0, 0.6);
+                    drop-shadow-offset-y: 1px;
+                    drop-shadow-blur: 3px;
+                    drop-shadow-color: rgba(0, 0, 0, 0.5);
+                    HorizontalLayout {
+                        alignment: center;
+                        spacing: 2px;
+                        VerticalLayout {
+                            alignment: center;
+                            Icon {
+                                width: 8px;
+                                height: 8px;
+                                source: root.game.library-badge == 2 ? Icons.epic-logo : Icons.bi-steam;
+                                color: #ffffff;
+                            }
+                        }
+                        if root.game.badge-both: Text {
+                            text: "+";
+                            color: #ffffff;
+                            font-size: Theme.tiny-size;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.game.title;
+            color: Theme.muted;
+            font-size: Theme.button-size;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        if root.game.badge != "": VerticalLayout {
+            alignment: center;
+            Rectangle {
+                background: rgba(34, 197, 94, 0.15);
+                border-color: rgba(34, 197, 94, 0.5);
+                border-width: 1px;
+                border-radius: 6px;
+                drop-shadow-offset-y: 2px;
+                drop-shadow-blur: 4px;
+                drop-shadow-color: rgba(0, 0, 0, 0.1);
+                HorizontalLayout {
+                    padding: 4px;
+                    Text {
+                        text: root.game.badge;
+                        color: rgb(187, 247, 208);
+                        font-size: Theme.tiny-size;
+                        font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                    }
+                }
+            }
+        }
+        if root.game.favorite: VerticalLayout {
+            alignment: center;
+            Icon {
+                source: Icons.heart-fill-12;
+                width: 12px;
+                height: 12px;
+                color: Theme.muted;
+                opacity: 0.85;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        double-clicked => {
+            root.double-clicked();
+        }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+}
+
+// The virtualized list (sidebar-game-list.tsx: 42px rows, overscan 5).
+component GameList inherits Rectangle {
+    in property <[SidebarGame]> games;
+    in property <length> wheel-scale: 1px;
+    property <length> row-height: 42px;
+    property <length> content-height: root.games.length * root.row-height + 16px;
+    property <length> max-scroll: Math.max(0, root.content-height - root.height + 6px);
+    // Scroll position as a Flickable content-y (0 or negative), shared with the scrollbar.
+    property <length> content-y;
+    property <length> offset: root.tween.active ? -SmoothScroll.value(root.tween, animation-tick()) : -root.content-y;
+    // Wheel tween (components/smooth-scroll.slint): root.content-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.content-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.content-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.content-y = Math.clamp(root.content-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed content-y => {
+        if (root.tween.active && root.content-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    property <int> first: Math.max(0, Math.floor(root.offset / root.row-height) - 5);
+    property <int> count: Math.max(0, Math.min(root.games.length - root.first, Math.ceil(root.height / root.row-height) + 10));
+    clip: true;
+
+    changed first => {
+        SidebarState.visible-rows(root.first, root.first + root.count);
+    }
+    changed count => {
+        SidebarState.visible-rows(root.first, root.first + root.count);
+    }
+    changed games => {
+        root.content-y = -Math.min(root.offset, root.max-scroll);
+        SidebarState.visible-rows(root.first, root.first + root.count);
+    }
+
+    wheel := TouchArea {
+        scroll-event(event) => {
+            root.wheel-by(event.delta-y);
+            accept
+        }
+    }
+
+    // `inset: 0 0 6px`; rows end 16px before the scrollbar gutter.
+    for i in root.count: GameRow {
+        property <int> index: root.first + i;
+        x: 0;
+        y: self.index * root.row-height - root.offset;
+        width: root.width - 16px;
+        game: root.games[self.index];
+        active: Nav.path == self.game.path;
+        clicked => {
+            SidebarState.game-clicked(self.game.id);
+        }
+        double-clicked => {
+            SidebarState.game-double-clicked(self.game.id);
+        }
+        context-menu(x, y) => {
+            SidebarState.game-context-menu(self.game.id, x, y);
+        }
+    }
+
+    // .sidebar__game-list--scrolled: inset 0 6px 6px -4px rgba(0, 0, 0, 0.5)
+    Rectangle {
+        y: 0;
+        height: 6px;
+        background: @linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+        opacity: root.offset > 0 ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease; }
+    }
+
+    ScrollBar {
+        visible: root.max-scroll > 0;
+        x: root.width - self.width;
+        height: root.height - 6px;
+        content-height: root.content-height;
+        viewport-height: root.height - 6px;
+        content-y <=> root.content-y;
+        shown-offset: root.offset;
+    }
+}
+
+// .sidebar__game-skeleton (sidebar-game-list-skeleton.tsx)
+// SKELETON_ITEM_COUNT 16: 20x20 icon, 12px full-width title, radius 4.
+component GameListSkeleton inherits VerticalLayout {
+    padding-right: 16px;
+    alignment: start;
+    for i in 16: HorizontalLayout {
+        height: 42px;
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            Skeleton {
+                width: 20px;
+                height: 20px;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            Skeleton {
+                height: 12px;
+            }
+        }
+    }
+}
+
+export component Sidebar inherits Rectangle {
+    in property <float> wheel-scale: 1;
+    background: Theme.dark-background;
+    property <bool> resizing;
+    opacity: root.resizing ? Theme.active-opacity : 1;
+    animate opacity { duration: 200ms; easing: ease; }
+
+    VerticalLayout {
+        padding-top: 8px;
+        profile := SidebarProfile { }
+
+        // .sidebar__content (16px inside the 1px border-right)
+        VerticalLayout {
+            padding-left: 16px;
+            padding-right: 17px;
+            spacing: 16px;
+            vertical-stretch: 1;
+
+            // .sidebar__menu
+            VerticalLayout {
+                spacing: 4px;
+                padding-bottom: 8px;
+                MenuItem {
+                    icon: Icons.home;
+                    label: T.tr("sidebar.home");
+                    active: Nav.path == "/";
+                    clicked => {
+                        Nav.navigate("/");
+                    }
+                }
+                MenuItem {
+                    icon: Icons.apps;
+                    label: T.tr("sidebar.catalogue");
+                    active: Nav.path == "/catalogue";
+                    clicked => {
+                        Nav.navigate("/catalogue");
+                    }
+                }
+                MenuItem {
+                    icon: Icons.book;
+                    label: T.tr("sidebar.library");
+                    active: Nav.path == "/library";
+                    clicked => {
+                        Nav.navigate("/library");
+                    }
+                }
+                MenuItem {
+                    downloads-icon: true;
+                    label: T.tr("sidebar.downloads");
+                    active: Nav.path == "/downloads";
+                    clicked => {
+                        Nav.navigate("/downloads");
+                    }
+                }
+                if SidebarState.leaderboards-enabled: MenuItem {
+                    icon: Icons.leaderboards;
+                    label: T.tr("sidebar.leaderboards");
+                    active: Nav.path == "/leaderboards";
+                    clicked => {
+                        Nav.navigate("/leaderboards");
+                    }
+                }
+                MenuItem {
+                    icon: Icons.gear;
+                    label: T.tr("sidebar.settings");
+                    active: Nav.path == "/settings";
+                    clicked => {
+                        Nav.navigate("/settings");
+                    }
+                }
+            }
+
+            // .sidebar__section--games
+            VerticalLayout {
+                spacing: 16px;
+                vertical-stretch: 1;
+                // .sidebar__search-row
+                HorizontalLayout {
+                    spacing: 8px;
+                    FilterField {
+                        horizontal-stretch: 1;
+                        edited(text) => {
+                            SidebarState.filter-changed(text);
+                        }
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        IconToggle {
+                            icon: SidebarState.playable-only ? Icons.check-circle-fill : Icons.check-circle;
+                            active: SidebarState.playable-only;
+                            tooltip: T.tr("library.show_installed_only");
+                            tip-id: 9101;
+                            clicked => {
+                                SidebarState.toggle-playable();
+                            }
+                        }
+                    }
+                    // .sidebar-filter-menu__trigger: margin-right 8px
+                    HorizontalLayout {
+                        padding-right: 8px;
+                        alignment: center;
+                        VerticalLayout {
+                        alignment: center;
+                        filter-trigger := IconToggle {
+                            icon: Icons.sliders;
+                            tooltip: T.tr("sidebar.filter_sort_tooltip");
+                            tip-id: 9102;
+                            clicked => {
+                                Tip.hide(9102);
+                                Popup.toggle("sidebar-filters", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                            }
+                        }
+                    }
+                    }
+                }
+
+                // margin-right: -16px (the list scrolls under the sidebar padding)
+                Rectangle {
+                    vertical-stretch: 1;
+                    if SidebarState.loading: GameListSkeleton {
+                        x: 0;
+                        width: parent.width + 16px;
+                    }
+                    if !SidebarState.loading && SidebarState.has-active-filter && SidebarState.games.length == 0: Text {
+                        y: 16px;
+                        width: parent.width;
+                        text: T.tr("library.no_results");
+                        horizontal-alignment: center;
+                        font-size: Theme.small-size;
+                        color: Theme.subtle;
+                    }
+                    if !SidebarState.loading: GameList {
+                        x: 0;
+                        width: parent.width + 16px;
+                        height: parent.height;
+                        games: SidebarState.games;
+                        wheel-scale: root.wheel-scale * 1px;
+                    }
+                }
+            }
+        }
+    }
+
+    // the profile dropdown stays mounted while it fades out
+    property <bool> menu-open: Popup.open == "profile-menu" && Session.signed-in;
+    property <bool> menu-alive;
+    changed menu-open => {
+        if (root.menu-open) {
+            root.menu-alive = true;
+        }
+    }
+    Timer {
+        interval: 150ms;
+        running: !root.menu-open && root.menu-alive;
+        triggered => {
+            root.menu-alive = false;
+        }
+    }
+    if root.menu-alive: ProfileMenu {
+        x: 16px;
+        y: profile.y + profile.height;
+        width: root.width - 32px;
+        closing: !root.menu-open;
+        hide-now => {
+            root.menu-alive = false;
+        }
+    }
+
+    // border-right: solid 1px $border-color
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        background: Theme.border;
+    }
+
+    // .sidebar__handle: 5px, col-resize; 200..450px
+    handle := TouchArea {
+        x: parent.width - 5px;
+        width: 5px;
+        mouse-cursor: col-resize;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                root.resizing = true;
+            }
+            if (event.kind == PointerEventKind.up) {
+                root.resizing = false;
+                SidebarState.width-committed(SidebarState.width);
+            }
+        }
+        // The handle moves with the edge, so each move applies its own delta.
+        moved => {
+            if (self.pressed) {
+                SidebarState.width = Math.clamp(SidebarState.width + self.mouse-x - self.pressed-x, 200px, 450px);
+            }
+        }
+    }
+}

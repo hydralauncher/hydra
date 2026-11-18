@@ -1,0 +1,310 @@
+// The chat window's state (pages/chat-window/chat-window.tsx, use-chat.ts),
+// filled by chat_window.rs.
+
+// A conversation in the sidebar (chat-sidebar.tsx ChatSidebarRow).
+export struct ChatConversationRow {
+    id: string,
+    name: string,
+    avatar: image,
+    official: bool,
+    online: bool,
+    // "14:32", "Yesterday", a weekday or a short date; "" when none
+    time: string,
+    // getConversationPreview: "text" | "images" | "removed" | "" (none)
+    preview-kind: string,
+    preview: string,
+    // currentGame (the status line when there is no preview)
+    game: string,
+    game-icon: image,
+    game-has-icon: bool,
+    typing: bool,
+    unread: int,
+    active: bool,
+    // Place in the activity order (rows glide to it), -1 when filtered out.
+    order: int,
+}
+
+// A friend in the new conversation picker (chat-new-conversation.tsx).
+export struct ChatPickerRow {
+    id: string,
+    name: string,
+    // The name split around the query match (bold + underlined).
+    before: string,
+    match: string,
+    after: string,
+    avatar: image,
+    banner: image,
+    online: bool,
+    game: string,
+    game-icon: image,
+    game-has-icon: bool,
+    // Already has a tab ("Open")
+    open: bool,
+}
+
+// A reaction pill under a message (chat-message-reactions.tsx).
+export struct ChatReactionPill {
+    emoji: string,
+    mine: bool,
+    // both sides picked it: shows a "2"
+    both: bool,
+    pending: bool,
+    // the pill was already there when the message rendered: no pop-in
+    initial: bool,
+    label: string,
+    hint: string,
+}
+
+// One image of a message (chat-message-images.tsx).
+export struct ChatImageCell {
+    id: string,
+    image: image,
+    // the spoiler cover / blocked look: a blurred copy
+    blurred: image,
+    x: length,
+    y: length,
+    width: length,
+    height: length,
+    covered: bool,
+    has-source: bool,
+}
+
+// One entry of the message list, flattened: a day divider, the "New
+// messages" divider, a message row or a group's time label.
+export struct ChatItem {
+    // "day" | "new" | "message" | "time"
+    kind: string,
+    key: string,
+    // day label, time label
+    label: string,
+    // space above (12 between groups and dividers, 2 inside a group)
+    gap: length,
+    mine: bool,
+    // message
+    seq: int,
+    has-seq: bool,
+    text: string,
+    styled: styled-text,
+    has-links: bool,
+    // 0: a bubble, 1: emoji only (40px), 2: more emoji (28px)
+    emoji: int,
+    // "sent" | "pending" | "checking" | "blocked" | "failed"
+    status: string,
+    daily-limit: bool,
+    hidden: bool,
+    // first / last message of its group (bubble corners)
+    first: bool,
+    last: bool,
+    // animates in (sent or received live)
+    enter: bool,
+    // reply quote
+    reply: bool,
+    reply-available: bool,
+    reply-seq: int,
+    reply-name: string,
+    reply-text: string,
+    reply-removed: bool,
+    reactions: [ChatReactionPill],
+    // images
+    images: [ChatImageCell],
+    images-width: length,
+    images-height: length,
+    captioned: bool,
+    upload-progress: float,
+    images-removed-title: string,
+    // react / reply / report allowed
+    can-act: bool,
+    can-report: bool,
+    can-react: bool,
+    status-text: string,
+}
+
+// A picked image in the composer (chat-composer-images.tsx).
+export struct ChatDraftImage {
+    id: string,
+    image: image,
+    blurred: image,
+    name: string,
+    spoiler: bool,
+}
+
+// An emoji in the picker grid.
+export struct ChatEmoji {
+    emoji: string,
+    name: string,
+}
+
+export global ChatData {
+    in property <bool> native-decorations;
+
+    // ---- sidebar
+    in property <[ChatConversationRow]> conversations;
+    in property <int> conversation-count;
+    in property <int> visible-count;
+    in-out property <length> sidebar-width: 250px;
+    in-out property <bool> resizing;
+    in-out property <string> query;
+    in property <bool> picker-open;
+    in property <[ChatPickerRow]> picker-rows;
+    in-out property <string> picker-query;
+    in-out property <int> picker-active;
+    in property <bool> picker-settled;
+    in property <bool> no-friends;
+
+    // ---- header: the active conversation's friend
+    in property <bool> has-active;
+    in property <string> active-id;
+    in property <string> active-name;
+    in property <image> active-avatar;
+    in property <bool> active-official;
+    in property <bool> active-online;
+    in property <image> active-banner;
+    in property <string> active-game;
+    in property <image> active-game-icon;
+    in property <bool> active-game-has-icon;
+    in property <bool> active-typing;
+
+    // ---- conversation
+    // "loading" | "loaded" | "error" | "empty"
+    in property <string> pane-state;
+    in property <bool> can-send;
+    in property <[ChatItem]> items;
+    // Bumped when the list should jump to the newest message.
+    in property <int> scroll-to-latest;
+    // A message to scroll into view and flash (by key).
+    in property <string> reveal-key;
+    in property <int> reveal-request;
+    in property <string> flash-key;
+    in property <string> replying-key;
+    in property <string> reacting-key;
+    in property <int> jump-count;
+    in property <string> sticky-day;
+    in property <bool> loading-older;
+
+    // ---- composer
+    in-out property <string> draft;
+    in property <string> placeholder;
+    in property <bool> images-enabled;
+    in property <bool> attach-enabled;
+    in property <[ChatDraftImage]> draft-images;
+    in property <bool> send-enabled;
+    in property <bool> invalid;
+    // Bumped by every rejected send: the box shakes.
+    in property <int> rejections;
+    in property <bool> has-reply;
+    in property <bool> reply-to-self;
+    in property <string> reply-name;
+    in property <string> reply-text;
+    // the "Replying to <strong>name</strong>" label, split around the bold part
+    in property <[string]> reply-label;
+    // "" | "info" | "typing" | "offline" | "error"
+    in property <string> hint-kind;
+    in property <string> hint;
+    in property <string> counter;
+    in property <bool> counter-over;
+    in property <bool> cooldown;
+    in property <int> cooldown-started;
+    in property <int> cooldown-total;
+    in property <int> cooldown-elapsed;
+    in property <int> cooldown-seconds;
+    in property <int> focus-composer;
+    in-out property <bool> emoji-open;
+    in-out property <length> composer-height;
+
+    // ---- emoji picker (composer or reaction)
+    in property <[ChatEmoji]> emoji-items;
+    in property <string> emoji-tab: "recent";
+    in-out property <string> emoji-query;
+    in property <string> emoji-section;
+    in property <string> emoji-selected;
+    in-out property <int> emoji-hover-index: -1;
+    in property <bool> reaction-picker-open;
+    in property <bool> reaction-picker-mine;
+
+    // ---- reaction bar
+    in property <string> reaction-bar-key;
+    in property <bool> reaction-bar-below;
+    in property <[string]> quick-reactions;
+    in property <string> reaction-bar-selected;
+
+    // ---- overlays
+    in property <string> lightbox-caption;
+    in property <image> lightbox-image;
+    in property <bool> lightbox-open;
+    in property <bool> dropping;
+    in property <string> drop-title;
+    in property <string> drop-description;
+    in property <bool> report-open;
+    in property <bool> report-closing;
+    in-out property <string> report-reason;
+    in-out property <string> report-details;
+    in property <bool> report-sending;
+    // "" | "failed" | "rate_limited"
+    in property <string> report-error;
+    in property <bool> leaving-open;
+    in property <bool> leaving-closing;
+    in property <string> leaving-host;
+    in property <string> leaving-url;
+    in property <bool> leaving-insecure;
+    in-out property <bool> leaving-trust;
+    in property <[string]> leaving-trust-label;
+    in property <int> report-sent;
+
+    // ---- callbacks
+    callback minimize();
+    callback close();
+    callback drag();
+    callback select(string);
+    callback query-edited(string);
+    callback toggle-picker();
+    callback picker-edited(string);
+    callback picker-pick(string);
+    callback picker-key(string) -> bool;
+    callback sidebar-resized(length);
+    callback open-profile();
+    callback open-game();
+    callback open-settings();
+    callback reload();
+    callback draft-edited(string);
+    callback send();
+    // the key text and Shift; true when handled
+    callback composer-key(string, bool) -> bool;
+    // the key text, Ctrl, Shift, Alt/Meta; true when handled
+    callback window-key(string, bool, bool, bool) -> bool;
+    callback cancel-reply();
+    callback show-reply();
+    callback add-images();
+    callback remove-image(string);
+    callback toggle-spoiler(string);
+    callback emoji-tab-picked(string);
+    callback emoji-query-edited(string);
+    callback emoji-picked(string);
+    callback emoji-closed();
+    // the composer's picker opened: it starts on Recent with an empty search
+    callback emoji-opened();
+    callback reply(string);
+    callback react-toggle(string, bool);
+    callback react-bar-pick(string);
+    callback react-more();
+    callback reaction-bar-closed();
+    callback pill-toggled(string, string);
+    callback retry(string);
+    callback remove(string);
+    callback jump-to(int);
+    callback open-link(string);
+    callback open-image(string, string);
+    callback reveal-spoiler(string);
+    callback message-menu(string, length, length);
+    // the list: distance from the newest message, from the oldest, and
+    // whether it is scrolled away from the newest
+    callback scrolled(length, length);
+    callback day-above(string, bool);
+    callback revealed(string, length, length);
+    callback jump-latest();
+    callback lightbox-closed();
+    callback report-submit();
+    callback report-cancel();
+    callback leaving-open-link();
+    callback leaving-cancel();
+    callback toast-dismissed();
+}

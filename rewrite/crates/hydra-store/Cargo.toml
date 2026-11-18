@@ -1,0 +1,14 @@
+[package]
+name = "hydra-store"
+description = "Store data for the Rust rewrite: Steam store API client, Hydra API artwork, Steam HTML to native blocks"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+reqwest.workspace = true
+rustls.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tl = "0.7"

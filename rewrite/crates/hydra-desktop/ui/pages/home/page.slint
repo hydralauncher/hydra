@@ -1,0 +1,336 @@
+// src/renderer/src/pages/home/home.{tsx,scss} with components/hero.
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { Theme } from "../../theme.slint";
+import { Skeleton, ScrollBar, Icon } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { Input } from "../game-details/state.slint";
+import { GameCard } from "../../components/game-card.slint";
+import { AnimatedImage, Gifs } from "../../components/animated.slint";
+import { HomeData } from "state.slint";
+
+// components/button (primary / outline) with room for the home icons, which
+// overflow their 16px wrapper (position: absolute).
+component HomeButton inherits Rectangle {
+    in property <bool> primary;
+    in property <bool> enabled: true;
+    in property <string> text;
+    // Only "Hot now" and "Surprise me" have the 16px icon wrapper.
+    in property <bool> has-icon;
+    out property <bool> hovered: touch.has-hover;
+    callback clicked();
+
+    height: 40px;
+    width: row.preferred-width;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.primary ? transparent : Theme.border;
+    background: root.primary ? (root.hovered && root.enabled ? #dadbe1 : Theme.muted)
+        : (root.hovered && root.enabled ? rgba(255, 255, 255, 0.1) : transparent);
+    opacity: !root.enabled ? Theme.disabled-opacity : touch.pressed ? Theme.active-opacity : 1;
+    animate background, opacity, border-color { duration: 200ms; easing: ease; }
+    accessible-role: button;
+    accessible-label: root.text;
+
+    row := HorizontalLayout {
+        padding-left: 17px;
+        padding-right: 17px;
+        // __icon-wrapper: 16x16 plus the 8px gap, the image positioned
+        // absolutely inside; zero wide on buttons without an icon.
+        Rectangle {
+            width: root.has-icon ? 24px : 0;
+            Rectangle {
+                x: 0;
+                width: 16px;
+                height: 16px;
+                y: (parent.height - 16px) / 2;
+                @children
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: Theme.button-size;
+            color: root.primary ? #000000 : Theme.muted;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+export component HomePage inherits Rectangle {
+    // .container__content keeps a 9px gutter; .home__content scrolls inside it.
+    property <length> content-width: root.width - 9px;
+    // The window is never narrower than 1024px, so only its height matters (hero.scss).
+    property <bool> tall: root.height + 40px >= 800px;
+    property <int> columns: root.width >= 1350px ? 4 : root.width >= 1000px ? 3 : 2;
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+
+    property <length> scroll-y;
+    // Wheel tween (components/smooth-scroll.slint): root.scroll-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    page := Flickable {
+        x: 0;
+        width: root.content-width - scrollbar.width;
+        height: root.height;
+        content-width: self.width;
+        content-height: column.preferred-height;
+        interactive: false;
+        viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+
+        TouchArea {
+            width: page.width;
+            height: column.preferred-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+
+            column := VerticalLayout {
+                width: page.width;
+                spacing: 16px;
+                alignment: start;
+
+                // ---- components/hero
+                if HomeData.featured-loading: Skeleton {
+                    height: root.tall ? 400px : 300px;
+                    radius: 0;
+                }
+                if !HomeData.featured-loading && HomeData.featured-shown: hero := Rectangle {
+                    height: root.tall ? 400px : 300px;
+                    // box-shadow: 0 0 15px #000
+                    drop-shadow-blur: 15px;
+                    drop-shadow-color: #000000;
+                    background: Theme.dark-background;
+                    accessible-role: button;
+                    accessible-label: HomeData.featured-description;
+
+                    Rectangle {
+                        clip: true;
+                        Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: HomeData.featured-hero;
+                            image-fit: cover;
+                            transform-scale: hero-touch.has-hover ? 1.02 : 1;
+                            animate transform-scale { duration: 200ms; easing: ease; }
+                        }
+                        // __backdrop
+                        Rectangle {
+                            background: @linear-gradient(0deg, rgba(0, 0, 0, 0.8) 25%, transparent 100%);
+                        }
+                        // __content: padding 32px 24px, bottom-aligned, gap 16
+                        VerticalLayout {
+                            padding-left: 25px;
+                            padding-right: 25px;
+                            padding-top: 33px;
+                            padding-bottom: 33px;
+                            spacing: 16px;
+                            alignment: end;
+                            HorizontalLayout {
+                                alignment: start;
+                                Image {
+                                    width: root.tall ? 250px : 200px;
+                                    height: self.width * self.source.height / Math.max(1, self.source.width);
+                                    source: HomeData.featured-logo;
+                                    image-fit: contain;
+                                }
+                            }
+                            // __description: margin-top 16px, max-width 700, 20px lines
+                            HorizontalLayout {
+                                alignment: start;
+                                padding-top: 16px;
+                                Text {
+                                    width: Math.min(700px, hero.width - 50px);
+                                    text: HomeData.featured-description;
+                                    font-size: Theme.button-size;
+                                    color: Theme.muted;
+                                    wrap: word-wrap;
+                                    horizontal-alignment: left;
+                                }
+                            }
+                        }
+                    }
+                    // border: 1px solid $border-color
+                    Rectangle {
+                        border-width: 1px;
+                        border-color: Theme.border;
+                    }
+                    hero-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            HomeData.open-featured();
+                        }
+                    }
+                }
+
+                // ---- .home__header: categories + "Surprise me", padding 24px
+                HorizontalLayout {
+                    padding: 24px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        hot := HomeButton {
+                            has-icon: true;
+                            primary: HomeData.category == "hot";
+                            text: T.tr("home.hot");
+                            clicked => {
+                                HomeData.select-category("hot");
+                            }
+                            // flame-static.png, swapped for the GIF on hover (30px at -5,-10)
+                            if !hot.hovered: Image {
+                                x: -5px;
+                                y: -10px;
+                                width: 30px;
+                                height: 30px;
+                                source: @image-url("../../images/flame-static.png");
+                                image-fit: contain;
+                            }
+                            if hot.hovered: AnimatedImage {
+                                x: -5px;
+                                y: -10px;
+                                width: 30px;
+                                height: 30px;
+                                frames: Gifs.flame;
+                            }
+                        }
+                        HomeButton {
+                            primary: HomeData.category == "weekly";
+                            text: T.tr("home.weekly");
+                            clicked => {
+                                HomeData.select-category("weekly");
+                            }
+                        }
+                        HomeButton {
+                            primary: HomeData.category == "achievements";
+                            text: T.tr("home.achievements");
+                            clicked => {
+                                HomeData.select-category("achievements");
+                            }
+                        }
+                    }
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+                    HomeButton {
+                        has-icon: true;
+                        enabled: HomeData.random-ready;
+                        text: T.tr("home.surprise_me");
+                        clicked => {
+                            HomeData.surprise();
+                        }
+                        // stars-animated.gif: 70px at -27,-28
+                        AnimatedImage {
+                            x: -27px;
+                            y: -28px;
+                            width: 70px;
+                            height: 70px;
+                            frames: Gifs.stars;
+                        }
+                    }
+                }
+
+                // ---- .home__title: h2 21px bold, padding 0 24px, the flame GIF for "hot"
+                HorizontalLayout {
+                    padding-left: 24px;
+                    padding-right: 24px;
+                    spacing: 8px;
+                    height: 28px;
+                    alignment: start;
+                    if HomeData.category == "hot": Rectangle {
+                        width: 24px;
+                        height: 24px;
+                        y: 2px;
+                        AnimatedImage {
+                            x: -4px;
+                            y: -4px;
+                            width: 32px;
+                            height: 32px;
+                            frames: Gifs.flame;
+                        }
+                    }
+                    Text {
+                        text: T.tr("home." + HomeData.category);
+                        font-size: 21px;
+                        font-weight: 700;
+                        color: Theme.body;
+                        vertical-alignment: center;
+                    }
+                }
+
+                // ---- .home__cards: 2/3/4 columns, gap 16, padding 0 24px 24px
+                grid := Rectangle {
+                    property <int> count: HomeData.loading ? 12 : HomeData.cards.length;
+                    property <length> card-width: (page.width - 48px - 16px * (root.columns - 1)) / root.columns;
+                    property <int> rows: Math.ceil(self.count / root.columns);
+                    height: self.rows > 0 ? self.rows * 180px + (self.rows - 1) * 16px + 24px : 24px;
+
+                    if HomeData.loading: Rectangle {
+                        for i in 12: Skeleton {
+                            x: 24px + Math.mod(i, root.columns) * (grid.card-width + 16px);
+                            y: Math.floor(i / root.columns) * (180px + 16px);
+                            width: grid.card-width;
+                            height: 180px;
+                            drop-shadow-blur: 15px;
+                            drop-shadow-color: #000000;
+                        }
+                    }
+                    if !HomeData.loading: Rectangle {
+                        for card[i] in HomeData.cards: GameCard {
+                            x: 24px + Math.mod(i, root.columns) * (grid.card-width + 16px);
+                            y: Math.floor(i / root.columns) * (180px + 16px);
+                            width: grid.card-width;
+                            card: card;
+                            clicked => {
+                                HomeData.open-card(i);
+                            }
+                            hovered => {
+                                HomeData.card-hovered(i);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    scrollbar := ScrollBar {
+        x: root.content-width - self.width;
+        height: root.height;
+        content-height: page.content-height;
+        viewport-height: page.height;
+        content-y <=> root.scroll-y;
+            shown-offset: -page.viewport-y;
+    }
+}

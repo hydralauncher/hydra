@@ -1,0 +1,836 @@
+// gallery-video-player.tsx + gallery-video-player.scss.
+// Decoding lives in src/video.rs (FFmpeg + hardware decode + cpal audio).
+// The UI sends commands through the engine-* callbacks; the engine reports the
+// clock, buffering, end of stream, the active rendition and the current frame.
+import { Theme, Icons, Tip, Ids } from "../theme.slint";
+import { Icon, Spinner } from "widgets.slint";
+
+export global Playback {
+    // Which media item the shared player state belongs to (-1: none).
+    in-out property <int> index: -1;
+    in-out property <float> duration: 1;
+    // Set by the engine.
+    in-out property <float> time;
+    in-out property <bool> ended;
+    in-out property <image> frame;
+    in-out property <bool> has-frame;
+    in-out property <int> active-height;
+    // Rendition picked by "Auto": the viewer asks for more than the carousel.
+    in-out property <int> auto-height: 720;
+    callback engine-load(int);
+    callback engine-play();
+    callback engine-pause();
+    callback engine-seek(float);
+    callback engine-volume(float);
+    callback engine-quality(int);
+    in-out property <bool> looping: true;
+    in-out property <bool> playing;
+    in-out property <bool> started;
+    in-out property <bool> has-played;
+    in-out property <bool> waiting;
+    in-out property <float> buffered-to;
+    in-out property <float> volume: 1;
+    in-out property <bool> muted: true;
+    // 0 = Auto, then 1080/720/480/360
+    in-out property <int> quality;
+    // Things that keep the chrome on screen (getChromeState's holdChrome).
+    in-out property <bool> quality-open;
+    in-out property <bool> scrubbing;
+    in-out property <float> scrub-ratio;
+    in-out property <bool> adjusting-volume;
+    in-out property <bool> hovering-progress;
+
+    // Indicators. Each `*-gen` bump replays its animation.
+    in-out property <int> flash-gen;
+    in-out property <bool> flash-shows-play;
+    in-out property <int> seek-gen;
+    in-out property <int> seek-dir; // -1 back, 1 forward
+    in-out property <int> seek-amount;
+    in-out property <bool> seek-visible;
+    in-out property <bool> seek-canceled;
+    in-out property <int> volume-gen;
+    in-out property <bool> volume-visible;
+
+    out property <bool> is-playing: self.playing && !self.ended;
+    out property <float> level: self.muted ? 0 : self.volume;
+    out property <bool> hold: (!self.is-playing && self.has-played) || self.ended || self.quality-open || self.scrubbing || self.adjusting-volume || self.hovering-progress;
+
+    public function load(i: int, length: float, autoplay: bool) {
+        if (self.index == i) {
+            return;
+        }
+        self.index = i;
+        self.duration = length;
+        self.time = 0;
+        self.ended = false;
+        self.buffered-to = 0;
+        self.playing = false;
+        self.started = false;
+        self.has-played = false;
+        self.has-frame = false;
+        self.waiting = true;
+        self.quality-open = false;
+        self.engine-load(i);
+        if (autoplay) {
+            self.play();
+        }
+    }
+
+    public function play() {
+        if (self.ended) {
+            self.seek-to(0);
+        }
+        self.playing = true;
+        self.started = true;
+        self.has-played = true;
+        self.engine-play();
+    }
+
+    public function pause() {
+        self.playing = false;
+        self.engine-pause();
+    }
+
+    public function toggle(show-flash: bool) {
+        if (self.is-playing) {
+            self.pause();
+        } else {
+            self.play();
+        }
+        if (show-flash) {
+            self.flash-shows-play = self.is-playing;
+            self.flash-gen += 1;
+        }
+    }
+
+    public function seek-to(t: float) {
+        self.time = Math.clamp(t, 0, self.duration);
+        self.ended = false;
+        if (!self.started) {
+            self.started = true;
+        }
+        self.engine-seek(self.time);
+    }
+
+    public function seek-by(seconds: float) {
+        let dir = seconds < 0 ? -1 : 1;
+        if (self.seek-visible && self.seek-dir == dir) {
+            self.seek-amount += Math.round(Math.abs(seconds));
+        } else {
+            self.seek-amount = Math.round(Math.abs(seconds));
+            self.seek-canceled = self.seek-visible;
+        }
+        self.seek-dir = dir;
+        self.seek-visible = true;
+        self.seek-gen += 1;
+        self.seek-to(self.time + seconds);
+    }
+
+    public function set-volume(v: float) {
+        self.volume = Math.clamp(v, 0, 1);
+        self.muted = self.volume == 0;
+        self.engine-volume(self.level);
+    }
+
+    public function change-volume(delta: float) {
+        self.set-volume((self.muted ? 0 : self.volume) + delta);
+        self.volume-visible = true;
+        self.volume-gen += 1;
+    }
+
+    public function toggle-mute() {
+        if (self.muted && self.volume == 0) {
+            self.volume = 1;
+        }
+        self.muted = !self.muted;
+        self.engine-volume(self.level);
+        self.volume-visible = true;
+        self.volume-gen += 1;
+    }
+
+    public function select-quality(q: int) {
+        self.quality = q;
+        self.quality-open = false;
+        self.engine-quality(q);
+    }
+
+    public pure function format(t: float) -> string {
+        let total = Math.max(0, Math.floor(t));
+        let minutes = Math.floor(total / 60);
+        let seconds = Math.mod(total, 60);
+        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+    }
+}
+
+// One instance in the app: indicator lifetimes and Auto rendition switching.
+export component PlaybackDriver {
+    // "Auto" follows the view: switch rendition when the viewer opens/closes.
+    property <int> auto-height: Playback.auto-height;
+    changed auto-height => {
+        if (Playback.index >= 0 && Playback.quality == 0) {
+            Playback.engine-quality(0);
+        }
+    }
+
+    // SeekIndicatorBadge / VolumeIndicatorBadge fade out after a short pause.
+    seek-hide := Timer {
+        interval: 700ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            Playback.seek-visible = false;
+        }
+    }
+    property <int> seek-gen: Playback.seek-gen;
+    changed seek-gen => {
+        seek-hide.running = false;
+        seek-hide.running = true;
+    }
+
+    volume-hide := Timer {
+        interval: 700ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            Playback.volume-visible = false;
+        }
+    }
+    property <int> volume-gen: Playback.volume-gen;
+    changed volume-gen => {
+        volume-hide.running = false;
+        volume-hide.running = true;
+    }
+}
+
+// .gallery-video__button
+component ControlButton inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 20px;
+    in property <length> size: 36px;
+    in property <angle> icon-rotation;
+    in property <string> tooltip;
+    callback clicked();
+    out property <bool> hovered: touch.has-hover;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+
+    width: root.size;
+    height: root.size;
+    border-radius: 6px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+    transform-scale: touch.pressed ? 0.92 : 1;
+    animate background, transform-scale { duration: 150ms; easing: ease; }
+
+    Icon {
+        source: root.icon;
+        width: root.icon-size;
+        height: root.icon-size;
+        transform-rotation: root.icon-rotation;
+        animate transform-rotation { duration: 300ms; easing: ease-out-quint; }
+    }
+
+    changed tooltip => {
+        if (root.tooltip == "") {
+            Tip.hide(root.tip-id);
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover && root.tooltip != "") {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// Plays a 0 -> 1 progress each time `gen` changes (parity trick).
+component Pulse {
+    in property <int> gen;
+    in property <duration> length;
+    property <float> phase: Math.mod(root.gen, 2);
+    animate phase { duration: root.length; easing: linear; }
+    out property <float> t: Math.mod(root.gen, 2) == 1 ? root.phase : 1 - root.phase;
+}
+
+export component VideoPlayer inherits Rectangle {
+    in property <image> poster;
+    // "inline" (carousel) or "viewer" (lightbox)
+    in property <bool> inline: true;
+    in property <bool> fullscreen;
+    // Inline: hover/pointer activity from the slide's TouchArea.
+    in property <bool> hovered;
+    in property <length> activity;
+    // Viewer: the lightbox decides when its chrome is hidden.
+    in property <bool> chrome-hidden-by-viewer;
+    // This view shows the shared Playback state (false = idle poster).
+    in property <bool> active: true;
+    callback toggle-fullscreen();
+
+    // Per-variant metrics from the SCSS.
+    property <length> button-size: root.fullscreen ? 48px : root.inline ? 32px : 36px;
+    property <length> icon-size: root.fullscreen ? 26px : 20px;
+    property <length> pad-top: root.fullscreen ? 64px : root.inline ? 32px : 40px;
+    property <length> pad-side: root.fullscreen ? 32px : root.inline ? 8px : 16px;
+    property <length> pad-bottom: root.fullscreen ? 16px : root.inline ? 4px : 8px;
+    property <length> preview-width: root.fullscreen ? 400px : root.inline ? 240px : 280px;
+    property <length> big-play-size: root.inline ? 56px : 72px;
+    property <length> flash-size: root.inline ? 52px : 64px;
+    property <length> seek-size: root.fullscreen ? 104px : root.inline ? 64px : 80px;
+
+    // Inline auto-hide: INLINE_IDLE_TIMEOUT_MS = 2500.
+    property <bool> idle;
+    changed activity => {
+        root.idle = false;
+        idle-timer.running = false;
+        idle-timer.running = true;
+    }
+    idle-timer := Timer {
+        interval: 2500ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.idle = true;
+        }
+    }
+    property <bool> controls-hidden: !root.active ? true
+        : root.inline ? (!Playback.hold && (!root.hovered || root.idle))
+        : root.chrome-hidden-by-viewer;
+    property <bool> show-big-play: !Playback.scrubbing && (!root.active || !Playback.started || (!root.inline && Playback.ended));
+    property <bool> show-spinner: root.active && Playback.started && !root.show-big-play && Playback.waiting;
+
+    background: #000000;
+    border-radius: root.inline ? 4px : 0;
+    clip: true;
+
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.active && Playback.has-frame ? Playback.frame : root.poster;
+        image-fit: root.inline ? cover : contain;
+    }
+
+    if root.show-spinner: Rectangle {
+        width: 40px;
+        height: 40px;
+        // border: 3px rgba(255,255,255,.15), top border muted, 0.8s linear spin
+        Rectangle {
+            border-radius: 20px;
+            border-width: 3px;
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        Rectangle {
+            transform-rotation: Math.mod(animation-tick() / 800ms, 1) * 360deg;
+            Rectangle {
+                y: 0;
+                height: 20px;
+                clip: true;
+                Rectangle {
+                    y: 0;
+                    height: 40px;
+                    border-radius: 20px;
+                    border-width: 3px;
+                    border-color: Theme.muted;
+                }
+            }
+        }
+    }
+
+    // .gallery-video__big-play: pop-in 0.25s, hover scale 1.08.
+    if root.show-big-play: big-play := Rectangle {
+        property <bool> entered;
+        Timer {
+            interval: 16ms;
+            running: !big-play.entered;
+            triggered => {
+                big-play.entered = true;
+            }
+        }
+        width: root.big-play-size;
+        height: root.big-play-size;
+        border-radius: self.width / 2;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.15);
+        background: big-play-touch.has-hover ? rgba(0, 0, 0, 0.7) : rgba(0, 0, 0, 0.55);
+        opacity: self.entered ? 1 : 0;
+        transform-scale: !self.entered ? 0.9 : big-play-touch.has-hover ? 1.08 : 1;
+        animate opacity { duration: 250ms; easing: ease-out-quint; }
+        animate transform-scale { duration: 200ms; easing: ease-out-quint; }
+        animate background { duration: 150ms; easing: ease; }
+        Icon {
+            source: Icons.play-fill;
+            width: 30px;
+            height: 30px;
+            color: white;
+            x: (parent.width - self.width) / 2 + 2px;
+        }
+        big-play-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                Playback.play();
+            }
+        }
+    }
+
+    // .gallery-video__flash: scale 1 -> 1.5, fade out, 0.6s.
+    flash := Pulse {
+        gen: Playback.flash-gen;
+        length: 600ms;
+    }
+    // flash.t is read first on purpose: an animation needs a previously
+    // evaluated value to start from, so it must never be skipped by &&.
+    if flash.t < 1 && root.active && Playback.flash-gen > 0 && !root.show-big-play: Rectangle {
+        width: root.flash-size;
+        height: root.flash-size;
+        border-radius: self.width / 2;
+        background: rgba(0, 0, 0, 0.5);
+        property <float> eased: 1 - (1 - flash.t) * (1 - flash.t);
+        opacity: 1 - self.eased;
+        transform-scale: 1 + 0.5 * self.eased;
+        Icon {
+            source: Playback.flash-shows-play ? Icons.play-fill : Icons.pause;
+            width: 26px;
+            height: 26px;
+            color: white;
+        }
+    }
+
+    // SeekIndicatorBadge: three pulsing arrows + "+10s", 12% from the edge.
+    seek-pulse := Pulse {
+        gen: Playback.seek-gen;
+        length: 800ms;
+    }
+    if root.active: seek-badge := Rectangle {
+        width: root.seek-size;
+        height: root.seek-size;
+        x: Playback.seek-dir < 0 ? parent.width * 0.12 : parent.width * 0.88 - self.width;
+        border-radius: self.width / 2;
+        background: rgba(0, 0, 0, 0.45);
+        opacity: Playback.seek-visible ? 1 : 0;
+        animate opacity {
+            duration: Playback.seek-visible ? 250ms : (Playback.seek-canceled ? 150ms : 300ms);
+            easing: Playback.seek-visible ? ease-out : ease;
+        }
+        visible: self.opacity > 0;
+        VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            HorizontalLayout {
+                alignment: center;
+                spacing: 2px;
+                for k in 3: Icon {
+                    property <float> u: Math.clamp((seek-pulse.t * 800 - (Playback.seek-dir < 0 ? 2 - k : k) * 100) / 600, 0, 1);
+                    source: Icons.play-fill;
+                    width: 11px;
+                    height: 11px;
+                    color: white;
+                    transform-scale-x: Playback.seek-dir < 0 ? -1 : 1;
+                    opacity: self.u < 0.35 ? 0.25 + 0.75 * self.u / 0.35 : 1 - 0.75 * (self.u - 0.35) / 0.65;
+                }
+            }
+            Text {
+                text: (Playback.seek-dir < 0 ? "-" : "+") + Playback.seek-amount + "s";
+                color: white;
+                font-size: root.fullscreen ? 16px : root.inline ? 12px : 13px;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                horizontal-alignment: center;
+                transform-scale: 1 + 0.2 * (1 - Math.min(1, seek-pulse.t * 4));
+            }
+        }
+    }
+
+    // VolumeIndicatorBadge: pill near the top (12%) with icon, bar and percent.
+    volume-pulse := Pulse {
+        gen: Playback.volume-gen;
+        length: 200ms;
+    }
+    if root.active: Rectangle {
+        y: parent.height * 0.12;
+        width: volume-row.preferred-width;
+        height: volume-row.preferred-height;
+        border-radius: self.height / 2;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: Playback.volume-visible ? 1 : 0;
+        animate opacity { duration: Playback.volume-visible ? 250ms : 300ms; easing: ease; }
+        visible: self.opacity > 0;
+        volume-row := HorizontalLayout {
+            padding-left: root.fullscreen ? 18px : 14px;
+            padding-right: self.padding-left;
+            padding-top: root.fullscreen ? 10px : 8px;
+            padding-bottom: self.padding-top;
+            spacing: root.fullscreen ? 12px : 10px;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: Playback.level == 0 ? Icons.speaker-x : Playback.level < 0.5 ? Icons.speaker-low : Icons.speaker-high;
+                    width: 18px;
+                    height: 18px;
+                    color: white;
+                    transform-scale: 1 + 0.2 * (1 - volume-pulse.t);
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: root.fullscreen ? 128px : 96px;
+                    height: 4px;
+                    border-radius: 2px;
+                    background: rgba(255, 255, 255, 0.25);
+                    clip: true;
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * Playback.level;
+                        animate width { duration: 150ms; easing: ease-out; }
+                        background: white;
+                    }
+                }
+            }
+            Text {
+                text: Math.round(Playback.level * 100) + "%";
+                min-width: 40px;
+                color: white;
+                font-size: root.fullscreen ? 16px : 13px;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+        }
+    }
+
+    // ---- .gallery-video__controls
+    controls := Rectangle {
+        y: parent.height - self.height;
+        height: root.pad-top + 18px + 2px + root.button-size + root.pad-bottom;
+        background: @linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, rgba(0, 0, 0, 0) 100%);
+        opacity: root.controls-hidden ? 0 : 1;
+        animate opacity { duration: 300ms; easing: ease; }
+        visible: self.opacity > 0;
+
+        // Clicks on the chrome never reach the surface underneath.
+        TouchArea {
+            y: root.pad-top - 8px;
+            height: parent.height - self.y;
+        }
+
+        // .gallery-video__progress (18px hit area; track 4px, 6px while hovered)
+        progress := Rectangle {
+            x: root.pad-side;
+            y: root.pad-top;
+            width: parent.width - 2 * root.pad-side;
+            height: 18px;
+            property <bool> expanded: progress-touch.has-hover || Playback.scrubbing;
+            property <float> played: Playback.scrubbing ? Playback.scrub-ratio : Playback.time / Playback.duration;
+            property <float> hover-ratio: Math.clamp(progress-touch.mouse-x / self.width, 0, 1);
+
+            track := Rectangle {
+                height: progress.expanded ? 6px : 4px;
+                animate height { duration: 150ms; easing: ease; }
+                border-radius: 2px;
+                background: rgba(255, 255, 255, 0.2);
+                clip: true;
+                Rectangle {
+                    x: 0;
+                    width: parent.width * Math.clamp(Playback.buffered-to / Playback.duration, 0, 1);
+                    animate width { duration: 300ms; easing: ease; }
+                    background: rgba(255, 255, 255, 0.25);
+                }
+                if progress-touch.has-hover: Rectangle {
+                    x: 0;
+                    width: parent.width * progress.hover-ratio;
+                    background: rgba(255, 255, 255, 0.2);
+                }
+                Rectangle {
+                    x: 0;
+                    width: parent.width * progress.played;
+                    background: Theme.muted;
+                }
+            }
+            // .gallery-video__progress-thumb: scale(0) -> scale(1) on hover
+            Rectangle {
+                property <length> size: progress.expanded ? 14px : 0px;
+                animate size { duration: 150ms; easing: ease; }
+                x: parent.width * progress.played - self.size / 2;
+                width: self.size;
+                height: self.size;
+                border-radius: self.size / 2;
+                background: white;
+                drop-shadow-offset-y: 1px;
+                drop-shadow-blur: 4px;
+                drop-shadow-color: rgba(0, 0, 0, 0.5);
+            }
+
+            progress-touch := TouchArea {
+                mouse-cursor: pointer;
+                changed has-hover => {
+                    Playback.hovering-progress = self.has-hover;
+                }
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                        Playback.scrubbing = true;
+                        Playback.scrub-ratio = progress.hover-ratio;
+                    } else if (event.button == PointerEventButton.left && (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel)) {
+                        if (Playback.scrubbing) {
+                            Playback.scrubbing = false;
+                            Playback.seek-to(Playback.scrub-ratio * Playback.duration);
+                        }
+                    }
+                }
+                moved => {
+                    if (Playback.scrubbing) {
+                        Playback.scrub-ratio = progress.hover-ratio;
+                    }
+                }
+            }
+
+            // .gallery-video__progress-tooltip: preview frame + time above the cursor.
+            // Like Hydra, the frame stays hidden until a preview frame is decoded
+            // (the storyboard decoder isn't built yet), so only the time shows.
+            tooltip := Rectangle {
+                property <float> ratio: Playback.scrubbing ? Playback.scrub-ratio : progress.hover-ratio;
+                property <bool> preview-ready: false;
+                width: root.preview-width;
+                height: (self.preview-ready ? preview.height + 6px : 0) + stamp.height;
+                x: Math.clamp(progress.width * self.ratio - self.width / 2, -root.pad-side + 4px, progress.width + root.pad-side - self.width - 4px);
+                y: -self.height - 8px;
+                opacity: progress-touch.has-hover || Playback.scrubbing ? 1 : 0;
+                animate opacity { duration: 150ms; easing: ease; }
+                visible: self.opacity > 0;
+
+                preview := Rectangle {
+                    visible: tooltip.preview-ready;
+                    y: 0;
+                    height: self.width * 9 / 16;
+                    border-radius: 6px;
+                    border-width: 2px;
+                    border-color: rgba(255, 255, 255, 0.85);
+                    background: #000000;
+                    drop-shadow-offset-y: 6px;
+                    drop-shadow-blur: 20px;
+                    drop-shadow-color: rgba(0, 0, 0, 0.6);
+                    clip: true;
+                    Image {
+                        x: 2px;
+                        y: 2px;
+                        width: parent.width - 4px;
+                        height: parent.height - 4px;
+                        source: root.poster;
+                        image-fit: cover;
+                    }
+                }
+                stamp := Rectangle {
+                    y: tooltip.preview-ready ? preview.height + 6px : 0;
+                    width: stamp-text.preferred-width + 16px;
+                    height: stamp-text.preferred-height + 6px;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    background: rgba(0, 0, 0, 0.85);
+                    stamp-text := Text {
+                        text: Playback.format(tooltip.ratio * Playback.duration);
+                        color: Theme.muted;
+                        font-size: Theme.small-size;
+                    }
+                }
+            }
+        }
+
+        // .gallery-video__bar
+        HorizontalLayout {
+            x: root.pad-side;
+            y: root.pad-top + 18px + 2px;
+            width: parent.width - 2 * root.pad-side;
+            height: root.button-size;
+            spacing: 2px;
+
+            ControlButton {
+                size: root.button-size;
+                icon-size: root.icon-size;
+                icon: Playback.is-playing ? Icons.pause : Icons.play-fill;
+                tooltip: (Playback.is-playing ? "Pause" : "Play") + " (Space)";
+                clicked => {
+                    Playback.toggle(false);
+                }
+            }
+
+            // VolumeControl: the slider grows from 0 to 80px while hovered.
+            volume-hover := TouchArea {
+              volume-group := HorizontalLayout {
+                property <bool> open: volume-hover.has-hover || Playback.adjusting-volume;
+                ControlButton {
+                    size: root.button-size;
+                    icon-size: root.icon-size;
+                    icon: Playback.level == 0 ? Icons.speaker-x : Playback.level < 0.5 ? Icons.speaker-low : Icons.speaker-high;
+                    tooltip: (Playback.level == 0 ? "Unmute" : "Mute") + " (M)";
+                    clicked => {
+                        Playback.toggle-mute();
+                    }
+                }
+                slider := Rectangle {
+                    width: volume-group.open ? 80px + 8px + 4px : 0;
+                    animate width { duration: 200ms; easing: ease-out-quint; }
+                    opacity: volume-group.open ? 1 : 0;
+                    animate opacity { duration: 200ms; easing: ease; }
+                    clip: true;
+                    Rectangle {
+                        x: 4px;
+                        width: 80px;
+                        Rectangle {
+                            height: 4px;
+                            border-radius: 2px;
+                            background: rgba(255, 255, 255, 0.2);
+                            clip: true;
+                            Rectangle {
+                                x: 0;
+                                width: parent.width * Playback.level;
+                                background: Theme.muted;
+                            }
+                        }
+                        Rectangle {
+                            x: parent.width * Playback.level - 6px;
+                            width: 12px;
+                            height: 12px;
+                            border-radius: 6px;
+                            background: white;
+                            drop-shadow-offset-y: 1px;
+                            drop-shadow-blur: 4px;
+                            drop-shadow-color: rgba(0, 0, 0, 0.5);
+                        }
+                        volume-drag := TouchArea {
+                            mouse-cursor: pointer;
+                            pointer-event(event) => {
+                                if (event.kind == PointerEventKind.down) {
+                                    Playback.adjusting-volume = true;
+                                    Playback.set-volume(self.mouse-x / self.width);
+                                } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                                    Playback.adjusting-volume = false;
+                                }
+                            }
+                            moved => {
+                                if (self.pressed) {
+                                    Playback.set-volume(self.mouse-x / self.width);
+                                }
+                            }
+                        }
+                    }
+                }
+              }
+            }
+
+            Text {
+                text: Playback.format(Playback.scrubbing ? Playback.scrub-ratio * Playback.duration : Playback.time) + "  /  " + Playback.format(Playback.duration);
+                color: Theme.muted;
+                font-size: root.fullscreen ? Theme.body-size : Theme.small-size;
+                vertical-alignment: center;
+            }
+
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            quality-button := ControlButton {
+                size: root.button-size;
+                icon-size: root.icon-size;
+                icon: Icons.gear-six;
+                icon-rotation: Playback.quality-open ? 60deg : 0deg;
+                tooltip: Playback.quality-open ? "" : "Quality";
+                clicked => {
+                    Playback.quality-open = !Playback.quality-open;
+                }
+            }
+
+            ControlButton {
+                size: root.fullscreen ? 52px : root.inline ? 36px : 40px;
+                icon: root.fullscreen ? Icons.corners-in : Icons.corners-out;
+                icon-size: root.fullscreen ? 34px : root.inline ? 24px : 26px;
+                tooltip: (root.fullscreen ? "Exit fullscreen" : "Fullscreen") + " (F)";
+                clicked => {
+                    root.toggle-fullscreen();
+                }
+            }
+        }
+    }
+
+    // .gallery-video__quality-menu: pops in from the gear (bottom-right origin).
+    if root.active && Playback.quality-open: quality-menu := Rectangle {
+        property <bool> entered;
+        Timer {
+            interval: 16ms;
+            running: !quality-menu.entered;
+            triggered => {
+                quality-menu.entered = true;
+            }
+        }
+        width: Math.max(168px, menu-column.preferred-width);
+        height: menu-column.preferred-height;
+        x: parent.width - root.pad-side - (root.fullscreen ? 52px : root.inline ? 36px : 40px) - 2px - self.width;
+        y: parent.height - root.pad-bottom - root.button-size - 8px - self.height;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        background: rgba(13, 13, 13, 0.95);
+        drop-shadow-offset-y: 8px;
+        drop-shadow-blur: 24px;
+        drop-shadow-color: rgba(0, 0, 0, 0.5);
+        transform-origin: { x: self.width, y: self.height };
+        opacity: self.entered ? 1 : 0;
+        transform-scale: self.entered ? 1 : 0.9;
+        animate opacity, transform-scale { duration: 180ms; easing: ease-out-quint; }
+
+        TouchArea { }
+
+        menu-column := VerticalLayout {
+            padding: 4px;
+            HorizontalLayout {
+                padding-left: 10px;
+                padding-top: 6px;
+                padding-bottom: 4px;
+                Text {
+                    text: "Quality";
+                    color: rgba(255, 255, 255, 0.5);
+                    font-size: Theme.small-size;
+                }
+            }
+            for label[i] in [Playback.active-height > 0 ? "Auto (" + Playback.active-height + "p)" : "Auto", "1080p", "720p", "480p", "360p"]: option := Rectangle {
+                property <bool> selected: Playback.quality == i;
+                height: 14px + 20px;
+                border-radius: 4px;
+                background: option-touch.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+                animate background { duration: 120ms; easing: ease; }
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    spacing: 8px;
+                    Text {
+                        text: label;
+                        color: option.selected ? Theme.muted : Theme.body;
+                        font-weight: option.selected ? 600 : 400;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+                    if option.selected: VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            source: Icons.check;
+                            width: 16px;
+                            height: 16px;
+                        }
+                    }
+                }
+                option-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        Playback.select-quality(i);
+                    }
+                }
+            }
+        }
+    }
+}

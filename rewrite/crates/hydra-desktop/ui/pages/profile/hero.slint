@@ -1,0 +1,375 @@
+// profile-hero.tsx + profile-hero.scss + upload-background-image-button:
+// the banner (or the avatar's color gradient), avatar, name, friend code,
+// current game, and the frosted panel with the profile actions.
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, Skeleton, Frost } from "../../components/widgets.slint";
+import { T, Popup } from "../../globals.slint";
+import { ProfileData } from "state.slint";
+import { ProfileButton, ProfileAvatar, TipArea } from "widgets.slint";
+
+export global ProfileIcons {
+    out property <image> copy: @image-url("../../icons/copy-16.svg");
+    out property <image> person-add: @image-url("../../icons/person-add.svg");
+    out property <image> blocked: @image-url("../../icons/blocked.svg");
+    out property <image> gift: @image-url("../../icons/gift-16.svg");
+    out property <image> upload: @image-url("../../icons/upload.svg");
+    out property <image> trash: @image-url("../../icons/trash-16.svg");
+    out property <image> eye-closed-11: @image-url("../../icons/eye-closed-11.svg");
+    out property <image> lock-11: @image-url("../../icons/lock-11.svg");
+}
+
+// GameVisibilityBadge (24px, a dark frosted chip with the eye/lock glyph).
+export component VisibilityBadge inherits Rectangle {
+    in property <bool> concealed;
+    width: 29px;
+    height: 24px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.4);
+    drop-shadow-offset-y: 2px;
+    drop-shadow-blur: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.2);
+    Icon {
+        width: 11px;
+        height: 11px;
+        source: root.concealed ? ProfileIcons.lock-11 : ProfileIcons.eye-closed-11;
+        color: rgba(255, 255, 255, 0.8);
+    }
+    TipArea {
+        tip: root.concealed ? T.tr("library.hidden_game_tooltip") : T.tr("library.hidden_from_others_tooltip");
+    }
+}
+
+// __copy-button: 28px wide, 105px while hovered or after copying (0.2s).
+component CopyButton inherits Rectangle {
+    property <bool> expanded: touch.has-hover || ProfileData.copied;
+    width: root.expanded ? 105px : 28px;
+    animate width { duration: 200ms; easing: ease-in-out; }
+    height: 25px;
+    border-radius: 6px;
+    background: touch.has-hover ? rgba(0, 0, 0, 0.4) : rgba(0, 0, 0, 0.3);
+    animate background { duration: 200ms; easing: ease; }
+    clip: true;
+    // margin-right 0 -> 8px, opacity 0 -> 1
+    property <length> gap: root.expanded ? 8px : 0;
+    animate gap { duration: 200ms; easing: ease-in-out; }
+    code := Text {
+        x: root.width - 4px - 16px - root.gap - self.width;
+        text: ProfileData.copied ? T.tr("user_profile.copied") : ProfileData.user-id;
+        font-family: "Consolas";
+        font-size: Theme.body-size;
+        color: Theme.body;
+        vertical-alignment: center;
+        opacity: root.expanded ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease-in-out; }
+    }
+    Icon {
+        x: root.width - 4px - 16px;
+        width: 16px;
+        height: 16px;
+        source: ProfileIcons.copy;
+        color: Theme.body;
+    }
+    // title={t("copy_friend_code")}: a native OS tooltip in Electron (not drawn)
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            ProfileData.copy-friend-code();
+        }
+    }
+}
+
+export component ProfileHero inherits Rectangle {
+    height: 208px + 72px;
+    // the banner's top-left in window coordinates (the panel's frost slice)
+    property <Point> origin: { x: self.absolute-position.x, y: self.absolute-position.y };
+
+    // __content-box background: the gradient, or the banner (object-fit: cover)
+    if !ProfileData.has-banner: Rectangle {
+        background: @linear-gradient(135deg, ProfileData.hero-from 0%, ProfileData.hero-to 100%);
+    }
+    if ProfileData.has-banner: Image {
+        width: parent.width;
+        height: parent.height;
+        source: ProfileData.banner;
+        image-fit: cover;
+    }
+
+    // __user-information: padding 56px 24px, gap 16, centered
+    HorizontalLayout {
+        y: 0;
+        height: 208px;
+        padding-left: 24px;
+        padding-right: 24px;
+        padding-top: 56px;
+        padding-bottom: 56px;
+        spacing: 16px;
+        alignment: start;
+
+        // __avatar-button: 96px, border, glow 5px -> 10px on hover (0.3s)
+        avatar := Rectangle {
+            width: 96px;
+            height: 96px;
+            border-radius: 4px;
+            background: Theme.background;
+            drop-shadow-blur: avatar-touch.has-hover ? 10px : 5px;
+            drop-shadow-color: rgba(0, 0, 0, 0.7);
+            animate drop-shadow-blur { duration: 300ms; easing: ease; }
+            ProfileAvatar {
+                size: 96px;
+                source: ProfileData.avatar;
+                has-source: ProfileData.has-avatar;
+            }
+            avatar-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ProfileData.avatar-clicked();
+                }
+            }
+        }
+
+        // __information: gap 8, color muted
+        VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            horizontal-stretch: 1;
+            if ProfileData.loaded: HorizontalLayout {
+                alignment: start;
+                spacing: 8px;
+                // h2: 21px bold (text-shadow 0 0 5px rgba(0,0,0,.4) is not drawn)
+                Text {
+                    text: ProfileData.display-name;
+                    font-size: 21px;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    CopyButton { }
+                }
+            }
+            if !ProfileData.loaded: HorizontalLayout {
+                alignment: start;
+                Skeleton {
+                    width: 150px;
+                    height: 28px;
+                }
+            }
+            // __current-game-wrapper: the game link + badge, then "Playing for …"
+            if ProfileData.current-game != "": VerticalLayout {
+                spacing: 4px;
+                HorizontalLayout {
+                    alignment: start;
+                    spacing: 8px;
+                    game-link := Text {
+                        text: ProfileData.current-game;
+                        font-size: Theme.body-size;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                        Rectangle {
+                            visible: game-touch.has-hover;
+                            y: parent.height - 3px;
+                            height: 1px;
+                            background: Theme.muted;
+                        }
+                        game-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                ProfileData.open-current-game();
+                            }
+                        }
+                    }
+                    if ProfileData.current-game-hidden: VisibilityBadge { }
+                }
+                Text {
+                    text: ProfileData.playing-for;
+                    font-size: 11.67px;
+                    color: Theme.muted;
+                }
+            }
+        }
+    }
+
+    // __gift-action: top 16, right 24
+    if ProfileData.can-gift: ProfileButton {
+        x: parent.width - 24px - self.width;
+        y: 16px;
+        width: self.preferred-width;
+        height: 40px;
+        kind: "cloud";
+        icon: ProfileIcons.gift;
+        icon-color: #ffffff;
+        text: T.tr("user_profile.gift_cloud");
+        enabled: !ProfileData.busy;
+        clicked => {
+            ProfileData.gift();
+        }
+    }
+
+    // UploadBackgroundImageButton: top 16, right 16 (own profile)
+    if ProfileData.is-me: banner-button := ProfileButton {
+        x: parent.width - 16px - self.width;
+        y: 16px;
+        width: self.preferred-width;
+        height: 40px;
+        kind: "outline";
+        outline-color: Theme.body;
+        // rgba(0,0,0,.3) over backdrop-filter: blur(20px); hover .26, disabled .4
+        rest-fill: rgba(0, 0, 0, 0.3);
+        hover-fill: rgba(0, 0, 0, 0.26);
+        disabled-fill: rgba(0, 0, 0, 0.4);
+        drop-shadow-blur: 10px;
+        drop-shadow-color: rgba(0, 0, 0, 0.8);
+        icon: ProfileData.viewer-subscriber && ProfileData.has-banner-url ? Icons.more-vertical : ProfileIcons.upload;
+        icon-after: ProfileData.viewer-subscriber && ProfileData.has-banner-url;
+        text: !ProfileData.viewer-subscriber ? T.tr("user_profile.upload_banner")
+            : ProfileData.has-banner-url ? T.tr("user_profile.change_banner")
+            : ProfileData.banner-uploading ? T.tr("user_profile.uploading_banner") : T.tr("user_profile.upload_banner");
+        enabled: !ProfileData.viewer-subscriber || !ProfileData.banner-uploading;
+        clicked => {
+            ProfileData.banner-clicked(self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+        }
+    }
+
+    // __hero-panel: 72px, padding 16px 24px, the frosted bar with the actions
+    panel := Rectangle {
+        y: 208px;
+        height: 72px;
+        // box-shadow: 0 0 15px rgba(0, 0, 0, .5)
+        // box-shadow: 0 0 15px rgba(0,0,0,.5) only paints outside the box, which
+        // is translucent here, so it is drawn as two strips with the Gaussian
+        // falloff (sigma 7.5px: 0.25 at the edge, ~0 at 15px).
+        Rectangle {
+            y: -15px;
+            height: 15px;
+            background: @linear-gradient(180deg, rgba(0, 0, 0, 0.011) 0%, rgba(0, 0, 0, 0.033) 25%, rgba(0, 0, 0, 0.079) 50%, rgba(0, 0, 0, 0.154) 75%, rgba(0, 0, 0, 0.25) 100%);
+        }
+        Rectangle {
+            y: parent.height;
+            height: 15px;
+            background: @linear-gradient(0deg, rgba(0, 0, 0, 0.011) 0%, rgba(0, 0, 0, 0.033) 25%, rgba(0, 0, 0, 0.079) 50%, rgba(0, 0, 0, 0.154) 75%, rgba(0, 0, 0, 0.25) 100%);
+        }
+        // backdrop-filter: blur(15px) over the banner + rgba(0,0,0,.3); without a
+        // banner the panel paints its own copy of the hero gradient over the
+        // hero's (the shadow source above is covered either way).
+        Rectangle {
+            clip: true;
+            if ProfileData.has-banner: Frost {
+                source: ProfileData.banner-frost;
+                source-origin: root.origin;
+                source-width: root.width;
+                source-height: root.height;
+                tint: rgba(0, 0, 0, 0.3);
+            }
+            if !ProfileData.has-banner: Rectangle {
+                y: -208px;
+                height: root.height;
+                background: @linear-gradient(135deg, ProfileData.hero-from 0%, ProfileData.hero-to 100%);
+            }
+            if !ProfileData.has-banner: Rectangle {
+                background: @linear-gradient(135deg, ProfileData.hero-from 0%, ProfileData.hero-to 100%);
+            }
+        }
+        // border-top: 1px rgba(255,255,255,.1)
+        Rectangle {
+            y: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        HorizontalLayout {
+            padding-left: 24px;
+            padding-right: 24px;
+            padding-top: 17px;
+            padding-bottom: 16px;
+            spacing: 8px;
+            alignment: end;
+            if ProfileData.loaded && ProfileData.relation == "me" && ProfileData.shop-enabled: ProfileButton {
+                kind: "outline";
+                outline-color: Theme.body;
+                text: T.tr("user_profile.shop");
+                clicked => {
+                    ProfileData.open-shop();
+                }
+            }
+            if ProfileData.loaded && ProfileData.relation == "me": ProfileButton {
+                kind: "outline";
+                outline-color: Theme.body;
+                icon: Icons.pencil;
+                text: T.tr("user_profile.edit_profile");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.edit-profile();
+                }
+            }
+            if ProfileData.loaded && ProfileData.relation == "me": ProfileButton {
+                kind: "danger";
+                icon: Icons.sign-out;
+                text: T.tr("user_profile.sign_out");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.sign-out();
+                }
+            }
+            if ProfileData.loaded && ProfileData.relation == "none": ProfileButton {
+                kind: "outline";
+                outline-color: Theme.body;
+                icon: ProfileIcons.person-add;
+                text: T.tr("user_profile.add_friend");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.friend-action("SEND");
+                }
+            }
+            if ProfileData.loaded && ProfileData.relation == "friends": ProfileButton {
+                kind: "danger";
+                icon: Icons.x-circle;
+                text: T.tr("user_profile.undo_friendship");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.friend-action("UNDO_FRIENDSHIP");
+                }
+            }
+            if ProfileData.loaded && (ProfileData.relation == "none" || ProfileData.relation == "friends"): ProfileButton {
+                kind: "danger";
+                icon: ProfileIcons.blocked;
+                text: T.tr("user_profile.block_user");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.friend-action("BLOCK");
+                }
+            }
+            if ProfileData.loaded && ProfileData.relation == "sent": ProfileButton {
+                kind: "outline";
+                outline-color: Theme.body;
+                icon: @image-url("../../icons/x-circle-fill.svg");
+                text: T.tr("user_profile.cancel_request");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.friend-action("CANCEL");
+                }
+            }
+            if ProfileData.loaded && ProfileData.relation == "received": ProfileButton {
+                kind: "outline";
+                outline-color: Theme.body;
+                icon: Icons.check-circle-fill;
+                text: T.tr("user_profile.accept_request");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.friend-action("ACCEPTED");
+                }
+            }
+            if ProfileData.loaded && ProfileData.relation == "received": ProfileButton {
+                kind: "danger";
+                icon: @image-url("../../icons/x-circle-fill.svg");
+                text: T.tr("user_profile.ignore_request");
+                enabled: !ProfileData.busy;
+                clicked => {
+                    ProfileData.friend-action("REFUSED");
+                }
+            }
+        }
+    }
+}

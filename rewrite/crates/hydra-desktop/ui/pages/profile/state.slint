@@ -1,0 +1,272 @@
+// pages/profile data and actions (context/user-profile + profile-content);
+// the backend (profile_page.rs, profile_modals.rs) fills this.
+
+// One cover of the library tab (user-library-game-card.tsx on VerticalCoverCard).
+export struct ProfileGameCard {
+    title: string,
+    cover: image,
+    // The catalogue ThumbHash, shown until the cover loads.
+    placeholder: image,
+    // Classics layout: the cover blurred (16px, saturate 1.1) behind the art.
+    backdrop: image,
+    // The cover's own size (classics art shows at most at its natural size).
+    natural-width: float,
+    natural-height: float,
+    // 0 cover, 1 classics, 2 no art (ImageIcon)
+    mode: int,
+    playtime-long: string,
+    playtime-short: string,
+    manual-playtime: bool,
+    hidden-from-others: bool,
+    concealed: bool,
+    // hasAchievementProgress: the profile has Hydra Cloud and the game has achievements
+    show-achievements: bool,
+    unlocked: int,
+    total: int,
+    completed: bool,
+    percent: string,
+    // achievementsPointsEarnedSum, formatted ("" when 0: no cycling)
+    points: string,
+}
+
+// badges-box / all-badges-modal
+export struct ProfileBadge {
+    title: string,
+    description: string,
+    icon: image,
+    // "Unlocked on …" tooltip ("" without a date)
+    unlocked-on: string,
+}
+
+// friends-box / all-friends-modal
+export struct ProfileFriend {
+    id: string,
+    name: string,
+    avatar: image,
+    has-avatar: bool,
+    game: string,
+    game-icon: image,
+    has-game-icon: bool,
+}
+
+// recent-games-box
+export struct ProfileRecentGame {
+    title: string,
+    icon: image,
+    playtime: string,
+    hidden-from-others: bool,
+    concealed: bool,
+}
+
+// profile-review-item.tsx
+export struct ProfileReview {
+    id: string,
+    game-title: string,
+    game-icon: image,
+    date: string,
+    score: int,
+    rating-text: string,
+    playtime: string,
+    // The review (sanitized HTML as Slint styled-text markdown), possibly translated.
+    content: styled-text,
+    original: styled-text,
+    // "Show original (translated from …)" when translated, else ""
+    translation-label: string,
+    hide-original-label: string,
+    show-original: bool,
+    upvotes: int,
+    downvotes: int,
+    prev-upvotes: int,
+    prev-downvotes: int,
+    // bumped on every count change: the old number leaves, the new one enters
+    up-gen: int,
+    down-gen: int,
+    has-upvoted: bool,
+    has-downvoted: bool,
+    voting: bool,
+    own: bool,
+}
+
+// souvenirs-tab.tsx SouvenirCard
+export struct ProfileSouvenirCard {
+    id: string,
+    image: image,
+    // imageUrl is set (the thumbnail may still be loading)
+    has-image: bool,
+    // shouldShowSouvenirContentWarning: the thumbnail is blurred
+    blurred: bool,
+    // "" | "rare" | "platinum"
+    variant: string,
+    private: bool,
+    liked: bool,
+    likes: int,
+    prev-likes: int,
+    like-gen: int,
+    liking: bool,
+    icon: image,
+    has-icon: bool,
+    title: string,
+    // "+2" when the souvenir holds more achievements
+    others: string,
+    // the unlock time (grouped) or the game link (not grouped)
+    time: string,
+    show-game: bool,
+    game-title: string,
+    game-icon: image,
+    has-game-icon: bool,
+}
+
+// SouvenirGameGroup: its cards are souvenirs[first .. first + count]
+export struct ProfileSouvenirGroup {
+    game-id: string,
+    title: string,
+    icon: image,
+    has-icon: bool,
+    first: int,
+    count: int,
+    expanded: bool,
+}
+
+export global ProfileData {
+    // userProfile !== null
+    in property <bool> loaded;
+    in property <string> user-id;
+    in property <string> display-name;
+    in property <image> avatar;
+    in property <bool> has-avatar;
+    // heroBackground: linear-gradient(135deg, from, to) (DEFAULT_USER_PROFILE_BACKGROUND until the avatar's color is known)
+    in property <color> hero-from: #151515b3;
+    in property <color> hero-to: #151515b3;
+    // backgroundImage: the banner (cover) and its blurred copy for the frosted panel
+    in property <bool> has-banner;
+    in property <image> banner;
+    in property <image> banner-frost;
+    in property <bool> is-me;
+    // profileActions: "me" | "none" | "friends" | "sent" | "received"
+    in property <string> relation;
+    // isPerformingAction
+    in property <bool> busy;
+    // giftAction (canReceiveCloudGift, someone else's profile)
+    in property <bool> can-gift;
+    in property <bool> shop-enabled;
+    // currentGame
+    in property <string> current-game;
+    in property <bool> current-game-hidden;
+    in property <string> playing-for;
+    // UploadBackgroundImageButton: the viewer's own subscription and the stored banner
+    in property <bool> viewer-subscriber;
+    in property <bool> has-banner-url;
+    in property <bool> banner-uploading;
+    // copy friend code: "Copied!" for 1.2s
+    in property <bool> copied;
+
+    // ---- content
+    in property <bool> locked;
+    // "library" | "reviews" | "souvenirs" | "screenshots"
+    in-out property <string> tab: "library";
+    in property <int> reviews-count;
+    in property <int> souvenirs-count;
+    in property <int> screenshots-count;
+    in property <bool> show-screenshots;
+    // Bumped on every tab switch: the panel's enter motion restarts.
+    in property <int> tab-switch;
+
+    // ---- library tab
+    in property <string> platform: "all";
+    in property <string> sort: "playedRecently";
+    // the "Achievements earned" sort option (the profile has Hydra Cloud)
+    in property <bool> sort-achievements;
+    in property <bool> library-awaiting: true;
+    in property <[ProfileGameCard]> pinned;
+    in property <[ProfileGameCard]> games;
+    in property <string> library-count;
+    in property <bool> has-more-games;
+    in property <bool> loading-more-games;
+    // The cards' stats cycle: true between 50% and 92.86% of each 7s period.
+    in property <bool> stats-up;
+
+    // ---- right rail
+    in property <bool> show-rail;
+    in property <bool> show-stats;
+    in property <bool> show-achievements-row;
+    // "" when hidden behind Hydra Cloud (show_achievements_on_profile link)
+    in property <string> achievements-text;
+    in property <bool> show-points-row;
+    in property <string> points-text;
+    in property <string> points-percentile;
+    in property <string> playtime-text;
+    in property <string> playtime-percentile;
+    in property <bool> show-karma;
+    in property <string> karma-text;
+    in property <[ProfileBadge]> badges;
+    in property <int> badges-count;
+    in property <bool> badges-more;
+    in property <[ProfileBadge]> all-badges;
+    in property <[ProfileRecentGame]> recent;
+    in property <bool> show-friends;
+    in property <[ProfileFriend]> friends;
+    in property <int> friends-count;
+    in property <bool> friends-more;
+    // ProfileSection open state: stats, badges, activity, friends
+    in-out property <[bool]> sections-open: [true, true, true, true];
+
+    // ---- souvenirs tab
+    // "game" | "none" (profile-souvenir-grouping), "recent" | "oldest" | "rare"
+    in property <string> souvenir-grouping: "none";
+    in property <string> souvenir-sort: "recent";
+    in property <[ProfileSouvenirCard]> souvenirs;
+    in property <[ProfileSouvenirGroup]> souvenir-groups;
+    // SouvenirsEmptyState when there are none: "loading" | "locked" | "other"
+    // | "cloud" | "none" | "disabled" ("" when the grid shows)
+    in property <string> souvenirs-empty;
+    in property <bool> souvenirs-has-more;
+    in property <bool> souvenirs-loading-more;
+    // the visibility notice ("PRIVATE" | "FRIENDS", "" hidden) and the limit notice
+    in property <string> souvenirs-privacy;
+    in property <bool> souvenirs-limit;
+    callback set-souvenir-grouping(string);
+    callback set-souvenir-sort(string);
+    callback open-souvenir(string);
+    callback like-souvenir(string);
+    callback open-souvenir-game(string);
+    callback toggle-souvenir-group(string);
+    callback dismiss-souvenirs-privacy();
+    callback open-souvenir-settings();
+    callback load-more-souvenirs();
+    callback souvenir-card-width(int);
+
+    // ---- reviews tab
+    in property <bool> reviews-loading;
+    in property <[ProfileReview]> reviews;
+
+    // ---- actions
+    callback set-tab(string);
+    callback set-platform(string);
+    callback set-sort(string);
+    callback open-game(int, bool);
+    callback game-context-menu(int, bool, length, length);
+    callback load-more-games();
+    // The library cards on screen: first and last index (exclusive) of `games`.
+    callback visible-games(int, int);
+    callback card-width-changed(int);
+    callback avatar-clicked();
+    callback copy-friend-code();
+    callback friend-action(string);
+    callback edit-profile();
+    callback sign-out();
+    callback open-shop();
+    callback gift();
+    callback banner-clicked(length, length, length, length);
+    callback open-recent(int);
+    callback open-friend(string);
+    callback view-all-badges();
+    callback view-all-friends();
+    callback add-friends();
+    callback report();
+    callback hydra-cloud(string);
+    callback open-current-game();
+    callback open-review-game(string);
+    callback vote-review(string, bool);
+    callback delete-review(string);
+    callback toggle-original(string);
+}

@@ -1,0 +1,400 @@
+// The profile's Reviews tab: reviews-tab.tsx + profile-review-item.tsx
+// (the .user-reviews__* styles in profile-content.scss).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, Skeleton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { ProfileData, ProfileReview } from "state.slint";
+import { ProfileButton, TipArea } from "widgets.slint";
+
+// .user-reviews__review-score-stars / __review-playtime: a small bordered pill
+component Pill inherits Rectangle {
+    in property <image> icon;
+    in property <length> icon-size: 12px;
+    in property <string> text;
+    in property <string> tip;
+    height: row.preferred-height + 2px;
+    width: row.preferred-width + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    row := HorizontalLayout {
+        x: 1px;
+        y: 1px;
+        padding-left: 6px;
+        padding-right: 6px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+        spacing: 4px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: root.icon-size;
+                height: root.icon-size;
+                source: root.icon;
+                color: rgba(255, 255, 255, 0.7);
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: Theme.tiny-size;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            vertical-alignment: center;
+        }
+    }
+    TipArea {
+        tip: root.tip;
+    }
+}
+
+// __vote-button: the count leaves (y 0 -> 10, fade) and the new one enters
+// (y -10 -> 0) over 0.2s each (AnimatePresence mode="wait"); whileHover
+// scale 1.05, whileTap 0.95.
+component VoteButton inherits Rectangle {
+    in property <image> icon;
+    in property <int> count;
+    in property <int> prev-count;
+    in property <int> gen;
+    in property <bool> active;
+    in property <bool> voting;
+    callback clicked();
+    property <float> phase: Math.mod(root.gen, 2);
+    animate phase { duration: 400ms; easing: linear; }
+    property <float> t: Math.mod(root.gen, 2) == 1 ? root.phase : 1 - root.phase;
+    property <float> exit-t: Math.min(1, root.t * 2);
+    property <float> enter-t: Math.max(0, root.t * 2 - 1);
+    width: content.preferred-width + 2px;
+    height: content.preferred-height + 2px;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: root.active ? rgba(255, 255, 255, 0.3) : touch.has-hover ? rgba(255, 255, 255, 0.2) : rgba(255, 255, 255, 0.1);
+    background: touch.has-hover ? rgba(255, 255, 255, 0.1) : rgba(255, 255, 255, 0.05);
+    animate background, border-color { duration: 200ms; easing: ease; }
+    opacity: root.voting ? 0.5 : 1;
+    transform-scale: touch.pressed ? 0.95 : touch.has-hover ? 1.05 : 1;
+    animate transform-scale { duration: 150ms; easing: ease-out; }
+    property <color> fg: root.active || touch.has-hover ? #ffffff : Theme.body;
+    content := HorizontalLayout {
+        x: 1px;
+        y: 1px;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        spacing: 4px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 14px;
+                height: 14px;
+                source: root.icon;
+                color: root.fg;
+            }
+        }
+        Rectangle {
+            width: Math.max(old-label.preferred-width, new-label.preferred-width);
+            height: new-label.preferred-height;
+            old-label := Text {
+                visible: root.t < 0.5;
+                text: root.prev-count;
+                color: root.fg;
+                font-size: Theme.body-size;
+                y: 10px * root.exit-t;
+                opacity: 1 - root.exit-t;
+            }
+            new-label := Text {
+                text: root.count;
+                color: root.fg;
+                font-size: Theme.body-size;
+                y: -10px * (1 - root.enter-t);
+                opacity: root.t < 0.5 ? 0 : root.enter-t;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: root.voting ? not-allowed : pointer;
+        clicked => {
+            if (!root.voting) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+// One review: motion.div opacity 0 -> 1, y 20 -> 0 over 0.3s
+component ReviewItem inherits VerticalLayout {
+    in property <ProfileReview> review;
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    opacity: root.entered ? 1 : 0;
+    animate opacity { duration: 300ms; easing: ease-out; }
+
+    Rectangle {
+        height: body.preferred-height;
+        body := VerticalLayout {
+            y: root.entered ? 0 : 20px;
+            animate y { duration: 300ms; easing: ease-out; }
+            // __review-header: gap 8, margin-bottom 12
+            VerticalLayout {
+                spacing: 8px;
+                padding-bottom: 12px;
+                HorizontalLayout {
+                    // __review-game: icon 24 + title (underlined on hover)
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        horizontal-stretch: 1;
+                        VerticalLayout {
+                            alignment: center;
+                            Image {
+                                width: 24px;
+                                height: 24px;
+                                source: root.review.game-icon;
+                                image-fit: cover;
+                            }
+                        }
+                        title := Text {
+                            text: root.review.game-title;
+                            font-size: Theme.button-size;
+                            font-weight: 700;
+                            color: rgba(255, 255, 255, 0.9);
+                            vertical-alignment: center;
+                            Rectangle {
+                                visible: title-touch.has-hover;
+                                y: parent.height / 2 + 7px;
+                                height: 1px;
+                                background: rgba(255, 255, 255, 0.9);
+                            }
+                            title-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    ProfileData.open-review-game(root.review.id);
+                                }
+                            }
+                        }
+                    }
+                    Text {
+                        text: root.review.date;
+                        font-size: Theme.small-size;
+                        color: rgba(255, 255, 255, 0.6);
+                        vertical-alignment: top;
+                    }
+                }
+                HorizontalLayout {
+                    spacing: 4px;
+                    alignment: start;
+                    Pill {
+                        icon: Icons.star-lucide;
+                        // title: the rating text (a native tooltip, not drawn)
+                        text: root.review.score + "/5";
+                    }
+                    if root.review.playtime != "": Pill {
+                        icon: @image-url("../../icons/clock-12.svg");
+                        text: T.tr("game_details.review_played_for") + " " + root.review.playtime;
+                    }
+                }
+            }
+            // __review-content: rgba(255,255,255,.85), line-height 1.5, pre-wrap
+            StyledText {
+                text: root.review.content;
+                default-color: rgba(255, 255, 255, 0.85);
+                default-font-size: Theme.body-size;
+            }
+            if root.review.translation-label != "": VerticalLayout {
+                padding-top: 12px;
+                HorizontalLayout {
+                    alignment: start;
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            width: 13px;
+                            height: 13px;
+                            source: Icons.languages;
+                            color: toggle-text.color;
+                        }
+                    }
+                    toggle-text := Text {
+                        text: root.review.show-original ? root.review.hide-original-label : root.review.translation-label;
+                        font-size: Theme.body-size;
+                        color: toggle-touch.has-hover ? rgba(255, 255, 255, 0.9) : rgba(255, 255, 255, 0.6);
+                        animate color { duration: 200ms; easing: ease; }
+                        Rectangle {
+                            visible: toggle-touch.has-hover;
+                            y: parent.height / 2 + 8px;
+                            height: 1px;
+                            background: toggle-text.color;
+                        }
+                        toggle-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                ProfileData.toggle-original(root.review.id);
+                            }
+                        }
+                    }
+                }
+                if root.review.show-original: VerticalLayout {
+                    padding-top: 12px;
+                    opacity: 0.6;
+                    StyledText {
+                        text: root.review.original;
+                        default-color: rgba(255, 255, 255, 0.85);
+                        default-font-size: Theme.body-size;
+                    }
+                }
+            }
+            // __review-actions: margin-top 16, padding-top 8, border-top
+            VerticalLayout {
+                padding-top: 16px;
+                Rectangle {
+                    height: 1px;
+                    background: rgba(255, 255, 255, 0.1);
+                }
+                HorizontalLayout {
+                    padding-top: 8px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        horizontal-stretch: 1;
+                        VoteButton {
+                            icon: root.review.has-upvoted ? Icons.thumbs-up-fill : Icons.thumbs-up;
+                            count: root.review.upvotes;
+                            prev-count: root.review.prev-upvotes;
+                            gen: root.review.up-gen;
+                            active: root.review.has-upvoted;
+                            voting: root.review.voting;
+                            clicked => {
+                                ProfileData.vote-review(root.review.id, true);
+                            }
+                        }
+                        VoteButton {
+                            icon: root.review.has-downvoted ? Icons.thumbs-down-fill : Icons.thumbs-down;
+                            count: root.review.downvotes;
+                            prev-count: root.review.prev-downvotes;
+                            gen: root.review.down-gen;
+                            active: root.review.has-downvoted;
+                            voting: root.review.voting;
+                            clicked => {
+                                ProfileData.vote-review(root.review.id, false);
+                            }
+                        }
+                    }
+                    if root.review.own: VerticalLayout {
+                        alignment: center;
+                        ProfileButton {
+                            kind: "danger";
+                            small: true;
+                            icon: @image-url("../../icons/trash-lucide-14.svg");
+                            icon-size: 14px;
+                            text: T.tr("user_profile.delete_review");
+                            clicked => {
+                                ProfileData.delete-review(root.review.id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// The 3 placeholder reviews while loading
+component ReviewSkeleton inherits VerticalLayout {
+    spacing: 8px;
+    padding-bottom: 16px;
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Skeleton {
+            width: 24px;
+            height: 24px;
+        }
+        Skeleton {
+            width: 140px;
+            height: 16px;
+        }
+    }
+    HorizontalLayout {
+        alignment: start;
+        Skeleton {
+            width: 56px;
+            height: 22px;
+            radius: 6px;
+        }
+    }
+    Skeleton {
+        height: 14px;
+    }
+    Skeleton {
+        height: 14px;
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Skeleton {
+            width: 52px;
+            height: 32px;
+            radius: 6px;
+        }
+        Skeleton {
+            width: 52px;
+            height: 32px;
+            radius: 6px;
+        }
+    }
+    Rectangle {
+        height: 1px;
+        background: Theme.border;
+    }
+}
+
+// The tab panel: motion.div opacity 0 -> 1, x -10 -> 0 (0.2s)
+export component ReviewsTab inherits Rectangle {
+    // AnimatePresence mode="wait": exit to opacity 0, x 10 before the next tab
+    in property <bool> leaving;
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    height: list.preferred-height;
+    opacity: root.entered && !root.leaving ? 1 : 0;
+    animate opacity { duration: 200ms; easing: ease; }
+    list := VerticalLayout {
+        x: root.leaving ? 10px : root.entered ? 0 : -10px;
+        animate x { duration: 200ms; easing: ease; }
+        width: root.width;
+        if ProfileData.reviews-loading: VerticalLayout {
+            spacing: 32px;
+            for i in 3: ReviewSkeleton { }
+        }
+        if !ProfileData.reviews-loading && ProfileData.reviews.length == 0: VerticalLayout {
+            padding-top: 32px;
+            padding-bottom: 32px;
+            padding-left: 16px;
+            padding-right: 16px;
+            Text {
+                text: T.tr("user_profile.no_reviews");
+                font-size: Theme.body-size;
+                color: rgba(255, 255, 255, 0.6);
+                horizontal-alignment: center;
+            }
+        }
+        if !ProfileData.reviews-loading && ProfileData.reviews.length > 0: VerticalLayout {
+            spacing: 32px;
+            for review in ProfileData.reviews: ReviewItem {
+                review: review;
+            }
+        }
+    }
+}

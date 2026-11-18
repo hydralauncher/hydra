@@ -17,9 +17,13 @@ use std::sync::{Arc, Mutex};
 
 use hatchzip_core::engine::{self, Outcome, Progress, Run};
 use hatchzip_core::session::{self, State};
+#[cfg(not(hydra_rewrite))]
 use napi::bindgen_prelude::Error;
+#[cfg(not(hydra_rewrite))]
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+#[cfg(not(hydra_rewrite))]
 use napi::Status;
+#[cfg(not(hydra_rewrite))]
 use napi_derive::napi;
 
 /// Free space the extraction never eats into, so the rest of the system keeps
@@ -36,7 +40,9 @@ static STOP: AtomicBool = AtomicBool::new(false);
 // and two games can finish downloading at once, so extractions take turns.
 static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
 
-#[napi(object)]
+// The Rust + Slint rewrite (rewrite/crates/hydra-archive) builds this module
+// without napi and calls `extract_in_place` directly.
+#[cfg_attr(not(hydra_rewrite), napi(object))]
 pub struct InPlaceExtractionOptions {
     pub archive_path: String,
     pub output_path: String,
@@ -49,7 +55,7 @@ pub struct InPlaceExtractionOptions {
     pub resume: bool,
 }
 
-#[napi(object)]
+#[cfg_attr(not(hydra_rewrite), napi(object))]
 pub struct InPlaceExtractionResult {
     /// `finished`, `unavailable` (archive untouched) or `failed` (archive
     /// partly consumed, progress saved).
@@ -81,7 +87,7 @@ impl InPlaceExtractionResult {
 }
 
 /// Whether an in-place extraction journal lies next to the archive.
-#[napi]
+#[cfg_attr(not(hydra_rewrite), napi)]
 pub fn in_place_journal_exists(archive_path: String) -> bool {
     journal_exists(Path::new(&archive_path))
 }
@@ -91,30 +97,36 @@ fn journal_exists(archive_path: &Path) -> bool {
 }
 
 /// `on_progress` receives the extracted fraction, from 0 to 1.
+#[cfg(not(hydra_rewrite))]
 #[napi]
 pub async fn extract_archive_in_place(
     options: InPlaceExtractionOptions,
     on_progress: ThreadsafeFunction<f64, (), f64, Status, false>,
 ) -> napi::Result<InPlaceExtractionResult> {
     tokio::task::spawn_blocking(move || {
-        let archive_path = PathBuf::from(&options.archive_path);
-        let on_progress = move |fraction| {
+        extract_in_place(options, move |fraction| {
             on_progress.call(fraction, ThreadsafeFunctionCallMode::NonBlocking);
-        };
-        // A panic still says whether the archive was touched, so the caller
-        // never hands a partly consumed one to 7-Zip.
-        panic::catch_unwind(AssertUnwindSafe(|| extract(options, on_progress))).unwrap_or_else(
-            |_| {
-                if journal_exists(&archive_path) {
-                    InPlaceExtractionResult::failed("in-place extraction crashed")
-                } else {
-                    InPlaceExtractionResult::unavailable("in-place extraction crashed")
-                }
-            },
-        )
+        })
     })
     .await
     .map_err(|err| Error::from_reason(err.to_string()))
+}
+
+/// Blocking: extracts in place, reporting the extracted fraction (0 to 1).
+pub fn extract_in_place(
+    options: InPlaceExtractionOptions,
+    on_progress: impl Fn(f64) + Send + Sync + 'static,
+) -> InPlaceExtractionResult {
+    let archive_path = PathBuf::from(&options.archive_path);
+    // A panic still says whether the archive was touched, so the caller
+    // never hands a partly consumed one to 7-Zip.
+    panic::catch_unwind(AssertUnwindSafe(|| extract(options, on_progress))).unwrap_or_else(|_| {
+        if journal_exists(&archive_path) {
+            InPlaceExtractionResult::failed("in-place extraction crashed")
+        } else {
+            InPlaceExtractionResult::unavailable("in-place extraction crashed")
+        }
+    })
 }
 
 fn extract(

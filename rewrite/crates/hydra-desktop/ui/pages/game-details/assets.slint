@@ -1,0 +1,595 @@
+// The game options' Customization tab: game-assets-settings.tsx (asset tabs,
+// preview frame) and game-artwork-picker.tsx (SteamGridDB grid). Rust fills
+// `GameAssets` (game_assets.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { HydraButton, Icon, Skeleton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+
+export struct ArtworkTile {
+    image: image,
+    // Still loading: a skeleton cell.
+    skeleton: bool,
+    active: bool,
+    pending: bool,
+    // The image decoded (or failed): clickable, faded in.
+    settled: bool,
+    failed: bool,
+}
+
+export global GameAssets {
+    // "icon" | "logo" | "hero" | "grid"
+    in-out property <string> tab: "icon";
+    in property <image> preview;
+    // A preview URL exists (an image, or the drop-zone text without one).
+    in property <bool> has-preview;
+    // A custom asset or a SteamGridDB pick: the frame restores the default.
+    in property <bool> has-custom;
+    in property <bool> busy;
+    // A 16px checkerboard tile for the preview box (built in Rust).
+    in property <image> checker;
+    in property <bool> classics-warning;
+    in property <bool> subscription-notice;
+    in property <bool> show-picker;
+    in property <bool> signed-in;
+    in property <[ArtworkTile]> tiles;
+    in property <bool> show-reload;
+    in property <bool> empty;
+    callback tab-selected(string);
+    callback preview-clicked();
+    callback tile-clicked(int);
+    // The grid scrolled near its end: the next page.
+    callback near-end();
+    callback reload();
+    callback subscription-clicked();
+    callback open-classics-settings();
+}
+
+// A 2px dashed border (Slint draws borders solid): 6px dashes, 6px gaps.
+component DashedBorder inherits Rectangle {
+    in property <color> dash-color;
+    property <int> across: Math.floor((root.width + 6px) / 12px);
+    property <int> down: Math.floor((root.height + 6px) / 12px);
+    property <length> across-offset: (root.width - (root.across * 12px - 6px)) / 2;
+    property <length> down-offset: (root.height - (root.down * 12px - 6px)) / 2;
+    for i in root.across: Rectangle {
+        x: root.across-offset + i * 12px;
+        y: 0;
+        width: 6px;
+        height: 2px;
+        background: root.dash-color;
+    }
+    for i in root.across: Rectangle {
+        x: root.across-offset + i * 12px;
+        y: root.height - 2px;
+        width: 6px;
+        height: 2px;
+        background: root.dash-color;
+    }
+    for i in root.down: Rectangle {
+        x: 0;
+        y: root.down-offset + i * 12px;
+        width: 2px;
+        height: 6px;
+        background: root.dash-color;
+    }
+    for i in root.down: Rectangle {
+        x: root.width - 2px;
+        y: root.down-offset + i * 12px;
+        width: 2px;
+        height: 6px;
+        background: root.dash-color;
+    }
+}
+
+// 22px ring with a white top quarter, spinning 0.7s linear.
+component RingSpinner inherits Rectangle {
+    width: 22px;
+    height: 22px;
+    Path {
+        width: 22px;
+        height: 22px;
+        viewbox-width: 22;
+        viewbox-height: 22;
+        stroke: rgba(255, 255, 255, 0.25);
+        stroke-width: 3px;
+        MoveTo {
+            x: 11;
+            y: 1.5;
+        }
+        ArcTo {
+            x: 11;
+            y: 20.5;
+            radius-x: 9.5;
+            radius-y: 9.5;
+            sweep: true;
+        }
+        ArcTo {
+            x: 11;
+            y: 1.5;
+            radius-x: 9.5;
+            radius-y: 9.5;
+            sweep: true;
+        }
+    }
+    Path {
+        width: 22px;
+        height: 22px;
+        viewbox-width: 22;
+        viewbox-height: 22;
+        stroke: #ffffff;
+        stroke-width: 3px;
+        transform-rotation: Math.mod(animation-tick() / 700ms, 1) * 360deg;
+        MoveTo {
+            x: 4.28;
+            y: 4.28;
+        }
+        ArcTo {
+            x: 17.72;
+            y: 4.28;
+            radius-x: 9.5;
+            radius-y: 9.5;
+            sweep: true;
+        }
+    }
+}
+
+component AssetTab inherits Rectangle {
+    in property <string> label;
+    in property <bool> active;
+    in property <bool> enabled: true;
+    callback clicked();
+    width: text.preferred-width + 32px;
+    height: text.preferred-height + 16px;
+    text := Text {
+        text: root.label;
+        color: root.active ? Theme.muted : Theme.body;
+        animate color { duration: 200ms; easing: ease; }
+        font-size: Theme.body-size;
+        font-weight: 500;
+    }
+    TouchArea {
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.default;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+export component GameAssetsSettings inherits VerticalLayout {
+    spacing: 16px;
+
+    // ASSET_PREVIEW_FRAME_SIZE (170px tall)
+    property <length> frame-width: GameAssets.tab == "icon" ? 170px : GameAssets.tab == "logo" ? 302.22px : GameAssets.tab == "hero" ? 526.45px : 113.33px;
+
+    // .game-assets-settings__asset-tabs: gap 8, margin-bottom 12, border-bottom
+    VerticalLayout {
+        padding-bottom: 12px;
+        tabs := Rectangle {
+            height: tab-row.preferred-height;
+            tab-row := HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                icon-tab := AssetTab {
+                    label: T.tr("sidebar.edit_game_modal_icon");
+                    active: GameAssets.tab == "icon";
+                    enabled: !GameAssets.busy;
+                    clicked => {
+                        GameAssets.tab-selected("icon");
+                    }
+                }
+                logo-tab := AssetTab {
+                    label: T.tr("sidebar.edit_game_modal_logo");
+                    active: GameAssets.tab == "logo";
+                    enabled: !GameAssets.busy;
+                    clicked => {
+                        GameAssets.tab-selected("logo");
+                    }
+                }
+                hero-tab := AssetTab {
+                    label: T.tr("sidebar.edit_game_modal_hero");
+                    active: GameAssets.tab == "hero";
+                    enabled: !GameAssets.busy;
+                    clicked => {
+                        GameAssets.tab-selected("hero");
+                    }
+                }
+                grid-tab := AssetTab {
+                    label: T.tr("sidebar.edit_game_modal_grid");
+                    active: GameAssets.tab == "grid";
+                    enabled: !GameAssets.busy;
+                    clicked => {
+                        GameAssets.tab-selected("grid");
+                    }
+                }
+            }
+            Rectangle {
+                y: parent.height - 1px;
+                height: 1px;
+                background: rgba(255, 255, 255, 0.1);
+            }
+            // The underline follows the active tab (framer spring 300/30).
+            Rectangle {
+                property <length> target-x: GameAssets.tab == "icon" ? icon-tab.x : GameAssets.tab == "logo" ? logo-tab.x : GameAssets.tab == "hero" ? hero-tab.x : grid-tab.x;
+                property <length> target-w: GameAssets.tab == "icon" ? icon-tab.width : GameAssets.tab == "logo" ? logo-tab.width : GameAssets.tab == "hero" ? hero-tab.width : grid-tab.width;
+                x: self.target-x;
+                width: self.target-w;
+                animate x, width { duration: 350ms; easing: cubic-bezier(0.2, 0.9, 0.25, 1.05); }
+                y: parent.height - 2px;
+                height: 2px;
+                background: Theme.muted;
+            }
+        }
+    }
+
+    // classics_hero_layout_warning (launchbox, hero/logo, classics layout)
+    if GameAssets.classics-warning: Rectangle {
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: rgba(255, 193, 7, 0.3);
+        background: rgba(255, 193, 7, 0.1);
+        HorizontalLayout {
+            padding: 13px;
+            spacing: 12px;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    source: Icons.alert;
+                    width: 16px;
+                    height: 16px;
+                    color: Theme.warning;
+                }
+            }
+            Text {
+                text: T.tr("sidebar.classics_hero_layout_warning");
+                font-size: Theme.hint-size;
+                color: Theme.body;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            VerticalLayout {
+                alignment: center;
+                HydraButton {
+                    kind: "outline";
+                    text: T.tr("sidebar.classics_hero_layout_open_settings");
+                    clicked => {
+                        GameAssets.open-classics-settings();
+                    }
+                }
+            }
+        }
+    }
+
+    // .game-assets-settings__image-preview: 220px, checkerboard, the frame centered
+    preview-box := Rectangle {
+        height: 220px;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.04);
+        background: Theme.dark-background;
+        clip: true;
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: GameAssets.checker;
+            horizontal-tiling: repeat;
+            vertical-tiling: repeat;
+        }
+        // .preview-frame: content-box (padding 8 + 2px dashed border), max 100% - 20px
+        frame := Rectangle {
+            property <length> inner-w: Math.min(root.frame-width, preview-box.width - 40px);
+            property <length> inner-h: root.frame-width > 0 ? self.inner-w * 170px / root.frame-width : 170px;
+            property <bool> lit: frame-touch.has-hover && !GameAssets.busy;
+            width: self.inner-w + 20px;
+            height: self.inner-h + 20px;
+            border-radius: 8px;
+            drop-shadow-blur: 0;
+            // box-shadow: 0 0 0 2px rgba(255,255,255,.18) on hover
+            Rectangle {
+                x: -2px;
+                y: -2px;
+                width: parent.width + 4px;
+                height: parent.height + 4px;
+                border-radius: 10px;
+                border-width: 2px;
+                border-color: frame.lit ? rgba(255, 255, 255, 0.18) : transparent;
+                animate border-color { duration: 200ms; easing: ease; }
+            }
+            DashedBorder {
+                dash-color: frame.lit ? rgba(255, 255, 255, 0.9) : rgba(255, 255, 255, 0.5);
+            }
+            if GameAssets.has-preview: Rectangle {
+                x: 10px;
+                y: 10px;
+                width: frame.inner-w;
+                height: frame.inner-h;
+                border-radius: 4px;
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: GameAssets.preview;
+                    image-fit: contain;
+                }
+                // filter: brightness(0.65) (the 0.5px blur is dropped)
+                Rectangle {
+                    background: rgba(0, 0, 0, 0.35);
+                    opacity: frame.lit ? 1 : 0;
+                    animate opacity { duration: 200ms; easing: ease-in-out; }
+                }
+                // .preview-action-overlay with the pencil / trash circle
+                Rectangle {
+                    background: rgba(0, 0, 0, 0.22);
+                    opacity: frame.lit ? 1 : 0;
+                    animate opacity { duration: 200ms; easing: ease-in-out; }
+                    Rectangle {
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 20px;
+                        border-width: 1px;
+                        border-color: GameAssets.has-custom ? rgba(225, 29, 72, 0.6) : rgba(255, 255, 255, 0.16);
+                        background: GameAssets.has-custom ? rgba(225, 29, 72, 0.6) : rgba(0, 0, 0, 0.4);
+                        Icon {
+                            source: GameAssets.has-custom ? Icons.trash-16 : Icons.pencil;
+                            width: 20px;
+                            height: 20px;
+                            color: #ffffff;
+                        }
+                    }
+                }
+            }
+            if !GameAssets.has-preview: VerticalLayout {
+                x: 10px;
+                y: 10px;
+                width: frame.inner-w;
+                height: frame.inner-h;
+                alignment: center;
+                spacing: 8px;
+                HorizontalLayout {
+                    alignment: center;
+                    Icon {
+                        source: Icons.image;
+                        width: 24px;
+                        height: 24px;
+                        color: Theme.subtle;
+                        opacity: 0.6;
+                    }
+                }
+                Text {
+                    text: T.tr("sidebar.edit_game_modal_drop_" + GameAssets.tab + "_image_here");
+                    color: Theme.subtle;
+                    font-size: Theme.body-size;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+            }
+            frame-touch := TouchArea {
+                mouse-cursor: GameAssets.busy ? MouseCursor.default : MouseCursor.pointer;
+                clicked => {
+                    if (!GameAssets.busy) {
+                        GameAssets.preview-clicked();
+                    }
+                }
+            }
+        }
+    }
+
+    // .subscription-required-button (margin-top 8px)
+    if GameAssets.subscription-notice: VerticalLayout {
+        padding-top: 8px;
+        HorizontalLayout {
+            alignment: center;
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                padding-top: 1px;
+                Icon {
+                    source: Icons.alert;
+                    width: 14px;
+                    height: 14px;
+                    color: Theme.warning;
+                }
+            }
+            sub-text := Text {
+                text: T.tr("sidebar.custom_assets_not_sync");
+                color: Theme.warning;
+                font-size: Theme.body-size;
+                Rectangle {
+                    visible: sub-touch.has-hover;
+                    y: parent.height - 3px;
+                    height: 1px;
+                    background: Theme.warning;
+                }
+                sub-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        GameAssets.subscription-clicked();
+                    }
+                }
+            }
+        }
+    }
+
+    if GameAssets.show-picker && !GameAssets.signed-in: Text {
+        text: T.tr("sidebar.steamgriddb_sign_in_required");
+        font-size: Theme.hint-size;
+        color: Theme.body;
+        opacity: 0.7;
+        wrap: word-wrap;
+    }
+
+    // .game-artwork: margin-top 8px, gap 12px
+    if GameAssets.show-picker && GameAssets.signed-in: VerticalLayout {
+        padding-top: 8px;
+        spacing: 12px;
+        HorizontalLayout {
+            spacing: 12px;
+            Text {
+                text: T.tr("sidebar.steamgriddb_section_title");
+                font-size: Theme.hint-size;
+                font-weight: 700; // 600 in scss; Electron has no SemiBold face
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+            // .game-artwork__divider: translateY(1px)
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                padding-top: 2px;
+                Rectangle {
+                    height: 1px;
+                    background: rgba(255, 255, 255, 0.1);
+                }
+            }
+            if GameAssets.show-reload: HydraButton {
+                kind: "outline";
+                text: T.tr("sidebar.steamgriddb_refresh");
+                enabled: !GameAssets.busy;
+                clicked => {
+                    GameAssets.reload();
+                }
+            }
+        }
+        if GameAssets.empty: Text {
+            text: T.tr("sidebar.steamgriddb_no_results");
+            font-size: Theme.hint-size;
+            color: Theme.body;
+            opacity: 0.7;
+        }
+        if !GameAssets.empty: artwork := Rectangle {
+            // GRID_CONFIG: min column width, aspect ratio, max columns
+            property <length> min-col: GameAssets.tab == "icon" ? 72px : GameAssets.tab == "grid" ? 110px : GameAssets.tab == "hero" ? 220px : 140px;
+            property <float> aspect: GameAssets.tab == "icon" ? 1 : GameAssets.tab == "grid" ? 1.5 : GameAssets.tab == "hero" ? 0.3229 : 0.5625;
+            // .game-artwork__scroll-content: padding-right 12px
+            property <length> content-w: self.width - 12px;
+            property <int> fit: Math.max(1, Math.floor((self.content-w + 8px) / (self.min-col + 8px)));
+            property <int> columns: GameAssets.tab == "grid" ? Math.min(4, self.fit) : self.fit;
+            property <length> cell-w: (self.content-w - 8px * (self.columns - 1)) / self.columns;
+            property <length> cell-h: self.cell-w * self.aspect;
+            property <int> rows: Math.ceil(GameAssets.tiles.length / self.columns);
+            // paddingEnd 20px
+            property <length> total-h: self.rows * (self.cell-h + 8px) - 8px + 20px;
+            property <length> scroll-y;
+            property <length> max-scroll: Math.max(0, self.total-h - self.height);
+            height: Math.min(320px, self.total-h);
+            clip: true;
+
+            changed scroll-y => {
+                if (self.scroll-y >= self.max-scroll - self.cell-h - 8px) {
+                    GameAssets.near-end();
+                }
+            }
+
+            TouchArea {
+                scroll-event(event) => {
+                    artwork.scroll-y = Math.clamp(artwork.scroll-y - event.delta-y, 0, artwork.max-scroll);
+                    accept
+                }
+            }
+
+            content := Rectangle {
+                y: -artwork.scroll-y;
+                animate y { duration: 120ms; easing: ease-out; }
+                height: artwork.total-h;
+                for tile[i] in GameAssets.tiles: Rectangle {
+                    x: Math.mod(i, artwork.columns) * (artwork.cell-w + 8px);
+                    y: Math.floor(i / artwork.columns) * (artwork.cell-h + 8px);
+                    width: artwork.cell-w;
+                    height: artwork.cell-h;
+                    // .game-artwork__item--active: box-shadow 0 0 0 1px
+                    if tile.active: Rectangle {
+                        x: -1px;
+                        y: -1px;
+                        width: parent.width + 2px;
+                        height: parent.height + 2px;
+                        border-radius: 5px;
+                        border-width: 1px;
+                        border-color: Theme.subtle;
+                    }
+                    Rectangle {
+                        border-radius: 4px;
+                        border-width: 2px;
+                        border-color: tile.active ? Theme.subtle : rgba(255, 255, 255, 0.02);
+                        background: rgba(255, 255, 255, 0.02);
+                        clip: true;
+                        if tile.skeleton || !tile.settled: Skeleton {
+                            radius: 0;
+                        }
+                        if !tile.skeleton && !tile.failed: Image {
+                            x: GameAssets.tab == "logo" ? 8px : 0;
+                            y: GameAssets.tab == "logo" ? 8px : 0;
+                            width: parent.width - (GameAssets.tab == "logo" ? 16px : 0);
+                            height: parent.height - (GameAssets.tab == "logo" ? 16px : 0);
+                            source: tile.image;
+                            image-fit: GameAssets.tab == "logo" ? contain : cover;
+                            opacity: tile.settled ? 1 : 0;
+                            animate opacity { duration: 200ms; easing: ease; }
+                        }
+                        // :hover img { filter: brightness(0.85) }
+                        Rectangle {
+                            background: rgba(0, 0, 0, 0.15);
+                            opacity: tile-touch.has-hover && tile.settled && !GameAssets.busy ? 1 : 0;
+                            animate opacity { duration: 150ms; easing: ease; }
+                        }
+                        if tile.pending: Rectangle {
+                            background: rgba(0, 0, 0, 0.45);
+                            RingSpinner { }
+                        }
+                    }
+                    tile-touch := TouchArea {
+                        enabled: !tile.skeleton;
+                        mouse-cursor: tile.settled && !tile.failed && !GameAssets.busy ? MouseCursor.pointer : MouseCursor.default;
+                        clicked => {
+                            if (tile.settled && !tile.failed && !GameAssets.busy) {
+                                GameAssets.tile-clicked(i);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // .game-artwork__scroll-shadow when scrolled
+            Rectangle {
+                y: 0;
+                height: 20px;
+                width: artwork.content-w;
+                x: 0;
+                background: @linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+                opacity: artwork.scroll-y > 0 ? 1 : 0;
+                animate opacity { duration: 200ms; easing: ease; }
+            }
+
+            // .game-artwork__scrollbar: 6px, track ends 20px above the bottom
+            if artwork.max-scroll > 0: Rectangle {
+                property <length> track: artwork.height - 20px;
+                property <length> thumb-h: Math.min(self.track, Math.max(24px, artwork.height / artwork.total-h * self.track));
+                x: artwork.width - 6px;
+                y: 0;
+                width: 6px;
+                height: self.track;
+                thumb := Rectangle {
+                    y: (parent.track - parent.thumb-h) * artwork.scroll-y / artwork.max-scroll;
+                    height: parent.thumb-h;
+                    border-radius: 3px;
+                    background: thumb-touch.has-hover || thumb-touch.pressed ? rgba(255, 255, 255, 0.25) : rgba(255, 255, 255, 0.15);
+                }
+                thumb-touch := TouchArea {
+                    property <length> start;
+                    mouse-cursor: MouseCursor.grab;
+                    pointer-event(event) => {
+                        if (event.kind == PointerEventKind.down) {
+                            self.start = artwork.scroll-y;
+                        }
+                    }
+                    moved => {
+                        if (self.pressed && parent.track > parent.thumb-h) {
+                            artwork.scroll-y = Math.clamp(self.start + (self.mouse-y - self.pressed-y) * artwork.max-scroll / (parent.track - parent.thumb-h), 0, artwork.max-scroll);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,139 @@
+// reset-achievements-modal.tsx and components/steam-uninstall-modal, stacked
+// on the game options modal. game_option_actions.rs fills `OptionModals`.
+import { Theme, Icons } from "../../theme.slint";
+import { HydraButton, Icon } from "../../components/widgets.slint";
+import { CheckboxField } from "../../components/fields.slint";
+import { T } from "../../globals.slint";
+
+export global OptionModals {
+    in-out property <bool> reset-achievements-open;
+    // reset_achievements_hydra_souvenirs_description (Steam) or
+    // reset_achievements_souvenirs_description, with the game title
+    in property <string> reset-description;
+    in property <bool> reset-steam-note;
+    // Classics: reset on RetroAchievements first, then confirm it here.
+    in property <bool> reset-launchbox;
+    in-out property <bool> retro-confirmed;
+    callback reset-achievements();
+    callback open-retro-settings();
+
+    in-out property <bool> steam-uninstall-open;
+    in property <string> steam-uninstall-description;
+    in property <bool> steam-uninstalling;
+    callback steam-uninstall();
+}
+
+// .link: #c0c1c7, underline on hover
+component ExternalLink inherits HorizontalLayout {
+    in property <string> text;
+    callback clicked();
+    spacing: 8px;
+    alignment: start;
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: Icons.link-external;
+            width: 16px;
+            height: 16px;
+            color: label.color;
+        }
+    }
+    label := Text {
+        text: root.text;
+        color: #c0c1c7;
+        font-size: Theme.body-size;
+        vertical-alignment: center;
+        Rectangle {
+            visible: touch.has-hover;
+            y: parent.height - 3px;
+            height: 1px;
+            background: parent.color;
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.clicked();
+            }
+        }
+    }
+}
+
+export component ResetAchievementsBody inherits VerticalLayout {
+    callback cancel();
+    // .reset-achievements-modal__retroachievements: gap 12px, margin-bottom 16px
+    if OptionModals.reset-launchbox: VerticalLayout {
+        spacing: 12px;
+        padding-bottom: 16px;
+        Text {
+            text: T.tr("game_details.reset_achievements_retroachievements_note");
+            color: Theme.body;
+            font-size: Theme.body-size;
+            wrap: word-wrap;
+        }
+        ExternalLink {
+            text: T.tr("game_details.reset_achievements_retroachievements_link");
+            clicked => {
+                OptionModals.open-retro-settings();
+            }
+        }
+        CheckboxField {
+            label: T.tr("game_details.reset_achievements_retroachievements_confirm");
+            checked: OptionModals.retro-confirmed;
+            toggled => {
+                OptionModals.retro-confirmed = !OptionModals.retro-confirmed;
+            }
+        }
+    }
+    // .reset-achievements-modal__steam-note: line-height 1.5, margin-bottom 16px
+    if OptionModals.reset-steam-note: VerticalLayout {
+        padding-bottom: 16px;
+        Text {
+            text: T.tr("game_details.reset_achievements_steam_note");
+            color: Theme.body;
+            font-size: Theme.body-size;
+            wrap: word-wrap;
+        }
+    }
+    HorizontalLayout {
+        alignment: end;
+        spacing: 8px;
+        HydraButton {
+            kind: "outline";
+            text: T.tr("game_details.cancel");
+            clicked => {
+                root.cancel();
+            }
+        }
+        HydraButton {
+            kind: "danger";
+            text: T.tr("game_details.reset_achievements");
+            enabled: !OptionModals.reset-launchbox || OptionModals.retro-confirmed;
+            clicked => {
+                OptionModals.reset-achievements();
+                root.cancel();
+            }
+        }
+    }
+}
+
+export component SteamUninstallBody inherits HorizontalLayout {
+    callback cancel();
+    alignment: end;
+    spacing: 8px;
+    HydraButton {
+        kind: "outline";
+        text: T.tr("game_details.cancel");
+        enabled: !OptionModals.steam-uninstalling;
+        clicked => {
+            root.cancel();
+        }
+    }
+    HydraButton {
+        kind: "danger";
+        text: T.tr("game_details.steam_uninstall_confirm");
+        enabled: !OptionModals.steam-uninstalling;
+        clicked => {
+            OptionModals.steam-uninstall();
+        }
+    }
+}

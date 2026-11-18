@@ -1,0 +1,301 @@
+// The custom achievement notification: components/achievements/notification/
+// achievement-notification.tsx + achievement-notification.scss, shown in its own
+// frameless, transparent, always-on-top 360x180 window
+// (achievement-notification-presenter-electron.ts). Rust computes every
+// animated value per frame from the SCSS keyframes (achievement_notification.rs).
+import { Theme } from "theme.slint";
+
+export struct NotificationCard {
+    title: string,
+    description: string,
+    icon: image,
+    // the Hydra logo stand-in (combined notifications, failed icons): contain
+    logo: bool,
+    hidden: bool,
+    rare: bool,
+    platinum: bool,
+    // "+2440"; empty: no chip
+    points: string,
+}
+
+// One animation frame (see achievement_notification.rs `frame_at`).
+export struct NotificationFrame {
+    outer-width: length,
+    outer-scale: float,
+    outer-opacity: float,
+    outer-dy: length,
+    dark-opacity: float,
+    trophy-opacity: float,
+    ellipses-opacity: float,
+    ellipses-scale: float,
+    title-dy: length,
+    title-opacity: float,
+    description-dy: length,
+    description-opacity: float,
+    chip-dy: length,
+    chip-opacity: float,
+    shine-x: length,
+}
+
+global NotificationIcons {
+    out property <image> trophy: @image-url("icons/notification-trophy.svg");
+    out property <image> ellipses: @image-url("icons/notification-ellipses.png");
+    out property <image> hydra: @image-url("icons/hydra-notification.svg");
+    out property <image> eye-closed: @image-url("icons/eye-closed-16.svg");
+}
+
+global NotificationBrushes {
+    // linear-gradient(118deg, …) of --rare (trophy) and --platinum (trophy, chip)
+    out property <brush> gold-118: @linear-gradient(118deg, #e8ad15 18.96%, #d5900f 26.41%, #e8ad15 29.99%, #e4aa15 38.89%, #ca890e 42.43%, #ca880e 46.59%, #ecbe1a 50.08%, #ecbd1a 53.48%, #b3790d 57.39%, #66470a 75.64%, #a37a13 78.2%, #987112 79.28%, #503808 83.6%, #3e2d08 85.77%);
+    out property <brush> gold-160: @linear-gradient(160deg, #e8ad15 18.96%, #d5900f 26.41%, #e8ad15 29.99%, #e4aa15 38.89%, #ca890e 42.43%, #ca880e 46.59%, #ecbe1a 50.08%, #ecbd1a 53.48%, #b3790d 57.39%, #66470a 75.64%, #a37a13 78.2%, #987112 79.28%, #503808 83.6%, #3e2d08 85.77%);
+    out property <brush> teal-118: @linear-gradient(118deg, #15e8d6 18.96%, #0fd5a7 26.41%, #15e8b7 29.99%, #15e4b4 38.89%, #0eca7f 42.43%, #0eca9e 46.59%, #1aecbb 50.08%, #1aecb0 53.48%, #0db392 57.39%, #0a6648 75.64%, #13a38b 78.2%, #129862 79.28%, #085042 83.6%, #083e31 85.77%);
+    // --platinum __container: linear-gradient(94deg, #1c1c1c -25%, #044838 100%),
+    // the -25% stop folded into the 0% color
+    out property <brush> platinum-container: @linear-gradient(94deg, #172522 0%, #044838 100%);
+}
+
+// .achievement-notification: 360x180, the card anchored by `position`
+export component AchievementNotificationCard inherits Rectangle {
+    in property <NotificationCard> card;
+    in property <NotificationFrame> frame;
+    // --top-right / --bottom-right: justify-content end
+    in property <bool> right;
+    // --bottom-*: align-items end
+    in property <bool> bottom;
+    width: 360px;
+    height: 180px;
+
+    // __container: padding 8 16 8 8 around max(icon 64, text)
+    property <length> inner-height: Math.max(64px, text-column.preferred-height) + 16px;
+    // __outer-container: the container plus its 1px border
+    property <length> outer-height: root.inner-height + 2px;
+
+    outer := Rectangle {
+        // margin: 52px 0 0 40px (top) / 0 0 28px 40px (bottom); right ones 40px from the right
+        x: root.right ? 360px - 40px - root.frame.outer-width : 40px;
+        y: (root.bottom ? 180px - 28px - root.outer-height : 52px) + root.frame.outer-dy;
+        width: root.frame.outer-width;
+        height: root.outer-height;
+        opacity: root.frame.outer-opacity;
+        transform-scale: root.frame.outer-scale;
+        transform-origin: { x: self.width / 2, y: self.height / 2 };
+        border-width: 1px;
+        border-color: #ffffff1a;
+        // box-shadow: 0px 2px 16px 0px rgba(0, 0, 0, 0.25)
+        drop-shadow-offset-y: 2px;
+        drop-shadow-blur: 16px;
+        drop-shadow-color: #00000040;
+
+        // overflow: clip at the padding edge
+        Rectangle {
+            x: 1px;
+            y: 1px;
+            width: parent.width - 2px;
+            height: parent.height - 2px;
+            clip: true;
+
+            // __container: always 320px wide, revealed by the outer width
+            Rectangle {
+                x: 0;
+                y: 0;
+                width: 320px;
+                height: root.inner-height;
+                background: root.card.platinum ? NotificationBrushes.platinum-container : Theme.background;
+            }
+
+            // --rare __container::before: the shine (29x134, rotated 36deg,
+            // #d9d9d9 at 0.2, blur(8px) drawn as soft edges)
+            if root.card.rare: Rectangle {
+                x: -60px - 16px + root.frame.shine-x;
+                y: -root.outer-height / 2;
+                width: 29px + 32px;
+                height: 134px;
+                opacity: 0.2;
+                transform-rotation: 36deg;
+                background: @linear-gradient(90deg, #d9d9d900 0%, #d9d9d9 40%, #d9d9d9 60%, #d9d9d900 100%);
+            }
+
+            // __content: icon, then the title and description
+            Rectangle {
+                x: 0;
+                width: 320px;
+                height: root.inner-height;
+
+                // __icon: 64x64, radius 2; --rare/--platinum outline + glow
+                icon-box := Rectangle {
+                    x: 8px;
+                    y: (parent.height - 64px) / 2;
+                    width: 64px;
+                    height: 64px;
+                    if root.card.rare || root.card.platinum: Rectangle {
+                        border-radius: 2px;
+                        background: #00000001;
+                        drop-shadow-blur: 12px;
+                        drop-shadow-color: root.card.platinum ? #0cf1ca40 : #f4a51040;
+                    }
+                    Rectangle {
+                        border-radius: 2px;
+                        clip: true;
+                        Image {
+                            width: 64px;
+                            height: 64px;
+                            source: root.card.icon;
+                            image-fit: root.card.logo ? contain : fill;
+                        }
+                    }
+                    if root.card.rare || root.card.platinum: Rectangle {
+                        x: -1px;
+                        y: -1px;
+                        width: 66px;
+                        height: 66px;
+                        border-radius: 3px;
+                        border-width: 1px;
+                        border-color: root.card.platinum ? #0cf1ca : #f4a510;
+                    }
+                }
+
+                // __text-container: column, gap 4, 224px (the flex share next to the icon)
+                text-column := VerticalLayout {
+                    x: 8px + 64px + 8px;
+                    y: (parent.height - self.preferred-height) / 2;
+                    width: 224px;
+                    height: self.preferred-height;
+                    spacing: 4px;
+                    // __title: bold, three lines; the hidden eye inline before it
+                    Rectangle {
+                        // -webkit-line-clamp: 3 (p line-height 20px)
+                        height: Math.min(title-text.preferred-height, 3 * 20px);
+                        opacity: root.frame.title-opacity;
+                        title-text := Text {
+                            x: root.card.hidden ? 20px : 0;
+                            y: root.frame.title-dy;
+                            width: parent.width - self.x;
+                            text: root.card.title;
+                            font-size: Theme.body-size;
+                            font-weight: 700;
+                            color: Theme.muted;
+                            height: parent.height;
+                            wrap: word-wrap;
+                            overflow: elide;
+                        }
+                        if root.card.hidden: Image {
+                            x: 0;
+                            y: root.frame.title-dy + (19px - 16px) / 2;
+                            width: 16px;
+                            height: 16px;
+                            source: NotificationIcons.eye-closed;
+                            colorize: Theme.muted;
+                            opacity: 0.5;
+                        }
+                    }
+                    // __description: two lines
+                    if root.card.description != "": Rectangle {
+                        // -webkit-line-clamp: 2 (p line-height 20px)
+                        height: Math.min(description-text.preferred-height, 2 * 20px);
+                        opacity: root.frame.description-opacity;
+                        description-text := Text {
+                            x: 0;
+                            y: root.frame.description-dy;
+                            width: parent.width;
+                            text: root.card.description;
+                            font-size: Theme.body-size;
+                            color: Theme.body;
+                            height: parent.height;
+                            wrap: word-wrap;
+                            overflow: elide;
+                        }
+                    }
+                }
+            }
+
+            // __additional-overlay (80x80 at the padding box origin)
+            Rectangle {
+                x: 8px;
+                y: 8px;
+                width: 64px;
+                height: 64px;
+                background: black;
+                opacity: root.frame.dark-opacity;
+            }
+            Image {
+                x: 22px;
+                y: 22px;
+                width: 36px;
+                height: 36px;
+                source: NotificationIcons.trophy;
+                colorize: root.card.platinum ? NotificationBrushes.teal-118 : root.card.rare ? NotificationBrushes.gold-118 : white;
+                opacity: root.frame.trophy-opacity;
+            }
+            Image {
+                x: 8px;
+                y: 8px;
+                width: 64px;
+                height: 64px;
+                source: NotificationIcons.ellipses;
+                opacity: root.frame.ellipses-opacity;
+                transform-scale: root.frame.ellipses-scale;
+                transform-origin: { x: 32px, y: 32px };
+            }
+        }
+    }
+
+    // __chip: +points, right 8px; top -12px under a 52px margin, or bottom 70px over 28px
+    if root.card.points != "": Rectangle {
+        x: (root.right ? 360px - 8px - 40px : 360px - 8px) - self.width;
+        y: (root.bottom ? 180px - 70px - 28px - 24px : 52px - 12px) + root.frame.chip-dy;
+        width: chip-row.preferred-width;
+        height: 24px;
+        border-radius: 12px;
+        opacity: root.frame.chip-opacity;
+        background: root.card.platinum ? NotificationBrushes.teal-118 : root.card.rare ? NotificationBrushes.gold-160 : Theme.muted;
+        chip-row := HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            spacing: 4px;
+            Image {
+                y: (parent.height - self.height) / 2;
+                width: 16px;
+                height: 16px;
+                source: NotificationIcons.hydra;
+                image-fit: contain;
+                colorize: root.card.rare || root.card.platinum ? white : Theme.background;
+            }
+            Text {
+                text: root.card.points;
+                font-size: Theme.body-size;
+                font-weight: 700;
+                color: root.card.rare || root.card.platinum ? white : Theme.background;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+// The card's surface. It is never shown as a window of its own: Rust renders
+// it over a black and a white `matte` (Window::take_snapshot) and presents the
+// recovered per-pixel alpha in a native layered window (layered_window.rs).
+export component AchievementNotificationWindow inherits Window {
+    title: "Hydra";
+    no-frame: true;
+    always-on-top: true;
+    in property <color> matte: transparent;
+    background: root.matte;
+    width: 360px;
+    height: 180px;
+    default-font-family: "Noto Sans";
+    default-font-size: Theme.body-size;
+    in property <bool> shown;
+    in property <NotificationCard> card;
+    in property <NotificationFrame> frame;
+    in property <bool> right;
+    in property <bool> bottom;
+
+    if root.shown: AchievementNotificationCard {
+        x: 0;
+        y: 0;
+        card: root.card;
+        frame: root.frame;
+        right: root.right;
+        bottom: root.bottom;
+    }
+}

@@ -1,0 +1,118 @@
+// electron/shell/browser/ui/views/frameless_view.cc: a frameless window
+// (Linux without native decorations) resizes from a 5px border inside its
+// bounds, with 16px corners (kResizeInsideBoundsSize, kResizeAreaCornerSize).
+// The window manager does the resizing (winit drag_resize_window), like
+// Chromium's HTTOP/HTLEFT/... hit-test codes.
+import { Chrome } from "../globals.slint";
+
+component Edge inherits TouchArea {
+    in property <string> direction;
+    pointer-event(event) => {
+        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+            Chrome.start-resize(root.direction);
+        }
+    }
+}
+
+export component ResizeEdges {
+    property <length> edge: 5px;
+    property <length> corner: 16px;
+
+    Edge {
+        direction: "north";
+        mouse-cursor: n-resize;
+        x: root.corner;
+        y: 0;
+        width: root.width - 2 * root.corner;
+        height: root.edge;
+    }
+    Edge {
+        direction: "south";
+        mouse-cursor: s-resize;
+        x: root.corner;
+        y: root.height - root.edge;
+        width: root.width - 2 * root.corner;
+        height: root.edge;
+    }
+    Edge {
+        direction: "west";
+        mouse-cursor: w-resize;
+        x: 0;
+        y: root.corner;
+        width: root.edge;
+        height: root.height - 2 * root.corner;
+    }
+    Edge {
+        direction: "east";
+        mouse-cursor: e-resize;
+        x: root.width - root.edge;
+        y: root.corner;
+        width: root.edge;
+        height: root.height - 2 * root.corner;
+    }
+    // Corners: an L of corner x edge on each side, as two touch areas.
+    Edge {
+        direction: "north-west";
+        mouse-cursor: nw-resize;
+        x: 0;
+        y: 0;
+        width: root.corner;
+        height: root.edge;
+    }
+    Edge {
+        direction: "north-west";
+        mouse-cursor: nw-resize;
+        x: 0;
+        y: 0;
+        width: root.edge;
+        height: root.corner;
+    }
+    Edge {
+        direction: "north-east";
+        mouse-cursor: ne-resize;
+        x: root.width - root.corner;
+        y: 0;
+        width: root.corner;
+        height: root.edge;
+    }
+    Edge {
+        direction: "north-east";
+        mouse-cursor: ne-resize;
+        x: root.width - root.edge;
+        y: 0;
+        width: root.edge;
+        height: root.corner;
+    }
+    Edge {
+        direction: "south-west";
+        mouse-cursor: sw-resize;
+        x: 0;
+        y: root.height - root.edge;
+        width: root.corner;
+        height: root.edge;
+    }
+    Edge {
+        direction: "south-west";
+        mouse-cursor: sw-resize;
+        x: 0;
+        y: root.height - root.corner;
+        width: root.edge;
+        height: root.corner;
+    }
+    Edge {
+        direction: "south-east";
+        mouse-cursor: se-resize;
+        x: root.width - root.corner;
+        y: root.height - root.edge;
+        width: root.corner;
+        height: root.edge;
+    }
+    Edge {
+        direction: "south-east";
+        mouse-cursor: se-resize;
+        x: root.width - root.edge;
+        y: root.height - root.corner;
+        width: root.edge;
+        height: root.corner;
+    }
+}

@@ -16,13 +16,18 @@ use unsupported as platform;
 use windows as platform;
 
 use binding::{find_key, gamepad, Backend, HotkeyBinding, InputBinding, TriggerSource};
+#[cfg(not(hydra_rewrite))]
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+#[cfg(not(hydra_rewrite))]
 use napi::Status;
+#[cfg(not(hydra_rewrite))]
 use napi_derive::napi;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 
-#[napi(object)]
+// rewrite/crates/hydra-capture compiles this module with cfg(hydra_rewrite):
+// no napi, and `start_screenshot_input_with` takes a plain Rust callback.
+#[cfg_attr(not(hydra_rewrite), napi(object))]
 pub struct ScreenshotInputConfig {
     pub key: String,
     pub ctrl: bool,
@@ -32,14 +37,14 @@ pub struct ScreenshotInputConfig {
     pub gamepad_buttons: Vec<String>,
 }
 
-#[napi(object)]
+#[cfg_attr(not(hydra_rewrite), napi(object))]
 pub struct ScreenshotInputEvent {
     pub kind: String,
     pub source: String,
     pub backend: String,
 }
 
-#[napi(object)]
+#[cfg_attr(not(hydra_rewrite), napi(object))]
 pub struct ScreenshotInputNativeStatus {
     pub keyboard_backend: String,
     pub gamepad_backend: String,
@@ -48,6 +53,7 @@ pub struct ScreenshotInputNativeStatus {
     pub wayland_session: bool,
 }
 
+#[cfg(not(hydra_rewrite))]
 pub type ScreenshotInputCallback =
     ThreadsafeFunction<ScreenshotInputEvent, (), ScreenshotInputEvent, Status, false, true>;
 
@@ -221,30 +227,28 @@ fn runtime() -> &'static Mutex<Option<Runtime>> {
     RUNTIME.get_or_init(|| Mutex::new(None))
 }
 
-#[napi]
-pub fn start_screenshot_input(
-    config: ScreenshotInputConfig,
-    callback: ScreenshotInputCallback,
-) -> napi::Result<ScreenshotInputNativeStatus> {
+/// Starts (or restarts) the input backends. `emit` receives every trigger and
+/// backend-stopped event, on the backend threads.
+pub fn start_screenshot_input_with(
+    config: &ScreenshotInputConfig,
+    emit: Box<dyn Fn(ScreenshotInputEvent) + Send + Sync>,
+) -> Result<ScreenshotInputNativeStatus, &'static str> {
     let mut guard = runtime()
         .lock()
-        .map_err(|_| napi::Error::from_reason("Screenshot input lock poisoned"))?;
+        .map_err(|_| "Screenshot input lock poisoned")?;
     if let Some(previous) = guard.take() {
         previous.shutdown();
     }
 
-    let parsed = parse_config(&config);
+    let parsed = parse_config(config);
     let context = Arc::new(Context::new(
         parsed.binding,
         Box::new(move |kind, source, backend| {
-            callback.call(
-                ScreenshotInputEvent {
-                    kind: kind.as_str().to_string(),
-                    source: source.as_str().to_string(),
-                    backend: backend.as_str().to_string(),
-                },
-                ThreadsafeFunctionCallMode::NonBlocking,
-            );
+            emit(ScreenshotInputEvent {
+                kind: kind.as_str().to_string(),
+                source: source.as_str().to_string(),
+                backend: backend.as_str().to_string(),
+            });
         }),
     ));
     let (platform_runtime, status) = platform::start(context.clone(), parsed.options);
@@ -256,7 +260,22 @@ pub fn start_screenshot_input(
     Ok(to_native_status(status, &parsed))
 }
 
+#[cfg(not(hydra_rewrite))]
 #[napi]
+pub fn start_screenshot_input(
+    config: ScreenshotInputConfig,
+    callback: ScreenshotInputCallback,
+) -> napi::Result<ScreenshotInputNativeStatus> {
+    start_screenshot_input_with(
+        &config,
+        Box::new(move |event| {
+            callback.call(event, ThreadsafeFunctionCallMode::NonBlocking);
+        }),
+    )
+    .map_err(napi::Error::from_reason)
+}
+
+#[cfg_attr(not(hydra_rewrite), napi)]
 pub fn update_screenshot_input_binding(config: ScreenshotInputConfig) -> bool {
     let Ok(guard) = runtime().lock() else {
         return false;
@@ -268,7 +287,7 @@ pub fn update_screenshot_input_binding(config: ScreenshotInputConfig) -> bool {
     true
 }
 
-#[napi]
+#[cfg_attr(not(hydra_rewrite), napi)]
 pub fn stop_screenshot_input() {
     let previous = runtime().lock().ok().and_then(|mut guard| guard.take());
     if let Some(previous) = previous {
@@ -276,7 +295,7 @@ pub fn stop_screenshot_input() {
     }
 }
 
-#[napi]
+#[cfg_attr(not(hydra_rewrite), napi)]
 pub fn probe_screenshot_input(config: ScreenshotInputConfig) -> ScreenshotInputNativeStatus {
     let parsed = parse_config(&config);
     to_native_status(platform::probe(parsed.options), &parsed)

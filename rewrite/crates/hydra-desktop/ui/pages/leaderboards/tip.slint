@@ -1,0 +1,50 @@
+// use-selector-tooltip.tsx: the name of an icon-only selector option, fixed
+// to the window (a portal in Electron, so cards that clip don't cut it):
+// 8px above the option, centered, or aligned to its end within 72px of the
+// window's edge; it fades in after 0.25s (0.15s) and hides at once.
+import { Theme } from "../../theme.slint";
+
+export global SelectorTip {
+    in-out property <string> text;
+    in-out property <bool> shown;
+    // the option, in window coordinates
+    in-out property <length> x;
+    in-out property <length> y;
+    in-out property <length> width;
+    in-out property <length> window-width;
+
+    public function show(label: string, x: length, y: length, w: length) {
+        self.text = label;
+        self.x = x;
+        self.y = y;
+        self.width = w;
+        self.shown = true;
+    }
+
+    public function hide() {
+        self.shown = false;
+    }
+}
+
+export component SelectorTipHost inherits Rectangle {
+    property <bool> near-edge: root.width - (SelectorTip.x + SelectorTip.width) < 72px;
+    bubble := Rectangle {
+        x: root.near-edge ? SelectorTip.x + SelectorTip.width - self.width : SelectorTip.x + SelectorTip.width / 2 - self.width / 2;
+        y: SelectorTip.y - 8px - self.height;
+        width: label.preferred-width + 18px;
+        height: 26px;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.15);
+        background: Theme.dark-background;
+        opacity: SelectorTip.shown ? 1 : 0;
+        animate opacity { duration: SelectorTip.shown ? 150ms : 0ms; delay: SelectorTip.shown ? 250ms : 0ms; easing: ease; }
+        visible: self.opacity > 0;
+        label := Text {
+            text: SelectorTip.text;
+            font-size: Theme.small-size;
+            font-weight: 500;
+            color: Theme.muted;
+        }
+    }
+}

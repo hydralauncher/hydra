@@ -1,0 +1,73 @@
+// Chromium's animated wheel scrolling, measured on Electron (Windows, real
+// WM_MOUSEWHEEL notches): a notch moves 100px (3 lines x 100/3px) over
+// 200ms with an ease-in-out curve; more notches during the animation move
+// the target and keep the current speed (cc ScrollOffsetAnimationCurve,
+// kInverseDelta durations: 12 frames up to 120px, 6 frames from 480px).
+// Trackpad pixel deltas are not animated.
+
+export struct ScrollTween {
+    active: bool,
+    from: length,
+    to: length,
+    // px per ms when the tween starts
+    velocity: length,
+    start: duration,
+    span: duration,
+}
+
+export global SmoothScroll {
+    // Rust sets these from the wheel event: whether the delta came in lines
+    // (a mouse wheel) and how many px one Slint line (60px) stands for.
+    in property <bool> lines;
+    in property <float> wheel-scale: 1;
+
+    pure function progress(t: ScrollTween, now: duration) -> float {
+        if (t.span <= 0ms) {
+            return 1;
+        }
+        return Math.clamp((now - t.start) / t.span, 0, 1);
+    }
+
+    // The tween's position at `now` (cubic Hermite: start speed, zero end speed).
+    public pure function value(t: ScrollTween, now: duration) -> length {
+        let s = progress(t, now);
+        return t.from + (t.to - t.from) * (3 * s * s - 2 * s * s * s) + t.velocity * (t.span / 1ms) * (s * s * s - 2 * s * s + s);
+    }
+
+    pure function speed(t: ScrollTween, now: duration) -> length {
+        let s = progress(t, now);
+        if (t.span <= 0ms || s >= 1) {
+            return 0px;
+        }
+        return (t.to - t.from) * (6 * s - 6 * s * s) / (t.span / 1ms) + t.velocity * (3 * s * s - 4 * s + 1);
+    }
+
+    public pure function running(t: ScrollTween, now: duration) -> bool {
+        return t.active && now < t.start + t.span;
+    }
+
+    // A new tween after a wheel delta: from where the scroller is now to the
+    // previous target moved by `delta`, kept within [lowest, highest].
+    public pure function towards(t: ScrollTween, now: duration, current: length, delta: length, lowest: length, highest: length) -> ScrollTween {
+        let moving = running(t, now);
+        let here = moving ? value(t, now) : current;
+        let target = Math.clamp((moving ? t.to : current) + delta, lowest, highest);
+        let distance = target - here;
+        let frames = Math.clamp(14 - Math.abs(distance) / 60px, 6, 12);
+        let span = frames * 1000ms / 60;
+        let v = moving ? speed(t, now) : 0px;
+        // Keep the speed only while it heads the same way, and never so fast
+        // that the curve passes the target.
+        let cap = 3 * distance / (span / 1ms);
+        let same-way = (v / 1px) * (distance / 1px) > 0;
+        let v0 = !same-way ? 0px : Math.abs(v) > Math.abs(cap) ? cap : v;
+        return {
+            active: true,
+            from: here,
+            to: target,
+            velocity: v0,
+            start: now,
+            span: span,
+        };
+    }
+}

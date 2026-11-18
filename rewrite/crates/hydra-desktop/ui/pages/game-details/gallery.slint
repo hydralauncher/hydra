@@ -1,0 +1,368 @@
+// gallery-slider.tsx + gallery-slider.scss + use-drag-scroll.ts
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, RoundButton } from "../../components/widgets.slint";
+import { MediaItem } from "../../types.slint";
+import { VideoPlayer, Playback } from "../../components/video.slint";
+import { T } from "../../globals.slint";
+
+// .gallery-slider__fullscreen-button / lightbox frame button (fullscreen-button mixin).
+export component CornerButton inherits Rectangle {
+    in property <image> icon: Icons.corners-out;
+    in property <length> icon-size: 24px;
+    in property <length> size: 36px;
+    in property <string> tooltip;
+    in property <string> tooltip-place: "top";
+    callback clicked();
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+
+    width: root.size;
+    height: root.size;
+    border-radius: 6px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 150ms; easing: ease; }
+
+    Icon {
+        source: root.icon;
+        width: root.icon-size;
+        height: root.icon-size;
+        transform-scale: touch.pressed ? 0.92 : 1;
+        animate transform-scale { duration: 150ms; easing: ease; }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, root.tooltip-place);
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+export component GallerySlider inherits Rectangle {
+    in property <[MediaItem]> media;
+    in-out property <int> index;
+    in property <float> preview-width-fraction: 0.12;
+    in property <float> wheel-scale: 1;
+    callback open-viewer(int, bool);
+
+    property <length> viewport-width: root.width;
+    property <length> viewport-height: Math.min(root.viewport-width * 9 / 16, root.max-viewport-height);
+    in property <length> max-viewport-height: 500px;
+    property <int> count: root.media.length;
+
+    // onSelect: play the selected trailer (autoplay), pause the others.
+    function sync-video() {
+        if (root.count == 0) {
+            return;
+        }
+        if (root.media[root.index].is-video) {
+            Playback.load(root.index, root.media[root.index].duration, true);
+        } else if (Playback.is-playing) {
+            Playback.pause();
+        }
+    }
+    init => {
+        root.sync-video();
+    }
+    changed index => {
+        root.sync-video();
+    }
+
+    // ---- carousel drag (embla-like: 1:1 follow, flick or nearest snap, edge friction)
+    property <bool> dragging;
+    property <bool> drag-armed;
+    property <bool> suppress-click;
+    property <length> drag-dx;
+    property <length> last-x;
+    property <duration> last-t;
+    property <float> velocity; // px per ms
+    property <length> resisted-dx: (root.index == 0 && root.drag-dx > 0) || (root.index == root.count - 1 && root.drag-dx < 0) ? root.drag-dx * 0.25 : root.drag-dx;
+
+    preferred-height: 12px + root.viewport-height + strip.height + 12px;
+    height: self.preferred-height;
+
+    viewport := Rectangle {
+        y: 12px;
+        width: root.viewport-width;
+        height: root.viewport-height;
+        border-radius: 8px;
+        clip: true;
+
+        hover-zone := TouchArea {
+            mouse-cursor: default;
+            pointer-event(event) => {
+                if (event.button == PointerEventButton.left) {
+                    if (event.kind == PointerEventKind.down) {
+                        root.drag-armed = true;
+                        root.dragging = false;
+                        root.drag-dx = 0;
+                        root.last-x = self.mouse-x;
+                        root.last-t = animation-tick();
+                        root.velocity = 0;
+                    } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                        root.suppress-click = root.dragging;
+                        if (root.dragging) {
+                            let step = root.viewport-width;
+                            let flick = root.velocity > 0.35 ? -1 : root.velocity < -0.35 ? 1 : 0;
+                            let nearest = Math.round(-root.drag-dx / step);
+                            let delta = flick != 0 ? flick : nearest;
+                            root.index = Math.clamp(root.index + delta, 0, root.count - 1);
+                        }
+                        root.drag-armed = false;
+                        root.dragging = false;
+                        root.drag-dx = 0;
+                    }
+                }
+            }
+            moved => {
+                if (root.drag-armed && self.pressed) {
+                    let dx = self.mouse-x - self.pressed-x;
+                    if (!root.dragging && Math.abs(dx) > 5px) {
+                        root.dragging = true;
+                    }
+                    if (root.dragging) {
+                        let now = animation-tick();
+                        let elapsed = Math.max((now - root.last-t) / 1ms, 1);
+                        root.velocity = (self.mouse-x - root.last-x) / 1px / elapsed;
+                        root.last-x = self.mouse-x;
+                        root.last-t = now;
+                        root.drag-dx = dx;
+                    }
+                }
+            }
+            clicked => {
+                if (root.suppress-click) {
+                    root.suppress-click = false;
+                    return;
+                }
+                if (root.media[root.index].is-video) {
+                    if (Playback.quality-open) {
+                        Playback.quality-open = false;
+                    } else if (Playback.index == root.index) {
+                        Playback.toggle(true);
+                    } else {
+                        Playback.load(root.index, root.media[root.index].duration, true);
+                    }
+                } else {
+                    root.open-viewer(root.index, false);
+                }
+            }
+            double-clicked => {
+                if (root.media[root.index].is-video) {
+                    root.open-viewer(root.index, true);
+                }
+            }
+
+            track := Rectangle {
+                x: root.dragging ? -root.index * root.viewport-width + root.resisted-dx : -root.index * root.viewport-width;
+                animate x {
+                    duration: root.dragging ? 0ms : 450ms;
+                    easing: cubic-bezier(0.25, 1, 0.5, 1);
+                }
+                width: root.viewport-width * root.count;
+                height: root.viewport-height;
+
+                for item[i] in root.media: slide := Rectangle {
+                    x: i * root.viewport-width;
+                    width: root.viewport-width;
+                    height: root.viewport-height;
+                    // Only paint the slides that can be on screen.
+                    property <bool> near: Math.abs(i - root.index) <= 1;
+
+                    if slide.near && !item.is-video: Rectangle {
+                        border-radius: 4px;
+                        clip: true;
+                        background: #0d0d0d;
+                        Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: item.full.width > 0 ? item.full : item.thumb;
+                            image-fit: cover;
+                        }
+                    }
+                    if slide.near && item.is-video: VideoPlayer {
+                        poster: item.full.width > 0 ? item.full : item.thumb;
+                        inline: true;
+                        active: Playback.index == i;
+                        hovered: hover-zone.has-hover && i == root.index;
+                        activity: hover-zone.mouse-x + hover-zone.mouse-y;
+                        toggle-fullscreen => {
+                            root.open-viewer(i, true);
+                        }
+                    }
+                }
+            }
+
+            // .gallery-slider__fullscreen-button: shown while the image slide is hovered.
+            fullscreen-button := CornerButton {
+                x: parent.width - self.width - 8px;
+                y: parent.height - self.height - 4px;
+                tooltip: T.tr("game_details.fullscreen") + " (F)";
+                visible: !root.media[root.index].is-video;
+                opacity: hover-zone.has-hover && !root.dragging ? 1 : 0;
+                animate opacity { duration: 300ms; easing: ease; }
+                clicked => {
+                    root.open-viewer(root.index, true);
+                }
+            }
+
+            // .gallery-slider__button--left/right: slide in from +-100px on viewport hover.
+            prev := RoundButton {
+                icon: Icons.chevron-left;
+                x: 8px + (hover-zone.has-hover ? 0 : -100px);
+                y: (parent.height - self.height) / 2;
+                opacity: hover-zone.has-hover ? 1 : 0;
+                transform-scale: self.pressed ? 0.95 : 1;
+                animate x, opacity, transform-scale { duration: 300ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+                clicked => {
+                    root.index = Math.max(0, root.index - 1);
+                }
+            }
+
+            next := RoundButton {
+                icon: Icons.chevron-right;
+                x: parent.width - self.width - 8px + (hover-zone.has-hover ? 0 : 100px);
+                y: (parent.height - self.height) / 2;
+                opacity: hover-zone.has-hover ? 1 : 0;
+                transform-scale: self.pressed ? 0.95 : 1;
+                animate x, opacity, transform-scale { duration: 300ms; easing: cubic-bezier(0.4, 0, 0.2, 1); }
+                clicked => {
+                    root.index = Math.min(root.count - 1, root.index + 1);
+                }
+            }
+        }
+    }
+
+    // ---- preview strip (.gallery-slider__preview): drag-to-scroll + smooth scrollIntoView
+    property <length> thumb-size: root.viewport-width * root.preview-width-fraction;
+    property <length> strip-content-width: root.count * root.thumb-size + Math.max(0, root.count - 1) * 4px;
+    property <length> strip-max-scroll: Math.max(0, root.strip-content-width - root.viewport-width);
+
+    // scrollIntoView({ behavior: "smooth", inline: "center" })
+    property <length> tween-from;
+    property <length> tween-to;
+    property <duration> tween-start;
+    property <bool> tweening;
+    function scroll-preview-into-view(i: int) {
+        let left = i * (root.thumb-size + 4px);
+        let visible-left = -strip-flick.content-x;
+        if (left < visible-left || left + root.thumb-size > visible-left + root.viewport-width) {
+            root.tween-from = strip-flick.content-x;
+            root.tween-to = -Math.clamp(left + root.thumb-size / 2 - root.viewport-width / 2, 0, root.strip-max-scroll);
+            root.tween-start = animation-tick();
+            root.tweening = true;
+        }
+    }
+
+    Timer {
+        interval: 8ms;
+        running: root.tweening;
+        triggered => {
+            let t = Math.min(1, (animation-tick() - root.tween-start) / 380ms);
+            let eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            strip-flick.content-x = root.tween-from + (root.tween-to - root.tween-from) * eased;
+            if (t >= 1) {
+                root.tweening = false;
+            }
+        }
+    }
+
+    strip := Rectangle {
+        y: viewport.y + viewport.height;
+        width: root.viewport-width;
+        height: 8px + root.thumb-size + 8px + (root.strip-max-scroll > 0 ? 10px : 0);
+
+        strip-flick := Flickable {
+            y: 8px;
+            height: root.thumb-size;
+            content-width: root.strip-content-width;
+            content-height: root.thumb-size;
+            interactive: true;
+            flicked => {
+                root.tweening = false;
+            }
+
+            // Horizontal wheel/trackpad like Chromium's overflow-x: 1:1, no
+            // added inertia (Flickable keeps only drag-to-scroll). Vertical
+            // deltas bubble up and scroll the page.
+            TouchArea {
+                x: 0;
+                width: root.strip-content-width;
+                height: root.thumb-size;
+                scroll-event(event) => {
+                    if (event.delta-x == 0) {
+                        return reject;
+                    }
+                    root.tweening = false;
+                    strip-flick.content-x = Math.clamp(strip-flick.content-x + event.delta-x * root.wheel-scale, -root.strip-max-scroll, 0);
+                    accept
+                }
+            }
+
+            for item[i] in root.media: thumb := Rectangle {
+                x: i * (root.thumb-size + 4px);
+                width: root.thumb-size;
+                height: root.thumb-size;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: Theme.border;
+                clip: true;
+                opacity: i == root.index ? 1 : thumb-touch.has-hover ? 0.8 : 0.3;
+                animate opacity { duration: 200ms; easing: ease; }
+
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: item.thumb;
+                    image-fit: cover;
+                }
+
+                if item.is-video: Rectangle {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 20px;
+                    background: thumb-touch.has-hover ? rgba(0, 0, 0, 0.6) : rgba(0, 0, 0, 0.4);
+                    transform-scale: thumb-touch.has-hover ? 1.1 : 1;
+                    animate background, transform-scale { duration: 200ms; easing: ease; }
+                    Icon {
+                        source: Icons.play-fill;
+                        width: 18px;
+                        height: 18px;
+                        color: white;
+                    }
+                }
+
+                thumb-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.index = i;
+                        root.scroll-preview-into-view(i);
+                    }
+                }
+            }
+        }
+
+        // ::-webkit-scrollbar { height: 10px } with the global thumb style.
+        if root.strip-max-scroll > 0: Rectangle {
+            y: parent.height - 10px;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            Rectangle {
+                property <length> thumb-w: Math.max(24px, parent.width * root.viewport-width / root.strip-content-width);
+                x: (parent.width - self.thumb-w) * (-strip-flick.content-x / root.strip-max-scroll);
+                width: self.thumb-w;
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.15);
+            }
+        }
+    }
+}

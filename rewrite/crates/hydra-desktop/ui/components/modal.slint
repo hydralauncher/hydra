@@ -1,0 +1,223 @@
+// components/modal/modal.tsx + modal.scss + components/backdrop/backdrop.scss
+import { Theme, Icons } from "../theme.slint";
+import { Icon } from "widgets.slint";
+
+// The backdrop + dialog. Mount it with `if controller.mounted: Modal { ... }`
+// so each open creates a fresh instance and the entrance keyframes always
+// start from their first frame.
+export component Modal inherits Rectangle {
+    in property <string> title;
+    // A count chip after the title (all-badges / all-friends modals); "" for none.
+    in property <string> title-count;
+    // clickOutsideToClose={false}: only Escape and the close button close it.
+    in property <bool> click-outside-to-close: true;
+    in property <string> description;
+    in property <bool> large;
+    in property <bool> no-content-padding;
+    in property <length> content-min-height;
+    in property <bool> closing;
+    in property <image> blurred-page;
+    // Another modal is stacked on top; when it goes away, keys come back here.
+    in property <bool> covered;
+    changed covered => {
+        if (!self.covered && !self.closing) {
+            focus.focus();
+        }
+    }
+    callback request-close();
+
+    // Flipped one frame after creation, so the "from" values get rendered first.
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+            focus.focus();
+        }
+    }
+
+    // backdrop-fade-in: rgba(0,0,0,.5) -> .7 and blur(0 -> 2px), 0.4s ease.
+    // backdrop-fade-out: -> transparent / blur(0), 0.4s ease.
+    property <float> blur-amount: root.closing ? 0 : root.entered ? 1 : 0;
+    animate blur-amount { duration: 400ms; easing: ease; }
+    if root.blurred-page.width > 0: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.blurred-page;
+        image-fit: fill;
+        opacity: root.blur-amount;
+    }
+
+    backdrop := Rectangle {
+        background: root.closing ? rgba(0, 0, 0, 0) : root.entered ? rgba(0, 0, 0, 0.7) : rgba(0, 0, 0, 0.5);
+        animate background { duration: 400ms; easing: ease; }
+    }
+
+    focus := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                root.request-close();
+            }
+            // The page underneath must not react to keys while the modal is up.
+            accept
+        }
+
+        // pointerdown outside the dialog closes it (Hydra listens on pointerdown, not click).
+        outside := TouchArea {
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down && !root.closing && root.click-outside-to-close) {
+                    root.request-close();
+                }
+            }
+            scroll-event(event) => {
+                accept
+            }
+        }
+
+        // The description on one line: its max-content width.
+        description-measure := Text {
+            visible: false;
+            text: root.description;
+            font-size: Theme.body-size;
+        }
+
+        // .modal: scale-fade-in / scale-fade-out, 0.2s cubic-bezier(0.33, 1, 0.68, 1)
+        dialog := Rectangle {
+            property <length> max-w: root.large ? 800px : 600px;
+            property <length> min-w: root.large ? 800px : 400px;
+            width: Math.min(root.width - 48px, Math.max(self.min-w, Math.min(self.max-w, column.preferred-width)));
+            height: Math.min(root.height - 48px, column.preferred-height);
+            background: Theme.background;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: Theme.border;
+            clip: true;
+            opacity: root.closing ? 0 : root.entered ? 1 : 0;
+            transform-scale: root.closing ? 0.5 : root.entered ? 1 : 0.5;
+            animate opacity, transform-scale { duration: 200ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+
+            // Clicks inside the dialog never reach the backdrop.
+            TouchArea { }
+
+            column := VerticalLayout {
+                // .modal__header
+                Rectangle {
+                    HorizontalLayout {
+                        padding: 16px;
+                        spacing: 8px;
+                        VerticalLayout {
+                            spacing: 4px;
+                            alignment: center;
+                            horizontal-stretch: 1;
+                            if root.title-count == "": Text {
+                                text: root.title;
+                                color: Theme.body;
+                                font-size: 16.38px;
+                                font-weight: 700;
+                                wrap: word-wrap;
+                            }
+                            // __title: the title and the count pill (gap 8)
+                            if root.title-count != "": HorizontalLayout {
+                                spacing: 8px;
+                                alignment: start;
+                                Text {
+                                    text: root.title;
+                                    color: Theme.body;
+                                    font-size: 16.38px;
+                                    font-weight: 700;
+                                    vertical-alignment: center;
+                                }
+                                Rectangle {
+                                    height: 25px;
+                                    width: Math.max(24px, title-count-text.preferred-width + 16px);
+                                    border-radius: 6px;
+                                    background: rgba(255, 255, 255, 0.1);
+                                    title-count-text := Text {
+                                        text: root.title-count;
+                                        font-size: Theme.small-size;
+                                        font-weight: 700;
+                                        color: rgba(255, 255, 255, 0.7);
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+                            if root.description != "": Text {
+                                text: root.description;
+                                color: Theme.body;
+                                font-size: Theme.body-size;
+                                wrap: word-wrap;
+                                // The modal grows to the text's max-content width (up to max-width).
+                                preferred-width: description-measure.preferred-width;
+                            }
+                        }
+                        // .modal__close-button (align-self: flex-start, hover opacity .75)
+                        VerticalLayout {
+                            alignment: start;
+                            close := Rectangle {
+                                width: 24px;
+                                height: 24px;
+                                opacity: close-touch.has-hover ? 0.75 : 1;
+                                animate opacity { duration: 200ms; easing: ease; }
+                                Icon {
+                                    source: Icons.x;
+                                    width: 24px;
+                                    height: 24px;
+                                    color: Theme.body;
+                                }
+                                close-touch := TouchArea {
+                                    mouse-cursor: pointer;
+                                    clicked => {
+                                        root.request-close();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: Theme.border;
+                    }
+                }
+                // .modal__content (24px 16px padding unless noContentPadding)
+                VerticalLayout {
+                    padding-top: root.no-content-padding ? 0 : 24px;
+                    padding-bottom: root.no-content-padding ? 0 : 24px;
+                    padding-left: root.no-content-padding ? 0 : 16px;
+                    padding-right: root.no-content-padding ? 0 : 16px;
+                    min-height: root.content-min-height;
+                    @children
+                }
+            }
+        }
+    }
+}
+
+// Open/closing state + handleCloseClick's 400ms unmount delay.
+export component ModalController {
+    in-out property <bool> open;
+    out property <bool> closing;
+    out property <bool> mounted: root.open || root.closing;
+    callback closed();
+
+    public function close() {
+        if (!root.open || root.closing) {
+            return;
+        }
+        root.closing = true;
+        root.open = false;
+        unmount-timer.running = true;
+    }
+
+    unmount-timer := Timer {
+        interval: 400ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.closing = false;
+            root.closed();
+        }
+    }
+}

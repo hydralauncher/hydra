@@ -1,0 +1,246 @@
+// Game page modals (game-options, repacks, cloud save). They cover the whole
+// window like Electron's portal modals, so they are hosted next to the other
+// overlays in app.slint; the page opens them through GameData.
+import { Theme, Icons } from "../../theme.slint";
+import { HydraButton } from "../../components/widgets.slint";
+import { Modal, ModalController } from "../../components/modal.slint";
+import { RepacksModalBody } from "repacks.slint";
+import { DownloadSettingsBody, DownloadSettings } from "download-settings.slint";
+import { TorrentStepBody, TorrentStep } from "torrent-step.slint";
+import { RealDebridInfoBody, RealDebridInfo } from "real-debrid-info.slint";
+import { GameData } from "state.slint";
+import { GameOptionsBody, GameOptions } from "options.slint";
+import { PlaytimeModals, UpdatePlaytimeBody, ResetPlaytimeBody } from "playtime.slint";
+import { OptionModals, ResetAchievementsBody, SteamUninstallBody } from "option-modals.slint";
+import { Nav, T } from "../../globals.slint";
+
+export component GameModalsHost inherits Rectangle {
+    out property <bool> mounted: options-state.mounted || repacks-state.mounted || cloud-state.mounted || settings-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted || torrent-step-state.mounted || real-debrid-state.mounted || reset-achievements-state.mounted || steam-uninstall-state.mounted;
+    changed mounted => {
+        GameData.modals-mounted = self.mounted;
+    }
+
+    options-state := ModalController {
+        open <=> GameData.options-open;
+    }
+    // Stacked on the options modal
+    update-playtime-state := ModalController {
+        open <=> PlaytimeModals.update-open;
+    }
+    reset-playtime-state := ModalController {
+        open <=> PlaytimeModals.reset-open;
+    }
+    reset-achievements-state := ModalController {
+        open <=> OptionModals.reset-achievements-open;
+    }
+    steam-uninstall-state := ModalController {
+        open <=> OptionModals.steam-uninstall-open;
+    }
+    repacks-state := ModalController {
+        open <=> GameData.repacks-open;
+        closed => {
+            GameData.repacks-closed();
+        }
+    }
+    cloud-state := ModalController {
+        open <=> GameData.cloud-open;
+    }
+    // download-settings-modal.tsx, stacked on the repacks modal
+    settings-state := ModalController {
+        open <=> DownloadSettings.open;
+        closed => {
+            DownloadSettings.closed();
+        }
+    }
+    // The torrent step and the Real-Debrid info, stacked on the settings
+    torrent-step-state := ModalController {
+        open <=> TorrentStep.open;
+    }
+    real-debrid-state := ModalController {
+        open <=> RealDebridInfo.open;
+    }
+
+    // game-options-modal.tsx: large, no content padding.
+    if options-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        // presentation?.title ?? game.title (the modal also opens over the library)
+        title: GameOptions.modal-title != "" ? GameOptions.modal-title : GameData.game-title;
+        large: true;
+        no-content-padding: true;
+        content-min-height: 520px;
+        closing: options-state.closing;
+        covered: repacks-state.mounted || update-playtime-state.mounted || reset-playtime-state.mounted || reset-achievements-state.mounted || steam-uninstall-state.mounted;
+        blurred-page: GameData.modal-backdrop;
+        request-close => {
+            options-state.close();
+        }
+        GameOptionsBody {
+            modal-width: Math.min(root.width - 48px, 800px);
+        }
+    }
+
+    if update-playtime-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.update_playtime_title");
+        description: PlaytimeModals.description;
+        closing: update-playtime-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            update-playtime-state.close();
+        }
+        UpdatePlaytimeBody {
+            cancel => {
+                update-playtime-state.close();
+            }
+        }
+    }
+
+    if reset-playtime-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.reset_playtime_title");
+        description: PlaytimeModals.description;
+        closing: reset-playtime-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            reset-playtime-state.close();
+        }
+        ResetPlaytimeBody {
+            cancel => {
+                reset-playtime-state.close();
+            }
+        }
+    }
+
+    // reset-achievements-modal.tsx
+    if reset-achievements-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.reset_achievements_title");
+        description: OptionModals.reset-description;
+        closing: reset-achievements-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            reset-achievements-state.close();
+        }
+        ResetAchievementsBody {
+            cancel => {
+                reset-achievements-state.close();
+            }
+        }
+    }
+
+    // components/steam-uninstall-modal (no outside click while it works)
+    if steam-uninstall-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.steam_uninstall_title");
+        description: OptionModals.steam-uninstall-description;
+        closing: steam-uninstall-state.closing;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            if (!OptionModals.steam-uninstalling) {
+                steam-uninstall-state.close();
+            }
+        }
+        SteamUninstallBody {
+            cancel => {
+                steam-uninstall-state.close();
+            }
+        }
+    }
+
+    // repacks-modal.tsx
+    if repacks-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.download_options_title");
+        description: T.tr("game_details.repacks_modal_description");
+        closing: repacks-state.closing;
+        covered: settings-state.mounted;
+        // Opened from the options modal: the snapshot has that modal in it.
+        blurred-page: options-state.mounted ? GameData.stacked-backdrop : GameData.modal-backdrop;
+        request-close => {
+            repacks-state.close();
+        }
+        RepacksModalBody {
+            selected(id) => {
+                GameData.repack-selected(id);
+            }
+            add-source => {
+                repacks-state.close();
+                Nav.navigate("/settings?tab=download_sources");
+            }
+        }
+    }
+
+    if settings-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.download_settings");
+        description: DownloadSettings.free-space;
+        closing: settings-state.closing;
+        covered: torrent-step-state.mounted || real-debrid-state.mounted;
+        blurred-page: GameData.stacked-backdrop;
+        request-close => {
+            settings-state.close();
+        }
+        DownloadSettingsBody { }
+    }
+
+    // RealDebridInfoModal
+    if real-debrid-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("settings.enable_real_debrid");
+        closing: real-debrid-state.closing;
+        blurred-page: RealDebridInfo.backdrop;
+        request-close => {
+            real-debrid-state.close();
+        }
+        RealDebridInfoBody { }
+    }
+
+    // the torrent step: large, no content padding
+    if torrent-step-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.torrent_files");
+        large: true;
+        no-content-padding: true;
+        closing: torrent-step-state.closing;
+        blurred-page: TorrentStep.backdrop;
+        request-close => {
+            torrent-step-state.close();
+        }
+        TorrentStepBody { }
+    }
+
+    // cloud-save-modal.tsx shell
+    if cloud-state.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: T.tr("game_details.cloud_save_v2_modal_title");
+        description: T.tr("game_details.cloud_save_v2_modal_description");
+        closing: cloud-state.closing;
+        blurred-page: GameData.modal-backdrop;
+        request-close => {
+            cloud-state.close();
+        }
+        HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                kind: "cloud";
+                icon: Icons.cloud-arrow-up;
+                icon-size: 20px;
+                text: T.tr("game_details.cloud_save_v2_sync_now");
+                clicked => {
+                    cloud-state.close();
+                    GameData.cloud-sync();
+                }
+            }
+        }
+    }
+}

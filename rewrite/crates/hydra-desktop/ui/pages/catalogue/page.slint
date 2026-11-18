@@ -1,0 +1,786 @@
+// src/renderer/src/pages/catalogue/catalogue.{tsx,scss}: results with
+// pagination on the left, the filter rail (280px) on the right.
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { Theme } from "../../theme.slint";
+import { Icon, Skeleton, ScrollBar, HydraButton } from "../../components/widgets.slint";
+import { SelectField, SelectOption } from "../../components/fields.slint";
+import { Badge } from "../../components/game-card.slint";
+import { T } from "../../globals.slint";
+import { Input } from "../game-details/state.slint";
+import { CatalogueData, CatalogueItem } from "state.slint";
+import { ModeToggle, FilterSection, ReleaseYearSection, FilterChipItem, RecompilationToggle, ProtonSection } from "filters.slint";
+
+// game-item.tsx / game-item.scss: a 105px row (200x103 cover, details).
+component GameItem inherits Rectangle {
+    in property <CatalogueItem> item;
+    callback open();
+    callback add();
+    height: Math.max(105px, details.preferred-height + 2px);
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.dark-background;
+    clip: true;
+    accessible-role: button;
+    accessible-label: root.item.title;
+
+    // __content-link (hover background over 0.2s)
+    Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: parent.height - 2px;
+        background: link.has-hover ? rgba(255, 255, 255, 0.05) : transparent;
+        animate background { duration: 200ms; easing: ease; }
+
+        // __cover-wrapper: 200x103 with a right border
+        Rectangle {
+            x: 0;
+            width: 201px;
+            height: 103px;
+            y: (parent.height - self.height) / 2;
+            if root.item.has-cover: Image {
+                x: 0;
+                width: 200px;
+                height: 103px;
+                source: root.item.cover;
+                image-fit: cover;
+            }
+            if !root.item.has-cover: Rectangle {
+                x: 0;
+                width: 200px;
+                background: @linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.1) 100%);
+                Icon {
+                    width: 28px;
+                    height: 28px;
+                    source: @image-url("../../icons/question.svg");
+                    color: Theme.body;
+                }
+            }
+            Rectangle {
+                x: 200px;
+                width: 1px;
+                background: Theme.border;
+            }
+        }
+
+        // __details: padding 16px 0, gap 4px
+        details := VerticalLayout {
+            x: 201px + 16px;
+            width: parent.width - self.x - 40px;
+            y: (parent.height - self.preferred-height) / 2;
+            height: self.preferred-height;
+            padding-top: 16px;
+            padding-bottom: 16px;
+            spacing: 4px;
+            Text {
+                text: root.item.title;
+                font-size: Theme.body-size;
+                color: Theme.muted;
+                overflow: elide;
+            }
+            // __genres: 12px, margin-bottom 4px
+            HorizontalLayout {
+                padding-bottom: 4px;
+                Text {
+                    text: root.item.genres != "" ? root.item.genres : T.tr("catalogue.no_genres");
+                    font-size: Theme.small-size;
+                    font-italic: root.item.genres == "";
+                    color: root.item.genres != "" ? Theme.body : rgba(255, 255, 255, 0.35);
+                    overflow: elide;
+                }
+            }
+            if root.item.sources.length > 0: HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                for source in root.item.sources: Badge {
+                    text: source;
+                }
+            }
+        }
+
+        link := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.open();
+            }
+        }
+    }
+
+    // __plus-wrapper: top-right, shows on hover; added = check at 0.5
+    Rectangle {
+        x: parent.width - 9px - 20px;
+        y: 9px;
+        width: 20px;
+        height: 22px;
+        opacity: root.item.added || root.item.adding ? 0.5 : (link.has-hover || plus.has-hover) ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease-in-out; }
+        Icon {
+            width: 16px;
+            height: 16px;
+            source: root.item.added ? @image-url("../../icons/check.svg") : @image-url("../../icons/plus.svg");
+            color: Theme.muted;
+        }
+        plus := TouchArea {
+            mouse-cursor: root.item.added || root.item.adding ? default : pointer;
+            clicked => {
+                if (!root.item.added && !root.item.adding) {
+                    root.add();
+                }
+            }
+        }
+    }
+}
+
+// game-item-classics.{tsx,scss}: a card with the art on a blurred backdrop
+// (151px), the platform / recompilation chips, title, genres and sources.
+component GameItemClassics inherits Rectangle {
+    in property <CatalogueItem> item;
+    callback open();
+    callback add();
+    height: 151px + 8px + details.preferred-height + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: link.has-hover || plus.has-hover ? rgba(255, 255, 255, 0.16) : Theme.border;
+    animate border-color { duration: 150ms; easing: ease; }
+    background: Theme.dark-background;
+    clip: true;
+    accessible-role: button;
+    accessible-label: root.item.title;
+
+    cover-box := Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: 151px;
+        background: #0a0a0a;
+        clip: true;
+        if root.item.has-cover: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.item.backdrop;
+            image-fit: cover;
+            transform-scale: 1.25;
+            opacity: 0.65;
+        }
+        if root.item.has-cover && root.item.cover.width > 0: Rectangle {
+            property <float> aspect: root.item.cover.width / Math.max(1, root.item.cover.height);
+            height: 135px;
+            width: Math.min(self.height * self.aspect, parent.width * 0.8);
+            border-radius: 4px;
+            drop-shadow-offset-y: 5px;
+            drop-shadow-blur: 5px;
+            drop-shadow-color: rgba(0, 0, 0, 0.09);
+            Rectangle {
+                border-radius: 4px;
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.item.cover;
+                    image-fit: contain;
+                }
+            }
+            Rectangle {
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.12);
+            }
+        }
+        if !root.item.has-cover: Icon {
+            width: 32px;
+            height: 32px;
+            source: @image-url("../../icons/question.svg");
+            color: rgba(255, 255, 255, 0.4);
+        }
+        // __platform-chip / __recompilation-chip: 11px on rgba(0,0,0,.6)
+        if root.item.platform != "": Rectangle {
+            x: 8px;
+            y: 8px;
+            height: platform-text.preferred-height + 10px;
+            width: Math.min(platform-text.preferred-width + 18px, parent.width - (root.item.recompilation ? 130px : 16px));
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.6);
+            platform-text := Text {
+                x: 9px;
+                width: parent.width - 18px;
+                text: root.item.platform;
+                font-size: Theme.tiny-size;
+                font-weight: 500;
+                color: Theme.muted;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        if root.item.recompilation: Rectangle {
+            x: parent.width - 42px - self.width;
+            y: 8px;
+            height: recomp-row.preferred-height + 10px;
+            width: recomp-row.preferred-width + 18px;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.12);
+            background: rgba(0, 0, 0, 0.6);
+            recomp-row := HorizontalLayout {
+                x: 9px;
+                spacing: 4px;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 11px;
+                    height: 11px;
+                    source: @image-url("../../icons/device-desktop-14.svg");
+                    color: Theme.muted;
+                }
+                Text {
+                    text: T.tr("catalogue.recompilation_badge");
+                    font-size: Theme.tiny-size;
+                    font-weight: 500;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+
+    // __details: padding 4px 12px 12px, gap 4px
+    details := VerticalLayout {
+        x: 1px;
+        y: 1px + 151px + 8px;
+        width: parent.width - 2px;
+        height: self.preferred-height;
+        padding-left: 12px;
+        padding-right: 12px;
+        padding-top: 4px;
+        padding-bottom: 12px;
+        spacing: 4px;
+        Text {
+            text: root.item.title;
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.8);
+            overflow: elide;
+        }
+        Text {
+            text: root.item.genres != "" ? root.item.genres : T.tr("catalogue.no_genres");
+            font-size: Theme.small-size;
+            font-italic: root.item.genres == "";
+            color: root.item.genres != "" ? rgba(255, 255, 255, 0.5) : rgba(255, 255, 255, 0.3);
+            overflow: elide;
+        }
+        if root.item.sources.length > 0: HorizontalLayout {
+            padding-top: 4px;
+            spacing: 8px;
+            alignment: start;
+            for source in root.item.sources: Badge {
+                text: source;
+            }
+        }
+    }
+
+    link := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.open();
+        }
+    }
+
+    // __plus-wrapper: round, on the cover
+    Rectangle {
+        x: parent.width - 9px - self.width;
+        y: 9px;
+        width: 26px;
+        height: 26px;
+        border-radius: 13px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.6);
+        opacity: root.item.added ? 0.5 : (link.has-hover || plus.has-hover) ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease-in-out; }
+        Icon {
+            width: 16px;
+            height: 16px;
+            source: root.item.added ? @image-url("../../icons/check.svg") : @image-url("../../icons/plus.svg");
+            color: Theme.muted;
+        }
+        plus := TouchArea {
+            mouse-cursor: root.item.added || root.item.adding ? default : pointer;
+            clicked => {
+                if (!root.item.added && !root.item.adding) {
+                    root.add();
+                }
+            }
+        }
+    }
+}
+
+// pagination.tsx: 40px outline buttons, the current page primary.
+component PageButton inherits HydraButton {
+    in property <string> label;
+    text: root.label;
+    width: 40px;
+    height: 40px;
+    horizontal-padding: 0;
+}
+
+// JumpControl: "..." opens a 40px page input (digits only, clamped to
+// 1..total); Enter goes, Escape or blur closes it.
+component JumpControl inherits Rectangle {
+    in property <int> total;
+    in-out property <bool> open;
+    callback go(int);
+    width: 40px;
+    height: 40px;
+    if !root.open: PageButton {
+        kind: "outline";
+        label: "...";
+        clicked => {
+            root.open = true;
+        }
+    }
+    // .pagination__page-input: 1px border, radius 8, transparent, 12px centered
+    if root.open: Rectangle {
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        accessible-role: text-input;
+        accessible-label: T.tr("catalogue.go_to_page");
+        FocusScope {
+            key-pressed(event) => {
+                if (event.text == Key.Escape) {
+                    root.open = false;
+                    return accept;
+                }
+                reject
+            }
+            input := TextInput {
+                x: 5px;
+                width: parent.width - 10px;
+                height: parent.height;
+                single-line: true;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                font-size: Theme.small-size;
+                color: Theme.muted;
+                init => {
+                    // setTimeout(() => input.focus(), 0)
+                    self.focus();
+                }
+                edited => {
+                    self.text = CatalogueData.jump-value(self.text, root.total);
+                }
+                accepted => {
+                    if (self.text != "") {
+                        root.go(Math.clamp(self.text.to-float(), 1, root.total));
+                        root.open = false;
+                    }
+                }
+                changed has-focus => {
+                    if (!self.has-focus) {
+                        root.open = false;
+                    }
+                }
+            }
+        }
+    }
+}
+
+component Pagination inherits HorizontalLayout {
+    in property <int> page;
+    in property <int> total;
+    callback go(int);
+    // isJumpOpen (one input; only one of the two jumps shows at a time)
+    property <bool> jump-open;
+    property <int> first-shown: root.total - Math.max(1, root.page - 1) + 1 < 5 ? Math.max(1, root.total - 4) : Math.max(1, root.page - 1);
+    property <int> last-shown: Math.min(root.total, root.first-shown + 4);
+    spacing: 4px;
+    alignment: end;
+    visible: root.total > 1;
+
+    if root.first-shown > 1: PageButton {
+        kind: "outline";
+        icon: @image-url("../../icons/lucide-chevrons-left.svg");
+        icon-size: 18px;
+        tooltip: T.tr("catalogue.go_to_first_page");
+        clicked => {
+            root.go(1);
+        }
+    }
+    PageButton {
+        kind: "outline";
+        icon: @image-url("../../icons/lucide-chevron-left.svg");
+        enabled: root.page > 1;
+        tooltip: T.tr("catalogue.go_to_previous_page");
+        clicked => {
+            root.go(root.page - 1);
+        }
+    }
+    if root.last-shown >= root.total && root.first-shown > 1: PageButton {
+        kind: "outline";
+        label: "1";
+        clicked => {
+            root.go(1);
+        }
+    }
+    if root.last-shown >= root.total && root.first-shown > 1: JumpControl {
+        total: root.total;
+        open <=> root.jump-open;
+        go(n) => {
+            root.go(n);
+        }
+    }
+    for n in root.last-shown - root.first-shown + 1: PageButton {
+        kind: root.page == root.first-shown + n ? "primary" : "outline";
+        label: CatalogueData.format-page(root.first-shown + n);
+        clicked => {
+            root.go(root.first-shown + n);
+        }
+    }
+    if root.last-shown < root.total: JumpControl {
+        total: root.total;
+        open <=> root.jump-open;
+        go(n) => {
+            root.go(n);
+        }
+    }
+    if root.last-shown < root.total: PageButton {
+        kind: "outline";
+        label: CatalogueData.format-page(root.total);
+        enabled: root.page != root.total;
+        clicked => {
+            root.go(root.total);
+        }
+    }
+    PageButton {
+        kind: "outline";
+        icon: @image-url("../../icons/lucide-chevron-right.svg");
+        enabled: root.page < root.total;
+        tooltip: T.tr("catalogue.go_to_next_page");
+        clicked => {
+            root.go(root.page + 1);
+        }
+    }
+    if root.last-shown < root.total: PageButton {
+        kind: "outline";
+        icon: @image-url("../../icons/lucide-chevrons-right.svg");
+        icon-size: 18px;
+        tooltip: T.tr("catalogue.go_to_last_page");
+        clicked => {
+            root.go(root.total);
+        }
+    }
+}
+
+export component CataloguePage inherits Rectangle {
+    // .container__content's 9px gutter; .catalogue scrolls inside it (padding 24px).
+    property <length> content-width: root.width - 9px;
+    property <bool> stacked: root.width <= 768px;
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    property <length> scroll-y;
+    // Wheel tween (components/smooth-scroll.slint): root.scroll-y is the target,
+    // the page shows the tween while it runs.
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    property <int> reset: CatalogueData.scroll-reset;
+    changed reset => {
+        root.scroll-y = 0;
+    }
+
+    page := Flickable {
+        x: 0;
+        width: root.content-width - scrollbar.width;
+        height: root.height;
+        content-width: self.width;
+        content-height: column.preferred-height;
+        interactive: false;
+        viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+
+        TouchArea {
+            width: page.width;
+            height: column.preferred-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+
+            column := VerticalLayout {
+                width: page.width;
+                padding: 24px;
+                spacing: 16px;
+                alignment: start;
+
+                // ---- .catalogue__header
+                VerticalLayout {
+                    spacing: 12px;
+                    HorizontalLayout {
+                        spacing: 12px;
+                        VerticalLayout {
+                            horizontal-stretch: 0;
+                            spacing: 2px;
+                            alignment: center;
+                            Text {
+                                text: CatalogueData.result-count;
+                                font-size: Theme.small-size;
+                                font-weight: 500;
+                                color: Theme.body;
+                            }
+                            if CatalogueData.show-hint: Text {
+                                text: T.tr("catalogue.filters_sidebar_hint");
+                                font-size: Theme.small-size;
+                                color: rgba(255, 255, 255, 0.6);
+                            }
+                        }
+                        Rectangle {
+                            horizontal-stretch: 1;
+                        }
+                        HorizontalLayout {
+                            horizontal-stretch: 0;
+                            spacing: 8px;
+                            Text {
+                                text: T.tr("catalogue.sort_by");
+                                font-size: Theme.body-size;
+                                color: rgba(255, 255, 255, 0.7);
+                                vertical-alignment: center;
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                SelectField {
+                                    width: 180px;
+                                    dark: true;
+                                    popup-id: "catalogue-sort";
+                                    options: CatalogueData.sort-options;
+                                    value: CatalogueData.sort;
+                                    current-label: CatalogueData.sort-label;
+                                }
+                            }
+                        }
+                    }
+
+                    // --filters row: label, chips, "Clear filters (n)"
+                    if CatalogueData.chips.length > 0: HorizontalLayout {
+                        spacing: 12px;
+                        Text {
+                            // text-transform: uppercase; align-self: center
+                            text: CatalogueData.active-filters-label;
+                            font-size: Theme.small-size;
+                            letter-spacing: 0.48px;
+                            color: rgba(255, 255, 255, 0.7);
+                            vertical-alignment: center;
+                        }
+                        // __filters-wrapper (flex: 1): the chips wrap onto more rows
+                        chips-wrapper := Rectangle {
+                            horizontal-stretch: 1;
+                            min-width: 0;
+                            height: CatalogueData.chips-height;
+                            init => {
+                                CatalogueData.chips-width(self.width);
+                            }
+                            changed width => {
+                                CatalogueData.chips-width(self.width);
+                            }
+                            for chip in CatalogueData.chips: FilterChipItem {
+                                x: chip.x;
+                                y: chip.y;
+                                width: chip.width;
+                                chip: chip;
+                                removed => {
+                                    CatalogueData.remove-chip(chip.key, chip.value);
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            HydraButton {
+                                kind: "outline";
+                                // min-height 32px, padding 8px 12px, 12px text
+                                height: 32px;
+                                horizontal-padding: 12px;
+                                text-size: Theme.small-size;
+                                text: CatalogueData.clear-all-label;
+                                clicked => {
+                                    CatalogueData.clear-all();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ---- .catalogue__content: results | rail (280px)
+                content := Rectangle {
+                    property <length> rail-width: root.stacked ? self.width : 280px;
+                    property <length> results-width: root.stacked ? self.width : self.width - 280px - 16px;
+                    height: root.stacked ? results.preferred-height + 16px + rail.preferred-height : Math.max(results.preferred-height, rail.preferred-height);
+
+                    results := VerticalLayout {
+                        x: 0;
+                        y: 0;
+                        width: content.results-width;
+                        height: self.preferred-height;
+                        spacing: 8px;
+                        alignment: start;
+                        if CatalogueData.loading && CatalogueData.mode == "classics": classics-skeleton := Rectangle {
+                            property <int> columns: root.width <= 1024px ? 2 : 3;
+                            property <length> cell: (content.results-width - 16px * (self.columns - 1)) / self.columns;
+                            height: Math.ceil(30 / self.columns) * (220px + 16px) - 16px;
+                            for i in 30: Skeleton {
+                                x: Math.mod(i, classics-skeleton.columns) * (classics-skeleton.cell + 16px);
+                                y: Math.floor(i / classics-skeleton.columns) * (220px + 16px);
+                                width: classics-skeleton.cell;
+                                height: 220px;
+                                radius: 8px;
+                            }
+                        }
+                        if CatalogueData.loading && CatalogueData.mode != "classics": VerticalLayout {
+                            spacing: 8px;
+                            for i in 30: Skeleton {
+                                height: 105px;
+                                radius: 4px;
+                                border-width: 1px;
+                                border-color: rgba(255, 255, 255, 0.15);
+                            }
+                        }
+                        // --classics: a grid of 3 (2 at <= 1024px), gap 16
+                        if !CatalogueData.loading && CatalogueData.mode == "classics": classics-grid := Rectangle {
+                            property <int> columns: root.width <= 1024px ? 2 : 3;
+                            property <length> cell: (content.results-width - 16px * (self.columns - 1)) / self.columns;
+                            // Every card has the same rows of content, so they share one height.
+                            property <length> card-height: 151px + 8px + 4px + 19px + 4px + 17px + 4px + 4px + 22px + 12px + 2px;
+                            height: Math.ceil(CatalogueData.items.length / self.columns) * (self.card-height + 16px) - 16px;
+                            for item[i] in CatalogueData.items: GameItemClassics {
+                                x: Math.mod(i, classics-grid.columns) * (classics-grid.cell + 16px);
+                                y: Math.floor(i / classics-grid.columns) * (classics-grid.card-height + 16px);
+                                width: classics-grid.cell;
+                                item: item;
+                                open => {
+                                    CatalogueData.open-item(i);
+                                }
+                                add => {
+                                    CatalogueData.add-item(i);
+                                }
+                            }
+                        }
+                        if !CatalogueData.loading && CatalogueData.mode != "classics": VerticalLayout {
+                            spacing: 8px;
+                            for item[i] in CatalogueData.items: GameItem {
+                                item: item;
+                                open => {
+                                    CatalogueData.open-item(i);
+                                }
+                                add => {
+                                    CatalogueData.add-item(i);
+                                }
+                            }
+                        }
+                        // __pagination-container: margin-top 16px, right-aligned
+                        HorizontalLayout {
+                            padding-top: 16px;
+                            alignment: end;
+                            Pagination {
+                                page: CatalogueData.page;
+                                total: CatalogueData.total-pages;
+                                go(n) => {
+                                    CatalogueData.set-page(n);
+                                }
+                            }
+                        }
+                    }
+
+                    rail := VerticalLayout {
+                        x: root.stacked ? 0 : content.width - 280px;
+                        y: root.stacked ? results.preferred-height + 16px : 0;
+                        width: content.rail-width;
+                        height: self.preferred-height;
+                        spacing: 12px;
+                        alignment: start;
+                        ModeToggle {
+                            mode: CatalogueData.mode;
+                            changed-mode(mode) => {
+                                CatalogueData.set-mode(mode);
+                            }
+                        }
+                        if CatalogueData.mode == "classics" && CatalogueData.recompilations-enabled: RecompilationToggle {
+                            checked: CatalogueData.recompilation-only;
+                            toggled => {
+                                CatalogueData.set-recompilation(!CatalogueData.recompilation-only);
+                            }
+                        }
+                        // shouldShowProtonFeatures: Linux only
+                        if CatalogueData.mode == "modern" && CatalogueData.show-proton: ProtonSection {
+                            value: CatalogueData.proton-tier;
+                            deck: CatalogueData.deck-compatible;
+                            set-tier(value) => {
+                                CatalogueData.set-proton-tier(value);
+                            }
+                            set-deck(checked) => {
+                                CatalogueData.set-deck(checked);
+                            }
+                        }
+                        if CatalogueData.mode == "modern": ReleaseYearSection {
+                            // filterCategoryColors.releaseYear: hsl(38deg 50% 40%)
+                            range-color: #996f33;
+                            min-year: CatalogueData.year-min;
+                            max-year: CatalogueData.year-max;
+                            gte: CatalogueData.year-gte;
+                            lte: CatalogueData.year-lte;
+                            active: CatalogueData.year-active;
+                            changed-years(gte, lte) => {
+                                CatalogueData.set-years(gte, lte);
+                            }
+                            cleared => {
+                                CatalogueData.clear-years();
+                            }
+                        }
+                        for section in CatalogueData.sections: FilterSection {
+                            data: section;
+                            visible: section.total > 0 || section.loading;
+                            toggled(value) => {
+                                CatalogueData.toggle-option(section.key, value);
+                            }
+                            cleared => {
+                                CatalogueData.clear-section(section.key);
+                            }
+                            searched(text) => {
+                                CatalogueData.search-section(section.key, text);
+                            }
+                            group-selected(group) => {
+                                CatalogueData.select-group(section.key, group);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    scrollbar := ScrollBar {
+        x: root.content-width - self.width;
+        height: root.height;
+        content-height: page.content-height;
+        viewport-height: page.height;
+        content-y <=> root.scroll-y;
+            shown-offset: -page.viewport-y;
+    }
+}

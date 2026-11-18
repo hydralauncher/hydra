@@ -1,0 +1,180 @@
+// App-wide state the backend drives. Pages read from these globals instead of
+// receiving dozens of properties through the window.
+
+// UI strings (hydra-i18n): i18next keys, `namespace.key`.
+// `rev` changes when the language changes; the backend reads it inside each
+// call, so every binding that uses a string re-evaluates.
+export global T {
+    in property <int> rev;
+    // "ltr" | "rtl" (i18n.dir())
+    in property <bool> rtl;
+    pure callback tr(string) -> string;
+    // Interpolation: args are name/value pairs: ["title", "Hades", "count", "3"].
+    pure callback tr-with(string, [string]) -> string;
+    // Plurals (`key_one`, `key_other`, …) with `{{count}}`.
+    pure callback tr-count(string, int, [string]) -> string;
+    // <Trans> markup: part 0 before "<0>", 1 inside "<0>…</0>", 2 after.
+    pure callback tr-parts(string, int) -> string;
+}
+
+// Routes of src/renderer/src/main.tsx.
+export global Nav {
+    // "home" | "catalogue" | "library" | "downloads" | "leaderboards" | "settings"
+    // | "game" | "profile" | "achievements" | "notifications" | "shop" | "recompilation"
+    in-out property <string> route: "home";
+    // Full path, e.g. "/game/steam/1091500" (sidebar active states compare it).
+    in-out property <string> path: "/";
+    in property <bool> can-go-back;
+    in property <bool> can-go-forward;
+    // Bumped when the pathname or the search changes (app.tsx sets
+    // .container__content's scrollTop to 0 then): a page that stays mounted
+    // across locations (game -> game) scrolls back to the top on it.
+    in property <int> location-key;
+    callback navigate(string);
+    callback back();
+    callback forward();
+}
+
+// Signed-in user (userDetails in the renderer's Redux store).
+export global Session {
+    in property <bool> signed-in;
+    in property <bool> loaded;
+    in property <string> display-name;
+    in property <image> avatar;
+    in property <bool> has-subscription;
+    in property <string> version;
+    in property <int> unread-chat;
+    in property <int> unread-notifications;
+    in property <int> friends-online;
+    // gameRunning (app.tsx): title and icon under the name in the sidebar
+    in property <string> running-title;
+    in property <image> running-icon;
+    callback sign-in();
+    callback sign-out();
+    callback open-profile();
+    callback open-notifications();
+    callback open-friends();
+    // prefetchFriends: the profile menu opened, so Friends is likely next.
+    callback prefetch-friends();
+    callback open-support();
+}
+
+// Window chrome. `platform`: "windows" | "linux" | "macos".
+export global Chrome {
+    in property <string> platform: "windows";
+    in property <bool> maximized;
+    in property <bool> native-decorations;
+    callback minimize();
+    callback toggle-maximize();
+    callback close();
+    callback drag();
+    // frameless Linux: "north", "south-east", ... (see shell/resize-edges.slint)
+    callback start-resize(string);
+}
+
+// One row of the sidebar game list (sidebar-game-item.tsx).
+export struct SidebarGame {
+    id: string,
+    title: string,
+    icon: image,
+    // 0: none (custom game without art), 1: Steam logo, 2: Epic logo
+    fallback: int,
+    favorite: bool,
+    // download.status === "removed"
+    muted: bool,
+    // "+3" when new download options exist
+    badge: string,
+    // 0 none, 1 Steam, 2 Epic library badge on the icon
+    library-badge: int,
+    // Imported from both Steam and Epic (--multiple badge with a "+").
+    badge-both: bool,
+    path: string,
+}
+
+// A library or console row in the sidebar filter menu.
+export struct SidebarFilterOption {
+    id: string,
+    label: string,
+    // sources: 3 hydra, 4 steam, 5 epic
+    icon: int,
+    checked: bool,
+}
+
+// The sidebar's library list, filter and resize (sidebar.tsx).
+export global SidebarState {
+    in-out property <length> width: 250px;
+    in property <[SidebarGame]> games;
+    in property <bool> loading;
+    in property <bool> has-active-filter;
+    in property <bool> playable-only;
+    in property <bool> leaderboards-enabled: true;
+    // Download indicator (sidebar-download-icon.tsx / download-indicator.ts):
+    // "idle" | "downloading" | "paused" | "extracting" | "preparing"
+    in property <string> download-phase: "idle";
+    in property <float> download-progress;
+    in property <bool> download-has-progress;
+    in property <int> download-games;
+    // Bumped when a flight lands: the icon catches it, the row flashes.
+    in property <int> download-catch;
+    callback filter-changed(string);
+    callback toggle-playable();
+    callback game-clicked(string);
+    callback game-double-clicked(string);
+    callback game-context-menu(string, length, length);
+    // First and last rows on screen (plus overscan), for lazy icon loading.
+    callback visible-rows(int, int);
+    callback width-committed(length);
+
+    // sidebar-filter-menu.tsx
+    in property <string> filter-category: "all";
+    in property <string> filter-sort: "title_asc";
+    in property <bool> filter-favorites-first: true;
+    in property <bool> filter-show-sources;
+    in property <[SidebarFilterOption]> filter-sources;
+    in property <bool> filter-sources-any;
+    in property <bool> filter-show-platforms;
+    in property <[SidebarFilterOption]> filter-platforms;
+    in property <bool> filter-platforms-any;
+    callback set-category(string);
+    callback set-sort(string);
+    callback set-favorites-first(bool);
+    callback set-sources-all();
+    callback toggle-source(string);
+    callback set-platforms-all();
+    callback toggle-platform(string);
+}
+
+// The one open dropdown or context menu (Radix: one menu at a time). The
+// backend closes it on a press outside `box` (non-modal: the press still
+// lands), on Escape and when the page changes.
+export global Popup {
+    // "" when closed, else the menu's id (e.g. "library-filters").
+    in-out property <string> open;
+    // The trigger, in window coordinates.
+    in-out property <length> anchor-x;
+    in-out property <length> anchor-y;
+    in-out property <length> anchor-width;
+    in-out property <length> anchor-height;
+    // The open menu's box, in window coordinates (set by the menu).
+    in-out property <length> box-x;
+    in-out property <length> box-y;
+    in-out property <length> box-width;
+    in-out property <length> box-height;
+    // A second box (an open context submenu); width 0 when none.
+    in-out property <length> box2-x;
+    in-out property <length> box2-y;
+    in-out property <length> box2-width;
+    in-out property <length> box2-height;
+
+    public function toggle(id: string, x: length, y: length, w: length, h: length) {
+        if (self.open == id) {
+            self.open = "";
+            return;
+        }
+        self.anchor-x = x;
+        self.anchor-y = y;
+        self.anchor-width = w;
+        self.anchor-height = h;
+        self.open = id;
+    }
+}

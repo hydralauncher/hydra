@@ -1,0 +1,1735 @@
+// pages/settings/settings.tsx (settings.scss): a bordered box with the
+// category sidebar and the panel. Rust fills `SettingsData` (settings_page.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, ScrollBar } from "../../components/widgets.slint";
+import { TextField, CheckboxField, SelectField, SelectOption } from "../../components/fields.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T } from "../../globals.slint";
+import { IntegrationCardView, IntegrationsData } from "integrations.slint";
+import { ScreenshotsPanel } from "screenshots.slint";
+import { CompatibilityPanel } from "compatibility.slint";
+import { EmulationPanel } from "emulation.slint";
+
+export struct SettingsCategory {
+    id: string,
+    label: string,
+    // "" or "classics": a divider and group label before the first of a group
+    group: string,
+    group-start: bool,
+}
+
+// A checkbox bound to a preference key; `guide` adds GuideLink's question icon.
+export struct CheckRow {
+    key: string,
+    label: string,
+    checked: bool,
+    guide: string,
+}
+
+// One debrid provider (settings-debrid__section + settings-<provider>).
+export struct DebridRow {
+    key: string,
+    title: string,
+    description: string,
+    create-label: string,
+    create-url: string,
+    enable-label: string,
+    // the "debrid_api_token_hint" sentence split around its link
+    hint-before: string,
+    hint-link: string,
+    hint-after: string,
+    token-url: string,
+    collapsed: bool,
+    enabled: bool,
+    token: string,
+    // a saved token: the check mark next to the title
+    linked: bool,
+    busy: bool,
+}
+
+export struct BlockedUser {
+    id: string,
+    name: string,
+    avatar: image,
+}
+
+// One download source (settings-download-sources__item).
+export struct SourceCard {
+    id: string,
+    name: string,
+    url: string,
+    status-label: string,
+    // PENDING_MATCHING / MATCHING
+    pending: bool,
+    // "23,927 download options" or "No information yet"
+    count-label: string,
+    fingerprint: string,
+}
+
+export global SettingsData {
+    in property <[SettingsCategory]> categories;
+    in property <string> category: "general";
+    // the h2 above the panel
+    in property <string> category-label;
+
+    // ---- General
+    in property <string> downloads-path;
+    in property <[SelectOption]> language-options;
+    in property <string> language;
+    in property <string> language-label;
+    in property <bool> show-run-at-startup: true;
+    in property <bool> linux;
+    in property <bool> prefer-quit;
+    in property <bool> hide-to-tray;
+    in property <bool> run-at-startup;
+    in property <bool> start-minimized;
+    in property <bool> launch-to-library;
+    in property <bool> open-friends;
+    in property <bool> enable-auto-install;
+    in property <bool> native-decorations;
+
+    // ---- Downloads
+    in-out property <string> max-speed;
+    in property <string> max-speed-label;
+    in property <string> max-speed-hint;
+    in property <[SelectOption]> network-options;
+    in property <string> network-interface;
+    in property <string> network-label;
+    // the longest option, for the native select's max-content width
+    in property <string> network-longest;
+    in property <bool> seed-after;
+    in property <bool> extract-by-default;
+    in property <bool> speed-in-megabytes;
+    in property <bool> delete-archives;
+    in property <bool> show-shortcuts: true;
+    in property <bool> create-shortcuts;
+    in property <bool> append-trackers;
+    in-out property <string> manual-trackers;
+    in property <bool> append-trackers-url;
+    in-out property <string> trackers-url;
+    in property <string> trackers-error;
+    // ---- Notifications (preference flags by key, so Rust applies the defaults)
+    in property <bool> notify-download;
+    in property <bool> notify-repack;
+    in property <bool> notify-friend-request;
+    in property <bool> notify-friend-game;
+    in property <bool> notify-chat;
+    // userDetails && GLOBAL_LEADERBOARDS
+    in property <bool> show-leaderboard;
+    in property <bool> leaderboard-notifications;
+    in property <bool> leaderboard-slam;
+    in property <bool> leaderboard-drop;
+    in property <bool> notify-achievements;
+    in property <bool> notify-achievements-custom;
+    in property <[SelectOption]> position-options;
+    in property <string> position;
+    in property <string> position-label;
+    // 0..100
+    in-out property <int> volume;
+    callback position-selected(string);
+    callback test-notification();
+    callback volume-changed(int);
+
+    // ---- Content & gameplay (checkbox values by preference key, filled by Rust)
+    in property <[CheckRow]> content-rows;
+    in property <[CheckRow]> metadata-rows;
+    in property <[CheckRow]> library-rows;
+    in property <[CheckRow]> classics-rows;
+    in property <bool> has-subscription;
+    in property <bool> souvenirs;
+    in property <string> screenshots-path;
+    in property <bool> custom-screenshots-path;
+    callback open-guide(string);
+    callback hydra-cloud();
+    callback change-screenshots-path();
+    callback reset-screenshots-path();
+    callback open-screenshots-path();
+
+    // ---- Integrations: debrid services
+    in property <[DebridRow]> debrid;
+    callback debrid-collapse(string);
+    callback debrid-enable(string);
+    callback debrid-token-edited(string, string);
+    callback debrid-save(string);
+    callback open-url(string);
+
+    // ---- Account & Privacy
+    in property <bool> account-loaded;
+    in property <[SelectOption]> visibility-options;
+    in property <string> profile-visibility;
+    in property <string> profile-visibility-label;
+    in property <string> souvenirs-visibility;
+    in property <string> souvenirs-visibility-label;
+    in property <bool> show-screenshot-privacy;
+    in property <string> screenshots-visibility;
+    in property <string> screenshots-visibility-label;
+    in property <bool> show-comments-policy;
+    in property <[SelectOption]> comments-options;
+    in property <string> comments-policy;
+    in property <string> comments-policy-label;
+    in property <string> username;
+    in property <string> email;
+    // subscription_* lines (small text)
+    in property <[string]> cloud-lines;
+    in property <string> cloud-action;
+    in property <bool> allow-gifts;
+    in property <bool> account-busy;
+    in property <[BlockedUser]> blocked;
+    in property <bool> unblocking;
+    callback account-select(string, string);
+    callback update-email();
+    callback update-password();
+    callback open-checkout();
+    callback unblock(string);
+
+    // ---- Download sources
+    in property <[SourceCard]> sources;
+    in property <bool> sources-loaded;
+    in property <bool> sources-syncing;
+    in property <bool> sources-removing;
+    callback sync-sources();
+    callback remove-all-sources();
+    callback add-source();
+    callback remove-source(string);
+    callback open-source-in-catalogue(string);
+
+    callback max-speed-committed();
+    callback network-selected(string);
+    callback trackers-edited();
+    callback trackers-url-committed();
+
+    callback select-category(string);
+    callback change-downloads-path();
+    callback language-selected(string);
+    // A checkbox by its preference key (e.g. "preferQuitInsteadOfHiding").
+    callback toggle(string);
+}
+
+// settings__sidebar-button: padding 8px 12px, radius 4px, line-height 1.2
+component SidebarButton inherits Rectangle {
+    in property <SettingsCategory> category;
+    in property <bool> active;
+    callback clicked();
+    height: 14px * 1.2 + 16px;
+    border-radius: 4px;
+    background: touch.has-hover ? rgba(255, 255, 255, 0.15) : root.active ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+    // white-space: nowrap -> the sidebar is as wide as its longest label
+    preferred-width: row.preferred-width;
+    row := HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                opacity: 0.9;
+                color: Theme.muted;
+                source: root.category.id == "general" ? Icons.gear
+                    : root.category.id == "downloads" ? Icons.download
+                    : root.category.id == "download_sources" ? @image-url("../../icons/link.svg")
+                    : root.category.id == "notifications" ? Icons.bell
+                    : root.category.id == "content_gameplay" ? Icons.play
+                    : root.category.id == "screenshots" ? @image-url("../../icons/camera.svg")
+                    : root.category.id == "integrations" ? Icons.cloud
+                    : root.category.id == "compatibility" ? Icons.wrench
+                    : root.category.id == "account_privacy" ? @image-url("../../icons/shield-check.svg")
+                    : @image-url("../../icons/gamepad-2.svg");
+            }
+        }
+        Text {
+            text: root.category.label;
+            color: Theme.muted;
+            font-size: Theme.body-size;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// h3 (16.38px bold) inside settings-context-panel__group
+component GroupTitle inherits Text {
+    font-size: 16.38px;
+    font-weight: 700;
+    color: Theme.body;
+    height: 22px;
+    vertical-alignment: center;
+}
+
+// text-field / select-field with a label above (gap 8px)
+component Labeled inherits VerticalLayout {
+    in property <string> label;
+    spacing: 8px;
+    Text {
+        text: root.label;
+        font-size: Theme.body-size;
+        color: Theme.body;
+        height: 19px;
+        vertical-alignment: center;
+    }
+    @children
+}
+
+component Check inherits CheckboxField {
+    in property <string> key;
+    toggled => {
+        SettingsData.toggle(self.key);
+    }
+}
+
+// settings-context-general.tsx (the Appearance/themes group is not ported:
+// the theme editor was removed from the rewrite).
+component GeneralPanel inherits VerticalLayout {
+    spacing: 16px;
+    // settings-context-panel__group: padding-top 12px, gap 12px
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.app_basics");
+        }
+        Labeled {
+            label: T.tr("settings.downloads_path");
+            HorizontalLayout {
+                spacing: 8px;
+                TextField {
+                    text: SettingsData.downloads-path;
+                    read-only: true;
+                }
+                HydraButton {
+                    kind: "outline";
+                    text: T.tr("settings.change");
+                    clicked => {
+                        SettingsData.change-downloads-path();
+                    }
+                }
+            }
+        }
+        Labeled {
+            label: T.tr("settings.language");
+            HorizontalLayout {
+                alignment: start;
+                SelectField {
+                    // a native <select> as wide as its longest option (180px in Electron)
+                    width: 180px;
+                    popup-id: "settings-language";
+                    options: SettingsData.language-options;
+                    value: SettingsData.language;
+                    current-label: SettingsData.language-label;
+                    selected(value) => {
+                        SettingsData.language-selected(value);
+                    }
+                }
+            }
+        }
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.startup_behavior");
+        }
+        Check {
+            key: "preferQuitInsteadOfHiding";
+            label: T.tr("settings.quit_app_instead_hiding");
+            checked: SettingsData.prefer-quit;
+        }
+        Check {
+            key: "hideToTrayOnGameStart";
+            label: T.tr("settings.hide_to_tray_on_game_start");
+            checked: SettingsData.hide-to-tray;
+        }
+        if SettingsData.show-run-at-startup: Check {
+            key: "runAtStartup";
+            label: T.tr("settings.launch_with_system");
+            checked: SettingsData.run-at-startup;
+        }
+        if SettingsData.show-run-at-startup: Check {
+            key: "startMinimized";
+            label: T.tr("settings.launch_minimized");
+            checked: SettingsData.run-at-startup && SettingsData.start-minimized;
+            enabled: SettingsData.run-at-startup;
+        }
+        Check {
+            key: "launchToLibraryPage";
+            label: T.tr("settings.launch_hydra_in_library_page");
+            checked: SettingsData.launch-to-library;
+        }
+        Check {
+            key: "openFriendsWindowOnStartup";
+            label: T.tr("settings.open_friends_window_on_startup");
+            checked: SettingsData.open-friends;
+        }
+    }
+    if SettingsData.linux: VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.behavior");
+        }
+        Check {
+            key: "enableAutoInstall";
+            label: T.tr("settings.enable_auto_install");
+            checked: SettingsData.enable-auto-install;
+        }
+        Check {
+            key: "useNativeWindowDecorations";
+            label: T.tr("settings.use_native_window_decorations") + " " + T.tr("settings.use_native_window_decorations_hint");
+            checked: SettingsData.native-decorations;
+        }
+    }
+}
+
+// settings-global-trackers__textarea / __url-input: dark, 1px border,
+// radius 8, padding 12, monospace 12px with line-height 1.5
+component MonoField inherits Rectangle {
+    in property <string> placeholder;
+    in property <bool> multi-line;
+    in property <bool> enabled: true;
+    in-out property <string> text;
+    callback edited();
+    callback focus-lost();
+    height: root.multi-line ? 5 * 18px + 24px + 2px : 18px + 24px + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: input.has-focus ? #dadbe1 : Theme.border;
+    background: Theme.dark-background;
+    TouchArea {
+        mouse-cursor: root.enabled ? MouseCursor.text : MouseCursor.default;
+        clicked => {
+            input.focus();
+        }
+    }
+    Text {
+        x: 13px;
+        y: 13px;
+        width: parent.width - 26px;
+        text: root.placeholder;
+        visible: input.text == "";
+        color: rgba(255, 255, 255, 0.4);
+        font-family: "Cascadia Code";
+        font-size: Theme.small-size;
+        wrap: word-wrap;
+    }
+    input := TextInput {
+        x: 13px;
+        y: 13px;
+        width: parent.width - 26px;
+        height: parent.height - 26px;
+        text <=> root.text;
+        enabled: root.enabled;
+        single-line: !root.multi-line;
+        wrap: root.multi-line ? word-wrap : no-wrap;
+        color: #dadbe1;
+        font-family: "Cascadia Code";
+        font-size: Theme.small-size;
+        edited => {
+            root.edited();
+        }
+        changed has-focus => {
+            if (!self.has-focus) {
+                root.focus-lost();
+            }
+        }
+    }
+}
+
+// settings-context-downloads.tsx
+component DownloadsPanel inherits VerticalLayout {
+    spacing: 16px;
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.download_behavior");
+        }
+        // text-field with a label and a <small> hint
+        VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: SettingsData.max-speed-label;
+                font-size: Theme.body-size;
+                color: Theme.body;
+            }
+            TextField {
+                placeholder: T.tr("settings.max_download_speed_unlimited");
+                text <=> SettingsData.max-speed;
+                focus-lost => {
+                    SettingsData.max-speed-committed();
+                }
+            }
+            Text {
+                text: SettingsData.max-speed-hint;
+                font-size: 11.67px;
+                color: Theme.body;
+            }
+        }
+        // settings-general__network-interface: gap 8, margin-block 16
+        VerticalLayout {
+            padding-top: 16px;
+            padding-bottom: 16px;
+            spacing: 8px;
+            Text {
+                text: T.tr("settings.network_interface");
+                font-size: Theme.body-size;
+                color: Theme.body;
+            }
+            Rectangle {
+                height: 40px;
+                // the select's max-content width
+                network-measure := Text {
+                    visible: false;
+                    text: SettingsData.network-longest;
+                    font-size: Theme.body-size;
+                }
+                SelectField {
+                    x: 0;
+                    width: Math.max(180px, network-measure.preferred-width + 54px);
+                    popup-id: "settings-network";
+                    options: SettingsData.network-options;
+                    value: SettingsData.network-interface;
+                    current-label: SettingsData.network-label;
+                    selected(value) => {
+                        SettingsData.network-selected(value);
+                    }
+                }
+            }
+            Text {
+                text: T.tr("settings.network_interface_hint");
+                font-size: 13px;
+                color: Theme.muted;
+                wrap: word-wrap;
+            }
+        }
+        Check {
+            key: "seedAfterDownloadComplete";
+            label: T.tr("settings.seed_after_download_complete");
+            checked: SettingsData.seed-after;
+        }
+        Check {
+            key: "extractFilesByDefault";
+            label: T.tr("settings.extract_files_by_default");
+            checked: SettingsData.extract-by-default;
+        }
+        Check {
+            key: "showDownloadSpeedInMegabytes";
+            label: T.tr("settings.show_download_speed_in_megabytes");
+            checked: SettingsData.speed-in-megabytes;
+        }
+        Check {
+            key: "deleteArchiveFilesAfterExtractionByDefault";
+            label: T.tr("settings.delete_archive_files_after_extraction");
+            checked: SettingsData.delete-archives;
+        }
+        if SettingsData.show-shortcuts: Check {
+            key: "createStartMenuShortcut";
+            label: T.tr("settings.create_shortcuts_on_download");
+            checked: SettingsData.create-shortcuts;
+        }
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.global_trackers");
+        }
+        // settings-global-trackers: gap 16
+        VerticalLayout {
+            spacing: 16px;
+            Text {
+                text: T.tr("settings.global_trackers_description");
+                font-size: Theme.small-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            if SettingsData.trackers-error != "": Text {
+                text: SettingsData.trackers-error;
+                font-size: Theme.small-size;
+                color: Theme.error;
+            }
+            VerticalLayout {
+                spacing: 8px;
+                Check {
+                    key: "appendGlobalTrackers";
+                    label: T.tr("settings.global_trackers_append_manual");
+                    checked: SettingsData.append-trackers;
+                }
+                MonoField {
+                    multi-line: true;
+                    opacity: SettingsData.append-trackers ? 1 : 0.5;
+                    enabled: SettingsData.append-trackers;
+                    placeholder: T.tr("settings.global_trackers_manual_placeholder");
+                    text <=> SettingsData.manual-trackers;
+                    edited => {
+                        SettingsData.trackers-edited();
+                    }
+                }
+            }
+            VerticalLayout {
+                spacing: 8px;
+                Check {
+                    key: "appendGlobalTrackersUrl";
+                    label: T.tr("settings.global_trackers_append_url");
+                    checked: SettingsData.append-trackers-url;
+                }
+                MonoField {
+                    opacity: SettingsData.append-trackers-url ? 1 : 0.5;
+                    enabled: SettingsData.append-trackers-url;
+                    placeholder: T.tr("settings.global_trackers_url_placeholder");
+                    text <=> SettingsData.trackers-url;
+                    edited => {
+                        SettingsData.trackers-edited();
+                    }
+                    focus-lost => {
+                        SettingsData.trackers-url-committed();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// settings-general__hinted-label: the label over a 12px hint at 60% opacity
+component HintedCheck inherits Rectangle {
+    in property <string> key;
+    in property <string> label;
+    in property <string> hint;
+    in property <bool> checked;
+    in property <bool> enabled: true;
+    height: column.preferred-height;
+    check := CheckboxField {
+        y: 0;
+        height: 20px;
+        label: "";
+        checked: root.checked;
+        enabled: root.enabled;
+        toggled => {
+            SettingsData.toggle(root.key);
+        }
+    }
+    column := VerticalLayout {
+        x: 28px;
+        width: parent.width - 28px;
+        spacing: 2px;
+        opacity: root.enabled ? 1 : Theme.disabled-opacity;
+        // line boxes as Chromium lays them out: 21px + 2px gap + 19px
+        Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            min-height: 21px;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.hint;
+            font-size: Theme.small-size;
+            color: Theme.body;
+            opacity: 0.6;
+            min-height: 19px;
+            vertical-alignment: center;
+        }
+    }
+    TouchArea {
+        x: 28px;
+        width: parent.width - 28px;
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? MouseCursor.pointer : MouseCursor.not-allowed;
+        clicked => {
+            SettingsData.toggle(root.key);
+        }
+    }
+}
+
+// <input type="range"> styled by settings-general__volume-slider: a 6px
+// track filled up to the value, an 18px thumb that grows 1.1x on hover.
+component VolumeSlider inherits Rectangle {
+    in-out property <int> value;
+    callback changed-by-user(int);
+    height: 18px;
+    property <float> fraction: root.value / 100;
+    Rectangle {
+        y: (parent.height - 6px) / 2;
+        height: 6px;
+        border-radius: 3px;
+        background: @linear-gradient(90deg, Theme.muted 0%, Theme.muted root.fraction * 100%, Theme.dark-background root.fraction * 100%, Theme.dark-background 100%);
+    }
+    thumb := Rectangle {
+        x: (parent.width - 18px) * root.fraction;
+        width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        background: Theme.muted;
+        border-width: 2px;
+        border-color: Theme.background;
+        drop-shadow-offset-y: 2px;
+        drop-shadow-blur: touch.has-hover ? 6px : 4px;
+        drop-shadow-color: touch.has-hover ? rgba(255, 255, 255, 0.4) : rgba(0, 0, 0, 0.3);
+        transform-scale: touch.pressed ? 1.05 : touch.has-hover ? 1.1 : 1;
+        animate transform-scale, drop-shadow-blur, drop-shadow-color { duration: 200ms; easing: ease; }
+    }
+    function set-from(x: length) {
+        let next = Math.round(Math.clamp((x - 9px) / Math.max(1px, root.width - 18px), 0, 1) * 100);
+        if (next != root.value) {
+            root.value = next;
+            root.changed-by-user(next);
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                root.set-from(self.mouse-x);
+            }
+        }
+        moved => {
+            if (self.pressed) {
+                root.set-from(self.mouse-x);
+            }
+        }
+    }
+}
+
+// settings-context-notifications.tsx
+component NotificationsPanel inherits VerticalLayout {
+    spacing: 16px;
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.library_notifications");
+        }
+        Check {
+            key: "downloadNotificationsEnabled";
+            label: T.tr("settings.enable_download_notifications");
+            checked: SettingsData.notify-download;
+        }
+        Check {
+            key: "repackUpdatesNotificationsEnabled";
+            label: T.tr("settings.enable_repack_list_notifications");
+            checked: SettingsData.notify-repack;
+        }
+        Check {
+            key: "friendRequestNotificationsEnabled";
+            label: T.tr("settings.enable_friend_request_notifications");
+            checked: SettingsData.notify-friend-request;
+        }
+        Check {
+            key: "friendStartGameNotificationsEnabled";
+            label: T.tr("settings.enable_friend_start_game_notifications");
+            checked: SettingsData.notify-friend-game;
+        }
+        Check {
+            key: "chatMessageNotificationsEnabled";
+            label: T.tr("settings.enable_chat_message_notifications");
+            checked: SettingsData.notify-chat;
+        }
+    }
+    if SettingsData.show-leaderboard: VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.leaderboard_notifications");
+        }
+        HintedCheck {
+            key: "allowLeaderboardNotifications";
+            label: T.tr("settings.enable_leaderboard_notifications");
+            hint: T.tr("settings.enable_leaderboard_notifications_hint");
+            checked: SettingsData.leaderboard-notifications;
+        }
+        HintedCheck {
+            key: "leaderboardSlamEnabled";
+            label: T.tr("settings.enable_leaderboard_slam");
+            hint: T.tr("settings.enable_leaderboard_slam_hint");
+            checked: SettingsData.leaderboard-notifications && SettingsData.leaderboard-slam;
+            enabled: SettingsData.leaderboard-notifications;
+        }
+        HintedCheck {
+            key: "leaderboardDropNotificationsEnabled";
+            label: T.tr("settings.enable_leaderboard_drop_notifications");
+            hint: T.tr("settings.enable_leaderboard_drop_notifications_hint");
+            checked: SettingsData.leaderboard-notifications && SettingsData.leaderboard-drop;
+            enabled: SettingsData.leaderboard-notifications;
+        }
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.achievement_notifications");
+        }
+        Check {
+            key: "achievementNotificationsEnabled";
+            label: T.tr("settings.enable_achievement_notifications");
+            checked: SettingsData.notify-achievements;
+        }
+        Check {
+            key: "achievementCustomNotificationsEnabled";
+            label: T.tr("settings.enable_achievement_custom_notifications");
+            checked: SettingsData.notify-achievements-custom;
+            enabled: SettingsData.notify-achievements;
+        }
+        if SettingsData.notify-achievements && SettingsData.notify-achievements-custom: Labeled {
+            label: T.tr("settings.achievement_custom_notification_position");
+            HorizontalLayout {
+                alignment: start;
+                SelectField {
+                    width: 138px;
+                    popup-id: "settings-position";
+                    options: SettingsData.position-options;
+                    value: SettingsData.position;
+                    current-label: SettingsData.position-label;
+                    selected(value) => {
+                        SettingsData.position-selected(value);
+                    }
+                }
+            }
+        }
+        if SettingsData.notify-achievements && SettingsData.notify-achievements-custom: HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                text: T.tr("settings.test_notification");
+                clicked => {
+                    SettingsData.test-notification();
+                }
+            }
+        }
+        // settings-general__volume-control: gap 12; the slider row is 200px
+        if SettingsData.notify-achievements: VerticalLayout {
+            spacing: 12px;
+            Text {
+                text: T.tr("settings.achievement_sound_volume");
+                font-size: Theme.body-size;
+                color: Theme.muted;
+            }
+            HorizontalLayout {
+                alignment: start;
+                HorizontalLayout {
+                    width: 200px;
+                    spacing: 8px;
+                    VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            width: 16px;
+                            height: 16px;
+                            source: @image-url("../../icons/unmute.svg");
+                            color: Theme.muted;
+                        }
+                    }
+                    VolumeSlider {
+                        horizontal-stretch: 1;
+                        value <=> SettingsData.volume;
+                        changed-by-user(value) => {
+                            SettingsData.volume-changed(value);
+                        }
+                    }
+                    Text {
+                        min-width: 40px;
+                        text: SettingsData.volume + "%";
+                        font-size: Theme.body-size;
+                        font-weight: 500;
+                        color: Theme.body;
+                        horizontal-alignment: right;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// A CheckRow; with a guide, the label reads like GuideLink (text + 12px question icon).
+component RowCheck inherits Rectangle {
+    in property <CheckRow> item;
+    height: 20px;
+    CheckboxField {
+        x: 0;
+        width: root.item.guide == "" ? parent.width : 20px;
+        label: root.item.guide == "" ? root.item.label : "";
+        checked: root.item.checked;
+        toggled => {
+            SettingsData.toggle(root.item.key);
+        }
+    }
+    if root.item.guide != "": HorizontalLayout {
+        x: 28px;
+        spacing: 4px;
+        alignment: start;
+        Text {
+            text: root.item.label;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            vertical-alignment: center;
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    SettingsData.toggle(root.item.key);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 12px;
+                height: 12px;
+                source: @image-url("../../icons/question-12.svg");
+                color: Theme.body;
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        SettingsData.open-guide(root.item.guide);
+                    }
+                }
+            }
+        }
+    }
+}
+
+component RowGroup inherits VerticalLayout {
+    in property <string> title;
+    in property <[CheckRow]> rows;
+    padding-top: 12px;
+    spacing: 12px;
+    GroupTitle {
+        text: root.title;
+    }
+    for entry in root.rows: RowCheck {
+        item: entry;
+    }
+    @children
+}
+
+// hydra-cloud-badge: teal-to-blue gradient (both 30% darker), white 12px
+component HydraCloudBadge inherits Rectangle {
+    height: label.preferred-height;
+    width: label.preferred-width + 16px;
+    border-radius: 4px;
+    background: @linear-gradient(270deg, #0f7c68 50%, #2b4587 100%);
+    label := Text {
+        text: "Hydra Cloud";
+        color: #ffffff;
+        font-size: Theme.small-size;
+    }
+}
+
+// settings-context-content-gameplay.tsx
+component ContentPanel inherits VerticalLayout {
+    spacing: 16px;
+    RowGroup {
+        title: T.tr("settings.content_preferences");
+        rows: SettingsData.content-rows;
+    }
+    RowGroup {
+        title: T.tr("settings.gameplay_metadata");
+        rows: SettingsData.metadata-rows;
+        // achievement souvenirs: a Hydra Cloud feature
+        if SettingsData.has-subscription: Check {
+            key: "enableAchievementSouvenirs";
+            label: T.tr("settings.enable_achievement_souvenirs");
+            checked: SettingsData.souvenirs;
+        }
+        if !SettingsData.has-subscription: HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+            CheckboxField {
+                label: T.tr("settings.enable_achievement_souvenirs");
+                checked: false;
+                enabled: false;
+            }
+            HydraCloudBadge {
+                y: (parent.height - self.height) / 2;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    SettingsData.hydra-cloud();
+                }
+            }
+        }
+        // __screenshots-directory: the field and the open button, 8px apart
+        VerticalLayout {
+        spacing: 8px;
+        Labeled {
+            label: T.tr("settings.screenshots_directory");
+            HorizontalLayout {
+                spacing: 8px;
+                TextField {
+                    text: SettingsData.screenshots-path;
+                    read-only: true;
+                }
+                HydraButton {
+                    kind: "outline";
+                    icon: @image-url("../../icons/file-directory-14.svg");
+                    icon-size: 14px;
+                    text: T.tr("settings.change_screenshots_directory");
+                    enabled: SettingsData.has-subscription && SettingsData.souvenirs;
+                    clicked => {
+                        SettingsData.change-screenshots-path();
+                    }
+                }
+                if SettingsData.custom-screenshots-path: HydraButton {
+                    kind: "outline";
+                    icon: @image-url("../../icons/history-14.svg");
+                    icon-size: 14px;
+                    tooltip: T.tr("settings.reset_screenshots_directory");
+                    enabled: SettingsData.has-subscription && SettingsData.souvenirs;
+                    clicked => {
+                        SettingsData.reset-screenshots-path();
+                    }
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                kind: "outline";
+                icon: @image-url("../../icons/file-directory-14.svg");
+                icon-size: 14px;
+                text: T.tr("settings.open_screenshots_directory");
+                enabled: SettingsData.has-subscription && SettingsData.souvenirs;
+                clicked => {
+                    SettingsData.open-screenshots-path();
+                }
+            }
+        }
+        }
+    }
+    RowGroup {
+        title: T.tr("settings.library_appearance");
+        rows: SettingsData.library-rows;
+    }
+    RowGroup {
+        title: T.tr("settings.classics_appearance");
+        rows: SettingsData.classics-rows;
+    }
+}
+
+// settings-debrid: a collapsible section per provider.
+component DebridSection inherits VerticalLayout {
+    in property <DebridRow> item;
+    // __section--expanded:not(:last-child): margin-bottom 24
+    in property <bool> last;
+    padding-bottom: !root.item.collapsed && !root.last ? 24px : 0;
+    // __section-header: gap 8, margin-bottom 16
+    HorizontalLayout {
+        padding-bottom: 16px;
+        spacing: 8px;
+        alignment: start;
+        collapse := Rectangle {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            background: collapse-touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: Icons.chevron-right;
+                color: collapse-touch.has-hover ? rgba(255, 255, 255, 0.9) : rgba(255, 255, 255, 0.7);
+                rotation-angle: root.item.collapsed ? 0deg : 90deg;
+                animate rotation-angle { duration: 200ms; easing: ease; }
+            }
+            collapse-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    SettingsData.debrid-collapse(root.item.key);
+                }
+            }
+        }
+        Text {
+            text: root.item.title;
+            font-size: 16px;
+            font-weight: 600;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+        if root.item.linked: VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: Icons.check-circle-fill;
+                color: Theme.muted;
+            }
+        }
+    }
+    // settings-real-debrid__form: gap 16
+    if !root.item.collapsed: VerticalLayout {
+        spacing: 16px;
+        VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: root.item.description;
+                font-size: Theme.body-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                alignment: start;
+                spacing: 8px;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: Icons.link-external;
+                        color: Theme.body;
+                    }
+                }
+                Text {
+                    text: root.item.create-label;
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            SettingsData.open-url(root.item.create-url);
+                        }
+                    }
+                }
+            }
+        }
+        CheckboxField {
+            label: root.item.enable-label;
+            checked: root.item.enabled;
+            toggled => {
+                SettingsData.debrid-enable(root.item.key);
+            }
+        }
+        if root.item.enabled: VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: T.tr("settings.api_token");
+                font-size: Theme.body-size;
+                color: Theme.body;
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                TextField {
+                    placeholder: T.tr("settings.api_token");
+                    password: true;
+                    text: root.item.token;
+                    edited(value) => {
+                        SettingsData.debrid-token-edited(root.item.key, value);
+                    }
+                }
+                HydraButton {
+                    text: T.tr("settings.save_changes");
+                    enabled: root.item.token != "" && !root.item.busy;
+                    clicked => {
+                        SettingsData.debrid-save(root.item.key);
+                    }
+                }
+            }
+            // <small> hint with the token page link
+            HorizontalLayout {
+                alignment: start;
+                Text {
+                    text: root.item.hint-before;
+                    font-size: 11.67px;
+                    color: Theme.body;
+                }
+                Text {
+                    text: root.item.hint-link;
+                    font-size: 11.67px;
+                    color: Theme.body;
+                    Rectangle {
+                        y: parent.height - 2px;
+                        height: 1px;
+                        background: Theme.body;
+                    }
+                    TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            SettingsData.open-url(root.item.token-url);
+                        }
+                    }
+                }
+                Text {
+                    text: root.item.hint-after;
+                    font-size: 11.67px;
+                    color: Theme.body;
+                }
+            }
+        }
+    }
+}
+
+// settings-context-integrations.tsx: the Steam, Epic Games and
+// RetroAchievements cards (integrations.slint), then the debrid services.
+component IntegrationsPanel inherits VerticalLayout {
+    // page-max-width(760px) on .container__content
+    in property <bool> narrow;
+    spacing: 16px;
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        for card in IntegrationsData.cards: IntegrationCardView {
+            card: card;
+            narrow: root.narrow;
+        }
+    }
+    // settings-context-panel__divider
+    Rectangle {
+        height: 1px;
+        background: Theme.border;
+    }
+    VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.debrid_services");
+        }
+        // settings-debrid: gap 16; the description has margin-bottom 16
+        VerticalLayout {
+            spacing: 16px;
+            Text {
+                text: T.tr("settings.debrid_description");
+                font-size: Theme.body-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            Rectangle {
+                height: 0;
+            }
+            for provider[i] in SettingsData.debrid: DebridSection {
+                item: provider;
+                last: i == SettingsData.debrid.length - 1;
+            }
+        }
+    }
+}
+
+// A labelled select-field section that saves on change.
+component AccountSelect inherits Labeled {
+    in property <string> key;
+    in property <[SelectOption]> options;
+    in property <string> value;
+    in property <string> popup;
+    in property <string> current-label;
+    HorizontalLayout {
+        alignment: start;
+        SelectField {
+            width: 124px;
+            popup-id: root.popup;
+            options: root.options;
+            value: root.value;
+            current-label: root.current-label;
+            selected(value) => {
+                SettingsData.account-select(root.key, value);
+            }
+        }
+    }
+}
+
+// settings-account.tsx (settings-account__form: gap 16; sections gap 8)
+component AccountPanel inherits VerticalLayout {
+    spacing: 16px;
+    AccountSelect {
+        key: "profileVisibility";
+        label: T.tr("settings.profile_visibility");
+        options: SettingsData.visibility-options;
+        value: SettingsData.profile-visibility;
+        current-label: SettingsData.profile-visibility-label;
+        popup: "settings-profile-visibility";
+    }
+    AccountSelect {
+        key: "souvenirsVisibility";
+        label: T.tr("settings.souvenirs_visibility");
+        options: SettingsData.visibility-options;
+        value: SettingsData.souvenirs-visibility;
+        current-label: SettingsData.souvenirs-visibility-label;
+        popup: "settings-souvenirs-visibility";
+    }
+    if SettingsData.show-screenshot-privacy: AccountSelect {
+        key: "screenshotsVisibility";
+        label: T.tr("screenshots.privacy_screenshots_visibility");
+        options: SettingsData.visibility-options;
+        value: SettingsData.screenshots-visibility;
+        current-label: SettingsData.screenshots-visibility-label;
+        popup: "settings-screenshots-visibility";
+    }
+    if SettingsData.show-comments-policy: AccountSelect {
+        key: "screenshotCommentsPolicy";
+        label: T.tr("screenshots.privacy_screenshot_comments_policy");
+        options: SettingsData.comments-options;
+        value: SettingsData.comments-policy;
+        current-label: SettingsData.comments-policy-label;
+        popup: "settings-comments-policy";
+    }
+    // username / email: h4 (14px bold) over p (20px line)
+    VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: T.tr("settings.current_username");
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.body;
+        }
+        Text {
+            text: SettingsData.username;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            height: 20px;
+            vertical-alignment: center;
+        }
+        Text {
+            text: T.tr("settings.current_email");
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.body;
+        }
+        Text {
+            text: SettingsData.email != "" ? SettingsData.email : T.tr("settings.no_email_account");
+            font-size: Theme.body-size;
+            color: Theme.body;
+            height: 20px;
+            vertical-alignment: center;
+        }
+        // __actions: margin-top 8
+        HorizontalLayout {
+            padding-top: 8px;
+            spacing: 8px;
+            alignment: start;
+            HydraButton {
+                kind: "outline";
+                icon: @image-url("../../icons/mail.svg");
+                text: T.tr("settings.update_email");
+                clicked => {
+                    SettingsData.update-email();
+                }
+            }
+            HydraButton {
+                kind: "outline";
+                icon: @image-url("../../icons/key.svg");
+                text: T.tr("settings.update_password");
+                clicked => {
+                    SettingsData.update-password();
+                }
+            }
+        }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        GroupTitle {
+            text: T.tr("settings.hydra_cloud");
+        }
+        // __subscription-info: small lines, gap 16
+        VerticalLayout {
+            spacing: 16px;
+            for line in SettingsData.cloud-lines: Text {
+                text: line;
+                font-size: 11.67px;
+                color: Theme.body;
+            }
+        }
+        HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                kind: "outline";
+                icon: Icons.cloud;
+                text: SettingsData.cloud-action;
+                clicked => {
+                    SettingsData.open-checkout();
+                }
+            }
+        }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        GroupTitle {
+            text: T.tr("settings.cloud_gifts");
+        }
+        CheckboxField {
+            label: T.tr("settings.allow_cloud_gifts");
+            checked: SettingsData.allow-gifts;
+            enabled: !SettingsData.account-busy;
+            toggled => {
+                SettingsData.account-select("allowCloudGifts", SettingsData.allow-gifts ? "false" : "true");
+            }
+        }
+    }
+    VerticalLayout {
+        spacing: 8px;
+        GroupTitle {
+            text: T.tr("settings.blocked_users");
+        }
+        if SettingsData.blocked.length == 0: Text {
+            text: T.tr("settings.no_users_blocked");
+            font-size: 11.67px;
+            color: Theme.body;
+        }
+        for user in SettingsData.blocked: HorizontalLayout {
+            spacing: 8px;
+            // __user-avatar is grayscale (the image comes in gray)
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: Theme.border;
+                background: Theme.background;
+                clip: true;
+                if user.avatar.width > 0: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: user.avatar;
+                    image-fit: cover;
+                }
+                if user.avatar.width == 0: Icon {
+                    width: 19px;
+                    height: 19px;
+                    source: Icons.person;
+                    color: Theme.muted;
+                }
+            }
+            Text {
+                horizontal-stretch: 1;
+                text: user.name;
+                font-size: Theme.body-size;
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/x-circle-fill.svg");
+                    color: Theme.danger;
+                    opacity: SettingsData.unblocking ? Theme.disabled-opacity : 1;
+                    TouchArea {
+                        enabled: !SettingsData.unblocking;
+                        mouse-cursor: pointer;
+                        clicked => {
+                            SettingsData.unblock(user.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// settings-download-sources.tsx
+component SourcesPanel inherits VerticalLayout {
+    property <bool> busy: SettingsData.sources-syncing || SettingsData.sources-removing;
+    property <bool> empty: SettingsData.sources-loaded && SettingsData.sources.length == 0;
+    spacing: 16px;
+    Text {
+        text: T.tr("settings.download_sources_description");
+        font-size: Theme.body-size;
+        color: Theme.body;
+        wrap: word-wrap;
+    }
+    // settings-download-sources__header: space-between
+    HorizontalLayout {
+        spacing: 8px;
+        HydraButton {
+            kind: "outline";
+            icon: @image-url("../../icons/sync.svg");
+            text: T.tr("settings.sync_download_sources");
+            enabled: !root.empty && !root.busy;
+            clicked => {
+                SettingsData.sync-sources();
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+        HydraButton {
+            kind: "danger";
+            icon: @image-url("../../icons/trash-16.svg");
+            text: T.tr("settings.button_delete_all_sources");
+            enabled: !root.empty && !root.busy;
+            clicked => {
+                SettingsData.remove-all-sources();
+            }
+        }
+        HydraButton {
+            kind: "outline";
+            icon: Icons.plus-circle;
+            text: T.tr("settings.add_download_source");
+            enabled: !root.busy;
+            clicked => {
+                SettingsData.add-source();
+            }
+        }
+    }
+    // settings-download-sources__list: gap 16
+    for source in SettingsData.sources: Rectangle {
+        background: Theme.dark-background;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        opacity: SettingsData.sources-syncing ? Theme.disabled-opacity : source.pending ? 0.6 : 1;
+        animate opacity { duration: 200ms; easing: ease; }
+        height: item.preferred-height + 2px;
+        item := VerticalLayout {
+            x: 1px;
+            width: parent.width - 2px;
+            padding: 16px;
+            spacing: 8px;
+            // __item-header (margin-bottom 8)
+            VerticalLayout {
+                padding-bottom: 8px;
+                spacing: 8px;
+                Text {
+                    text: source.name;
+                    font-size: 21px;
+                    font-weight: 700;
+                    color: Theme.body;
+                }
+                HorizontalLayout {
+                    alignment: start;
+                    spacing: 4px;
+                    Rectangle {
+                        height: status.preferred-height + 10px;
+                        width: status-row.preferred-width + 18px;
+                        border-radius: 6px;
+                        border-width: 1px;
+                        border-color: rgba(255, 255, 255, 0.2);
+                        background: rgba(255, 255, 255, 0.1);
+                        status-row := HorizontalLayout {
+                            alignment: center;
+                            spacing: 4px;
+                            if source.pending: VerticalLayout {
+                                alignment: center;
+                                Icon {
+                                    width: 12px;
+                                    height: 12px;
+                                    source: @image-url("../../icons/sync-12.svg");
+                                    color: Theme.muted;
+                                    transform-rotation: Math.mod(animation-tick() / 1000ms, 1) * 360deg;
+                                }
+                            }
+                            status := Text {
+                                text: source.status-label;
+                                font-size: Theme.tiny-size;
+                                font-weight: 700;
+                                color: Theme.muted;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+                // __navigate-button: underlined <small>
+                HorizontalLayout {
+                    alignment: start;
+                    count := Text {
+                        text: source.count-label;
+                        font-size: 11.67px;
+                        color: Theme.muted;
+                        Rectangle {
+                            y: parent.height - 2px;
+                            height: 1px;
+                            width: parent.width;
+                            background: Theme.muted;
+                            visible: source.fingerprint != "";
+                        }
+                        TouchArea {
+                            mouse-cursor: source.fingerprint != "" ? MouseCursor.pointer : MouseCursor.default;
+                            clicked => {
+                                if (source.fingerprint != "") {
+                                    SettingsData.open-source-in-catalogue(source.fingerprint);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Labeled {
+                label: T.tr("settings.download_source_url");
+                HorizontalLayout {
+                    spacing: 8px;
+                    TextField {
+                        text: source.url;
+                        read-only: true;
+                    }
+                    HydraButton {
+                        kind: "outline";
+                        icon: @image-url("../../icons/no-entry.svg");
+                        text: T.tr("settings.remove_download_source");
+                        enabled: !SettingsData.sources-removing;
+                        clicked => {
+                            SettingsData.remove-source(source.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component SettingsPage inherits Rectangle {
+    // ---- panel scrolling (overflow: auto), with the wheel tween
+    property <length> max-scroll: Math.max(0, panel.content-height - panel.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    property <string> category: SettingsData.category;
+    changed category => {
+        root.tween.active = false;
+        root.scroll-y = 0;
+    }
+    // overflow: auto with a classic 9px scrollbar: it takes its width from
+    // the panel's content while the panel scrolls (set imperatively: the
+    // content height depends on that width)
+    property <bool> scrolls;
+    changed max-scroll => {
+        root.scrolls = root.max-scroll > 0;
+    }
+    init => {
+        root.scrolls = root.max-scroll > 0;
+    }
+
+    // settings__container: padding 24px, inside .container__content's 9px
+    // scrollbar gutter (scrollbar-gutter: stable)
+    box := Rectangle {
+        x: 24px;
+        y: 24px;
+        width: root.width - 48px - 9px;
+        height: root.height - 48px;
+        background: Theme.background;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        drop-shadow-blur: 10px;
+        drop-shadow-color: rgba(0, 0, 0, 0.7);
+        clip: true;
+
+        HorizontalLayout {
+            padding: 1px;
+            // ---- settings__sidebar: max-content width, 220..320px
+            Rectangle {
+                width: Math.clamp(sidebar.preferred-width, 220px, 320px);
+                background: Theme.dark-background;
+                sidebar := VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    alignment: start;
+                    for category in SettingsData.categories: VerticalLayout {
+                        spacing: 8px;
+                        // settings__sidebar-group: divider (margin-bottom 4) + label, padding-top 8
+                        if category.group-start: VerticalLayout {
+                            padding-top: 8px;
+                            spacing: 8px;
+                            Rectangle {
+                                height: 5px;
+                                Rectangle {
+                                    y: 0;
+                                    height: 1px;
+                                    background: rgba(255, 255, 255, 0.06);
+                                }
+                            }
+                            Text {
+                                text: category.group == "classics" ? T.tr("settings.classics_group") : category.group;
+                                font-size: Theme.tiny-size;
+                                font-weight: 600;
+                                color: Theme.subtle;
+                                letter-spacing: 0.8px;
+                                x: 12px;
+                            }
+                        }
+                        SidebarButton {
+                            category: category;
+                            active: SettingsData.category == category.id;
+                            clicked => {
+                                SettingsData.select-category(category.id);
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    x: parent.width - 1px;
+                    width: 1px;
+                    background: Theme.border;
+                }
+            }
+
+            // ---- settings__panel: padding 20px, gap 20px, overflow auto
+            Rectangle {
+                horizontal-stretch: 1;
+                panel := Flickable {
+                    width: parent.width;
+                    height: parent.height;
+                    interactive: false;
+                    viewport-height: column.preferred-height;
+                    viewport-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+                    TouchArea {
+                        width: panel.width;
+                        height: column.preferred-height;
+                        scroll-event(event) => {
+                            root.wheel-by(event.delta-y);
+                            accept
+                        }
+                        column := VerticalLayout {
+                            x: 0;
+                            width: panel.width - (root.scrolls ? 9px : 0);
+                            padding: 20px;
+                            spacing: 20px;
+                            alignment: start;
+                            if SettingsData.category != "emulation": Text {
+                                text: SettingsData.category-label;
+                                font-size: 21px;
+                                font-weight: 700;
+                                color: Theme.body;
+                                height: 28px;
+                                vertical-alignment: center;
+                            }
+                            if SettingsData.category == "general": GeneralPanel { }
+                            if SettingsData.category == "downloads": DownloadsPanel { }
+                            if SettingsData.category == "download_sources": SourcesPanel { }
+                            if SettingsData.category == "notifications": NotificationsPanel { }
+                            if SettingsData.category == "content_gameplay": ContentPanel { }
+                            if SettingsData.category == "account_privacy" && SettingsData.account-loaded: AccountPanel { }
+                            if SettingsData.category == "integrations": IntegrationsPanel {
+                                narrow: root.width <= 760px;
+                            }
+                            if SettingsData.category == "screenshots": ScreenshotsPanel { }
+                            if SettingsData.category == "compatibility": CompatibilityPanel { }
+                            if SettingsData.category == "emulation": EmulationPanel { }
+                        }
+                    }
+                }
+                if root.max-scroll > 0: ScrollBar {
+                    x: parent.width - self.width;
+                    height: parent.height;
+                    content-height: panel.viewport-height;
+                    viewport-height: panel.height;
+                    content-y <=> root.scroll-y;
+                    shown-offset: -panel.viewport-y;
+                }
+            }
+        }
+    }
+
+}

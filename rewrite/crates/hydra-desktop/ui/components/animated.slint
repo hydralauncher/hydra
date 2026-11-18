@@ -1,0 +1,18 @@
+// Animated GIFs the renderer shows with <img> (home flame and stars).
+// The backend decodes the frames at display size (gifs.rs).
+
+export global Gifs {
+    in property <[image]> flame;
+    in property <[image]> stars;
+    // GIF frame delay: both files use 20ms for every frame.
+    out property <duration> frame-time: 20ms;
+}
+
+export component AnimatedImage inherits Image {
+    in property <[image]> frames;
+    in property <bool> playing: true;
+    // Reads animation-tick() only while playing, so a paused GIF costs no frames.
+    property <int> index: !root.playing || root.frames.length == 0 ? 0 : Math.mod(Math.floor(animation-tick() / Gifs.frame-time), root.frames.length);
+    source: root.frames.length == 0 ? @image-url("") : root.frames[root.index];
+    image-fit: contain;
+}

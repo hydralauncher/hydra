@@ -1,0 +1,125 @@
+// game-details-content.tsx + hero.scss: the classics "bookmark", five rainbow
+// bands across the hero's top-right corner. Each band is 382×14.405px (500px
+// for blue) rotated 45°, centred in a 320.301×280.301 box placed by `right` /
+// `top` from the corner. Dark shadow bands sit under the coloured ones; the
+// coloured bands fill in (clip-path inset, 320ms, 120ms apart) and show
+// tv-effect.mp4 with mix-blend-mode overlay at 0.3 opacity, composited per
+// band colour in Rust (classics_bookmark.rs).
+
+// Frames of the composited bands, set every video frame from Rust.
+export global Bookmark {
+    in property <image> red;
+    in property <image> orange;
+    in property <image> yellow;
+    in property <image> green;
+    in property <image> blue;
+}
+
+component Band inherits Rectangle {
+    // Centre of the band, relative to the hero.
+    in property <length> cx;
+    in property <length> cy;
+    in property <length> band-width: 382px;
+    in property <color> band-color;
+    in property <image> frame;
+    in property <bool> shadow;
+    // clip-path fill-in: 0 hidden .. 1 whole band
+    in property <float> reveal: 1;
+    in property <bool> rtl;
+
+    x: self.cx - self.band-width / 2;
+    y: self.cy - 14.405px / 2;
+    width: self.band-width;
+    height: 14.405px;
+    // The root of a component cannot rotate, so the band is a child.
+    Rectangle {
+        transform-rotation: 45deg;
+        // .game-details__hero-classics-stripe--blue: 0 4px 16px rgba(115, 0, 164, 0.24);
+        // a clip-path removes it from the coloured band, so only the shadow band shows it.
+        if root.shadow && root.band-width > 400px: Rectangle {
+            drop-shadow-offset-y: 4px;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: rgba(115, 0, 164, 0.24);
+            background: rgba(0, 0, 0, 0.55);
+        }
+        if root.shadow && root.band-width <= 400px: Rectangle {
+            background: rgba(0, 0, 0, 0.55);
+        }
+        // inset 0 -1px 1px 0 rgba(255, 255, 255, 0.25)
+        if root.shadow: Rectangle {
+            y: parent.height - 1.5px;
+            height: 1.5px;
+            background: @linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.21) 100%);
+        }
+
+        if !root.shadow: Rectangle {
+            x: root.rtl ? (1 - root.reveal) * root.band-width : 0;
+            width: root.reveal * root.band-width;
+            clip: true;
+            Rectangle {
+                x: -parent.x;
+                width: root.band-width;
+                height: root.height;
+                background: root.band-color;
+                Rectangle {
+                    y: parent.height - 1.5px;
+                    height: 1.5px;
+                    background: @linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.21) 100%);
+                }
+                // The colour, the inset highlight and the video, composited (classics_bookmark.rs).
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.frame;
+                    image-fit: fill;
+                }
+            }
+        }
+    }
+}
+
+export component ClassicsBookmark inherits Rectangle {
+    // .game-details__hero-bookmark: inset 0, overflow hidden, radius 0 0 8px 8px
+    clip: true;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+
+    property <bool> started;
+    property <length> w: root.width;
+    // classics-stripe-fill-*: 320ms cubic-bezier(0.33, 1, 0.68, 1) both, delays 0..480ms
+    property <float> reveal-1: root.started ? 1 : 0;
+    property <float> reveal-2: root.started ? 1 : 0;
+    property <float> reveal-3: root.started ? 1 : 0;
+    property <float> reveal-4: root.started ? 1 : 0;
+    property <float> reveal-5: root.started ? 1 : 0;
+    animate reveal-1 { duration: 320ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+    animate reveal-2 { duration: 320ms; delay: 120ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+    animate reveal-3 { duration: 320ms; delay: 240ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+    animate reveal-4 { duration: 320ms; delay: 360ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+    animate reveal-5 { duration: 320ms; delay: 480ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+
+    // The animation starts when the bookmark mounts.
+    Timer {
+        interval: 1ms;
+        running: !root.started;
+        triggered => {
+            root.started = true;
+        }
+    }
+
+    // Box centres: right edge at w - right, so cx = w - right - 160.1505px;
+    // cy = top + 140.1505px.
+    // Shadow bands (DOM order: orange, red, yellow, green, blue)
+    Band { shadow: true; cx: root.w - 44.1505px; cy: 71.1505px; }
+    Band { shadow: true; cx: root.w - 32.9205px; cy: 56.3105px; }
+    Band { shadow: true; cx: root.w - 58.9205px; cy: 82.3105px; }
+    Band { shadow: true; cx: root.w - 71.9205px; cy: 95.3105px; }
+    Band { shadow: true; cx: root.w - 84.9205px; cy: 108.3105px; band-width: 500px; }
+
+    // Coloured bands (DOM order: red, orange, yellow, green, blue)
+    Band { cx: root.w - 32.9205px; cy: 56.3105px; band-color: #f8c802; frame: Bookmark.red; rtl: true; reveal: root.reveal-1; }
+    Band { cx: root.w - 44.1505px; cy: 71.1505px; band-color: #fc5812; frame: Bookmark.orange; rtl: false; reveal: root.reveal-2; }
+    Band { cx: root.w - 58.9205px; cy: 82.3105px; band-color: #fb0026; frame: Bookmark.yellow; rtl: true; reveal: root.reveal-3; }
+    Band { cx: root.w - 71.9205px; cy: 95.3105px; band-color: #c80078; frame: Bookmark.green; rtl: false; reveal: root.reveal-4; }
+    Band { cx: root.w - 84.9205px; cy: 108.3105px; band-width: 500px; band-color: #7300a4; frame: Bookmark.blue; rtl: true; reveal: root.reveal-5; }
+}

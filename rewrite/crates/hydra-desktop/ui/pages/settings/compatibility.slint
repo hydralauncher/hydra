@@ -1,0 +1,286 @@
+// settings-context-compatibility.tsx (+ .scss): the Linux defaults (Wine
+// prefix, Proton version, GameMode / MangoHud) and, on Windows, the common
+// redistributables. Rust fills `CompatibilityData` (settings_compatibility.rs).
+import { Theme } from "../../theme.slint";
+import { Icon, HydraButton } from "../../components/widgets.slint";
+import { TextField, CheckboxField } from "../../components/fields.slint";
+import { T } from "../../globals.slint";
+
+export struct ProtonOption {
+    // "" is the automatic (UMU default) choice
+    path: string,
+    name: string,
+    // the tooltip: where the version comes from
+    source: string,
+}
+
+export global CompatibilityData {
+    in property <bool> linux;
+    in property <bool> windows;
+    // ---- common redistributables (Windows)
+    in property <bool> can-install;
+    in property <bool> installing;
+    callback install();
+    // ---- Linux
+    in property <string> wine-prefix;
+    in property <bool> custom-wine-prefix;
+    in property <[ProtonOption]> proton-versions;
+    in property <string> proton-path;
+    in property <bool> gamemode-available;
+    in property <bool> mangohud-available;
+    in property <bool> gamemode;
+    in property <bool> mangohud;
+    callback change-wine-prefix();
+    callback clear-wine-prefix();
+    callback proton-selected(string);
+    callback toggle(string);
+    callback open-url(string);
+}
+
+component GroupTitle inherits Text {
+    font-size: 16.38px;
+    font-weight: 700;
+    color: Theme.body;
+    height: 22px;
+    vertical-alignment: center;
+}
+
+// radio-field: a 20px ring, the 8px white dot scales in (0.15s)
+component Radio inherits Rectangle {
+    in property <string> label;
+    in property <string> tip;
+    in property <bool> checked;
+    callback picked();
+    // proton-path-picker__option: padding 4px 0
+    height: 24px + 8px;
+    HorizontalLayout {
+        padding-top: 4px;
+        padding-bottom: 4px;
+        spacing: 8px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: root.checked ? Theme.body : Theme.border;
+                background: Theme.dark-background;
+                animate border-color { duration: 200ms; easing: ease; }
+                Rectangle {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 4px;
+                    background: #ffffff;
+                    opacity: root.checked ? 1 : 0;
+                    transform-scale: root.checked ? 1 : 0;
+                    animate opacity, transform-scale { duration: 150ms; easing: ease; }
+                }
+            }
+        }
+        // __option-label: dotted underline (offset 2px), line-height 1.2
+        Text {
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            vertical-alignment: center;
+            Rectangle {
+                y: parent.height / 2 + 9px;
+                height: 1px;
+                background: @linear-gradient(90deg, Theme.body 50%, transparent 50%);
+            }
+        }
+    }
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.picked();
+        }
+    }
+}
+
+// The GameMode / MangoHud toggle: "Run with" + an external link; disabled
+// (dotted underline + tooltip) when the tool isn't in PATH.
+component ToolToggle inherits HorizontalLayout {
+    in property <string> key;
+    in property <string> prefix;
+    in property <string> tool;
+    in property <string> url;
+    in property <bool> available;
+    in property <bool> checked;
+    in property <string> unavailable-tip;
+    spacing: 8px;
+    alignment: start;
+    CheckboxField {
+        label: "";
+        width: 20px;
+        checked: root.checked;
+        enabled: root.available;
+        toggled => {
+            CompatibilityData.toggle(root.key);
+        }
+    }
+    HorizontalLayout {
+        spacing: 4px;
+        opacity: root.available ? 1 : Theme.disabled-opacity;
+        Text {
+            text: root.prefix;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            vertical-alignment: center;
+        }
+        HorizontalLayout {
+            spacing: 2px;
+            Text {
+                text: root.tool;
+                font-size: Theme.body-size;
+                color: #c0c1c7;
+                vertical-alignment: center;
+                TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        CompatibilityData.open-url(root.url);
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/link-external-16.svg");
+                    color: #c0c1c7;
+                }
+            }
+        }
+    }
+}
+
+export component CompatibilityPanel inherits VerticalLayout {
+    spacing: 16px;
+    if CompatibilityData.linux: VerticalLayout {
+        padding-top: 12px;
+        // __stack: gap 16, padding-top 4
+        VerticalLayout {
+            padding-top: 4px;
+            spacing: 16px;
+            // the default Wine prefix (a read-only text field + Change / Clear)
+            VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: T.tr("settings.default_wine_prefix");
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    height: 19px;
+                    vertical-alignment: center;
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    TextField {
+                        primary: true;
+                        read-only: true;
+                        text: CompatibilityData.wine-prefix;
+                        placeholder: T.tr("settings.no_directory_selected");
+                    }
+                    HydraButton {
+                        kind: "outline";
+                        text: T.tr("settings.change");
+                        clicked => {
+                            CompatibilityData.change-wine-prefix();
+                        }
+                    }
+                    if CompatibilityData.custom-wine-prefix: HydraButton {
+                        kind: "outline";
+                        text: T.tr("settings.clear");
+                        clicked => {
+                            CompatibilityData.clear-wine-prefix();
+                        }
+                    }
+                }
+            }
+            // __proton-section: description (12px muted), the picker (gap 4)
+            VerticalLayout {
+                spacing: 4px;
+                Text {
+                    text: T.tr("settings.default_proton_version_description");
+                    font-size: Theme.small-size;
+                    color: Theme.muted;
+                    wrap: word-wrap;
+                }
+                VerticalLayout {
+                    spacing: 4px;
+                    Radio {
+                        label: T.tr("settings.proton_version_auto");
+                        checked: CompatibilityData.proton-path == "";
+                        picked => {
+                            CompatibilityData.proton-selected("");
+                        }
+                    }
+                    for version in CompatibilityData.proton-versions: Radio {
+                        label: version.name;
+                        checked: CompatibilityData.proton-path == version.path;
+                        picked => {
+                            CompatibilityData.proton-selected(version.path);
+                        }
+                    }
+                }
+            }
+            // __global-toggles: padding-top 4, gap 12
+            VerticalLayout {
+                padding-top: 4px;
+                spacing: 12px;
+                Text {
+                    text: T.tr("settings.behavior");
+                    font-size: Theme.body-size;
+                    font-weight: 700; // 600 in scss
+                    color: Theme.body;
+                }
+                ToolToggle {
+                    key: "autoRunGamemode";
+                    prefix: T.tr("game_details.run_with_gamemode_prefix");
+                    tool: "GameMode";
+                    url: "https://github.com/FeralInteractive/gamemode";
+                    available: CompatibilityData.gamemode-available;
+                    checked: CompatibilityData.gamemode;
+                }
+                ToolToggle {
+                    key: "autoRunMangohud";
+                    prefix: T.tr("game_details.run_with_mangohud_prefix");
+                    tool: "MangoHud";
+                    url: "https://github.com/flightlessmango/MangoHud";
+                    available: CompatibilityData.mangohud-available;
+                    checked: CompatibilityData.mangohud;
+                }
+            }
+        }
+    }
+    // settings-context-panel__group: h3, the description, the button
+    if CompatibilityData.windows: VerticalLayout {
+        padding-top: 12px;
+        spacing: 12px;
+        GroupTitle {
+            text: T.tr("settings.common_redist");
+        }
+        Text {
+            text: T.tr("settings.common_redist_description");
+            font-size: Theme.body-size;
+            color: Theme.body;
+            wrap: word-wrap;
+            // p { line-height: 20px }
+            vertical-alignment: center;
+            height: Math.max(1, Math.round(self.preferred-height / (14px * 1.362))) * 20px;
+        }
+        HorizontalLayout {
+            alignment: start;
+            HydraButton {
+                icon: @image-url("../../icons/desktop-download.svg");
+                text: CompatibilityData.installing ? T.tr("settings.installing_common_redist") : T.tr("settings.install_common_redist");
+                enabled: CompatibilityData.can-install && !CompatibilityData.installing;
+                clicked => {
+                    CompatibilityData.install();
+                }
+            }
+        }
+    }
+}

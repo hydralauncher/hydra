@@ -1,0 +1,18 @@
+// A plain BrowserWindow for third-party sign-in pages (the Steam OpenID
+// window, steam-store-session.ts openSteamOpenIdWindow): an OS webview
+// (wry) attached as a child fills it. Rust follows the page title like
+// Electron's default BrowserWindow title and resizes the webview with it.
+export component WebWindow inherits Window {
+    in property <string> page-title;
+    title: root.page-title != "" ? root.page-title : "Hydra";
+    preferred-width: 600px;
+    preferred-height: 800px;
+    background: #ffffff;
+    callback resized(length, length);
+    changed width => {
+        root.resized(self.width, self.height);
+    }
+    changed height => {
+        root.resized(self.width, self.height);
+    }
+}

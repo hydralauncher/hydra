@@ -1,0 +1,453 @@
+// src/renderer/src/pages/library/library.{tsx,scss}: toolbar, empty states
+// and the virtualized grid (rows of `columnsCount`, overscan 3).
+import { Theme } from "../../theme.slint";
+import { HydraButton, Skeleton, ScrollBar, Icon } from "../../components/widgets.slint";
+import { T, Popup } from "../../globals.slint";
+import { LibraryData, LibraryCard } from "state.slint";
+import { LibraryGameCard } from "card.slint";
+import { LibraryGameCardLarge } from "card-large.slint";
+import { CategoryFilter, MenuTrigger, ToolbarIcons } from "toolbar.slint";
+import { DisplayMenu, FiltersMenu } from "menus.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+
+export global EmptyIcons {
+    out property <image> telescope: @image-url("../../icons/telescope-24.svg");
+    out property <image> heart: @image-url("../../icons/heart-24.svg");
+    out property <image> folder: @image-url("../../icons/file-directory-24.svg");
+    out property <image> search: @image-url("../../icons/search-24.svg");
+    out property <image> sync: @image-url("../../icons/sync-24.svg");
+}
+
+// .library__empty / .library__no-games
+export component EmptyState inherits VerticalLayout {
+    in property <image> icon;
+    in property <bool> spinning;
+    in property <string> title;
+    in property <string> description;
+    alignment: center;
+    spacing: 8px;
+
+    if root.icon.width > 0: HorizontalLayout {
+        alignment: center;
+        padding-bottom: 16px;
+        Rectangle {
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.06);
+            Icon {
+                width: 24px;
+                height: 24px;
+                source: root.icon;
+                color: Theme.muted;
+                // library-classics-spin 1s linear infinite
+                transform-rotation: root.spinning ? Math.mod(animation-tick() / 1s, 1) * 360deg : 0deg;
+            }
+        }
+    }
+    // h2: 21px bold, line box 28px
+    Text {
+        height: 28px;
+        text: root.title;
+        font-size: 21px;
+        font-weight: 700;
+        color: Theme.body;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    if root.description != "": Text {
+        min-height: 20px;
+        text: root.description;
+        font-size: Theme.body-size;
+        color: Theme.body;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+}
+
+export component LibraryPage inherits Rectangle {
+    in property <float> wheel-scale: 1;
+    // .container__content keeps a 9px scrollbar gutter (scrollbar-gutter: stable).
+    property <length> section-width: root.width - 9px;
+    property <bool> header-hidden;
+    // .library__content--header-hidden / .library__page-header--hidden apply only with games.
+    property <bool> collapsed: root.header-hidden && LibraryData.has-games;
+    property <length> pad-top: root.collapsed ? 8px : 16px;
+    animate pad-top { duration: 250ms; easing: ease; }
+    property <length> header-height: root.collapsed ? 0 : toolbar.height;
+    animate header-height { duration: 250ms; easing: ease; }
+    property <length> header-margin: root.collapsed ? -24px : 0;
+    animate header-margin { duration: 250ms; easing: ease; }
+    property <float> header-opacity: root.collapsed ? 0 : 1;
+    animate header-opacity { duration: 200ms; easing: ease; }
+
+    // ---- grid geometry (library.tsx)
+    property <bool> large: LibraryData.view-mode == "large";
+    property <length> scroll-x: 20px;
+    property <length> scroll-y: root.pad-top + root.header-height + 24px + root.header-margin - 4px;
+    property <length> scroll-width: root.section-width - 24px;
+    property <length> scroll-height: root.height - root.scroll-y + 4px;
+    property <length> viewport: root.scroll-height;
+    property <int> count: LibraryData.cards.length;
+    // contentRect width without / with the 9px scrollbar.
+    property <length> full-width: root.scroll-width - 8px;
+    property <bool> overflows: root.total-for(root.full-width) > root.viewport;
+    property <length> content-width: root.overflows ? root.full-width - 9px : root.full-width;
+    property <int> columns: root.columns-for(root.content-width);
+    property <length> row-step: root.step-for(root.content-width, root.columns);
+    // Rows end GAP before the right edge (`right: GAP`).
+    property <length> card-width: (root.content-width - 16px - 16px * (root.columns - 1)) / root.columns;
+    property <length> card-height: root.large ? 300px : root.card-width * 1.5;
+    property <int> row-count: Math.ceil(root.count / root.columns);
+    property <length> total-height: root.row-count * root.row-step + 8px;
+    property <length> max-scroll: Math.max(0, root.total-height - root.viewport);
+    // The scroll target; `offset` is what is shown, which trails the target
+    // while a wheel tween runs.
+    property <length> content-y;
+    property <ScrollTween> tween;
+    property <length> offset: root.tween.active ? -SmoothScroll.value(root.tween, animation-tick()) : -root.content-y;
+    property <int> first-row: Math.max(0, Math.floor((root.offset - 4px) / root.row-step) - 3);
+    property <int> rendered-rows: Math.max(0, Math.min(root.row-count - root.first-row, Math.ceil(root.viewport / root.row-step) + 7));
+    property <int> first-card: root.first-row * root.columns;
+    property <int> last-card: Math.min(root.count, (root.first-row + root.rendered-rows) * root.columns);
+    property <int> slots: Math.max(1, Math.min(root.count, (Math.ceil(root.viewport / root.row-step) + 7) * root.columns));
+    property <int> card-px: Math.round(root.card-width / 1phx);
+    property <int> card-px-h: Math.round(root.card-height / 1phx);
+    property <int> reset: LibraryData.scroll-reset;
+
+    // getColumnsCount: COLUMN_BREAKPOINTS [3000, 2600, 2000, 1300, 900]
+    pure function columns-for(width: length) -> int {
+        if (root.large) {
+            return width >= 900px ? 2 : 1;
+        }
+        if (LibraryData.view-mode == "grid") {
+            return width >= 3000px ? 12 : width >= 2600px ? 8 : width >= 2000px ? 6 : width >= 1300px ? 5 : width >= 900px ? 4 : 2;
+        }
+        return width >= 3000px ? 14 : width >= 2600px ? 12 : width >= 2000px ? 9 : width >= 1300px ? 7 : width >= 900px ? 5 : 3;
+    }
+
+    // estimatedRowHeight: rows are never measured, so this is the row pitch.
+    pure function step-for(width: length, columns: int) -> length {
+        if (root.large) {
+            return 300px + 16px;
+        }
+        return Math.round((width - 16px * (columns - 1)) / columns * 1.5 / 1px) * 1px + 16px;
+    }
+
+    pure function total-for(width: length) -> length {
+        return Math.ceil(root.count / root.columns-for(width)) * root.step-for(width, root.columns-for(width)) + 8px;
+    }
+
+    function report-range() {
+        LibraryData.visible-range(root.first-card, root.last-card);
+    }
+
+    changed first-card => {
+        root.report-range();
+    }
+    changed last-card => {
+        root.report-range();
+    }
+    changed card-px => {
+        LibraryData.card-width-changed(root.card-px, root.card-px-h);
+    }
+    changed card-px-h => {
+        LibraryData.card-width-changed(root.card-px, root.card-px-h);
+    }
+    changed count => {
+        root.content-y = -Math.min(root.offset, root.max-scroll);
+        root.report-range();
+    }
+    // Anything else that moves the scroller (scrollbar drag, a new list) ends the tween.
+    changed offset => {
+        if (LibraryData.trace) {
+            LibraryData.shown-offset = root.offset;
+        }
+    }
+    changed content-y => {
+        if (root.tween.active && root.content-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    changed reset => {
+        root.content-y = 0;
+        root.header-hidden = false;
+    }
+    init => {
+        LibraryData.card-width-changed(root.card-px, root.card-px-h);
+        root.report-range();
+    }
+
+    // ---- .library__page-header: collapses (grid-template-rows 1fr -> 0fr) on scroll down
+    Rectangle {
+        x: 24px;
+        y: root.pad-top;
+        width: root.section-width - 48px;
+        height: root.header-height;
+        clip: true;
+        opacity: root.header-opacity;
+        // visibility: hidden after the transition: no hit testing while hidden.
+        visible: !root.collapsed || self.opacity > 0;
+
+        toolbar := Rectangle {
+            property <length> left-width: left.preferred-width;
+            property <length> actions-width: actions.preferred-width;
+            // flex-wrap: the actions drop to a second line when both don't fit.
+            property <bool> wraps: LibraryData.show-controls && self.left-width + 8px + self.actions-width > self.width;
+            y: 0;
+            height: self.wraps ? 88px : 40px;
+
+            left := HorizontalLayout {
+                x: 0;
+                y: 0;
+                height: 40px;
+                width: self.preferred-width;
+                spacing: 8px;
+                if LibraryData.show-controls: CategoryFilter {
+                    category: LibraryData.category;
+                    all-label: T.tr("library.category_all");
+                    pc-label: T.tr("library.category_pc");
+                    classics-label: T.tr("library.category_classics");
+                    changed-category(value) => {
+                        LibraryData.set-category(value);
+                    }
+                }
+                if LibraryData.show-controls: MenuTrigger {
+                    icon: ToolbarIcons.filter;
+                    label: T.tr("library.filters");
+                    dot: LibraryData.filters-active;
+                    open: Popup.open == "library-filters";
+                    clicked => {
+                        Popup.toggle("library-filters", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                    }
+                }
+            }
+
+            // .library__actions (margin-left: auto)
+            actions := HorizontalLayout {
+                x: parent.width - self.width;
+                y: toolbar.wraps ? 48px : 0;
+                height: 40px;
+                width: self.preferred-width;
+                spacing: 8px;
+                if LibraryData.show-controls: MenuTrigger {
+                    icon: ToolbarIcons.sort-desc;
+                    label: LibraryData.sort-by == "recently_played" ? T.tr("library.recently_played")
+                        : LibraryData.sort-by == "most_played" ? T.tr("library.sort_most_played")
+                        : LibraryData.sort-by == "achievements" ? T.tr("library.sort_achievements")
+                        : LibraryData.sort-by == "installed_first" ? T.tr("library.sort_installed_first")
+                        : LibraryData.sort-by == "title_desc" ? T.tr("library.sort_title_desc")
+                        : T.tr("library.sort_title_asc");
+                    chevron: true;
+                    open: Popup.open == "library-display";
+                    clicked => {
+                        Popup.toggle("library-display", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                    }
+                }
+                if LibraryData.scan-supported: HydraButton {
+                    kind: "outline";
+                    width: 40px;
+                    horizontal-padding: 0;
+                    icon: ToolbarIcons.sync;
+                    tooltip: T.tr("header.scan_games_tooltip");
+                    tooltip-place: "bottom";
+                    // library-action-spin 2s linear infinite
+                    icon-rotation: LibraryData.scanning ? Math.mod(animation-tick() / 2s, 1) * 360deg : 0deg;
+                    clicked => {
+                        LibraryData.scan();
+                    }
+                }
+                HydraButton {
+                    kind: "primary";
+                    icon: ToolbarIcons.plus;
+                    text: T.tr("header.add_game");
+                    clicked => {
+                        LibraryData.add-game();
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- empty states (flex: 1 next to the empty scroll area: the top half of the room)
+    property <length> empty-top: root.pad-top + root.header-height + 24px + root.header-margin;
+    property <length> empty-room: (root.height - root.empty-top - 24px) / 2;
+
+    if LibraryData.empty-state == "no-games": EmptyState {
+        x: 24px;
+        y: root.empty-top;
+        width: root.section-width - 24px;
+        height: root.height - root.empty-top - 24px;
+        padding: 32px;
+        icon: EmptyIcons.telescope;
+        title: T.tr("library.no_games_title");
+        description: T.tr("library.no_games_description");
+    }
+    if LibraryData.empty-state != "" && LibraryData.empty-state != "no-games": EmptyState {
+        x: 24px;
+        y: root.empty-top;
+        width: root.section-width - 24px;
+        height: root.empty-room;
+        icon: LibraryData.empty-state == "classics-importing" ? EmptyIcons.sync
+            : LibraryData.empty-state == "favorites" ? EmptyIcons.heart
+            : LibraryData.empty-state == "collection" || LibraryData.empty-state == "hidden" ? EmptyIcons.folder
+            : LibraryData.empty-state == "no-results" ? EmptyIcons.search
+            : @image-url("");
+        spinning: LibraryData.empty-state == "classics-importing";
+        title: LibraryData.empty-state == "classics-importing" ? T.tr("library.importing_classics_title")
+            : LibraryData.empty-state == "favorites" ? T.tr("library.empty_favorites_title")
+            : LibraryData.empty-state == "collection" ? T.tr("library.empty_collection_title")
+            : LibraryData.empty-state == "hidden" ? T.tr("library.empty_hidden_title")
+            : LibraryData.empty-state == "hidden-loading" ? T.tr("library.loading")
+            : LibraryData.empty-state == "hidden-failed" ? T.tr("library.hidden_games_load_failed")
+            : T.tr("library.no_results");
+        description: LibraryData.empty-state == "classics-importing" ? T.tr("library.importing_classics_description")
+            : LibraryData.empty-state == "favorites" ? T.tr("library.empty_favorites_description")
+            : LibraryData.empty-state == "collection" ? T.tr("library.empty_collection_description")
+            : LibraryData.empty-state == "hidden" ? T.tr("library.empty_hidden_description")
+            : LibraryData.empty-state == "no-results" ? T.tr("library.no_results_description")
+            : "";
+    }
+
+    // ---- .library__games-scroll (padding 4px, margin -4px)
+    scroll := Rectangle {
+        x: root.scroll-x;
+        y: root.scroll-y;
+        width: root.scroll-width;
+        height: root.scroll-height;
+        clip: true;
+
+        wheel := TouchArea {
+            scroll-event(event) => {
+                // useCloseOnLibraryScroll: the toolbar menus close on wheel.
+                if (Popup.open == "library-filters" || Popup.open == "library-display" || Popup.open == "context-menu") {
+                    Popup.open = "";
+                }
+                // The first wheel down hides the toolbar, the first wheel up brings it back;
+                // neither scrolls.
+                if (event.delta-y < 0 && !root.header-hidden) {
+                    root.header-hidden = true;
+                    return accept;
+                }
+                if (event.delta-y > 0 && root.header-hidden) {
+                    root.header-hidden = false;
+                    return accept;
+                }
+                if (SmoothScroll.lines) {
+                    root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.content-y, event.delta-y * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+                    root.content-y = root.tween.to;
+                } else {
+                    root.tween.active = false;
+                    root.content-y = -Math.clamp(root.offset - event.delta-y * SmoothScroll.wheel-scale, 0, root.max-scroll);
+                }
+                accept
+            }
+        }
+
+        // LibraryGamesSkeleton: columns x max(2, ceil(innerHeight / estimatedRowHeight)), gap 16
+        if LibraryData.loading: Rectangle {
+            property <int> rows: Math.max(2, Math.ceil((root.height + 40px) / root.row-step));
+            for k in self.rows * root.columns: Skeleton {
+                property <int> cell-row: Math.floor(k / root.columns);
+                property <int> cell-col: Math.mod(k, root.columns);
+                x: 4px + self.cell-col * (root.card-width + 16px);
+                y: 4px + self.cell-row * (root.card-height + 16px) - root.offset;
+                width: root.card-width;
+                height: root.card-height;
+                radius: root.large ? 8px : 4px;
+            }
+        }
+
+        if !LibraryData.loading && LibraryData.empty-state == "" && !root.large: Rectangle {
+            // Recycled slots: when a row scrolls out, only that row's slots take new
+            // games; the others keep theirs, so nothing else re-binds.
+            for k in root.slots: LibraryGameCard {
+                property <int> index: root.first-card + Math.mod(k - root.first-card, root.slots);
+                visible: self.index < root.last-card;
+                property <int> cell-row: Math.floor(self.index / root.columns);
+                property <int> cell-col: Math.mod(self.index, root.columns);
+                x: 4px + self.cell-col * (root.card-width + 16px);
+                y: 4px + self.cell-row * root.row-step - root.offset;
+                width: root.card-width;
+                height: root.card-height;
+                card: LibraryData.cards[self.index];
+                clicked => {
+                    LibraryData.open-card(self.index);
+                }
+                context-menu(x, y) => {
+                    LibraryData.card-context-menu(self.index, x, y);
+                }
+            }
+        }
+
+        if !LibraryData.loading && LibraryData.empty-state == "" && root.large: Rectangle {
+            // Recycled slots: when a row scrolls out, only that row's slots take new
+            // games; the others keep theirs, so nothing else re-binds.
+            for k in root.slots: LibraryGameCardLarge {
+                property <int> index: root.first-card + Math.mod(k - root.first-card, root.slots);
+                visible: self.index < root.last-card;
+                property <int> cell-row: Math.floor(self.index / root.columns);
+                property <int> cell-col: Math.mod(self.index, root.columns);
+                x: 4px + self.cell-col * (root.card-width + 16px);
+                y: 4px + self.cell-row * root.row-step - root.offset;
+                width: root.card-width;
+                height: root.card-height;
+                card: LibraryData.cards[self.index];
+                clicked => {
+                    LibraryData.open-card(self.index);
+                }
+                context-menu(x, y) => {
+                    LibraryData.card-context-menu(self.index, x, y);
+                }
+            }
+        }
+
+        // .library__scroll-shadow--visible: scrolled with the toolbar hidden
+        Rectangle {
+            x: 0;
+            y: 0;
+            width: root.overflows ? parent.width - 9px : parent.width;
+            height: 40px;
+            background: @linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.22) 35%, rgba(0, 0, 0, 0.08) 65%, transparent 100%);
+            opacity: root.offset > 0 && root.header-hidden ? 1 : 0;
+            animate opacity { duration: 200ms; easing: ease; }
+        }
+
+        if root.overflows && !LibraryData.loading && LibraryData.empty-state == "": ScrollBar {
+            x: parent.width - self.width;
+            height: parent.height;
+            content-height: root.total-height;
+            viewport-height: root.viewport;
+            content-y <=> root.content-y;
+            shown-offset: root.offset;
+        }
+    }
+
+    if Popup.open == "library-display": DisplayMenu {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        room-width: root.width;
+        room-height: root.height;
+        page-x: root.absolute-position.x;
+    }
+    if Popup.open == "library-filters": FiltersMenu {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        room-width: root.width;
+        room-height: root.height;
+        page-x: root.absolute-position.x;
+    }
+}

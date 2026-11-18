@@ -1,0 +1,361 @@
+// pages/retroachievements-connection-window (+ .scss): its own 600x640
+// window (window-manager.ts openRetroAchievementsConnectionWindow). The
+// backend (retroachievements.rs) loads the saved values and submits.
+import { Theme } from "theme.slint";
+import { Icon, HydraButton } from "components/widgets.slint";
+
+
+// text-field (theme "primary"): label, the 40px field, then the error or
+// the hint (<small>). Password fields have the eye toggle.
+component FormField inherits VerticalLayout {
+    vertical-stretch: 0;
+    in property <string> label;
+    in property <string> placeholder;
+    in-out property <string> text;
+    in property <bool> password;
+    in property <bool> enabled: true;
+    in property <string> error;
+    // <small> hint: before / link / after (Trans with one <0> tag)
+    in property <string> hint-before;
+    in property <string> hint-link;
+    in property <string> hint-after;
+    callback edited();
+    callback accepted();
+    callback hint-clicked();
+    property <bool> revealed;
+    spacing: 8px;
+    Text {
+        text: root.label;
+        font-size: Theme.body-size;
+        color: Theme.muted;
+        height: 19px;
+        vertical-alignment: center;
+    }
+    field := Rectangle {
+        height: 40px;
+        border-radius: 8px;
+        border-width: 1px;
+        background: Theme.dark-background;
+        border-color: root.error != "" ? Theme.danger : input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+        animate border-color { duration: 200ms; easing: ease; }
+        hover := TouchArea {
+            mouse-cursor: root.enabled && input.has-focus ? MouseCursor.text : MouseCursor.default;
+            clicked => {
+                if (root.enabled) {
+                    input.focus();
+                }
+            }
+        }
+        Rectangle {
+            x: 9px;
+            width: parent.width - 18px - (root.password ? 32px : 0);
+            Text {
+                x: 0;
+                width: parent.width;
+                text: root.placeholder;
+                color: #757575;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                overflow: elide;
+                visible: input.text == "";
+            }
+            input := TextInput {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.text;
+                color: #dadbe1;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                single-line: true;
+                enabled: root.enabled;
+                input-type: root.password && !root.revealed ? InputType.password : InputType.text;
+                accessible-label: root.label;
+                edited => {
+                    root.edited();
+                }
+                accepted => {
+                    root.accepted();
+                }
+            }
+        }
+        // __toggle-password-button: padding 8, 16px eye
+        if root.password: Rectangle {
+            x: parent.width - 1px - 32px;
+            y: (parent.height - 34px) / 2;
+            width: 32px;
+            height: 34px;
+            Icon {
+                width: 16px;
+                height: 16px;
+                source: root.revealed ? @image-url("icons/eye-closed-16.svg") : @image-url("icons/eye-16.svg");
+                color: Theme.muted;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.revealed = !root.revealed;
+                }
+            }
+        }
+    }
+    if root.error != "": Text {
+        text: root.error;
+        font-size: 11.67px;
+        color: Theme.error;
+        wrap: word-wrap;
+    }
+    if root.error == "" && (root.hint-before != "" || root.hint-link != ""): HorizontalLayout {
+        alignment: start;
+        height: 15px;
+        Text {
+            text: root.hint-before;
+            font-size: 11.67px;
+            color: Theme.muted;
+        }
+        // __api-key-link: underlined (offset 2px), #c0c1c7, muted on hover
+        Text {
+            text: root.hint-link;
+            font-size: 11.67px;
+            color: link-touch.has-hover ? Theme.muted : #c0c1c7;
+            animate color { duration: 200ms; easing: ease; }
+            Rectangle {
+                y: parent.height - 1px;
+                height: 1px;
+                background: parent.color;
+            }
+            link-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.hint-clicked();
+                }
+            }
+        }
+        Text {
+            text: root.hint-after;
+            font-size: 11.67px;
+            color: Theme.muted;
+        }
+    }
+}
+
+// The window's strings, set by Rust (a second window has its own globals,
+// so it doesn't use T).
+export struct RaWindowStrings {
+    title: string,
+    description: string,
+    username: string,
+    password: string,
+    key: string,
+    hint-before: string,
+    hint-link: string,
+    hint-after: string,
+    note: string,
+    create-account: string,
+    cancel: string,
+    connect: string,
+}
+
+export component RetroAchievementsWindow inherits Window {
+    title: "Hydra";
+    width: 600px;
+    height: 640px;
+    background: Theme.dark-background;
+    default-font-family: "Noto Sans";
+    default-font-size: Theme.body-size;
+
+    in property <bool> initializing: true;
+    in property <bool> submitting;
+    in-out property <string> username;
+    in-out property <string> password;
+    in-out property <string> web-api-key;
+    in property <string> password-error;
+    in property <string> key-error;
+    in property <string> form-error;
+    // every field has non-blank text (trimmed by Rust)
+    in property <bool> filled;
+    in property <RaWindowStrings> strings;
+    callback field-edited(string);
+    callback submit();
+    callback cancel();
+    callback open-url(string);
+
+    property <bool> busy: root.initializing || root.submitting;
+    property <bool> connect-disabled: root.busy || !root.filled;
+
+    // __content: padding 32, gap 24
+    VerticalLayout {
+        padding: 32px;
+        spacing: 24px;
+        // __heading: logo 40, gap 16
+        HorizontalLayout {
+            spacing: 16px;
+            VerticalLayout {
+                alignment: start;
+                Image {
+                    width: 40px;
+                    height: 40px;
+                    source: @image-url("icons/retroachievements.png");
+                    image-fit: contain;
+                }
+            }
+            VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: root.strings.title;
+                    font-size: 24px;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    height: 33px;
+                    vertical-alignment: center;
+                }
+                // p: line-height 1.5 (21px lines)
+                description := Text {
+                    text: root.strings.description;
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    wrap: word-wrap;
+                    vertical-alignment: center;
+                    height: Math.max(1, Math.round(self.preferred-height / (14px * 1.362))) * 21px;
+                }
+            }
+        }
+        // __form: gap 16, fills the rest (the actions sit at the bottom)
+        VerticalLayout {
+            vertical-stretch: 1;
+            spacing: 16px;
+            FormField {
+                label: root.strings.username;
+                placeholder: root.strings.username;
+                text <=> root.username;
+                enabled: !root.busy;
+                edited => {
+                    root.field-edited("username");
+                }
+                accepted => {
+                    if (!root.connect-disabled) {
+                        root.submit();
+                    }
+                }
+            }
+            FormField {
+                label: root.strings.password;
+                placeholder: root.strings.password;
+                password: true;
+                text <=> root.password;
+                enabled: !root.busy;
+                error: root.password-error;
+                edited => {
+                    root.field-edited("password");
+                }
+                accepted => {
+                    if (!root.connect-disabled) {
+                        root.submit();
+                    }
+                }
+            }
+            FormField {
+                label: root.strings.key;
+                placeholder: root.strings.key;
+                password: true;
+                text <=> root.web-api-key;
+                enabled: !root.busy;
+                error: root.key-error;
+                hint-before: root.strings.hint-before;
+                hint-link: root.strings.hint-link;
+                hint-after: root.strings.hint-after;
+                edited => {
+                    root.field-edited("webApiKey");
+                }
+                accepted => {
+                    if (!root.connect-disabled) {
+                        root.submit();
+                    }
+                }
+                hint-clicked => {
+                    root.open-url("https://retroachievements.org/settings?tab=applications");
+                }
+            }
+            // __error (12px, line-height 1.5)
+            if root.form-error != "": Text {
+                text: root.form-error;
+                font-size: Theme.small-size;
+                color: Theme.error;
+                wrap: word-wrap;
+                min-height: 18px;
+                vertical-alignment: center;
+            }
+            // __divider
+            Rectangle {
+                height: 1px;
+                background: Theme.border;
+            }
+            // __emulator-note (12px, line-height 1.5)
+            Text {
+                text: root.strings.note;
+                font-size: Theme.small-size;
+                color: Theme.body;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                height: Math.max(1, Math.round(self.preferred-height / (12px * 1.362))) * 18px;
+            }
+            // __create-account: inline-flex, gap 8, underlined link
+            create-row := HorizontalLayout {
+                alignment: start;
+                spacing: 8px;
+                property <color> tint: create-touch.has-hover ? Theme.muted : #c0c1c7;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 14px;
+                        height: 14px;
+                        source: @image-url("icons/link-external-14.svg");
+                        color: create-row.tint;
+                    }
+                }
+                Text {
+                    text: root.strings.create-account;
+                    font-size: Theme.body-size;
+                    color: create-row.tint;
+                    height: 19px;
+                    vertical-alignment: center;
+                    animate color { duration: 200ms; easing: ease; }
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: parent.color;
+                    }
+                    create-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            root.open-url("https://retroachievements.org");
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                vertical-stretch: 1;
+            }
+            // __actions: margin-top auto, padding-top 8, gap 8, flex-end
+            HorizontalLayout {
+                padding-top: 8px;
+                alignment: end;
+                spacing: 8px;
+                HydraButton {
+                    kind: "outline";
+                    text: root.strings.cancel;
+                    enabled: !root.submitting;
+                    clicked => {
+                        root.cancel();
+                    }
+                }
+                HydraButton {
+                    text: root.strings.connect;
+                    enabled: !root.connect-disabled;
+                    clicked => {
+                        root.submit();
+                    }
+                }
+            }
+        }
+    }
+}

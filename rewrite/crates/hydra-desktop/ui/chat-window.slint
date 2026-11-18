@@ -1,0 +1,227 @@
+// pages/chat-window/chat-window.{tsx,scss}: the chat window, a separate OS
+// window (560x560, min 400x420, frameless unless the platform draws
+// decorations): conversations on the left, the open chat on the right.
+// chat_window.rs fills ChatData.
+import { Theme } from "theme.slint";
+import { Icon } from "components/widgets.slint";
+import { ContextMenuHost } from "components/context-menu.slint";
+import { T } from "globals.slint";
+import { SocialIcons } from "social/common.slint";
+import { ChatData } from "chat/state.slint";
+import { ChatSidebar } from "chat/sidebar.slint";
+import { ConversationHeader } from "chat/header.slint";
+import { MessageList } from "chat/messages.slint";
+import { Composer, EmojiPicker } from "chat/composer.slint";
+import { Lightbox, DropTarget, ReportModal, LeavingModal, ReportToast } from "chat/overlays.slint";
+
+export { ChatData }
+export { ChatConversationRow, ChatPickerRow, ChatReactionPill, ChatImageCell, ChatItem, ChatDraftImage, ChatEmoji } from "chat/state.slint";
+
+// chat-empty-icon.tsx: two bubbles with the Hydra mark cut out of the
+// front one (the cut-outs take the tile's color).
+component EmptyIcon inherits Rectangle {
+    width: 36px;
+    height: 36px;
+    property <float> k: 36 / 64;
+    Path {
+        width: 36px;
+        height: 36px;
+        viewbox-width: 64;
+        viewbox-height: 64;
+        fill: transparent;
+        stroke: Theme.body;
+        stroke-width: 3.5px * root.k;
+        stroke-line-join: round;
+        commands: "M33 5h17a10 10 0 0 1 10 10v8a10 10 0 0 1-10 10v6.5l-7.5-6.5H33a10 10 0 0 1-10-10v-8a10 10 0 0 1 10-10Z";
+    }
+    // paint-order: stroke (the gap ring in the tile color), then the fill
+    Path {
+        width: 36px;
+        height: 36px;
+        viewbox-width: 64;
+        viewbox-height: 64;
+        fill: transparent;
+        stroke: #1c1c1c;
+        stroke-width: 4px * root.k;
+        commands: "M14 20h22a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 7v-7.5A10 10 0 0 1 4 42V30a10 10 0 0 1 10-10Z";
+    }
+    Path {
+        width: 36px;
+        height: 36px;
+        viewbox-width: 64;
+        viewbox-height: 64;
+        fill: Theme.body;
+        commands: "M14 20h22a10 10 0 0 1 10 10v12a10 10 0 0 1-10 10H22l-9 7v-7.5A10 10 0 0 1 4 42V30a10 10 0 0 1 10-10Z";
+    }
+    Image {
+        x: 10.5px * root.k;
+        y: 24px * root.k;
+        width: 25.3px * root.k;
+        height: 22.54px * root.k;
+        source: SocialIcons.hydra;
+        colorize: #1c1c1c;
+    }
+}
+
+// .chat-window__empty: no messages yet, or the load failed.
+component EmptyState inherits VerticalLayout {
+    in property <bool> failed;
+    alignment: center;
+    spacing: 12px;
+    padding-left: 64px;
+    padding-right: 64px;
+    padding-top: 24px;
+    padding-bottom: 24px;
+    if !root.failed: Rectangle {
+        x: (parent.width - 56px) / 2;
+        width: 56px;
+        height: 56px;
+        background: #1c1c1c;
+        border-width: 1px;
+        border-color: Theme.border;
+        border-radius: 12px;
+        EmptyIcon { }
+    }
+    VerticalLayout {
+        spacing: 4px;
+        if !root.failed: Text {
+            text: T.tr("chat_window.no_messages");
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.muted;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: root.failed ? T.tr("chat_window.load_failed") : ChatData.active-official ? T.tr("chat_window.official_empty_description") : T.tr-with("chat_window.empty_description", ["name", ChatData.active-name]);
+            font-size: Theme.hint-size;
+            color: Theme.subtle;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+            line-height-factor: 20 / 17.7;
+        }
+    }
+    if root.failed: HorizontalLayout {
+        alignment: center;
+        Rectangle {
+            width: retry.preferred-width + 26px;
+            height: retry.preferred-height + 10px;
+            background: #1c1c1c;
+            border-width: 1px;
+            border-color: retry-touch.has-hover ? rgba(255, 255, 255, 0.1) : Theme.border;
+            border-radius: 6px;
+            retry := Text {
+                text: T.tr("chat_window.retry");
+                font-size: Theme.small-size;
+                color: Theme.muted;
+            }
+            retry-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ChatData.reload();
+                }
+            }
+        }
+    }
+}
+
+export component ChatWindow inherits Window {
+    title: T.tr("chat_window.title");
+    preferred-width: 560px;
+    preferred-height: 560px;
+    min-width: 400px;
+    min-height: 420px;
+    background: Theme.background;
+    default-font-family: "Noto Sans";
+    default-font-size: Theme.body-size;
+    no-frame: !ChatData.native-decorations;
+
+    // Ctrl+Tab / Ctrl+Shift+Tab cycle the conversations, Ctrl+T toggles the
+    // picker, Escape closes the topmost layer.
+    keys := FocusScope {
+        capture-key-pressed(event) => {
+            if (ChatData.window-key(event.text, event.modifiers.control, event.modifiers.shift, event.modifiers.alt || event.modifiers.meta)) {
+                return accept;
+            }
+            reject
+        }
+
+        HorizontalLayout {
+            ChatSidebar {
+                width: ChatData.sidebar-width;
+            }
+
+            // .chat-window__pane
+            VerticalLayout {
+                horizontal-stretch: 1;
+                ConversationHeader { }
+
+                // .chat-window__conversation
+                conversation := Rectangle {
+                    vertical-stretch: 1;
+                    if ChatData.has-active: VerticalLayout {
+                        if ChatData.pane-state == "loading": Rectangle {
+                            vertical-stretch: 1;
+                        }
+                        if ChatData.pane-state == "error": EmptyState {
+                            vertical-stretch: 1;
+                            failed: true;
+                        }
+                        if ChatData.pane-state == "empty": EmptyState {
+                            vertical-stretch: 1;
+                        }
+                        if ChatData.pane-state == "loaded": list := MessageList {
+                            vertical-stretch: 1;
+                            // the reaction picker sits in the list (bottom 8, left/right 16)
+                            if ChatData.reaction-picker-open: EmojiPicker {
+                                x: ChatData.reaction-picker-mine ? parent.width - 16px - self.width : 16px;
+                                y: parent.height - 8px - self.height;
+                                room-height: parent.height - 16px;
+                            }
+                            if ChatData.report-sent > 0: toast := ReportToast {
+                                room: parent.width;
+                                x: (parent.width - self.width) / 2;
+                                y: parent.height - 12px - self.height;
+                            }
+                        }
+                        Composer {
+                            official: ChatData.active-official;
+                            // published for the emoji picker above it
+                            init => {
+                                ChatData.composer-height = self.height;
+                            }
+                            changed height => {
+                                ChatData.composer-height = self.height;
+                            }
+                        }
+                    }
+                    // the composer's emoji picker: 8px above the box, 16px in
+                    if ChatData.has-active && ChatData.emoji-open && !ChatData.active-official: EmojiPicker {
+                        x: 16px;
+                        room-height: root.height - 160px;
+                        y: conversation.height - ChatData.composer-height + 4px - self.height;
+                    }
+                    if ChatData.dropping: DropTarget { }
+                }
+            }
+        }
+    }
+    // the right-click menu on messages (context-menu.tsx)
+    ContextMenuHost {
+        width: root.width;
+        height: root.height;
+    }
+
+    if ChatData.report-open: ReportModal {
+        width: root.width;
+        height: root.height;
+    }
+    if ChatData.leaving-open: LeavingModal {
+        width: root.width;
+        height: root.height;
+    }
+    // a native modal <dialog>: over the window controls too
+    if ChatData.lightbox-open: Lightbox {
+        width: root.width;
+        height: root.height;
+    }
+}

@@ -1,0 +1,284 @@
+// change-game-playtime-modal.tsx, reset-playtime-modal.tsx and
+// playtime-breakdown-table.tsx. Rust fills `PlaytimeModals` (game_options.rs).
+import { Theme } from "../../theme.slint";
+import { HydraButton, Icon } from "../../components/widgets.slint";
+import { TextField } from "../../components/fields.slint";
+import { T } from "../../globals.slint";
+
+// One column of the breakdown: "hydra" | "steam" | "epic" | "total".
+export struct PlaytimeColumn {
+    key: string,
+    label: string,
+    next: string,
+    // Empty when it equals `next` (no struck-through previous value).
+    previous: string,
+}
+
+export global PlaytimeModals {
+    in-out property <bool> update-open;
+    in-out property <bool> reset-open;
+    in property <string> description;
+    // !game.hasManuallyUpdatedPlaytime
+    in property <bool> show-warning;
+    in-out property <string> hours;
+    in-out property <string> minutes;
+    in property <[PlaytimeColumn]> columns;
+    in property <bool> show-breakdown;
+    // isValid && !isUnchanged && !isSubmitting
+    in property <bool> can-update;
+    in property <bool> unchanged;
+    in property <bool> busy;
+    // hasNoPlaytime
+    in property <bool> can-reset;
+    callback hours-edited(string);
+    callback minutes-edited(string);
+    callback update();
+    callback reset();
+}
+
+// The source icons of library/source-icon.tsx (Hydra 14 + 2px bleed).
+component SourceLabel inherits HorizontalLayout {
+    in property <PlaytimeColumn> column;
+    spacing: 8px;
+    alignment: start;
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            width: root.column.key == "hydra" ? 16px : 14px;
+            height: root.column.key == "hydra" ? 16px : 14px;
+            source: root.column.key == "hydra" ? @image-url("../../icons/hydra-source.svg")
+                : root.column.key == "steam" ? @image-url("../../icons/bi-steam.svg")
+                : root.column.key == "epic" ? @image-url("../../icons/epic-integration-logo.svg")
+                : @image-url("../../icons/clock-14.svg");
+            color: Theme.body;
+        }
+    }
+    Text {
+        text: root.column.label;
+        font-size: Theme.small-size;
+        font-weight: 700;
+        color: Theme.body;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+}
+
+// playtime-breakdown-table__value: padding 8px 12px, 1px border, radius 8px.
+component ValueBox inherits Rectangle {
+    in property <PlaytimeColumn> column;
+    border-width: 1px;
+    border-color: Theme.border;
+    border-radius: 8px;
+    background: Theme.dark-background;
+    // Grid cells stretch to the row: the tallest value box sets the height.
+    min-height: values.preferred-height + 2px;
+    preferred-height: self.min-height;
+    values := VerticalLayout {
+        x: 1px;
+        width: parent.width - 2px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 4px;
+        alignment: center;
+        Text {
+            text: root.column.next;
+            font-size: Theme.body-size;
+            color: Theme.muted;
+        }
+        if root.column.previous != "": Rectangle {
+            height: previous.preferred-height;
+            previous := Text {
+                x: 0;
+                text: root.column.previous;
+                font-size: Theme.small-size;
+                color: #8e919b;
+            }
+            // <s>: a line through the middle of the text
+            Rectangle {
+                x: 0;
+                y: parent.height / 2;
+                width: previous.preferred-width;
+                height: 1px;
+                background: #8e919b;
+            }
+        }
+    }
+}
+
+// grid: 1fr auto 1fr auto 1fr auto 1fr, gap 8px; labels on the first row,
+// values and +/= operators on the second. Even slots are the columns (equal
+// widths, like minmax(0, 1fr)), odd slots the 14px operators.
+export component PlaytimeBreakdown inherits VerticalLayout {
+    spacing: 8px;
+    HorizontalLayout {
+        spacing: 8px;
+        for k in 7: label-slot := Rectangle {
+            property <bool> operator: Math.mod(k, 2) == 1;
+            horizontal-stretch: self.operator ? 0 : 1;
+            min-width: self.operator ? 14px : 0;
+            max-width: self.operator ? 14px : 100000px;
+            preferred-width: self.operator ? 14px : 0;
+            height: 17px;
+            if !label-slot.operator: SourceLabel {
+                width: label-slot.width;
+                column: PlaytimeModals.columns[k / 2];
+            }
+        }
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        for k in 7: value-slot := Rectangle {
+            property <bool> operator: Math.mod(k, 2) == 1;
+            property <PlaytimeColumn> column: PlaytimeModals.columns[self.operator ? (k + 1) / 2 : k / 2];
+            horizontal-stretch: self.operator ? 0 : 1;
+            min-width: self.operator ? 14px : 0;
+            max-width: self.operator ? 14px : 100000px;
+            preferred-width: self.operator ? 14px : 0;
+            min-height: value-box.min-height;
+            preferred-height: value-box.min-height;
+            value-box := ValueBox {
+                visible: !value-slot.operator;
+                width: value-slot.width;
+                height: value-slot.height;
+                column: value-slot.column;
+            }
+            if value-slot.operator: Icon {
+                width: 14px;
+                height: 14px;
+                source: value-slot.column.key == "total" ? @image-url("../../icons/equal-14.svg") : @image-url("../../icons/plus-lucide-14.svg");
+                color: #8e919b;
+            }
+        }
+    }
+}
+
+// A labelled number field (text-field with type="number").
+component NumberField inherits VerticalLayout {
+    in property <string> label;
+    in-out property <string> text;
+    callback edited(string);
+    spacing: 8px;
+    Text {
+        text: root.label;
+        font-size: Theme.body-size;
+        color: Theme.body;
+    }
+    TextField {
+        placeholder: "0";
+        text <=> root.text;
+        edited(value) => {
+            root.edited(value);
+        }
+    }
+}
+
+export component UpdatePlaytimeBody inherits VerticalLayout {
+    callback cancel();
+    spacing: 16px;
+    // change-game-playtime-modal__warning
+    if PlaytimeModals.show-warning: Rectangle {
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: rgba(255, 193, 7, 0.3);
+        background: rgba(255, 193, 7, 0.1);
+        height: warning.preferred-height + 2px;
+        warning := HorizontalLayout {
+            x: 1px;
+            width: parent.width - 2px;
+            padding: 12px;
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/alert.svg");
+                    color: #ffc107;
+                }
+            }
+            Text {
+                text: T.tr("game_details.manual_playtime_warning");
+                font-size: Theme.body-size;
+                color: #ffc107;
+                wrap: word-wrap;
+                vertical-alignment: center;
+                preferred-width: warning-measure.preferred-width;
+            }
+        }
+        warning-measure := Text {
+            visible: false;
+            text: T.tr("game_details.manual_playtime_warning");
+            font-size: Theme.body-size;
+        }
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        NumberField {
+            label: T.tr("game_details.hours");
+            text <=> PlaytimeModals.hours;
+            edited(value) => {
+                PlaytimeModals.hours-edited(value);
+            }
+        }
+        NumberField {
+            label: T.tr("game_details.minutes");
+            text <=> PlaytimeModals.minutes;
+            edited(value) => {
+                PlaytimeModals.minutes-edited(value);
+            }
+        }
+    }
+    if PlaytimeModals.show-breakdown: PlaytimeBreakdown { }
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: end;
+        HydraButton {
+            text: T.tr("game_details.cancel");
+            kind: "outline";
+            clicked => {
+                root.cancel();
+            }
+        }
+        HydraButton {
+            text: T.tr("game_details.update_playtime");
+            kind: "danger";
+            enabled: PlaytimeModals.can-update;
+            tooltip: PlaytimeModals.unchanged ? T.tr("game_details.update_playtime_unchanged_tooltip") : "";
+            clicked => {
+                PlaytimeModals.update();
+            }
+        }
+    }
+}
+
+export component ResetPlaytimeBody inherits VerticalLayout {
+    callback cancel();
+    spacing: 0;
+    // reset-achievements-modal__playtime-breakdown: margin-bottom 16px
+    if PlaytimeModals.show-breakdown: VerticalLayout {
+        padding-bottom: 16px;
+        PlaytimeBreakdown { }
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: end;
+        HydraButton {
+            text: T.tr("game_details.cancel");
+            kind: "outline";
+            clicked => {
+                root.cancel();
+            }
+        }
+        HydraButton {
+            text: T.tr("game_details.reset_playtime");
+            kind: "danger";
+            enabled: PlaytimeModals.can-reset && !PlaytimeModals.busy;
+            tooltip: PlaytimeModals.can-reset ? "" : T.tr("game_details.reset_playtime_disabled_tooltip");
+            clicked => {
+                PlaytimeModals.reset();
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+[package]
+name = "hydra-torrent"
+description = "The libtorrent engine of native/hydra-native, built without napi for the rewrite"
+version.workspace = true
+# native/hydra-native is edition 2021 (plain `extern "C"` blocks).
+edition = "2021"
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde_json.workspace = true
+tokio = { version = "1", features = ["sync"] }
+reqwest.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

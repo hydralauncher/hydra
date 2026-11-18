@@ -1,0 +1,209 @@
+// chat-conversation-header.tsx: the active conversation's friend, doubling
+// as the frameless window's title bar with its controls (52px, with or
+// without a banner, so switching conversations never moves the messages).
+import { Theme } from "../theme.slint";
+import { Icon } from "../components/widgets.slint";
+import { T } from "../globals.slint";
+import { SocialIcons, AvatarWithOrb, OfficialBadge, SocialWindowControl } from "../social/common.slint";
+import { ChatData } from "state.slint";
+import { FriendStatus } from "sidebar.slint";
+
+export component ConversationHeader inherits Rectangle {
+    height: 52px;
+    background: Theme.dark-background;
+    clip: true;
+    property <bool> banner: ChatData.active-banner.width > 0;
+    // avatar and name are one target: hovering either highlights both
+    property <bool> avatar-hover;
+    property <bool> name-hover;
+    property <bool> profile-hover: root.avatar-hover || root.name-hover;
+
+    // .chat-window__header-banner: fades in (0.25s), dark behind the text
+    if root.banner: Rectangle {
+        property <bool> entered;
+        init => {
+            self.entered = true;
+        }
+        opacity: self.entered ? 1 : 0;
+        animate opacity { duration: 250ms; easing: ease; }
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: ChatData.active-banner;
+            image-fit: cover;
+        }
+        Rectangle {
+            background: @linear-gradient(90deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.64) 36%, rgba(0, 0, 0, 0) 80%);
+        }
+    }
+
+    // -webkit-app-region: drag
+    TouchArea {
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                ChatData.drag();
+            }
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 16px;
+        spacing: 12px;
+        if ChatData.has-active: Rectangle {
+            y: (parent.height - 32px) / 2;
+            width: 32px;
+            height: 32px;
+            // the avatar ring while the profile link is hovered
+            if root.profile-hover && !ChatData.active-official: Rectangle {
+                x: -2px;
+                y: -2px;
+                width: 36px;
+                height: 36px;
+                border-radius: 6px;
+                border-width: 2px;
+                border-color: rgba(240, 241, 247, 0.35);
+            }
+            AvatarWithOrb {
+                size: 32px;
+                source: ChatData.active-avatar;
+                official: ChatData.active-official;
+                online: ChatData.active-online;
+                ring-color: Theme.dark-background;
+            }
+            avatar-touch := TouchArea {
+                enabled: !ChatData.active-official;
+                mouse-cursor: pointer;
+                changed has-hover => {
+                    root.avatar-hover = self.has-hover;
+                }
+                clicked => {
+                    ChatData.open-profile();
+                }
+            }
+        }
+        if ChatData.has-active: VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 1px;
+            HorizontalLayout {
+                spacing: 4px;
+                alignment: start;
+                name := Rectangle {
+                    min-width: 0;
+                    preferred-width: name-text.preferred-width;
+                    height: name-text.preferred-height;
+                    name-text := Text {
+                        width: parent.width;
+                        text: ChatData.active-name;
+                        font-size: Theme.hint-size;
+                        font-weight: 700;
+                        color: root.banner ? #ffffff : Theme.muted;
+                        overflow: elide;
+                    }
+                    // text-decoration: underline (offset 3px)
+                    if root.profile-hover && !ChatData.active-official: Rectangle {
+                        y: 17.5px;
+                        width: Math.min(parent.width, name-text.preferred-width);
+                        height: 1px;
+                        background: name-text.color;
+                    }
+                    name-touch := TouchArea {
+                        enabled: !ChatData.active-official;
+                        mouse-cursor: pointer;
+                        changed has-hover => {
+                            root.name-hover = self.has-hover;
+                        }
+                        clicked => {
+                            ChatData.open-profile();
+                        }
+                    }
+                }
+                if ChatData.active-official: OfficialBadge {
+                    y: (parent.height - 16px) / 2;
+                    size: 16px;
+                }
+            }
+            if ChatData.active-official: Text {
+                text: T.tr("chat_window.official_subtitle");
+                font-size: Theme.small-size;
+                color: root.banner ? #ffffff : Theme.subtle;
+                overflow: elide;
+            }
+            // .chat-window__game-link: the game opens in the main window
+            if !ChatData.active-official && ChatData.active-game != "" && !ChatData.active-typing: Rectangle {
+                height: 17px;
+                HorizontalLayout {
+                    spacing: 4px;
+                    alignment: start;
+                    FriendStatus {
+                        game: ChatData.active-game;
+                        game-icon: ChatData.active-game-icon;
+                        game-has-icon: ChatData.active-game-has-icon;
+                        online: ChatData.active-online;
+                        overridden: game-touch.has-hover || root.banner;
+                        override-color: game-touch.has-hover ? Theme.muted : #ffffff;
+                        underline: game-touch.has-hover;
+                    }
+                    Icon {
+                        y: (parent.height - 12px) / 2;
+                        width: 12px;
+                        height: 12px;
+                        source: SocialIcons.link-external;
+                        color: Theme.body;
+                        opacity: game-touch.has-hover ? 1 : 0;
+                        animate opacity { duration: 200ms; easing: ease; }
+                    }
+                }
+                game-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        ChatData.open-game();
+                    }
+                }
+            }
+            if !ChatData.active-official && (ChatData.active-game == "" || ChatData.active-typing): FriendStatus {
+                typing: ChatData.active-typing;
+                online: ChatData.active-online;
+                overridden: root.banner;
+                override-color: #ffffff;
+            }
+        }
+        if !ChatData.has-active: Rectangle {
+            horizontal-stretch: 1;
+        }
+        // .chat-window__window-controls: a 40px strip, centered
+        if !ChatData.native-decorations: HorizontalLayout {
+            padding-left: 8px;
+            Rectangle {
+                width: 80px;
+                HorizontalLayout {
+                    y: (parent.height - 40px) / 2;
+                    height: 40px;
+                    SocialWindowControl {
+                        width: 40px;
+                        icon: SocialIcons.dash;
+                        label: T.tr("chat_window.minimize");
+                        clicked => {
+                            ChatData.minimize();
+                        }
+                    }
+                    SocialWindowControl {
+                        width: 40px;
+                        icon: SocialIcons.x;
+                        close: true;
+                        label: T.tr("chat_window.close_window");
+                        clicked => {
+                            ChatData.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.border;
+    }
+}

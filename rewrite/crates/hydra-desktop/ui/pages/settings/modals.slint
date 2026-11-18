@@ -1,0 +1,165 @@
+// Settings modals that don't fit the shared confirmation dialog:
+// download-directory-replacement-modal.tsx and the RetroAchievements
+// disconnect modal (settings-retroachievements.tsx). Rust fills
+// `SettingsModals` (settings_modals.rs).
+import { Theme } from "../../theme.slint";
+import { HydraButton } from "../../components/widgets.slint";
+import { SelectField, SelectOption, CheckboxField } from "../../components/fields.slint";
+import { Modal, ModalController } from "../../components/modal.slint";
+import { T } from "../../globals.slint";
+
+export global SettingsModals {
+    // "" | "replace-directory" | "ra-disconnect"
+    in-out property <string> kind;
+    // The window, blurred, under the backdrop.
+    in property <image> backdrop;
+    // Bumped by Rust to close with the exit animation.
+    in-out property <int> close-request;
+    in property <bool> busy;
+
+    // ---- DownloadDirectoryReplacementModal
+    in property <string> next-path;
+    in property <[SelectOption]> directories;
+    in property <string> replacement;
+    in property <string> replacement-label;
+    // the longest option label (the select's max-content width)
+    in property <string> replacement-longest;
+    callback replacement-selected(string);
+    callback confirm-replacement();
+
+    // ---- RetroAchievements disconnect
+    in-out property <bool> delete-achievements: true;
+    callback confirm-ra-disconnect();
+    callback cancelled();
+}
+
+// download-directory-replacement-modal.scss
+component ReplacementContent inherits VerticalLayout {
+    spacing: 16px;
+    // __summary: gap 4
+    VerticalLayout {
+        spacing: 4px;
+        Text {
+            text: T.tr("settings.new_default_path");
+            font-size: Theme.hint-size;
+            color: Theme.muted;
+        }
+        Text {
+            text: SettingsModals.next-path;
+            font-size: Theme.body-size;
+            color: Theme.body;
+            wrap: word-wrap;
+        }
+    }
+    // __controls: row, gap 8, align-items flex-end (the select grows from 320px)
+    HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 0;
+            spacing: 8px;
+            alignment: end;
+            Text {
+                text: T.tr("settings.replace_saved_big_picture_directory");
+                font-size: Theme.body-size;
+                color: Theme.body;
+            }
+            SelectField {
+                popup-id: "settings-replace-directory";
+                options: SettingsModals.directories;
+                value: SettingsModals.replacement;
+                current-label: SettingsModals.replacement-label;
+                selected(value) => {
+                    SettingsModals.replacement-selected(value);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: end;
+            HydraButton {
+                text: T.tr("settings.replace_and_use_new_path");
+                enabled: SettingsModals.replacement != "";
+                clicked => {
+                    SettingsModals.confirm-replacement();
+                }
+            }
+        }
+    }
+}
+
+// settings-retroachievements__modal: note, checkbox, actions (gap 16)
+component RaDisconnectContent inherits VerticalLayout {
+    spacing: 16px;
+    // __modal-note: line-height 1.5 (21px lines)
+    Text {
+        text: T.tr("settings.retroachievements_disconnect_description");
+        font-size: Theme.body-size;
+        color: Theme.body;
+        wrap: word-wrap;
+        vertical-alignment: center;
+        height: Math.max(1, Math.round(self.preferred-height / (14px * 1.362))) * 21px;
+    }
+    CheckboxField {
+        label: T.tr("settings.retroachievements_delete_on_disconnect");
+        checked: SettingsModals.delete-achievements;
+        toggled => {
+            SettingsModals.delete-achievements = !SettingsModals.delete-achievements;
+        }
+    }
+    HorizontalLayout {
+        alignment: end;
+        spacing: 8px;
+        HydraButton {
+            kind: "outline";
+            text: T.tr("settings.cancel");
+            enabled: !SettingsModals.busy;
+            clicked => {
+                SettingsModals.cancelled();
+                SettingsModals.close-request += 1;
+            }
+        }
+        HydraButton {
+            kind: "danger";
+            text: T.tr("settings.integration_disconnect");
+            enabled: !SettingsModals.busy;
+            clicked => {
+                SettingsModals.confirm-ra-disconnect();
+            }
+        }
+    }
+}
+
+export component SettingsModalsHost inherits Rectangle {
+    property <int> close-request: SettingsModals.close-request;
+    changed close-request => {
+        controller.close();
+    }
+    property <bool> wanted: SettingsModals.kind != "";
+    changed wanted => {
+        if (self.wanted) {
+            controller.open = true;
+        }
+    }
+    controller := ModalController {
+        closed => {
+            SettingsModals.kind = "";
+        }
+    }
+
+    if controller.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: SettingsModals.kind == "replace-directory" ? T.tr("settings.replace_download_directory") : T.tr("settings.retroachievements_disconnect_title");
+        description: SettingsModals.kind == "replace-directory" ? T.tr("settings.replace_download_directory_description") : "";
+        closing: controller.closing;
+        blurred-page: SettingsModals.backdrop;
+        request-close => {
+            if (!SettingsModals.busy) {
+                SettingsModals.cancelled();
+                controller.close();
+            }
+        }
+        if SettingsModals.kind == "replace-directory": ReplacementContent { }
+        if SettingsModals.kind == "ra-disconnect": RaDisconnectContent { }
+    }
+}

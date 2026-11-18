@@ -1,0 +1,1637 @@
+// pages/achievements (achievements.tsx, achievements-content.tsx,
+// achievement-list.tsx; achievements.scss, achievements-content.scss,
+// achievement-select.scss). Rust fills `AchievementsData` (achievements_page.rs).
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, ScrollBar, Skeleton } from "../../components/widgets.slint";
+import { TextField } from "../../components/fields.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T, Popup, Session } from "../../globals.slint";
+import { MenuTrigger } from "../library/toolbar.slint";
+import { MenuContent } from "../library/menus.slint";
+import { PlatinumFill } from "../library/card.slint";
+
+export struct AchievementRow {
+    key: string,
+    title: string,
+    description: string,
+    unlock-time: string,
+    unlocked: bool,
+    // "Hidden achievement / Click to reveal"
+    concealed: bool,
+    // the eye-closed marker on a hidden, locked achievement
+    hidden-marker: bool,
+    icon: image,
+    percentage: string,
+    points: string,
+    // achievement-reveal (0.25s) on the row that was just revealed
+    revealed: bool,
+    // __item-hardcore-badge: its tooltip ("Hardcore unlocked at: …"); empty: none
+    hardcore: string,
+    // __item-souvenir: the unlock screenshot thumbnail
+    has-souvenir: bool,
+    souvenir: image,
+    // achievement-set-header.tsx: a set's header instead of an achievement
+    is-set: bool,
+    set-name: string,
+    set-count: string,
+    set-progress: float,
+    set-percent: string,
+    set-completed: bool,
+    set-expanded: bool,
+    // __set--spaced: padding-top 8 after the first entry
+    spaced: bool,
+    // compared-achievement-list.tsx: each user's state
+    owner-unlocked: bool,
+    owner-time: string,
+    owner-tip: string,
+    target-unlocked: bool,
+    target-time: string,
+    target-tip: string,
+    owner-set-count: string,
+}
+
+export global AchievementsData {
+    in property <bool> loading: true;
+    in property <bool> signed-in;
+    in property <string> game-title;
+    in property <image> hero;
+    in property <image> logo;
+    in property <bool> has-logo;
+    in property <int> unlocked;
+    in property <int> total;
+    in property <string> percent;
+    in-out property <string> search;
+    in property <string> status: "all";
+    in property <string> sort: "most_common";
+    in property <int> count-all;
+    in property <int> count-unlocked;
+    in property <int> count-locked;
+    in property <bool> subscriber;
+    in property <string> points;
+    in property <[AchievementRow]> rows;
+    callback search-edited(string);
+    callback set-status(string);
+    callback set-sort(string);
+    callback reveal(string);
+    callback open-game();
+    callback hydra-cloud();
+    // first and last rows on screen, for lazy icons
+    callback visible-rows(int, int);
+    callback toggle-set(string);
+    // the souvenir lightbox (FullscreenMediaModal with upscale)
+    in property <bool> souvenir-open;
+    in property <image> souvenir;
+    in property <string> souvenir-alt;
+    callback open-souvenir(string);
+    callback close-souvenir();
+    // another user's achievements (?userId=…), and comparing with them
+    in property <bool> other-user;
+    in property <bool> comparing;
+    in property <string> other-name;
+    in property <image> other-avatar;
+    in property <int> other-unlocked;
+    in property <int> other-total;
+    in property <string> other-percent;
+    in property <int> owner-unlocked;
+    in property <int> owner-total;
+    in property <string> owner-percent;
+    in property <bool> has-owner-stats;
+    in property <bool> has-community-stats;
+    in property <string> points-total;
+    in property <string> owner-points;
+    in property <string> target-points;
+    in property <string> filter: "all";
+    in property <int> count-both;
+    in property <int> count-neither;
+    in property <int> count-owner;
+    in property <int> count-target;
+    callback toggle-compare();
+    callback set-filter(string);
+}
+
+global AchievementIcons {
+    out property <image> trophy: @image-url("../../icons/trophy.svg");
+    out property <image> unlock: @image-url("../../icons/unlock.svg");
+    out property <image> lock: @image-url("../../icons/lock-16.svg");
+    out property <image> sort-desc: @image-url("../../icons/sort-desc.svg");
+    out property <image> sort-asc: @image-url("../../icons/sort-asc.svg");
+    out property <image> clock: @image-url("../../icons/clock.svg");
+    out property <image> people: @image-url("../../icons/people.svg");
+    out property <image> check-circle-fill: @image-url("../../icons/check-circle-fill.svg");
+    out property <image> eye-closed: @image-url("../../icons/eye-closed-12.svg");
+    out property <image> eye-closed-24: @image-url("../../icons/eye-closed-24.svg");
+    out property <image> hydra: @image-url("../../icons/hydra-source.svg");
+    out property <image> trophy-13: @image-url("../../icons/trophy-13.svg");
+    out property <image> search-20: @image-url("../../icons/search-20.svg");
+    out property <image> chevron-down: @image-url("../../icons/chevron-down.svg");
+    out property <image> check-circle-fill-18: @image-url("../../icons/check-circle-fill-18.svg");
+    out property <image> lock-18: @image-url("../../icons/lock-18.svg");
+    out property <image> x: @image-url("../../icons/x.svg");
+    out property <image> x-16: @image-url("../../icons/x-16.svg");
+    out property <image> globe: @image-url("../../icons/globe-hemisphere-west-26.svg");
+}
+
+// compared-achievement-list.tsx UserAvatar: the picture, or a person icon
+component CompareAvatar inherits Rectangle {
+    in property <image> source;
+    in property <length> size: 40px;
+    width: root.size;
+    height: root.size;
+    border-radius: 4px;
+    clip: true;
+    background: root.source.width > 0 ? transparent : Theme.background;
+    if root.source.width > 0: Image {
+        width: root.size;
+        height: root.size;
+        source: root.source;
+        image-fit: cover;
+    }
+    if root.source.width == 0: Icon {
+        width: Math.round(root.size * 0.6 / 1px) * 1px;
+        height: self.width;
+        source: Icons.person;
+        color: Theme.body;
+    }
+}
+
+// achievement-select__item: 34px, icon + label (+ count pill); checked and
+// hovered rows get the background color
+component SelectItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <string> count;
+    in property <bool> checked;
+    // a user's picture (UserAvatar 16), drawn as is
+    in property <bool> avatar;
+    callback activated();
+    height: 34px;
+    border-radius: 4px;
+    background: touch.has-hover || root.checked ? Theme.background : transparent;
+    animate background { duration: 100ms; easing: ease-in-out; }
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        if !root.avatar: Icon {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: root.icon;
+            color: Theme.muted;
+        }
+        if root.avatar: CompareAvatar {
+            y: (parent.height - self.height) / 2;
+            size: 16px;
+            source: root.icon;
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.label;
+            font-size: Theme.body-size;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+        if root.count != "": Rectangle {
+            y: (parent.height - self.height) / 2;
+            height: 18px;
+            width: Math.max(22px, count-text.preferred-width + 8px);
+            border-radius: 9px;
+            background: Theme.muted;
+            count-text := Text {
+                text: root.count;
+                font-size: Theme.tiny-size;
+                font-weight: 700;
+                color: Theme.dark-background;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.activated();
+        }
+    }
+}
+
+// __item-hardcore-badge: 11px bold uppercase, amber on a 12% amber tint
+component HardcoreBadge inherits Rectangle {
+    in property <string> tooltip;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    width: label.preferred-width + 16px;
+    height: label.preferred-height + 4px;
+    border-radius: 4px;
+    background: rgba(255, 193, 7, 0.12);
+    label := Text {
+        text: T.tr("achievement.hardcore").to-uppercase();
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #ffc107;
+    }
+    touch := TouchArea {
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// __item-souvenir: 120x64 (radius 6, cover); hover darkens it and shows the zoom icon
+component SouvenirThumb inherits Rectangle {
+    in property <string> key;
+    in property <image> source;
+    width: 120px;
+    height: 64px;
+    border-radius: 6px;
+    clip: true;
+    background: source.width > 0 ? transparent : Theme.background;
+    Image {
+        width: 120px;
+        height: 64px;
+        source: root.source;
+        image-fit: cover;
+    }
+    // filter: brightness(0.6)
+    Rectangle {
+        background: black;
+        opacity: touch.has-hover ? 0.4 : 0;
+        animate opacity { duration: 200ms; easing: ease; }
+    }
+    Icon {
+        width: 20px;
+        height: 20px;
+        source: AchievementIcons.search-20;
+        color: Theme.muted;
+        opacity: touch.has-hover ? 1 : 0;
+        animate opacity { duration: 200ms; easing: ease; }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            AchievementsData.open-souvenir(root.key);
+        }
+    }
+}
+
+// ProgressBar with the set track (160x6) or the summary track
+component SetProgress inherits Rectangle {
+    in property <float> progress;
+    in property <bool> completed;
+    height: 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    clip: true;
+    Rectangle {
+        x: 0;
+        width: parent.width * Math.clamp(root.progress, 0, 1);
+        animate width { duration: 200ms; easing: ease; }
+        border-radius: 4px;
+        background: Theme.muted;
+        if root.completed: PlatinumFill {
+            border-radius: 4px;
+        }
+    }
+}
+
+// achievement-set-header.tsx: chevron, name, "x / n", the track and the percentage
+component SetHeader inherits Rectangle {
+    in property <AchievementRow> item;
+    height: 40px;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.dark-background : transparent;
+    HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 13px;
+        spacing: 12px;
+        Icon {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: AchievementIcons.chevron-down;
+            color: Theme.body;
+            transform-rotation: root.item.set-expanded ? 0deg : -90deg;
+            animate transform-rotation { duration: 150ms; easing: ease; }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.item.set-name;
+            font-size: 16px;
+            font-weight: 700;
+            color: Theme.muted;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.item.set-count;
+            font-size: 13.33px;
+            color: Theme.body;
+            vertical-alignment: center;
+        }
+        SetProgress {
+            y: (parent.height - self.height) / 2;
+            width: 160px;
+            progress: root.item.set-progress;
+            completed: root.item.set-completed;
+        }
+        Text {
+            // min-width: 5ch
+            min-width: 5 * 7.6px;
+            text: root.item.set-percent;
+            font-size: 13.33px;
+            color: root.item.set-completed ? Theme.brand-teal : Theme.body;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            AchievementsData.toggle-set(root.item.key);
+        }
+    }
+}
+
+// __compare-status: the check and the date, or the lock at half opacity
+component CompareStatus inherits Rectangle {
+    in property <bool> unlocked;
+    in property <string> time;
+    in property <string> tooltip;
+    property <int> tip-id;
+    init => {
+        self.tip-id = Ids.take();
+    }
+    VerticalLayout {
+        alignment: center;
+        spacing: 8px;
+        opacity: root.unlocked ? 1 : 0.5;
+        HorizontalLayout {
+            alignment: center;
+            Icon {
+                width: 18px;
+                height: 18px;
+                source: root.unlocked ? AchievementIcons.check-circle-fill-18 : AchievementIcons.lock-18;
+                color: root.unlocked ? Theme.muted : Theme.body;
+            }
+        }
+        if root.unlocked: Text {
+            text: root.time;
+            font-size: 11px;
+            color: Theme.body;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+    TouchArea {
+        changed has-hover => {
+            if (self.has-hover) {
+                Tip.show(root.tip-id, root.tooltip, root.absolute-position.x, root.absolute-position.y, root.width, root.height, "top");
+            } else {
+                Tip.hide(root.tip-id);
+            }
+        }
+    }
+}
+
+// __item-stats inside a compare cell: percentage and points (points shown to everyone)
+component CompareStats inherits VerticalLayout {
+    in property <AchievementRow> item;
+    alignment: center;
+    spacing: 8px;
+    if root.item.percentage != "": HorizontalLayout {
+        alignment: center;
+        spacing: 8px;
+        Icon {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: AchievementIcons.people;
+            color: Theme.muted;
+        }
+        Text {
+            min-width: 6 * 7.6px;
+            text: root.item.percentage;
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+    }
+    if root.item.points != "": HorizontalLayout {
+        alignment: center;
+        spacing: 8px;
+        Icon {
+            y: (parent.height - self.height) / 2;
+            width: 18px;
+            height: 18px;
+            source: AchievementIcons.hydra;
+            color: Theme.body;
+        }
+        Text {
+            min-width: 6 * 7.6px;
+            text: root.item.points;
+            font-size: Theme.body-size;
+            font-weight: 700;
+            color: Theme.body;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// The compare grid: minmax(390px, 1fr) then N columns of minmax(96px, 140px), gap 16
+global CompareGrid {
+    out property <int> columns: 1 + (AchievementsData.has-owner-stats ? 1 : 0) + (AchievementsData.has-community-stats ? 1 : 0);
+}
+
+// .achievements__item.achievements__compare-row
+component CompareRow inherits Rectangle {
+    in property <AchievementRow> item;
+    in property <length> stat-width;
+    property <bool> entered: !root.item.revealed;
+    property <bool> unlocked-by-anyone: root.item.owner-unlocked || root.item.target-unlocked;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    height: Math.max(64px, content.preferred-height) + 26px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.item.concealed ? Theme.border : root.unlocked-by-anyone ? rgba(255, 255, 255, 0.06) : transparent;
+    background: touch.has-hover ? Theme.border : Theme.dark-background;
+    animate background { duration: 100ms; easing: ease; }
+    touch := TouchArea {
+        mouse-cursor: root.item.concealed ? pointer : default;
+        clicked => {
+            if (root.item.concealed) {
+                AchievementsData.reveal(root.item.key);
+            }
+        }
+    }
+    HorizontalLayout {
+        padding: 13px;
+        spacing: 16px;
+        opacity: root.entered ? 1 : 0;
+        animate opacity { duration: 250ms; easing: ease-out; }
+        // __compare-main
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            spacing: 16px;
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 64px;
+                    height: 64px;
+                    border-radius: 6px;
+                    clip: true;
+                    background: root.item.concealed ? Theme.background : root.item.icon.width > 0 ? transparent : #1c1c1c;
+                    border-width: root.item.concealed ? 1px : 0;
+                    border-color: Theme.border;
+                    if root.item.concealed: Icon {
+                        width: 24px;
+                        height: 24px;
+                        source: AchievementIcons.eye-closed-24;
+                        color: Theme.body;
+                    }
+                    if !root.item.concealed: Image {
+                        width: 64px;
+                        height: 64px;
+                        source: root.item.icon;
+                        image-fit: cover;
+                        opacity: root.item.icon.width == 0 ? 0 : root.unlocked-by-anyone ? 1 : 0.6;
+                        animate opacity { duration: 200ms; easing: ease; }
+                    }
+                }
+            }
+            content := VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 4px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    if root.item.hidden-marker: VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            width: 12px;
+                            height: 12px;
+                            source: AchievementIcons.eye-closed;
+                            color: Theme.body;
+                            opacity: 0.8;
+                        }
+                    }
+                    Text {
+                        text: root.item.concealed ? T.tr("achievement.hidden_achievement") : root.item.title;
+                        font-size: Theme.body-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                        overflow: elide;
+                    }
+                }
+                if root.item.concealed || root.item.description != "": Text {
+                    text: root.item.concealed ? T.tr("achievement.click_to_reveal") : root.item.description;
+                    font-size: Theme.body-size;
+                    color: root.item.concealed && touch.has-hover ? Theme.muted : Theme.body;
+                    wrap: word-wrap;
+                }
+            }
+        }
+        if AchievementsData.has-community-stats: CompareStats {
+            width: root.stat-width;
+            item: root.item;
+        }
+        if AchievementsData.has-owner-stats: CompareStatus {
+            width: root.stat-width;
+            unlocked: root.item.owner-unlocked;
+            time: root.item.owner-time;
+            tooltip: root.item.owner-tip;
+        }
+        CompareStatus {
+            width: root.stat-width;
+            unlocked: root.item.target-unlocked;
+            time: root.item.target-time;
+            tooltip: root.item.target-tip;
+        }
+    }
+}
+
+// ComparedAchievementSetHeader: the set's title in the main column, counts per user
+component CompareSetHeader inherits Rectangle {
+    in property <AchievementRow> item;
+    in property <length> stat-width;
+    height: 40px;
+    border-radius: 8px;
+    background: touch.has-hover ? Theme.dark-background : transparent;
+    HorizontalLayout {
+        padding-left: 13px;
+        padding-right: 13px;
+        spacing: 16px;
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            spacing: 12px;
+            Icon {
+                y: (parent.height - self.height) / 2;
+                width: 16px;
+                height: 16px;
+                source: AchievementIcons.chevron-down;
+                color: Theme.body;
+                transform-rotation: root.item.set-expanded ? 0deg : -90deg;
+                animate transform-rotation { duration: 150ms; easing: ease; }
+            }
+            Text {
+                horizontal-stretch: 1;
+                text: root.item.set-name;
+                font-size: 16px;
+                font-weight: 700;
+                color: Theme.muted;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+        }
+        if AchievementsData.has-community-stats: Rectangle {
+            width: root.stat-width;
+        }
+        if AchievementsData.has-owner-stats: Text {
+            width: root.stat-width;
+            text: root.item.owner-set-count;
+            font-size: 13.33px;
+            color: Theme.body;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        Text {
+            width: root.stat-width;
+            text: root.item.set-count;
+            font-size: 13.33px;
+            color: Theme.body;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            AchievementsData.toggle-set(root.item.key);
+        }
+    }
+}
+
+// achievements-content.tsx AchievementSummary: avatar 64, name, "x / n", percentage, track
+component UserSummary inherits HorizontalLayout {
+    in property <image> avatar;
+    in property <string> name;
+    in property <int> unlocked;
+    in property <int> total;
+    in property <string> percent;
+    property <bool> completed: root.total > 0 && root.unlocked >= root.total;
+    height: 80px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    spacing: 16px;
+    Rectangle {
+        width: 64px;
+        height: 64px;
+        border-radius: 4px;
+        clip: true;
+        background: Theme.background;
+        if root.avatar.width > 0: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.avatar;
+            image-fit: cover;
+        }
+        if root.avatar.width == 0: Icon {
+            width: 24px;
+            height: 24px;
+            source: Icons.person;
+            color: Theme.muted;
+        }
+    }
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 8px;
+        Text {
+            height: 24px;
+            text: root.name;
+            font-size: 20px;
+            font-weight: 700;
+            color: Theme.muted;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+        HorizontalLayout {
+            height: 16px;
+            spacing: 8px;
+            if !root.completed: Icon {
+                y: (parent.height - self.height) / 2;
+                width: 13px;
+                height: 13px;
+                source: AchievementIcons.trophy-13;
+                color: Theme.muted;
+            }
+            Text {
+                horizontal-stretch: 1;
+                text: root.unlocked + " / " + root.total;
+                font-size: Theme.body-size;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+            if root.completed: Icon {
+                y: (parent.height - self.height) / 2;
+                width: 13px;
+                height: 13px;
+                source: AchievementIcons.trophy-13;
+                color: Theme.brand-teal;
+            }
+            if !root.completed: Text {
+                text: root.percent;
+                font-size: Theme.body-size;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+        }
+        Rectangle {
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            clip: true;
+            Rectangle {
+                x: 0;
+                width: root.total > 0 ? parent.width * Math.min(1, root.unlocked / root.total) : 0;
+                animate width { duration: 200ms; easing: ease; }
+                border-radius: 4px;
+                background: Theme.muted;
+                if root.completed: PlatinumFill {
+                    border-radius: 4px;
+                }
+            }
+        }
+    }
+}
+
+// fullscreen-media-modal.tsx with `upscale`: the souvenir at 88% of the window
+export component SouvenirLightbox inherits Rectangle {
+    property <length> natural-w: AchievementsData.souvenir.width * 1px;
+    property <length> natural-h: AchievementsData.souvenir.height * 1px;
+    property <float> fit: natural-w > 0 && natural-h > 0 ? Math.min(root.width * 0.88 / natural-w, root.height * 0.88 / natural-h) : 0;
+    property <bool> entered;
+    init => {
+        root.entered = true;
+    }
+    // overlay: rgba(0,0,0,.8)
+    background: rgba(0, 0, 0, 0.8);
+    TouchArea {
+        // a press anywhere but on the image closes it
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down) {
+                AchievementsData.close-souvenir();
+            }
+        }
+    }
+    image := Rectangle {
+        width: root.natural-w * root.fit;
+        height: root.natural-h * root.fit;
+        x: (root.width - self.width) / 2;
+        y: (root.height - self.height) / 2;
+        border-radius: 8px;
+        drop-shadow-offset-y: 8px;
+        drop-shadow-blur: 32px;
+        drop-shadow-color: rgba(0, 0, 0, 0.5);
+        // image-appear: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)
+        opacity: root.entered ? 1 : 0;
+        transform-scale: root.entered ? 1 : 0.85;
+        animate opacity, transform-scale { duration: 300ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+        Rectangle {
+            border-radius: 8px;
+            clip: true;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: AchievementsData.souvenir;
+                image-fit: contain;
+                accessible-label: AchievementsData.souvenir-alt;
+            }
+        }
+        TouchArea { }
+    }
+    // __close-button: 40px circle, top 40, right 32
+    close := Rectangle {
+        x: root.width - 32px - self.width;
+        y: 40px;
+        width: 42px;
+        height: 42px;
+        border-radius: 21px;
+        border-width: 1px;
+        border-color: Theme.border;
+        background: close-touch.has-hover ? rgba(0, 0, 0, 0.8) : rgba(0, 0, 0, 0.5);
+        animate background { duration: 200ms; easing: ease; }
+        transform-scale: close-touch.has-hover ? 1.1 : 1;
+        animate transform-scale { duration: 200ms; easing: ease; }
+        Icon {
+            width: 24px;
+            height: 24px;
+            source: AchievementIcons.x;
+            color: Theme.body;
+        }
+        close-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                AchievementsData.close-souvenir();
+            }
+        }
+    }
+    FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                AchievementsData.close-souvenir();
+                return accept;
+            }
+            reject
+        }
+        init => {
+            self.focus();
+        }
+    }
+}
+
+component Row inherits Rectangle {
+    in property <AchievementRow> item;
+    property <bool> entered: !root.item.revealed;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    // padding 12, icon 64 (taller when the text wraps)
+    height: Math.max(64px, content.preferred-height) + 26px;
+    border-radius: 8px;
+    border-width: 1px;
+    // --unlocked: rgba(255,255,255,.06); --concealed: dashed $border-color
+    border-color: root.item.concealed ? Theme.border : root.item.unlocked ? rgba(255, 255, 255, 0.06) : transparent;
+    background: touch.has-hover ? Theme.border : Theme.dark-background;
+    animate background { duration: 100ms; easing: ease; }
+    touch := TouchArea {
+        mouse-cursor: root.item.concealed ? pointer : default;
+        clicked => {
+            if (root.item.concealed) {
+                AchievementsData.reveal(root.item.key);
+            }
+        }
+    }
+    HorizontalLayout {
+        padding: 13px;
+        spacing: 16px;
+        // achievement-reveal: fade/slide in over 0.25s
+        opacity: root.entered ? 1 : 0;
+        animate opacity { duration: 250ms; easing: ease-out; }
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 64px;
+                height: 64px;
+                if root.item.concealed: Rectangle {
+                    border-radius: 6px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    background: Theme.background;
+                    Icon {
+                        width: 24px;
+                        height: 24px;
+                        source: AchievementIcons.eye-closed-24;
+                        color: Theme.body;
+                    }
+                }
+                if !root.item.concealed: Rectangle {
+                    border-radius: 6px;
+                    clip: true;
+                    background: root.item.icon.width > 0 ? transparent : #1c1c1c;
+                    Image {
+                        width: 64px;
+                        height: 64px;
+                        source: root.item.icon;
+                        image-fit: cover;
+                        // --locked: grayscale (the gray icon) at 0.6
+                        opacity: root.item.icon.width == 0 ? 0 : root.item.unlocked ? 1 : 0.6;
+                        animate opacity { duration: 200ms; easing: ease; }
+                    }
+                }
+                // __item-check: 16px, bottom/right -5px, 2px dark ring
+                if !root.item.concealed && root.item.unlocked: Rectangle {
+                    width: 20px;
+                    height: 20px;
+                    x: parent.width - 18px + 5px;
+                    y: parent.height - 18px + 5px;
+                    border-radius: 10px;
+                    background: Theme.dark-background;
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: AchievementIcons.check-circle-fill;
+                        color: white;
+                    }
+                }
+            }
+        }
+        content := VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 4px;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                if root.item.hidden-marker: VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 12px;
+                        height: 12px;
+                        source: AchievementIcons.eye-closed;
+                        color: Theme.body;
+                        opacity: 0.8;
+                    }
+                }
+                Text {
+                    text: root.item.concealed ? T.tr("achievement.hidden_achievement") : root.item.title;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    overflow: elide;
+                }
+                // __item-hardcore-badge
+                if !root.item.concealed && root.item.hardcore != "": HardcoreBadge {
+                    tooltip: root.item.hardcore;
+                }
+            }
+            if root.item.concealed || root.item.description != "": Text {
+                text: root.item.concealed ? T.tr("achievement.click_to_reveal") : root.item.description;
+                font-size: Theme.body-size;
+                color: root.item.concealed && touch.has-hover ? Theme.muted : Theme.body;
+                wrap: word-wrap;
+            }
+            if !root.item.concealed && root.item.unlock-time != "": Text {
+                text: T.tr-with("achievement.unlocked_at", ["date", root.item.unlock-time]);
+                font-size: 11.67px;
+                color: Theme.body;
+                overflow: elide;
+            }
+        }
+        // __item-meta: the souvenir, then the stats (gap 16)
+        if root.item.unlocked && root.item.has-souvenir: VerticalLayout {
+            alignment: center;
+            SouvenirThumb {
+                key: root.item.key;
+                source: root.item.souvenir;
+            }
+        }
+        // __item-stats: 88px, percentage and points rows
+        VerticalLayout {
+            width: 88px;
+            alignment: center;
+            spacing: 8px;
+            if root.item.percentage != "": HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 16px;
+                    height: 16px;
+                    source: AchievementIcons.people;
+                    color: Theme.muted;
+                }
+                Text {
+                    text: root.item.percentage;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+            }
+            if AchievementsData.subscriber && root.item.points != "": HorizontalLayout {
+                spacing: 7px;
+                alignment: start;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 18px;
+                    height: 18px;
+                    source: AchievementIcons.hydra;
+                    color: Theme.body;
+                }
+                Text {
+                    text: root.item.points;
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+// __compare-points: the Hydra icon and a sum, centered (gap 4)
+component ComparePoints inherits HorizontalLayout {
+    in property <string> value;
+    alignment: center;
+    spacing: 4px;
+    Icon {
+        y: (parent.height - self.height) / 2;
+        width: 18px;
+        height: 18px;
+        source: AchievementIcons.hydra;
+        color: Theme.body;
+    }
+    Text {
+        text: root.value;
+        font-size: Theme.body-size;
+        font-weight: 700;
+        color: Theme.muted;
+        vertical-alignment: center;
+    }
+}
+
+// One list entry: a set header (with the spaced padding) or an achievement
+component Entry inherits VerticalLayout {
+    in property <AchievementRow> item;
+    in property <length> stat-width;
+    padding-top: root.item.is-set && root.item.spaced ? 8px : 0;
+    if root.item.is-set && !AchievementsData.comparing: SetHeader {
+        item: root.item;
+    }
+    if root.item.is-set && AchievementsData.comparing: CompareSetHeader {
+        item: root.item;
+        stat-width: root.stat-width;
+    }
+    if !root.item.is-set && !AchievementsData.comparing: Row {
+        item: root.item;
+    }
+    if !root.item.is-set && AchievementsData.comparing: CompareRow {
+        item: root.item;
+        stat-width: root.stat-width;
+    }
+}
+
+export component AchievementsPage inherits Rectangle {
+    property <length> max-scroll: Math.max(0, page.content-height - page.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    function wheel-by(dy: length) {
+        if (SmoothScroll.lines) {
+            root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+            root.scroll-y = root.tween.to;
+        } else {
+            root.tween.active = false;
+            root.scroll-y = Math.clamp(root.scroll-y + dy * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+        }
+    }
+    changed scroll-y => {
+        if (root.tween.active && root.scroll-y != root.tween.to) {
+            root.tween.active = false;
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    property <bool> completed: AchievementsData.total > 0 && AchievementsData.unlocked >= AchievementsData.total;
+    property <length> shown-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+    // scrollbar-gutter: stable twice (the content area and the list each keep
+    // 9px; the list's scrollbar sits in the inner one): 932px of 950 in Electron
+    property <length> content-width: root.width - 18px;
+    // AchievementSelect fitToOptions: the sort select is as wide as its widest option
+    property <length> sort-width: Math.max(sort-label-a.preferred-width, Math.max(sort-label-b.preferred-width, sort-label-c.preferred-width)) + 70px;
+    // banner: hero 150 + summary wrapper (8 + summaries of 80, gap 8 + 8)
+    property <int> summaries: (!AchievementsData.other-user || AchievementsData.comparing ? 1 : 0) + (AchievementsData.other-user ? 1 : 0);
+    property <length> banner-height: 150px + 16px + root.summaries * 80px + (root.summaries - 1) * 8px;
+    // __toolbar: flex-wrap; the points move to their own row when the line is full
+    property <length> end-width: points-label.preferred-width + 8px + 18px + 8px + points-value.preferred-width;
+    property <bool> wrapped: 360px + 16px + 210px + 16px + sort-trigger.width + 16px + root.end-width > root.content-width - 48px;
+    // the compare grid: minmax(390px, 1fr) + N x minmax(96px, 140px), gap 16, padding 29
+    property <length> grid-inner: root.content-width - 58px;
+    property <length> stat-width: Math.min(140px, 96px + Math.max(0px, (root.grid-inner - 16px * CompareGrid.columns - 390px - 96px * CompareGrid.columns) / CompareGrid.columns));
+    property <length> main-width: root.grid-inner - (root.stat-width + 16px) * CompareGrid.columns;
+    // __compare-controls: the selects wrap under the search when the column is narrow
+    // __compare-controls wrap: the selects under the search, then the sort under the filter
+    property <bool> selects-own-line: 360px + 16px + 210px + 16px + root.sort-width > root.main-width;
+    property <bool> selects-split: 210px + 16px + root.sort-width > root.main-width;
+    property <length> controls-height: 40px + (root.selects-own-line ? 52px : 0) + (root.selects-split ? 52px : 0);
+    property <length> compare-height: 16px + root.controls-height + 16px + 1px + 12px + 19px + 12px + 1px;
+    property <length> toolbar-height: AchievementsData.comparing ? root.compare-height : (root.wrapped ? 40px + 16px + 20px : 40px) + 32px + 1px;
+    // rows begin under the toolbar
+    property <length> list-top: root.banner-height + root.toolbar-height;
+    changed shown-y => {
+        AchievementsData.visible-rows(Math.max(0, Math.floor((-root.shown-y - root.list-top) / 98px) - 3), Math.ceil((-root.shown-y - root.list-top + root.height) / 98px) + 3);
+    }
+
+    // hidden: the sort options' label widths (fitToOptions)
+    sort-label-a := Text {
+        visible: false;
+        text: T.tr("achievement.sort_most_common");
+        font-size: Theme.body-size;
+    }
+    sort-label-b := Text {
+        visible: false;
+        text: T.tr("achievement.sort_most_rare");
+        font-size: Theme.body-size;
+    }
+    sort-label-c := Text {
+        visible: false;
+        text: T.tr("achievement.sort_recently_unlocked");
+        font-size: Theme.body-size;
+    }
+
+    page := Flickable {
+        x: 0;
+        width: root.content-width;
+        height: root.height;
+        interactive: false;
+        content-height: column.preferred-height;
+        content-y: root.shown-y;
+        TouchArea {
+            width: page.width;
+            height: page.content-height;
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+            column := VerticalLayout {
+                // __banner: the hero under two gradients, then the summary
+                Rectangle {
+                    height: root.banner-height;
+                    background: @linear-gradient(180deg, #101010 0%, #0a0a0a 100%);
+                    clip: true;
+                    if AchievementsData.hero.width > 0: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: AchievementsData.hero;
+                        image-fit: cover;
+                    }
+                    Rectangle {
+                        background: @linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.5) 45%, Theme.background 100%);
+                    }
+                    Rectangle {
+                        background: @linear-gradient(90deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 55%);
+                    }
+                    // __hero: 150px, padding 16, the logo (200x100, contain) links to the game
+                    logo-area := Rectangle {
+                        x: 16px;
+                        y: 16px;
+                        width: AchievementsData.has-logo ? 200px : title-text.preferred-width;
+                        height: 100px;
+                        transform-scale: logo-touch.has-hover ? 1.05 : 1;
+                        animate transform-scale { duration: 200ms; easing: ease; }
+                        if AchievementsData.has-logo: Image {
+                            width: 200px;
+                            height: 100px;
+                            source: AchievementsData.logo;
+                            image-fit: contain;
+                        }
+                        title-text := Text {
+                            visible: !AchievementsData.has-logo;
+                            width: Math.min(200px, self.preferred-width);
+                            text: AchievementsData.game-title;
+                            font-size: 32px;
+                            font-weight: 700;
+                            color: white;
+                            wrap: word-wrap;
+                            vertical-alignment: center;
+                        }
+                        logo-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                AchievementsData.open-game();
+                            }
+                        }
+                    }
+                    // __compare-button: outline, rgba(0,0,0,.4) at rest, right of the logo
+                    if AchievementsData.other-user: compare-button := Rectangle {
+                        x: parent.width - 16px - self.width;
+                        y: 16px + (100px - self.height) / 2;
+                        width: compare-row.preferred-width;
+                        height: 40px;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        background: compare-touch.has-hover ? rgba(255, 255, 255, 0.1) : rgba(0, 0, 0, 0.4);
+                        animate background { duration: 200ms; easing: ease; }
+                        compare-row := HorizontalLayout {
+                            padding-left: 17px;
+                            padding-right: 17px;
+                            spacing: 8px;
+                            Icon {
+                                y: (parent.height - self.height) / 2;
+                                width: 16px;
+                                height: 16px;
+                                source: AchievementsData.comparing ? AchievementIcons.x-16 : AchievementIcons.people;
+                                color: Theme.muted;
+                            }
+                            Text {
+                                text: AchievementsData.comparing ? T.tr("achievement.stop_comparing") : T.tr("achievement.compare_with_me");
+                                font-size: 13.33px;
+                                color: Theme.muted;
+                                vertical-alignment: center;
+                            }
+                        }
+                        compare-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                AchievementsData.toggle-compare();
+                            }
+                        }
+                    }
+                    // __achievements-summary-wrapper (padding 8, gap 8) > __user-summary
+                    VerticalLayout {
+                        y: 150px;
+                        height: root.banner-height - 150px;
+                        padding: 8px;
+                        spacing: 8px;
+                        if !AchievementsData.other-user || AchievementsData.comparing: UserSummary {
+                            avatar: Session.avatar;
+                            name: Session.display-name;
+                            unlocked: AchievementsData.comparing ? AchievementsData.owner-unlocked : AchievementsData.unlocked;
+                            total: AchievementsData.comparing ? AchievementsData.owner-total : AchievementsData.total;
+                            percent: AchievementsData.comparing ? AchievementsData.owner-percent : AchievementsData.percent;
+                        }
+                        if AchievementsData.other-user: UserSummary {
+                            avatar: AchievementsData.other-avatar;
+                            name: AchievementsData.other-name;
+                            unlocked: AchievementsData.other-unlocked;
+                            total: AchievementsData.other-total;
+                            percent: AchievementsData.other-percent;
+                        }
+                    }
+                }
+                // the toolbar's place (it is drawn above, sticky)
+                Rectangle {
+                    height: root.toolbar-height;
+                }
+                // __list: padding 16, gap 8
+                if AchievementsData.rows.length == 0 && !AchievementsData.loading: Text {
+                    height: 96px + 19px;
+                    text: T.tr("achievement.no_achievements_found");
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+                if AchievementsData.loading: VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    for i in 6: Skeleton {
+                        height: 90px;
+                        border-radius: 8px;
+                    }
+                }
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 8px;
+                    for item in AchievementsData.rows: Entry {
+                        item: item;
+                        stat-width: root.stat-width;
+                    }
+                }
+            }
+        }
+    }
+
+    // __toolbar: sticky at the top once the banner scrolls away
+    toolbar := Rectangle {
+        x: 0;
+        y: Math.max(0, root.banner-height + root.shown-y);
+        width: root.content-width;
+        height: root.toolbar-height;
+        background: Theme.background;
+        TouchArea {
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+        }
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.border;
+        }
+        HorizontalLayout {
+            x: 24px;
+            y: 16px;
+            width: parent.width - 48px;
+            height: 40px;
+            spacing: 16px;
+            alignment: start;
+            TextField {
+                width: 360px;
+                placeholder: T.tr("achievement.search_achievements");
+                text <=> AchievementsData.search;
+                edited(text) => {
+                    AchievementsData.search-edited(text);
+                }
+            }
+            status-trigger := MenuTrigger {
+                width: 210px;
+                icon: AchievementsData.status == "unlocked" ? AchievementIcons.unlock : AchievementsData.status == "locked" ? AchievementIcons.lock : AchievementIcons.trophy;
+                label: AchievementsData.status == "unlocked" ? T.tr("achievement.unlocked") : AchievementsData.status == "locked" ? T.tr("achievement.locked") : T.tr("achievement.all_achievements");
+                chevron: true;
+                open: Popup.open == "achievements-status";
+                clicked => {
+                    Popup.toggle("achievements-status", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                }
+            }
+            sort-trigger := MenuTrigger {
+                width: root.sort-width;
+                icon: AchievementsData.sort == "most_rare" ? AchievementIcons.sort-asc : AchievementsData.sort == "recently_unlocked" ? AchievementIcons.clock : AchievementIcons.sort-desc;
+                label: AchievementsData.sort == "most_rare" ? T.tr("achievement.sort_most_rare") : AchievementsData.sort == "recently_unlocked" ? T.tr("achievement.sort_recently_unlocked") : T.tr("achievement.sort_most_common");
+                chevron: true;
+                open: Popup.open == "achievements-sort";
+                clicked => {
+                    Popup.toggle("achievements-sort", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                }
+            }
+        }
+        // __toolbar-end: margin-left auto (its own row when wrapped)
+        HorizontalLayout {
+            x: parent.width - 24px - self.width;
+            y: root.wrapped ? 16px + 40px + 16px : 16px;
+            width: self.preferred-width;
+            height: root.wrapped ? 20px : 40px;
+            spacing: 8px;
+            points-label := Text {
+                text: T.tr("achievement.earned_points");
+                font-size: Theme.body-size;
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+            Icon {
+                y: (parent.height - self.height) / 2;
+                width: 18px;
+                height: 18px;
+                source: AchievementIcons.hydra;
+                color: Theme.muted;
+            }
+            points-value := Text {
+                text: AchievementsData.subscriber ? AchievementsData.points : "??? / ???";
+                font-size: Theme.body-size;
+                font-weight: 700;
+                color: Theme.muted;
+                vertical-alignment: center;
+            }
+            TouchArea {
+                mouse-cursor: AchievementsData.subscriber ? default : pointer;
+                clicked => {
+                    if (!AchievementsData.subscriber) {
+                        AchievementsData.hydra-cloud();
+                    }
+                }
+            }
+        }
+    }
+
+    // __compare-sticky: the controls row and the Hydra points row of the grid
+    if AchievementsData.comparing: Rectangle {
+        x: 0;
+        y: toolbar.y;
+        width: root.content-width;
+        height: root.compare-height;
+        background: Theme.background;
+        property <length> controls-height: root.controls-height;
+        TouchArea {
+            scroll-event(event) => {
+                root.wheel-by(event.delta-y);
+                accept
+            }
+        }
+        // row 1: search and selects | global badge | owner | target
+        Rectangle {
+            y: 16px + parent.controls-height + 16px;
+            height: 1px;
+            background: Theme.border;
+        }
+        Rectangle {
+            x: 29px;
+            y: 16px;
+            width: root.main-width;
+            height: parent.controls-height;
+            TextField {
+                x: 0;
+                y: 0;
+                width: Math.min(360px, root.main-width);
+                height: 40px;
+                placeholder: T.tr("achievement.search_achievements");
+                text <=> AchievementsData.search;
+                edited(text) => {
+                    AchievementsData.search-edited(text);
+                }
+            }
+            compare-filter := MenuTrigger {
+                x: root.selects-own-line ? 0 : 376px;
+                y: root.selects-own-line ? 52px : 0;
+                width: 210px;
+                icon: AchievementsData.filter == "both" ? AchievementIcons.unlock : AchievementsData.filter == "neither" ? AchievementIcons.lock : AchievementsData.filter == "owner" || AchievementsData.filter == "target" ? Icons.person : AchievementIcons.trophy;
+                label: AchievementsData.filter == "both" ? T.tr("achievement.compare_filter_both") : AchievementsData.filter == "neither" ? T.tr("achievement.compare_filter_neither") : AchievementsData.filter == "owner" ? Session.display-name : AchievementsData.filter == "target" ? AchievementsData.other-name : T.tr("achievement.all_achievements");
+                chevron: true;
+                open: Popup.open == "achievements-filter";
+                clicked => {
+                    Popup.toggle("achievements-filter", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                }
+            }
+            compare-sort := MenuTrigger {
+                x: root.selects-split ? compare-filter.x : compare-filter.x + 210px + 16px;
+                y: root.selects-split ? compare-filter.y + 52px : compare-filter.y;
+                width: root.sort-width;
+                icon: AchievementsData.sort == "most_rare" ? AchievementIcons.sort-asc : AchievementsData.sort == "recently_unlocked" ? AchievementIcons.clock : AchievementIcons.sort-desc;
+                label: AchievementsData.sort == "most_rare" ? T.tr("achievement.sort_most_rare") : AchievementsData.sort == "recently_unlocked" ? T.tr("achievement.sort_recently_unlocked") : T.tr("achievement.sort_most_common");
+                chevron: true;
+                open: Popup.open == "achievements-sort";
+                clicked => {
+                    Popup.toggle("achievements-sort", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                }
+            }
+        }
+        HorizontalLayout {
+            x: 29px + root.main-width + 16px;
+            y: 16px;
+            width: (root.stat-width + 16px) * CompareGrid.columns - 16px;
+            height: parent.controls-height;
+            spacing: 16px;
+            // __compare-global-badge: 40x40, the duotone globe
+            if AchievementsData.has-community-stats: Rectangle {
+                width: root.stat-width;
+                Rectangle {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: Theme.border;
+                    background: Theme.dark-background;
+                    Icon {
+                        width: 26px;
+                        height: 26px;
+                        source: AchievementIcons.globe;
+                        color: Theme.muted;
+                    }
+                }
+            }
+            if AchievementsData.has-owner-stats: Rectangle {
+                width: root.stat-width;
+                CompareAvatar {
+                    source: Session.avatar;
+                }
+            }
+            Rectangle {
+                width: root.stat-width;
+                CompareAvatar {
+                    source: AchievementsData.other-avatar;
+                }
+            }
+        }
+        // row 2: Hydra points, padding 12
+        Rectangle {
+            y: parent.height - 1px;
+            height: 1px;
+            background: Theme.border;
+        }
+        HorizontalLayout {
+            x: 29px;
+            y: 16px + parent.controls-height + 16px + 1px + 12px;
+            width: root.grid-inner;
+            height: 19px;
+            spacing: 16px;
+            HorizontalLayout {
+                width: root.main-width;
+                spacing: 8px;
+                alignment: start;
+                Icon {
+                    y: (parent.height - self.height) / 2;
+                    width: 18px;
+                    height: 18px;
+                    source: AchievementIcons.hydra;
+                    color: Theme.muted;
+                }
+                Text {
+                    text: T.tr("achievement.hydra_points");
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                    vertical-alignment: center;
+                }
+            }
+            if AchievementsData.has-community-stats: ComparePoints {
+                width: root.stat-width;
+                value: AchievementsData.points-total;
+            }
+            if AchievementsData.has-owner-stats: ComparePoints {
+                width: root.stat-width;
+                value: AchievementsData.owner-points;
+            }
+            ComparePoints {
+                width: root.stat-width;
+                value: AchievementsData.target-points;
+            }
+        }
+    }
+
+    if root.max-scroll > 0: ScrollBar {
+        x: root.width - 9px - self.width;
+        height: root.height;
+        content-height: page.content-height;
+        viewport-height: page.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -root.shown-y;
+    }
+
+    // achievement-select menus (align end, 6px under the trigger)
+    if Popup.open == "achievements-status": MenuContent {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        room-width: root.width;
+        room-height: root.height;
+        page-x: root.absolute-position.x;
+        min-menu-width: 210px;
+        SelectItem {
+            icon: AchievementIcons.trophy;
+            label: T.tr("achievement.all_achievements");
+            count: AchievementsData.count-all;
+            checked: AchievementsData.status == "all";
+            activated => {
+                AchievementsData.set-status("all");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.unlock;
+            label: T.tr("achievement.unlocked");
+            count: AchievementsData.count-unlocked;
+            checked: AchievementsData.status == "unlocked";
+            activated => {
+                AchievementsData.set-status("unlocked");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.lock;
+            label: T.tr("achievement.locked");
+            count: AchievementsData.count-locked;
+            checked: AchievementsData.status == "locked";
+            activated => {
+                AchievementsData.set-status("locked");
+                Popup.open = "";
+            }
+        }
+    }
+    // compared-achievement-list.tsx filterOptions (the person options with their pictures)
+    if Popup.open == "achievements-filter": MenuContent {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        room-width: root.width;
+        room-height: root.height;
+        page-x: root.absolute-position.x;
+        min-menu-width: 210px;
+        SelectItem {
+            icon: AchievementIcons.trophy;
+            label: T.tr("achievement.all_achievements");
+            count: AchievementsData.count-all;
+            checked: AchievementsData.filter == "all";
+            activated => {
+                AchievementsData.set-filter("all");
+                Popup.open = "";
+            }
+        }
+        if AchievementsData.has-owner-stats: SelectItem {
+            icon: AchievementIcons.unlock;
+            label: T.tr("achievement.compare_filter_both");
+            count: AchievementsData.count-both;
+            checked: AchievementsData.filter == "both";
+            activated => {
+                AchievementsData.set-filter("both");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.lock;
+            label: T.tr("achievement.compare_filter_neither");
+            count: AchievementsData.count-neither;
+            checked: AchievementsData.filter == "neither";
+            activated => {
+                AchievementsData.set-filter("neither");
+                Popup.open = "";
+            }
+        }
+        if AchievementsData.has-owner-stats: SelectItem {
+            avatar: true;
+            icon: Session.avatar;
+            label: Session.display-name;
+            count: AchievementsData.count-owner;
+            checked: AchievementsData.filter == "owner";
+            activated => {
+                AchievementsData.set-filter("owner");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            avatar: true;
+            icon: AchievementsData.other-avatar;
+            label: AchievementsData.other-name;
+            count: AchievementsData.count-target;
+            checked: AchievementsData.filter == "target";
+            activated => {
+                AchievementsData.set-filter("target");
+                Popup.open = "";
+            }
+        }
+    }
+    if Popup.open == "achievements-sort": MenuContent {
+        anchor-x: Popup.anchor-x - root.absolute-position.x;
+        anchor-y: Popup.anchor-y - root.absolute-position.y;
+        anchor-width: Popup.anchor-width;
+        anchor-height: Popup.anchor-height;
+        room-width: root.width;
+        room-height: root.height;
+        page-x: root.absolute-position.x;
+        min-menu-width: Popup.anchor-width;
+        SelectItem {
+            icon: AchievementIcons.sort-desc;
+            label: T.tr("achievement.sort_most_common");
+            checked: AchievementsData.sort == "most_common";
+            activated => {
+                AchievementsData.set-sort("most_common");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.sort-asc;
+            label: T.tr("achievement.sort_most_rare");
+            checked: AchievementsData.sort == "most_rare";
+            activated => {
+                AchievementsData.set-sort("most_rare");
+                Popup.open = "";
+            }
+        }
+        SelectItem {
+            icon: AchievementIcons.clock;
+            label: T.tr("achievement.sort_recently_unlocked");
+            checked: AchievementsData.sort == "recently_unlocked";
+            activated => {
+                AchievementsData.set-sort("recently_unlocked");
+                Popup.open = "";
+            }
+        }
+    }
+}

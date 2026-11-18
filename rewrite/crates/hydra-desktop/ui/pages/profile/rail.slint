@@ -1,0 +1,468 @@
+// The profile's right rail: user-stats-box, badges-box, recent-games-box,
+// friends-box (FriendsBoxAddButton) and report-profile's button, each in a
+// ProfileSection.
+import { Theme, Icons } from "../../theme.slint";
+import { Icon } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { ProfileData } from "state.slint";
+import { ProfileSection, ProfileAvatar, LinkButton, TipArea } from "widgets.slint";
+import { ProfileIcons } from "hero.slint";
+
+// user-stats__list-item: padding 8, gap 8, hover rgba(255,255,255,.15) (0.1s)
+component StatItem inherits Rectangle {
+    in property <string> title;
+    in property <image> icon;
+    in property <length> icon-size: 16px;
+    in property <string> value;
+    in property <string> percentile;
+    // the Hydra Cloud link instead of the value
+    in property <string> link;
+    callback link-clicked();
+    height: 62px;
+    border-radius: 4px;
+    background: hover.has-hover ? rgba(255, 255, 255, 0.15) : transparent;
+    animate background { duration: 100ms; easing: ease; }
+    // The hover area holds the content, so the nested tooltip keeps it hovered.
+    hover := TouchArea {
+    VerticalLayout {
+        padding: 8px;
+        spacing: 8px;
+        Text {
+            height: 18px;
+            text: root.title;
+            font-size: Theme.hint-size;
+            font-weight: 700;
+            color: Theme.muted;
+            overflow: elide;
+            vertical-alignment: center;
+        }
+        if root.link == "": HorizontalLayout {
+            height: 20px;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                horizontal-stretch: 1;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: root.icon-size;
+                        height: root.icon-size;
+                        source: root.icon;
+                        color: Theme.muted;
+                    }
+                }
+                Text {
+                    text: root.value;
+                    font-size: Theme.small-size;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+            }
+            if root.percentile != "": Text {
+                text: root.percentile;
+                font-size: Theme.body-size;
+                color: Theme.muted;
+                vertical-alignment: center;
+                // title={t("ranking_updated_weekly")}: a native tooltip (not drawn)
+            }
+        }
+        // user-stats__link: <small> in the warning color, underlined on hover
+        if root.link != "": HorizontalLayout {
+            height: 20px;
+            alignment: start;
+            link-text := Text {
+                text: root.link;
+                font-size: 11.67px;
+                color: Theme.warning;
+                vertical-alignment: center;
+                Rectangle {
+                    visible: link-touch.has-hover;
+                    y: parent.height / 2 + 7px;
+                    height: 1px;
+                    background: Theme.warning;
+                }
+                link-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.link-clicked();
+                    }
+                }
+            }
+        }
+    }
+    }
+}
+
+export component StatsBox inherits VerticalLayout {
+    padding: 16px;
+    spacing: 16px;
+    if ProfileData.show-achievements-row: StatItem {
+        title: T.tr("user_profile.achievements_unlocked");
+        icon: @image-url("../../icons/trophy.svg");
+        value: ProfileData.achievements-text;
+        link: ProfileData.achievements-text == "" ? T.tr("user_profile.show_achievements_on_profile") : "";
+        link-clicked => {
+            ProfileData.hydra-cloud("achievements");
+        }
+    }
+    if ProfileData.show-points-row: StatItem {
+        title: T.tr("user_profile.earned_points");
+        icon: @image-url("../../icons/hydra-source.svg");
+        icon-size: 20px;
+        value: ProfileData.points-text;
+        percentile: ProfileData.points-percentile;
+        link: ProfileData.points-text == "" ? T.tr("user_profile.show_points_on_profile") : "";
+        link-clicked => {
+            ProfileData.hydra-cloud("achievements-points");
+        }
+    }
+    StatItem {
+        title: T.tr("user_profile.total_play_time");
+        icon: Icons.clock;
+        value: ProfileData.playtime-text;
+        percentile: ProfileData.playtime-percentile;
+    }
+    if ProfileData.show-karma: StatItem {
+        title: T.tr("user_profile.karma");
+        icon: @image-url("../../icons/award-20.svg");
+        icon-size: 20px;
+        value: ProfileData.karma-text;
+    }
+}
+
+// badges-box__item / all-badges-modal__item
+export component BadgeItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> description;
+    in property <string> unlocked-on;
+    // the modal's larger variant: 48px icon box, 32px art, 12px padding, 14px title
+    in property <bool> large;
+    border-radius: root.large ? 8px : 4px;
+    background: hover.has-hover ? rgba(255, 255, 255, 0.1) : rgba(255, 255, 255, 0.05);
+    animate background { duration: 200ms; easing: ease; }
+    height: row.preferred-height;
+    hover := TouchArea {
+    row := HorizontalLayout {
+        padding: root.large ? 12px : 8px;
+        spacing: 16px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: root.large ? 48px : 34px;
+                height: root.large ? 48px : 34px;
+                border-radius: 8px;
+                background: Theme.background;
+                clip: true;
+                Image {
+                    width: root.large ? 32px : 28px;
+                    height: root.large ? 32px : 28px;
+                    source: root.icon;
+                    image-fit: contain;
+                }
+                TipArea {
+                    tip: root.unlocked-on;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            horizontal-stretch: 1;
+            Text {
+                text: root.title;
+                font-size: root.large ? Theme.body-size : Theme.hint-size;
+                font-weight: 700;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+            Text {
+                text: root.description;
+                font-size: Theme.small-size;
+                color: rgba(255, 255, 255, 0.6);
+                wrap: word-wrap;
+                // p { line-height: 20px }
+                min-height: 20px;
+            }
+        }
+    }
+    }
+}
+
+export component BadgesBox inherits VerticalLayout {
+    padding: 16px;
+    VerticalLayout {
+        spacing: 16px;
+        for badge in ProfileData.badges: BadgeItem {
+            icon: badge.icon;
+            title: badge.title;
+            description: badge.description;
+            unlocked-on: badge.unlocked-on;
+        }
+    }
+    // __view-all-container: padding-top 16 + margin-top 16
+    if ProfileData.badges-more: HorizontalLayout {
+        padding-top: 32px;
+        alignment: start;
+        LinkButton {
+            text: T.tr("user_profile.view_all");
+            clicked => {
+                ProfileData.view-all-badges();
+            }
+        }
+    }
+}
+
+// recent-games__list-item / friends-box__list-item: padding 8, gap 16,
+// hover rgba(255,255,255,.15) over 0.1s
+component ListLink inherits Rectangle {
+    callback clicked();
+    in property <string> tip;
+    // all-friends-modal__item: 8px radius, rgba(255,255,255,.05) over 0.2s
+    in property <brush> hover-fill: rgba(255, 255, 255, 0.15);
+    in property <duration> fade: 100ms;
+    in property <length> radius: 4px;
+    border-radius: root.radius;
+    background: touch.has-hover ? root.hover-fill : transparent;
+    animate background { duration: root.fade; easing: ease; }
+    touch := TipArea {
+        mouse-cursor: pointer;
+        tip: root.tip;
+        clicked => {
+            root.clicked();
+        }
+    }
+    @children
+}
+
+export component RecentGamesBox inherits VerticalLayout {
+    padding: 16px;
+    spacing: 16px;
+    for game[i] in ProfileData.recent: ListLink {
+        height: 54px;
+        clicked => {
+            ProfileData.open-recent(i);
+        }
+        HorizontalLayout {
+            padding: 8px;
+            spacing: 16px;
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 4px;
+                    clip: true;
+                    Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: game.icon;
+                        image-fit: cover;
+                    }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                spacing: 4px;
+                horizontal-stretch: 1;
+                Text {
+                    height: 18px;
+                    text: game.title;
+                    font-size: Theme.hint-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+                HorizontalLayout {
+                    height: 16px;
+                    spacing: 8px;
+                    alignment: start;
+                    // the visibility badge without its chip (just the glyph)
+                    if game.concealed || game.hidden-from-others: Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: game.concealed ? ProfileIcons.lock-11 : ProfileIcons.eye-closed-11;
+                        color: Theme.muted;
+                    }
+                    Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: Icons.clock;
+                        color: Theme.muted;
+                    }
+                    Text {
+                        text: game.playtime;
+                        font-size: 11.67px;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component FriendRow inherits ListLink {
+    in property <image> avatar;
+    in property <bool> has-avatar;
+    in property <string> name;
+    in property <string> game;
+    in property <image> game-icon;
+    in property <bool> has-game-icon;
+    in property <length> avatar-size: 32px;
+    in property <length> name-size: Theme.hint-size;
+    in property <length> pad: 8px;
+    height: Math.max(root.avatar-size, details.preferred-height) + 2 * root.pad;
+    HorizontalLayout {
+        padding: root.pad;
+        spacing: 16px;
+        VerticalLayout {
+            alignment: center;
+            ProfileAvatar {
+                size: root.avatar-size;
+                source: root.avatar;
+                has-source: root.has-avatar;
+            }
+        }
+        details := VerticalLayout {
+            alignment: center;
+            spacing: 4px;
+            horizontal-stretch: 1;
+            Text {
+                text: root.name;
+                font-size: root.name-size;
+                font-weight: 700;
+                color: Theme.muted;
+                overflow: elide;
+            }
+            if root.game != "": HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                VerticalLayout {
+                    alignment: center;
+                    if root.has-game-icon: Rectangle {
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 4px;
+                        clip: true;
+                        Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: root.game-icon;
+                            image-fit: cover;
+                        }
+                    }
+                    if !root.has-game-icon: Icon {
+                        width: 16px;
+                        height: 16px;
+                        source: Icons.steam-logo;
+                        color: Theme.muted;
+                    }
+                }
+                Text {
+                    text: root.game;
+                    font-size: 11.67px;
+                    color: Theme.muted;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+export component FriendsBox inherits VerticalLayout {
+    padding: 16px;
+    if ProfileData.friends.length == 0: Text {
+        text: T.tr("user_profile.no_friends_yet");
+        font-size: Theme.small-size;
+        color: Theme.muted;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    VerticalLayout {
+        spacing: 16px;
+        for friend in ProfileData.friends: FriendRow {
+            avatar: friend.avatar;
+            has-avatar: friend.has-avatar;
+            name: friend.name;
+            game: friend.game;
+            game-icon: friend.game-icon;
+            has-game-icon: friend.has-game-icon;
+            clicked => {
+                ProfileData.open-friend(friend.id);
+            }
+        }
+    }
+    if ProfileData.friends-more: HorizontalLayout {
+        padding-top: 32px;
+        alignment: start;
+        LinkButton {
+            text: T.tr("user_profile.view_all");
+            clicked => {
+                ProfileData.view-all-friends();
+            }
+        }
+    }
+}
+
+export component ProfileRail inherits VerticalLayout {
+    spacing: 16px;
+    if ProfileData.show-stats: ProfileSection {
+        title: T.tr("user_profile.stats");
+        StatsBox { }
+    }
+    if ProfileData.badges-count > 0: ProfileSection {
+        title: T.tr("user_profile.badges");
+        count: ProfileData.badges-count;
+        BadgesBox { }
+    }
+    if ProfileData.recent.length > 0: ProfileSection {
+        title: T.tr("user_profile.activity");
+        RecentGamesBox { }
+    }
+    if ProfileData.show-friends: ProfileSection {
+        title: T.tr("user_profile.friends");
+        count: ProfileData.friends-count;
+        // FriendsBoxAddButton (own profile)
+        action-text: ProfileData.is-me ? T.tr("user_profile.add_friends") : "";
+        action-icon: @image-url("../../icons/plus.svg");
+        action-clicked => {
+            ProfileData.add-friends();
+        }
+        FriendsBox { }
+    }
+    // report-profile__button (someone else's profile): align-self flex-end
+    if !ProfileData.is-me: HorizontalLayout {
+        alignment: end;
+        Rectangle {
+            width: report.preferred-width;
+            height: report.preferred-height;
+            report := HorizontalLayout {
+                spacing: 8px;
+                VerticalLayout {
+                    alignment: center;
+                    Icon {
+                        width: 13px;
+                        height: 13px;
+                        source: @image-url("../../icons/report-13.svg");
+                        color: Theme.muted;
+                    }
+                }
+                Text {
+                    text: T.tr("user_profile.report_profile");
+                    font-size: Theme.small-size;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ProfileData.report();
+                }
+            }
+        }
+    }
+}

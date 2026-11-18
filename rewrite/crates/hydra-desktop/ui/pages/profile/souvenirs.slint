@@ -1,0 +1,693 @@
+// The profile's Souvenirs tab: souvenirs-tab.tsx (cards, game groups,
+// notices, empty states) with the .profile-content__souvenir* styles.
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, Skeleton } from "../../components/widgets.slint";
+import { T, Popup, Session } from "../../globals.slint";
+import { ProfileData, ProfileSouvenirCard, ProfileSouvenirGroup } from "state.slint";
+import { ProfileButton, FilterTrigger, TipArea } from "widgets.slint";
+
+export global SouvenirGrid {
+    // grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)), gap 12
+    public pure function tracks(width: length) -> int {
+        return Math.max(1, Math.floor((width + 12px) / 232px));
+    }
+    public pure function card-width(width: length) -> length {
+        let n = SouvenirGrid.tracks(width);
+        return (width - 12px * (n - 1)) / n;
+    }
+}
+
+// __souvenir-action-button: the like toggle (heart + count rolling 0.2s)
+component LikeButton inherits Rectangle {
+    in property <ProfileSouvenirCard> card;
+    property <bool> pending: root.card.liking;
+    property <float> phase: Math.mod(root.card.like-gen, 2);
+    animate phase { duration: 400ms; easing: linear; }
+    property <float> t: Math.mod(root.card.like-gen, 2) == 1 ? root.phase : 1 - root.phase;
+    property <float> exit-t: Math.min(1, root.t * 2);
+    property <float> enter-t: Math.max(0, root.t * 2 - 1);
+    width: row.preferred-width + 2px;
+    height: 24px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.15);
+    background: touch.has-hover && !root.pending ? rgba(0, 0, 0, 0.6) : rgba(0, 0, 0, 0.4);
+    animate background { duration: 200ms; easing: ease; }
+    drop-shadow-offset-y: 2px;
+    drop-shadow-blur: 4px;
+    drop-shadow-color: rgba(0, 0, 0, 0.2);
+    transform-scale: touch.pressed ? 0.95 : touch.has-hover ? 1.05 : 1;
+    animate transform-scale { duration: 150ms; easing: ease-out; }
+    property <color> fg: touch.has-hover && !root.pending ? Theme.muted : rgba(255, 255, 255, 0.8);
+    row := HorizontalLayout {
+        x: 1px;
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 4px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                width: 14px;
+                height: 14px;
+                source: root.card.liked ? @image-url("../../icons/heart-fill.svg") : @image-url("../../icons/heart.svg");
+                color: root.fg;
+            }
+        }
+        Rectangle {
+            width: Math.max(old-label.preferred-width, new-label.preferred-width);
+            old-label := Text {
+                visible: root.t < 0.5;
+                text: root.card.prev-likes;
+                color: root.fg;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                y: 10px * root.exit-t;
+                opacity: 1 - root.exit-t;
+            }
+            new-label := Text {
+                text: root.card.likes;
+                color: root.fg;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                y: -10px * (1 - root.enter-t);
+                opacity: root.t < 0.5 ? 0 : root.enter-t;
+            }
+        }
+    }
+    // title: like_souvenir / sign_in_to_like_souvenir (native tooltip, not drawn)
+    touch := TouchArea {
+        mouse-cursor: root.pending ? not-allowed : pointer;
+        clicked => {
+            if (!root.pending) {
+                ProfileData.like-souvenir(root.card.id);
+            }
+        }
+    }
+}
+
+// SouvenirCard: the 16:9 picture (hover dims it and shows the magnifier),
+// the private marker and like button, and the achievement line.
+component SouvenirCardView inherits Rectangle {
+    in property <ProfileSouvenirCard> card;
+    property <brush> edge: root.card.variant == "platinum" ? rgba(12, 241, 202, 0.85)
+        : root.card.variant == "rare" ? rgba(244, 165, 16, 0.85) : Theme.border;
+    height: picture.height + details.preferred-height + 2px;
+    border-radius: 8px;
+    background: Theme.background;
+    // --rare / --platinum: box-shadow 0 0 12px at 20%
+    drop-shadow-blur: root.card.variant != "" ? 12px : 0;
+    drop-shadow-color: root.card.variant == "platinum" ? rgba(12, 241, 202, 0.2) : rgba(244, 165, 16, 0.2);
+    clip: true;
+
+    picture := Rectangle {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        height: self.width * 9 / 16;
+        clip: true;
+        if !root.card.has-image: Rectangle {
+            background: rgba(255, 255, 255, 0.04);
+            Icon {
+                width: 32px;
+                height: 32px;
+                source: @image-url("../../icons/image.svg");
+                color: Theme.body;
+            }
+        }
+        if root.card.has-image: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.card.image;
+            image-fit: cover;
+            // --content-warning: blur(18px) (pre-blurred) scaled 1.12
+            transform-scale: root.card.blurred ? 1.12 : 1;
+        }
+        // brightness(0.55) on hover (0.42 over the blurred warning), 0.2s
+        if root.card.has-image: Rectangle {
+            background: #000000;
+            opacity: root.card.blurred ? (picture-touch.has-hover ? 0.58 : 0.45) : (picture-touch.has-hover ? 0.45 : 0);
+            animate opacity { duration: 200ms; easing: ease; }
+        }
+        if root.card.has-image: Icon {
+            width: 24px;
+            height: 24px;
+            source: @image-url("../../icons/search-24.svg");
+            color: Theme.muted;
+            opacity: picture-touch.has-hover ? 1 : 0;
+            animate opacity { duration: 200ms; easing: ease; }
+        }
+        // title: view_souvenir (native tooltip, not drawn)
+        picture-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                ProfileData.open-souvenir(root.card.id);
+            }
+        }
+    }
+
+    // __souvenir-actions: top 8, right 8, gap 4
+    HorizontalLayout {
+        x: parent.width - 8px - self.width;
+        y: 8px;
+        width: self.preferred-width;
+        height: 24px;
+        spacing: 4px;
+        if root.card.private: Rectangle {
+            width: 24px;
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.4);
+            Icon {
+                width: 14px;
+                height: 14px;
+                source: @image-url("../../icons/eye-closed.svg");
+                color: rgba(255, 255, 255, 0.8);
+            }
+        }
+        LikeButton {
+            card: root.card;
+        }
+    }
+
+    // __souvenir-details: padding 12, gap 8
+    details := HorizontalLayout {
+        y: picture.y + picture.height;
+        x: 1px;
+        width: parent.width - 2px;
+        height: self.preferred-height;
+        padding: 12px;
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: 4px;
+                clip: true;
+                background: Theme.border;
+                if root.card.has-icon: Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: root.card.icon;
+                    image-fit: cover;
+                }
+                if !root.card.has-icon: Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/trophy.svg");
+                    color: Theme.body;
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 2px;
+            horizontal-stretch: 1;
+            alignment: center;
+            HorizontalLayout {
+                alignment: start;
+                height: 19px;
+                Text {
+                    text: root.card.title;
+                    font-size: Theme.body-size;
+                    font-weight: 500;
+                    color: Theme.body;
+                    overflow: elide;
+                }
+                if root.card.others != "": Text {
+                    text: root.card.others;
+                    font-size: Theme.small-size;
+                    color: Theme.body;
+                    vertical-alignment: top;
+                }
+            }
+            if !root.card.show-game: Text {
+                height: 18px;
+                text: root.card.time;
+                font-size: 11.67px;
+                color: Theme.body;
+                vertical-alignment: center;
+            }
+            if root.card.show-game: HorizontalLayout {
+                height: 18px;
+                alignment: start;
+                spacing: 4px;
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 4px;
+                        clip: true;
+                        if root.card.has-game-icon: Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: root.card.game-icon;
+                            image-fit: cover;
+                        }
+                        if !root.card.has-game-icon: Icon {
+                            width: 12px;
+                            height: 12px;
+                            source: @image-url("../../icons/image.svg");
+                            color: Theme.body;
+                        }
+                    }
+                }
+                game-name := Text {
+                    text: root.card.game-title;
+                    font-size: 11.67px;
+                    color: Theme.body;
+                    overflow: elide;
+                    vertical-alignment: center;
+                    Rectangle {
+                        y: parent.height - 1px;
+                        height: 1px;
+                        background: game-touch.has-hover ? Theme.body : transparent;
+                    }
+                    game-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            ProfileData.open-souvenir-game(root.card.id);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: root.edge;
+    }
+}
+
+// A run of cards in the auto-fill grid; every row is as tall as its tallest card.
+component SouvenirCards inherits Rectangle {
+    in property <int> first;
+    in property <int> count;
+    property <int> tracks: SouvenirGrid.tracks(root.width);
+    property <length> card-width: SouvenirGrid.card-width(root.width);
+    // picture (16:9) + details (12 + title 19 + 2 + 18 + 12) + borders
+    property <length> card-height: (root.card-width - 2px) * 9 / 16 + 63px + 2px;
+    height: Math.ceil(root.count / root.tracks) * (root.card-height + 12px) - 12px;
+    for k in root.count: SouvenirCardView {
+        x: Math.mod(k, root.tracks) * (root.card-width + 12px);
+        y: Math.floor(k / root.tracks) * (root.card-height + 12px);
+        width: root.card-width;
+        height: root.card-height;
+        card: ProfileData.souvenirs[root.first + k];
+    }
+}
+
+// SouvenirGameGroup: toggle (chevron, 24px icon, 16px title) + count, then the grid
+component SouvenirGroupView inherits VerticalLayout {
+    in property <ProfileSouvenirGroup> group;
+    spacing: 16px;
+    padding-bottom: 24px;
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Rectangle {
+            width: toggle.preferred-width;
+            height: toggle.preferred-height;
+        toggle := HorizontalLayout {
+            spacing: 8px;
+            VerticalLayout {
+                alignment: center;
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: root.group.expanded ? Icons.chevron-down : Icons.chevron-right;
+                    color: Theme.muted;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 4px;
+                    clip: true;
+                    if root.group.has-icon: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: root.group.icon;
+                        image-fit: cover;
+                    }
+                    if !root.group.has-icon: Icon {
+                        width: 14px;
+                        height: 14px;
+                        source: @image-url("../../icons/image.svg");
+                        color: Theme.body;
+                    }
+                }
+            }
+            Text {
+                text: root.group.title;
+                font-size: 16px;
+                font-weight: 700;
+                color: Theme.muted;
+                overflow: elide;
+                vertical-alignment: center;
+            }
+        }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ProfileData.toggle-souvenir-group(root.group.game-id);
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 25px;
+                width: Math.max(24px, group-count.preferred-width + 16px);
+                border-radius: 6px;
+                background: rgba(255, 255, 255, 0.1);
+                group-count := Text {
+                    text: root.group.count;
+                    font-size: Theme.small-size;
+                    font-weight: 700;
+                    color: Theme.body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+    if root.group.expanded: SouvenirCards {
+        first: root.group.first;
+        count: root.group.count;
+    }
+}
+
+// __souvenirs-notice: icon in a 36px circle, title + text (and the dismiss)
+component Notice inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> text;
+    in property <bool> dismissable;
+    callback dismissed();
+    height: row.preferred-height + 2px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: rgba(255, 255, 255, 0.04);
+    row := HorizontalLayout {
+        x: 1px;
+        y: 1px;
+        width: parent.width - 2px;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 36px;
+                height: 36px;
+                border-radius: 18px;
+                background: rgba(255, 255, 255, 0.06);
+                Icon {
+                    width: 18px;
+                    height: 18px;
+                    source: root.icon;
+                    color: Theme.muted;
+                }
+            }
+        }
+        VerticalLayout {
+            spacing: 4px;
+            horizontal-stretch: 1;
+            alignment: center;
+            Text {
+                text: root.title;
+                font-size: Theme.body-size;
+                font-weight: 700;
+                color: Theme.muted;
+                wrap: word-wrap;
+            }
+            Text {
+                text: root.text;
+                font-size: Theme.small-size;
+                color: Theme.body;
+                wrap: word-wrap;
+            }
+        }
+        if root.dismissable: VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                background: dismiss.has-hover ? rgba(255, 255, 255, 0.08) : transparent;
+                animate background { duration: 200ms; easing: ease; }
+                Icon {
+                    width: 16px;
+                    height: 16px;
+                    source: @image-url("../../icons/x-16.svg");
+                    color: dismiss.has-hover ? Theme.muted : Theme.body;
+                }
+                dismiss := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.dismissed();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// The empty/locked/upsell copy: margin-top 36 + 16, which collapses with
+// the tabs' 16px margin (the page already adds those 16).
+component EmptyCopy inherits VerticalLayout {
+    in property <string> title;
+    in property <string> text;
+    in property <image> icon;
+    in property <string> action;
+    in property <image> action-icon;
+    callback acted();
+    padding-top: 36px;
+    spacing: 8px;
+    alignment: start;
+    if root.icon.width > 0: HorizontalLayout {
+        alignment: center;
+        padding-bottom: 16px;
+        Rectangle {
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.06);
+            Icon {
+                width: 24px;
+                height: 24px;
+                source: root.icon;
+                color: Theme.muted;
+            }
+        }
+    }
+    Text {
+        text: root.title;
+        font-size: 21px;
+        font-weight: 700;
+        color: Theme.body;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    if root.text != "": Text {
+        text: root.text;
+        font-size: Theme.body-size;
+        color: Theme.body;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    if root.action != "": HorizontalLayout {
+        alignment: center;
+        padding-top: 8px;
+        ProfileButton {
+            kind: "outline";
+            icon: root.action-icon;
+            icon-size: 18px;
+            text: root.action;
+            clicked => {
+                root.acted();
+            }
+        }
+    }
+}
+
+// The 8 loading cards: a 16:9 block, a 28px circle and two lines
+component SouvenirSkeletons inherits Rectangle {
+    property <int> tracks: SouvenirGrid.tracks(root.width);
+    property <length> card-width: SouvenirGrid.card-width(root.width);
+    property <length> card-height: (root.card-width - 2px) * 9 / 16 + 54px + 2px;
+    height: Math.ceil(8 / root.tracks) * (root.card-height + 12px) - 12px;
+    for k in 8: Rectangle {
+        x: Math.mod(k, root.tracks) * (root.card-width + 12px);
+        y: Math.floor(k / root.tracks) * (root.card-height + 12px);
+        width: root.card-width;
+        height: root.card-height;
+        border-radius: 8px;
+        border-width: 1px;
+        border-color: Theme.border;
+        background: Theme.background;
+        clip: true;
+        Skeleton {
+            x: 1px;
+            y: 1px;
+            width: parent.width - 2px;
+            height: (parent.width - 2px) * 9 / 16;
+            radius: 0;
+        }
+        HorizontalLayout {
+            y: 1px + (parent.width - 2px) * 9 / 16;
+            height: 54px;
+            padding: 12px;
+            spacing: 8px;
+            Skeleton {
+                width: 28px;
+                height: 28px;
+                radius: 14px;
+            }
+            VerticalLayout {
+                spacing: 4px;
+                alignment: center;
+                Skeleton {
+                    width: (root.card-width - 62px) * 0.7;
+                    height: 14px;
+                }
+                Skeleton {
+                    width: (root.card-width - 62px) * 0.45;
+                    height: 12px;
+                }
+            }
+        }
+    }
+}
+
+// The tab panel (motion.div opacity/x 0.2s)
+export component SouvenirsTab inherits Rectangle {
+    // AnimatePresence mode="wait": exit to opacity 0, x 10 before the next tab
+    in property <bool> leaving;
+    property <bool> entered;
+    Timer {
+        interval: 16ms;
+        running: !root.entered;
+        triggered => {
+            root.entered = true;
+        }
+    }
+    height: column.preferred-height;
+    opacity: root.entered && !root.leaving ? 1 : 0;
+    animate opacity { duration: 200ms; easing: ease; }
+    property <int> card-px: Math.round(SouvenirGrid.card-width(root.width) / 1phx);
+    changed card-px => {
+        ProfileData.souvenir-card-width(root.card-px);
+    }
+    init => {
+        ProfileData.souvenir-card-width(root.card-px);
+    }
+    column := VerticalLayout {
+        x: root.leaving ? 10px : root.entered ? 0 : -10px;
+        animate x { duration: 200ms; easing: ease; }
+        width: root.width;
+        if ProfileData.souvenirs-privacy != "": VerticalLayout {
+            padding-bottom: 16px;
+            Notice {
+                icon: ProfileData.souvenirs-privacy == "PRIVATE" ? @image-url("../../icons/lock-16.svg") : Icons.people;
+                title: ProfileData.souvenirs-privacy == "PRIVATE" ? T.tr("user_profile.souvenirs_visibility_private_title") : T.tr("user_profile.souvenirs_visibility_friends_title");
+                text: ProfileData.souvenirs-privacy == "PRIVATE" ? T.tr("user_profile.souvenirs_visibility_private_description") : T.tr("user_profile.souvenirs_visibility_friends_description");
+                dismissable: true;
+                dismissed => {
+                    ProfileData.dismiss-souvenirs-privacy();
+                }
+            }
+        }
+        if ProfileData.souvenirs-limit: VerticalLayout {
+            padding-bottom: 16px;
+            Notice {
+                icon: @image-url("../../icons/alert-16.svg");
+                title: T.tr("user_profile.souvenir_limit_reached_title");
+                text: T.tr("user_profile.souvenir_limit_reached_description");
+            }
+        }
+        if ProfileData.souvenirs-empty == "loading": SouvenirSkeletons { }
+        if ProfileData.souvenirs-empty == "locked": EmptyCopy {
+            icon: @image-url("../../icons/lock-24.svg");
+            title: T.tr("user_profile.locked_souvenirs");
+        }
+        if ProfileData.souvenirs-empty == "other": EmptyCopy {
+            title: T.tr("user_profile.no_user_souvenirs");
+            text: T.tr("user_profile.no_user_souvenirs_description");
+        }
+        if ProfileData.souvenirs-empty == "cloud": EmptyCopy {
+            icon: @image-url("../../icons/lock-24.svg");
+            title: T.tr("user_profile.souvenirs_cloud_title");
+            text: T.tr("user_profile.souvenirs_cloud_description");
+            action: T.tr("hydra_cloud.learn_more");
+            action-icon: @image-url("../../icons/hydra-source.svg");
+            acted => {
+                ProfileData.hydra-cloud("achievements");
+            }
+        }
+        if ProfileData.souvenirs-empty == "none": EmptyCopy {
+            title: T.tr("user_profile.no_souvenirs");
+            text: T.tr("user_profile.no_souvenirs_description");
+        }
+        if ProfileData.souvenirs-empty == "disabled": EmptyCopy {
+            title: T.tr("user_profile.souvenirs_disabled_title");
+            text: T.tr("user_profile.souvenirs_disabled_description");
+            action: T.tr("user_profile.open_souvenir_settings");
+            acted => {
+                ProfileData.open-souvenir-settings();
+            }
+        }
+        if ProfileData.souvenirs-empty == "": VerticalLayout {
+            // __library-filters: group by + sort
+            HorizontalLayout {
+                alignment: start;
+                spacing: 8px;
+                padding-bottom: 16px;
+                FilterTrigger {
+                    placeholder: T.tr("user_profile.group_by");
+                    label: ProfileData.souvenir-grouping == "game" ? T.tr("user_profile.group_by_game") : T.tr("user_profile.no_grouping");
+                    icon: ProfileData.souvenir-grouping == "game" ? @image-url("../../icons/stack-14.svg") : @image-url("../../icons/search.svg");
+                    open: Popup.open == "profile-souvenir-grouping";
+                    clicked => {
+                        Popup.toggle("profile-souvenir-grouping", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                    }
+                }
+                FilterTrigger {
+                    placeholder: T.tr("user_profile.sort_by");
+                    label: ProfileData.souvenir-sort == "oldest" ? T.tr("user_profile.oldest_first") : ProfileData.souvenir-sort == "rare" ? T.tr("user_profile.rarest_first") : T.tr("user_profile.most_recent");
+                    icon: ProfileData.souvenir-sort == "rare" ? @image-url("../../icons/trophy-14.svg") : @image-url("../../icons/history-14.svg");
+                    open: Popup.open == "profile-souvenir-sort";
+                    clicked => {
+                        Popup.toggle("profile-souvenir-sort", self.absolute-position.x, self.absolute-position.y, self.width, self.height);
+                    }
+                }
+            }
+            if ProfileData.souvenir-grouping != "game": SouvenirCards {
+                first: 0;
+                count: ProfileData.souvenirs.length;
+            }
+            if ProfileData.souvenir-grouping == "game": VerticalLayout {
+                for group in ProfileData.souvenir-groups: SouvenirGroupView {
+                    group: group;
+                }
+            }
+            if ProfileData.souvenirs-loading-more: Text {
+                height: 19px + 32px;
+                text: T.tr("user_profile.loading_souvenirs");
+                font-size: Theme.body-size;
+                color: Theme.body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}

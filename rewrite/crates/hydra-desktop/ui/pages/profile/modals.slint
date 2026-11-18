@@ -1,0 +1,1157 @@
+// The modals the profile opens: all-badges-modal, all-friends-modal,
+// add-friend-modal, report-profile, edit-profile-modal, the
+// FullscreenMediaModal for the avatar and image-crop-modal (avatar and
+// banner). Rust fills `ProfileModals` (profile_modals.rs).
+import { Theme, Icons, Tip, Ids } from "../../theme.slint";
+import { Icon, ScrollBar } from "../../components/widgets.slint";
+import { Modal, ModalController } from "../../components/modal.slint";
+import { SelectField, SelectOption } from "../../components/fields.slint";
+import { SmoothScroll, ScrollTween } from "../../components/smooth-scroll.slint";
+import { T } from "../../globals.slint";
+import { ProfileData, ProfileFriend } from "state.slint";
+import { ProfileButton, ProfileAvatar, TipArea } from "widgets.slint";
+import { BadgeItem, FriendRow } from "rail.slint";
+import { ProfileIcons } from "hero.slint";
+
+export global ProfileModals {
+    // "" | "badges" | "friends" | "add-friend" | "report" | "edit" | "avatar"
+    in-out property <string> kind;
+    // Bumped by the backend to close the open modal with its exit animation.
+    in property <int> close-request;
+    // The window, blurred, under the backdrop.
+    in property <image> backdrop;
+
+    // all-friends-modal
+    in property <[ProfileFriend]> friends;
+    in property <int> friends-total;
+    in property <bool> friends-loading;
+    in property <bool> friends-has-more;
+    callback friend-clicked(string);
+    callback friends-load-more();
+
+    // add-friend-modal
+    in property <string> my-code;
+    in-out property <string> friend-code;
+    in property <bool> adding;
+    // the typed code is a request already sent
+    in property <bool> code-pending;
+    in property <[ProfileFriend]> sent-requests;
+    callback copy-my-code();
+    callback friend-code-edited(string);
+    callback add-friend();
+    callback see-profile();
+    callback open-request(string);
+    callback cancel-request(string);
+
+    // report-profile
+    in property <[SelectOption]> reasons;
+    in-out property <string> reason: "hate";
+    in property <string> reason-label;
+    in-out property <string> description;
+    in property <string> description-error;
+    in property <bool> reporting;
+    callback description-edited(string);
+    callback submit-report();
+
+    // edit-profile-modal
+    in property <image> edit-avatar;
+    in property <bool> edit-has-avatar;
+    in-out property <string> display-name;
+    in property <string> display-name-error;
+    in property <bool> saving;
+    callback pick-avatar();
+    callback display-name-edited(string);
+    callback save-profile();
+    callback open-settings();
+
+    // FullscreenMediaModal
+    in property <image> avatar-full;
+
+    // image-crop-modal (stacked over the edit modal for avatars)
+    in-out property <bool> crop-open;
+    in property <int> crop-close-request;
+    in property <string> crop-title;
+    // The preview, already rotated, and the full-size image's rotated size.
+    in property <image> crop-image;
+    in property <float> crop-natural-width;
+    in property <float> crop-natural-height;
+    // output aspect (512x512 avatar, 1600x400 banner) and maxFrameWidth
+    in property <float> crop-output-width: 512;
+    in property <float> crop-output-height: 512;
+    in property <length> crop-max-frame: 420px;
+    in property <bool> crop-applying;
+    // Bumped when a new image or rotation arrives: re-fit at zoom 1.
+    in property <int> crop-generation;
+    callback crop-rotate();
+    callback crop-reset();
+    // left, top, width, height in the rotated full-size image
+    callback crop-apply(float, float, float, float);
+    callback crop-cancelled();
+}
+
+// TextField with a label above and the error (or nothing) below; the
+// primary theme (#0d0d0d).
+component LabeledInput inherits VerticalLayout {
+    in property <string> label;
+    in property <string> placeholder;
+    in-out property <string> text;
+    in property <string> error;
+    in property <bool> enabled: true;
+    callback edited(string);
+    spacing: 8px;
+    if root.label != "": Text {
+        text: root.label;
+        font-size: Theme.body-size;
+        color: Theme.body;
+    }
+    field := Rectangle {
+        height: 40px;
+        border-radius: 8px;
+        border-width: 1px;
+        background: Theme.dark-background;
+        border-color: root.error != "" ? Theme.danger : input.has-focus ? #dadbe1 : hover.has-hover ? rgba(255, 255, 255, 0.5) : Theme.border;
+        animate border-color { duration: 200ms; easing: ease; }
+        hover := TouchArea {
+            mouse-cursor: MouseCursor.text;
+            clicked => {
+                input.focus();
+            }
+        }
+        Rectangle {
+            x: 9px;
+            width: parent.width - 18px;
+            Text {
+                x: 0;
+                width: parent.width;
+                text: root.placeholder;
+                color: #757575;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                visible: input.text == "";
+            }
+            input := TextInput {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.text;
+                color: #dadbe1;
+                font-size: Theme.button-size;
+                vertical-alignment: center;
+                single-line: true;
+                enabled: root.enabled;
+                accessible-label: root.label;
+                edited => {
+                    root.edited(self.text);
+                }
+            }
+        }
+    }
+    if root.error != "": Text {
+        text: root.error;
+        font-size: 11.67px;
+        color: Theme.error;
+    }
+}
+
+// A max-height list that scrolls with the Chromium wheel tween; `near-end`
+// fires 50px before the bottom (all-friends-modal's onScroll).
+component ScrollList inherits Rectangle {
+    in property <length> limit: 400px;
+    callback near-end();
+    // overflow-y: auto: the 9px scrollbar takes width once the list overflows
+    // (set imperatively: the content's height depends on that width).
+    property <length> natural: body.preferred-height;
+    property <bool> overflow;
+    changed natural => {
+        root.overflow = root.natural > root.limit;
+    }
+    init => {
+        root.overflow = root.natural > root.limit;
+    }
+    property <length> max-scroll: Math.max(0, root.natural - root.height);
+    property <length> scroll-y;
+    property <ScrollTween> tween;
+    property <length> shown-y: root.tween.active ? SmoothScroll.value(root.tween, animation-tick()) : root.scroll-y;
+    height: Math.min(root.limit, root.natural);
+    changed shown-y => {
+        if (-root.shown-y + flick.height >= flick.content-height - 50px) {
+            root.near-end();
+        }
+    }
+    Timer {
+        interval: 16ms;
+        running: root.tween.active;
+        triggered => {
+            if (!SmoothScroll.running(root.tween, animation-tick())) {
+                root.tween.active = false;
+            }
+        }
+    }
+    flick := Flickable {
+        width: root.width - (root.overflow ? 9px : 0);
+        height: root.height;
+        interactive: false;
+        content-height: root.natural;
+        content-y: root.shown-y;
+        TouchArea {
+            width: flick.width;
+            height: flick.content-height;
+            scroll-event(event) => {
+                if (root.max-scroll <= 0) {
+                    return reject;
+                }
+                if (SmoothScroll.lines) {
+                    root.tween = SmoothScroll.towards(root.tween, animation-tick(), root.scroll-y, event.delta-y * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+                    root.scroll-y = root.tween.to;
+                } else {
+                    root.tween.active = false;
+                    root.scroll-y = Math.clamp(root.scroll-y + event.delta-y * SmoothScroll.wheel-scale, -root.max-scroll, 0);
+                }
+                accept
+            }
+            body := VerticalLayout {
+                width: flick.width;
+                @children
+            }
+        }
+    }
+    if root.overflow: ScrollBar {
+        x: root.width - self.width;
+        height: root.height;
+        content-height: flick.content-height;
+        viewport-height: flick.height;
+        content-y <=> root.scroll-y;
+        shown-offset: -root.shown-y;
+    }
+}
+
+// __icon-button: a 32px circle (active: teal)
+component CropIconButton inherits Rectangle {
+    in property <image> icon;
+    in property <string> tip;
+    in property <bool> active;
+    in property <bool> enabled: true;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.tip;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if (root.enabled) {
+            root.clicked();
+        }
+    }
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: root.active ? (touch.has-hover && root.enabled ? rgba(22, 177, 149, 0.26) : rgba(22, 177, 149, 0.18))
+        : touch.has-hover && root.enabled ? rgba(255, 255, 255, 0.1) : transparent;
+    animate background { duration: 200ms; easing: ease; }
+    opacity: !root.enabled ? Theme.disabled-opacity : touch.pressed ? Theme.active-opacity : 1;
+    Icon {
+        width: 16px;
+        height: 16px;
+        source: root.icon;
+        color: root.active ? Theme.brand-teal : Theme.muted;
+    }
+    // title={label}: a native tooltip in Electron (not drawn)
+    touch := TouchArea {
+        mouse-cursor: root.enabled ? pointer : not-allowed;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+component CropDivider inherits VerticalLayout {
+    alignment: center;
+    Rectangle {
+        width: 1px;
+        height: 20px;
+        background: Theme.border;
+    }
+}
+
+// image-crop-modal: the frame (drag to pan, wheel to zoom around the
+// pointer, arrows to nudge), the floating toolbar and the actions.
+component CropStage inherits VerticalLayout {
+    in property <length> room-width;
+    property <float> aspect: ProfileModals.crop-output-width / Math.max(1, ProfileModals.crop-output-height);
+    // getFrameWidth: min(maxFrameWidth, 72vw | 80vw)
+    property <length> frame-width: Math.min(ProfileModals.crop-max-frame, root.room-width * (root.aspect > 2 ? 0.8 : 0.72));
+    property <length> frame-height: root.frame-width / root.aspect;
+    property <float> nat-w: ProfileModals.crop-natural-width;
+    property <float> nat-h: ProfileModals.crop-natural-height;
+    property <bool> has-image: root.nat-w > 0;
+    // minScale: frame px per image px at zoom 1
+    property <float> min-scale: !root.has-image ? 1 : Math.max(root.frame-width / 1px / root.nat-w, root.frame-height / 1px / root.nat-h);
+    in-out property <float> zoom: 1;
+    property <float> scale: root.min-scale * root.zoom;
+    in-out property <length> pos-x;
+    in-out property <length> pos-y;
+    property <bool> interacting;
+    property <bool> grid-pinned;
+    property <bool> show-grid: root.grid-pinned || root.interacting;
+    property <int> generation: ProfileModals.crop-generation;
+    changed generation => {
+        root.recenter();
+    }
+    changed frame-width => {
+        root.recenter();
+    }
+    init => {
+        root.recenter();
+    }
+
+    pure function rendered-w(scale: float) -> length {
+        return Math.ceil(root.nat-w * scale) * 1px;
+    }
+    pure function rendered-h(scale: float) -> length {
+        return Math.ceil(root.nat-h * scale) * 1px;
+    }
+    pure function clamp-x(x: length, scale: float) -> length {
+        return Math.clamp(x, Math.min(root.frame-width - root.rendered-w(scale), 0), 0);
+    }
+    pure function clamp-y(y: length, scale: float) -> length {
+        return Math.clamp(y, Math.min(root.frame-height - root.rendered-h(scale), 0), 0);
+    }
+    function recenter() {
+        root.zoom = 1;
+        root.pos-x = root.clamp-x((root.frame-width - root.nat-w * root.min-scale * 1px) / 2, root.min-scale);
+        root.pos-y = root.clamp-y((root.frame-height - root.nat-h * root.min-scale * 1px) / 2, root.min-scale);
+    }
+    // updateZoom: keep the focal point under the pointer
+    function zoom-to(next: float, fx: length, fy: length) {
+        let z = Math.clamp(next, 1, 4);
+        let next-scale = root.min-scale * z;
+        let ratio = next-scale / root.scale;
+        let x = fx - (fx - root.pos-x) * ratio;
+        let y = fy - (fy - root.pos-y) * ratio;
+        root.zoom = z;
+        root.pos-x = root.clamp-x(x, next-scale);
+        root.pos-y = root.clamp-y(y, next-scale);
+    }
+    function nudge() {
+        root.interacting = true;
+        interaction-end.running = false;
+        interaction-end.running = true;
+    }
+    interaction-end := Timer {
+        interval: 400ms;
+        running: false;
+        triggered => {
+            self.running = false;
+            root.interacting = false;
+        }
+    }
+
+    spacing: 24px;
+    // __stage: the frame, centered, with the toolbar over its bottom
+    Rectangle {
+        height: root.frame-height;
+        frame := Rectangle {
+            x: (parent.width - self.width) / 2;
+            width: root.frame-width;
+            height: root.frame-height;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: focus.has-focus ? Theme.brand-teal : drag.has-hover ? rgba(255, 255, 255, 0.16) : Theme.border;
+            animate border-color { duration: 200ms; easing: ease; }
+            background: Theme.dark-background;
+            drop-shadow-offset-y: 12px;
+            drop-shadow-blur: 32px;
+            drop-shadow-color: rgba(0, 0, 0, 0.45);
+            clip: true;
+            // the 20px checkerboard (rgba(255,255,255,.05) squares)
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: @image-url("../../images/checker-20.svg");
+                horizontal-tiling: repeat;
+                vertical-tiling: repeat;
+            }
+            if root.has-image: Image {
+                x: root.pos-x;
+                y: root.pos-y;
+                width: root.rendered-w(root.scale);
+                height: root.rendered-h(root.scale);
+                source: ProfileModals.crop-image;
+                image-fit: fill;
+            }
+            // __grid: thirds, shown while dragging/zooming or pinned (0.15s)
+            Rectangle {
+                opacity: root.show-grid ? 1 : 0;
+                animate opacity { duration: 150ms; easing: ease; }
+                for i in 2: Rectangle {
+                    x: parent.width * (i + 1) / 3;
+                    width: 1px;
+                    background: rgba(255, 255, 255, 0.28);
+                }
+                for i in 2: Rectangle {
+                    y: parent.height * (i + 1) / 3;
+                    height: 1px;
+                    background: rgba(255, 255, 255, 0.28);
+                }
+            }
+            focus := FocusScope {
+                key-pressed(event) => {
+                    if (ProfileModals.crop-applying || !root.has-image) {
+                        return reject;
+                    }
+                    let step = event.modifiers.shift ? 40px : 10px;
+                    if (event.text == Key.LeftArrow) {
+                        root.pos-x = root.clamp-x(root.pos-x - step, root.scale);
+                    } else if (event.text == Key.RightArrow) {
+                        root.pos-x = root.clamp-x(root.pos-x + step, root.scale);
+                    } else if (event.text == Key.UpArrow) {
+                        root.pos-y = root.clamp-y(root.pos-y - step, root.scale);
+                    } else if (event.text == Key.DownArrow) {
+                        root.pos-y = root.clamp-y(root.pos-y + step, root.scale);
+                    } else {
+                        return reject;
+                    }
+                    root.nudge();
+                    accept
+                }
+                drag := TouchArea {
+                    mouse-cursor: self.pressed ? MouseCursor.grabbing : MouseCursor.grab;
+                    property <length> origin-x;
+                    property <length> origin-y;
+                    pointer-event(event) => {
+                        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                            focus.focus();
+                            self.origin-x = root.pos-x;
+                            self.origin-y = root.pos-y;
+                            root.interacting = true;
+                        }
+                        if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                            root.interacting = false;
+                        }
+                    }
+                    moved => {
+                        if (self.pressed) {
+                            root.pos-x = root.clamp-x(self.origin-x + self.mouse-x - self.pressed-x, root.scale);
+                            root.pos-y = root.clamp-y(self.origin-y + self.mouse-y - self.pressed-y, root.scale);
+                        }
+                    }
+                    scroll-event(event) => {
+                        // zoom - deltaY * 0.002 (CSS px: one notch is 100px)
+                        root.zoom-to(root.zoom - event.delta-y * SmoothScroll.wheel-scale / 1px * -0.002, self.mouse-x, self.mouse-y);
+                        root.nudge();
+                        accept
+                    }
+                }
+            }
+        }
+
+        // __toolbar: a frosted pill 16px above the stage's bottom; toolbar-in 0.25s
+        toolbar := Rectangle {
+            property <bool> entered;
+            Timer {
+                interval: 16ms;
+                running: !toolbar.entered;
+                triggered => {
+                    toolbar.entered = true;
+                }
+            }
+            width: tools.preferred-width + 2px;
+            height: tools.preferred-height + 2px;
+            x: (parent.width - self.width) / 2;
+            y: parent.height - 16px - self.height + (self.entered ? 0 : 12px);
+            opacity: self.entered ? 1 : 0;
+            animate y, opacity { duration: 250ms; easing: cubic-bezier(0.33, 1, 0.68, 1); }
+            border-radius: self.height / 2;
+            border-width: 1px;
+            border-color: Theme.border;
+            background: rgba(18, 18, 18, 0.9);
+            drop-shadow-offset-y: 8px;
+            drop-shadow-blur: 24px;
+            drop-shadow-color: rgba(0, 0, 0, 0.4);
+            TouchArea { }
+            tools := HorizontalLayout {
+                x: 1px;
+                y: 1px;
+                padding-left: 12px;
+                padding-right: 12px;
+                padding-top: 4px;
+                padding-bottom: 4px;
+                spacing: 8px;
+                CropIconButton {
+                    icon: @image-url("../../icons/grid-2x2.svg");
+                    tip: T.tr("user_profile.toggle_grid");
+                    active: root.grid-pinned;
+                    enabled: !ProfileModals.crop-applying;
+                    clicked => {
+                        root.grid-pinned = !root.grid-pinned;
+                    }
+                }
+                CropDivider { }
+                CropIconButton {
+                    icon: @image-url("../../icons/minus-lucide.svg");
+                    tip: T.tr("user_profile.zoom_out");
+                    enabled: !ProfileModals.crop-applying && root.zoom > 1;
+                    clicked => {
+                        root.zoom-to(root.zoom - 0.25, root.frame-width / 2, root.frame-height / 2);
+                    }
+                }
+                // the range input (1-4, step .01): 6px track, muted fill, 16px thumb
+                slider := Rectangle {
+                    width: 200px;
+                    height: 32px;
+                    property <float> fill: (root.zoom - 1) / 3;
+                    opacity: ProfileModals.crop-applying ? Theme.disabled-opacity : 1;
+                    Rectangle {
+                        y: (parent.height - 6px) / 2;
+                        height: 6px;
+                        border-radius: 3px;
+                        background: rgba(255, 255, 255, 0.12);
+                        Rectangle {
+                            x: 0;
+                            width: parent.width * slider.fill;
+                            border-radius: 3px;
+                            background: Theme.muted;
+                        }
+                    }
+                    Rectangle {
+                        x: (parent.width - 16px) * slider.fill;
+                        y: (parent.height - 16px) / 2;
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 8px;
+                        border-width: 2px;
+                        border-color: Theme.muted;
+                        background: Theme.background;
+                        drop-shadow-offset-y: 2px;
+                        drop-shadow-blur: 6px;
+                        drop-shadow-color: rgba(0, 0, 0, 0.45);
+                        transform-scale: slide.pressed ? 0.95 : slide.has-hover ? 1.12 : 1;
+                        animate transform-scale { duration: 150ms; easing: ease; }
+                    }
+                    slide := TouchArea {
+                        mouse-cursor: ProfileModals.crop-applying ? not-allowed : pointer;
+                        function set-from(x: length) {
+                            if (!ProfileModals.crop-applying) {
+                                root.zoom-to(1 + 3 * Math.clamp((x - 8px) / (slider.width - 16px), 0, 1), root.frame-width / 2, root.frame-height / 2);
+                            }
+                        }
+                        pointer-event(event) => {
+                            if (event.kind == PointerEventKind.down) {
+                                self.set-from(self.mouse-x);
+                            }
+                        }
+                        moved => {
+                            if (self.pressed) {
+                                self.set-from(self.mouse-x);
+                            }
+                        }
+                    }
+                }
+                CropIconButton {
+                    icon: @image-url("../../icons/plus-lucide.svg");
+                    tip: T.tr("user_profile.zoom_in");
+                    enabled: !ProfileModals.crop-applying && root.zoom < 4;
+                    clicked => {
+                        root.zoom-to(root.zoom + 0.25, root.frame-width / 2, root.frame-height / 2);
+                    }
+                }
+                Text {
+                    min-width: 42px;
+                    text: Math.round(root.zoom * 100) + "%";
+                    font-size: Theme.small-size;
+                    color: Theme.body;
+                    horizontal-alignment: right;
+                    vertical-alignment: center;
+                }
+                CropDivider { }
+                CropIconButton {
+                    icon: @image-url("../../icons/rotate-ccw-square.svg");
+                    tip: T.tr("user_profile.rotate");
+                    enabled: !ProfileModals.crop-applying;
+                    clicked => {
+                        ProfileModals.crop-rotate();
+                    }
+                }
+                CropIconButton {
+                    icon: @image-url("../../icons/rotate-ccw.svg");
+                    tip: T.tr("user_profile.reset");
+                    enabled: !ProfileModals.crop-applying;
+                    clicked => {
+                        ProfileModals.crop-reset();
+                        root.recenter();
+                    }
+                }
+            }
+        }
+    }
+
+    // __actions: border-top, padding-top 16, gap 8, end
+    VerticalLayout {
+        Rectangle {
+            height: 1px;
+            background: Theme.border;
+        }
+        HorizontalLayout {
+            padding-top: 16px;
+            spacing: 8px;
+            alignment: end;
+            ProfileButton {
+                kind: "outline";
+                text: T.tr("user_profile.cancel");
+                enabled: !ProfileModals.crop-applying;
+                clicked => {
+                    ProfileModals.crop-cancelled();
+                }
+            }
+            ProfileButton {
+                kind: "primary";
+                text: ProfileModals.crop-applying ? T.tr("user_profile.applying_crop") : T.tr("user_profile.apply_crop");
+                enabled: !ProfileModals.crop-applying && root.has-image;
+                clicked => {
+                    ProfileModals.crop-apply(-root.pos-x / 1px / root.scale, -root.pos-y / 1px / root.scale, root.frame-width / 1px / root.scale, root.frame-height / 1px / root.scale);
+                }
+            }
+        }
+    }
+}
+
+export component ProfileModalsHost inherits Rectangle {
+    property <int> close-request: ProfileModals.close-request;
+    changed close-request => {
+        controller.close();
+    }
+    property <bool> wanted: ProfileModals.kind != "" && ProfileModals.kind != "avatar";
+    changed wanted => {
+        if (self.wanted) {
+            controller.open = true;
+        }
+    }
+    controller := ModalController {
+        closed => {
+            if (ProfileModals.kind != "avatar") {
+                ProfileModals.kind = "";
+            }
+        }
+    }
+    property <string> shown: ProfileModals.kind;
+
+    if controller.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        title: root.shown == "badges" ? T.tr("user_profile.badges")
+            : root.shown == "friends" ? T.tr("user_profile.friends")
+            : root.shown == "add-friend" ? T.tr("user_profile.add_friends")
+            : root.shown == "report" ? T.tr("user_profile.report_profile")
+            : T.tr("user_profile.edit_profile");
+        title-count: root.shown == "badges" && ProfileData.badges-count > 0 ? "" + ProfileData.badges-count
+            : root.shown == "friends" && ProfileModals.friends-total > 0 ? "" + ProfileModals.friends-total : "";
+        click-outside-to-close: root.shown != "report" && root.shown != "edit";
+        closing: controller.closing;
+        blurred-page: ProfileModals.backdrop;
+        covered: ProfileModals.crop-open;
+        request-close => {
+            if (!(root.shown == "edit" && ProfileModals.saving)) {
+                controller.close();
+            }
+        }
+
+        // ---- all-badges-modal: margin-top -8, list max 400 with gap 16
+        if root.shown == "badges": VerticalLayout {
+            padding-top: -8px;
+            ScrollList {
+                limit: 400px;
+                VerticalLayout {
+                    spacing: 16px;
+                    padding-right: 8px;
+                    for badge in ProfileData.all-badges: BadgeItem {
+                        large: true;
+                        icon: badge.icon;
+                        title: badge.title;
+                        description: badge.description;
+                        unlocked-on: badge.unlocked-on;
+                    }
+                }
+            }
+        }
+
+        // ---- all-friends-modal
+        if root.shown == "friends": VerticalLayout {
+            padding-top: -8px;
+            spacing: 8px;
+            if ProfileModals.friends.length == 0 && !ProfileModals.friends-loading: Text {
+                text: T.tr("user_profile.no_friends_added");
+                font-size: Theme.body-size;
+                color: Theme.body;
+                horizontal-alignment: center;
+                height: 19px + 64px;
+                vertical-alignment: center;
+            }
+            if ProfileModals.friends.length > 0: ScrollList {
+                limit: 400px - 8px - (ProfileModals.friends-loading ? 51px : ProfileModals.friends-has-more ? 48px : 0);
+                near-end => {
+                    if (!ProfileModals.friends-loading && ProfileModals.friends-has-more) {
+                        ProfileModals.friends-load-more();
+                    }
+                }
+                VerticalLayout {
+                    spacing: 8px;
+                    padding-right: 8px;
+                    for friend in ProfileModals.friends: FriendRow {
+                        avatar-size: 40px;
+                        name-size: Theme.body-size;
+                        pad: 12px;
+                        radius: 8px;
+                        hover-fill: rgba(255, 255, 255, 0.05);
+                        fade: 200ms;
+                        avatar: friend.avatar;
+                        has-avatar: friend.has-avatar;
+                        name: friend.name;
+                        game: friend.game;
+                        game-icon: friend.game-icon;
+                        has-game-icon: friend.has-game-icon;
+                        clicked => {
+                            ProfileModals.friend-clicked(friend.id);
+                        }
+                    }
+                }
+            }
+            if ProfileModals.friends-loading: Text {
+                height: 19px + 32px;
+                text: T.tr("user_profile.loading") + "...";
+                font-size: Theme.body-size;
+                color: Theme.body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            if ProfileModals.friends-has-more && !ProfileModals.friends-loading && ProfileModals.friends.length > 0: HorizontalLayout {
+                alignment: center;
+                padding-top: 8px;
+                ProfileButton {
+                    kind: "outline";
+                    text: T.tr("user_profile.load_more");
+                    clicked => {
+                        ProfileModals.friends-load-more();
+                    }
+                }
+            }
+        }
+
+        // ---- add-friend-modal (min-width 400, gap 16)
+        if root.shown == "add-friend": VerticalLayout {
+            min-width: 400px;
+            spacing: 16px;
+            if ProfileModals.my-code != "": Rectangle {
+                height: code-row.preferred-height + 2px;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.1);
+                code-row := HorizontalLayout {
+                    x: 1px;
+                    y: 1px;
+                    padding: 12px;
+                    spacing: 12px;
+                    Text {
+                        text: T.tr("user_profile.your_friend_code");
+                        font-size: Theme.body-size;
+                        font-weight: 500;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        horizontal-stretch: 1;
+                        text: ProfileModals.my-code;
+                        font-family: "Consolas";
+                        font-size: Theme.body-size;
+                        font-weight: 700;
+                        color: Theme.body;
+                        vertical-alignment: center;
+                    }
+                    Rectangle {
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 4px;
+                        background: copy-touch.has-hover ? rgba(255, 255, 255, 0.1) : transparent;
+                        animate background { duration: 200ms; easing: ease; }
+                        Icon {
+                            width: 16px;
+                            height: 16px;
+                            source: ProfileIcons.copy;
+                            color: Theme.body;
+                        }
+                        copy-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                ProfileModals.copy-my-code();
+                            }
+                        }
+                    }
+                }
+            }
+            // __actions: the code field, Add, See profile (aligned to the bottom)
+            HorizontalLayout {
+                spacing: 8px;
+                LabeledInput {
+                    horizontal-stretch: 1;
+                    label: T.tr("user_profile.friend_code");
+                    text <=> ProfileModals.friend-code;
+                    edited(text) => {
+                        ProfileModals.friend-code-edited(text);
+                    }
+                }
+                VerticalLayout {
+                    alignment: end;
+                    ProfileButton {
+                        kind: "primary";
+                        text: ProfileModals.adding ? T.tr("user_profile.sending") : T.tr("user_profile.add");
+                        enabled: !ProfileModals.adding;
+                        clicked => {
+                            ProfileModals.add-friend();
+                        }
+                    }
+                }
+                VerticalLayout {
+                    alignment: end;
+                    ProfileButton {
+                        kind: "outline";
+                        text: T.tr("user_profile.see_profile");
+                        enabled: !ProfileModals.adding;
+                        clicked => {
+                            ProfileModals.see-profile();
+                        }
+                    }
+                }
+            }
+            if ProfileModals.code-pending: Rectangle {
+                height: 25px;
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 0.05);
+                Text {
+                    text: T.tr("user_profile.pending");
+                    font-size: Theme.small-size;
+                    color: Theme.body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            if ProfileModals.sent-requests.length > 0: VerticalLayout {
+                padding-top: 16px;
+                spacing: 16px;
+                Text {
+                    text: T.tr("user_profile.pending");
+                    font-size: Theme.body-size;
+                    font-weight: 700;
+                    color: Theme.muted;
+                }
+                ScrollList {
+                    limit: 300px;
+                    VerticalLayout {
+                        spacing: 8px;
+                        padding-right: 8px;
+                        for request in ProfileModals.sent-requests: Rectangle {
+                            height: 40px + 24px;
+                            border-radius: 8px;
+                            background: request-touch.has-hover ? rgba(255, 255, 255, 0.1) : rgba(255, 255, 255, 0.05);
+                            animate background { duration: 200ms; easing: ease; }
+                            request-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    ProfileModals.open-request(request.id);
+                                }
+                            }
+                            HorizontalLayout {
+                                padding: 12px;
+                                spacing: 16px;
+                                ProfileAvatar {
+                                    size: 40px;
+                                    source: request.avatar;
+                                    has-source: request.has-avatar;
+                                }
+                                Text {
+                                    horizontal-stretch: 1;
+                                    text: request.name;
+                                    font-size: Theme.body-size;
+                                    font-weight: 700;
+                                    color: Theme.muted;
+                                    overflow: elide;
+                                    vertical-alignment: center;
+                                }
+                                ProfileButton {
+                                    kind: "outline";
+                                    text: T.tr("user_profile.cancel_request");
+                                    clicked => {
+                                        ProfileModals.cancel-request(request.id);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---- report-profile (gap 16): reason, description, Report
+        if root.shown == "report": VerticalLayout {
+            spacing: 16px;
+            VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: T.tr("user_profile.report_reason_label");
+                    font-size: Theme.body-size;
+                    color: Theme.body;
+                }
+                // the native <select> is as wide as its longest option
+                Rectangle {
+                    height: 40px;
+                    m1 := Text { visible: false; text: T.tr("user_profile.report_reason_hate"); font-size: Theme.body-size; }
+                    m2 := Text { visible: false; text: T.tr("user_profile.report_reason_sexual_content"); font-size: Theme.body-size; }
+                    m3 := Text { visible: false; text: T.tr("user_profile.report_reason_violence"); font-size: Theme.body-size; }
+                    m4 := Text { visible: false; text: T.tr("user_profile.report_reason_spam"); font-size: Theme.body-size; }
+                    m5 := Text { visible: false; text: T.tr("user_profile.report_reason_other"); font-size: Theme.body-size; }
+                    SelectField {
+                        x: 0;
+                        width: Math.max(m1.preferred-width, m2.preferred-width, m3.preferred-width, m4.preferred-width, m5.preferred-width) + 44px;
+                        popup-id: "profile-report-reason";
+                        options: ProfileModals.reasons;
+                        value: ProfileModals.reason;
+                        current-label: ProfileModals.reason-label;
+                    }
+                }
+            }
+            LabeledInput {
+                label: T.tr("user_profile.report_description");
+                placeholder: T.tr("user_profile.report_description_placeholder");
+                text <=> ProfileModals.description;
+                error: ProfileModals.description-error;
+                edited(text) => {
+                    ProfileModals.description-edited(text);
+                }
+            }
+            HorizontalLayout {
+                alignment: end;
+                padding-top: 8px;
+                ProfileButton {
+                    kind: "primary";
+                    text: T.tr("user_profile.report");
+                    enabled: !ProfileModals.reporting;
+                    clicked => {
+                        ProfileModals.submit-report();
+                    }
+                }
+            }
+        }
+
+        // ---- edit-profile-modal (350px): avatar, display name, hint, Save
+        if root.shown == "edit": VerticalLayout {
+            width: 350px;
+            VerticalLayout {
+                spacing: 24px;
+                HorizontalLayout {
+                    alignment: center;
+                    avatar-button := Rectangle {
+                        width: 128px;
+                        height: 128px;
+                        background: Theme.background;
+                        ProfileAvatar {
+                            size: 128px;
+                            source: ProfileModals.edit-avatar;
+                            has-source: ProfileModals.edit-has-avatar;
+                        }
+                        // __avatar-overlay: rgba(0,0,0,.7) + camera, on hover (0.2s)
+                        Rectangle {
+                            border-radius: 4px;
+                            background: rgba(0, 0, 0, 0.7);
+                            opacity: avatar-touch.has-hover ? 1 : 0;
+                            animate opacity { duration: 200ms; easing: ease; }
+                            Icon {
+                                width: 38px;
+                                height: 38px;
+                                source: @image-url("../../icons/device-camera-38.svg");
+                                color: Theme.muted;
+                            }
+                        }
+                        avatar-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                ProfileModals.pick-avatar();
+                            }
+                        }
+                    }
+                }
+                LabeledInput {
+                    label: T.tr("user_profile.display_name");
+                    text <=> ProfileModals.display-name;
+                    error: ProfileModals.display-name-error;
+                    enabled: !ProfileModals.saving;
+                    edited(text) => {
+                        ProfileModals.display-name-edited(text);
+                    }
+                }
+            }
+            // __hint: <small> with the Settings link (Trans privacy_hint)
+            HorizontalLayout {
+                padding-top: 16px;
+                alignment: start;
+                Text {
+                    text: T.tr-parts("user_profile.privacy_hint", 0);
+                    font-size: 11.67px;
+                    color: Theme.body;
+                }
+                // components/link: #c0c1c7, underlined on hover
+                settings-link := Text {
+                    text: T.tr-parts("user_profile.privacy_hint", 1);
+                    font-size: 11.67px;
+                    color: #c0c1c7;
+                    Rectangle {
+                        visible: settings-touch.has-hover;
+                        y: parent.height - 2px;
+                        height: 1px;
+                        background: #c0c1c7;
+                    }
+                    settings-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            ProfileModals.open-settings();
+                        }
+                    }
+                }
+                Text {
+                    text: T.tr-parts("user_profile.privacy_hint", 2);
+                    font-size: 11.67px;
+                    color: Theme.body;
+                }
+            }
+            HorizontalLayout {
+                padding-top: 24px;
+                ProfileButton {
+                    horizontal-stretch: 1;
+                    kind: "primary";
+                    text: ProfileModals.saving ? T.tr("user_profile.saving") : T.tr("user_profile.save");
+                    enabled: !ProfileModals.saving;
+                    clicked => {
+                        ProfileModals.save-profile();
+                    }
+                }
+            }
+        }
+    }
+
+    // ---- image-crop-modal (large, clickOutsideToClose false), over the edit modal
+    property <int> crop-close: ProfileModals.crop-close-request;
+    changed crop-close => {
+        crop-controller.close();
+    }
+    property <bool> crop-wanted: ProfileModals.crop-open;
+    changed crop-wanted => {
+        if (self.crop-wanted) {
+            crop-controller.open = true;
+        }
+    }
+    crop-controller := ModalController {
+        closed => {
+            ProfileModals.crop-open = false;
+        }
+    }
+    if crop-controller.mounted: Modal {
+        width: root.width;
+        height: root.height;
+        large: true;
+        title: ProfileModals.crop-title;
+        description: T.tr("user_profile.crop_profile_image_description");
+        click-outside-to-close: false;
+        closing: crop-controller.closing;
+        request-close => {
+            if (!ProfileModals.crop-applying) {
+                ProfileModals.crop-cancelled();
+            }
+        }
+        CropStage {
+            room-width: root.width;
+        }
+    }
+
+    // ---- FullscreenMediaModal: the avatar at its size (max 60vh), no exit motion
+    if ProfileModals.kind == "avatar": overlay := Rectangle {
+        background: rgba(0, 0, 0, 0.8);
+        property <float> natural-w: ProfileModals.avatar-full.width;
+        property <float> natural-h: ProfileModals.avatar-full.height;
+        property <length> max-h: root.height * 0.6;
+        property <float> fit: Math.min(1, root.width / 1px / Math.max(1, self.natural-w), self.max-h / 1px / Math.max(1, self.natural-h));
+        property <bool> entered;
+        Timer {
+            interval: 16ms;
+            running: !overlay.entered;
+            triggered => {
+                overlay.entered = true;
+            }
+        }
+        FocusScope {
+            init => {
+                self.focus();
+            }
+            key-pressed(event) => {
+                if (event.text == Key.Escape) {
+                    ProfileModals.kind = "";
+                }
+                accept
+            }
+            // a press anywhere but the picture closes it
+            TouchArea {
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down) {
+                        ProfileModals.kind = "";
+                    }
+                }
+                scroll-event(event) => {
+                    accept
+                }
+            }
+        }
+        picture := Rectangle {
+            width: overlay.natural-w * overlay.fit * 1px;
+            height: overlay.natural-h * overlay.fit * 1px;
+            border-radius: 8px;
+            drop-shadow-offset-y: 8px;
+            drop-shadow-blur: 32px;
+            drop-shadow-color: rgba(0, 0, 0, 0.5);
+            // image-appear: opacity 0 -> 1, scale .85 -> 1, 0.3s back-out
+            opacity: overlay.entered ? 1 : 0;
+            transform-scale: overlay.entered ? 1 : 0.85;
+            animate opacity, transform-scale { duration: 300ms; easing: cubic-bezier(0.34, 1.56, 0.64, 1); }
+            Rectangle {
+                border-radius: 8px;
+                clip: true;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: ProfileModals.avatar-full;
+                    image-fit: contain;
+                }
+            }
+            TouchArea { }
+        }
+        // __close-button: top 40, right 32, a 42px circle
+        Rectangle {
+            x: overlay.width - 32px - self.width;
+            y: 40px;
+            width: 42px;
+            height: 42px;
+            border-radius: 21px;
+            border-width: 1px;
+            border-color: Theme.border;
+            background: close-touch.has-hover ? rgba(0, 0, 0, 0.8) : rgba(0, 0, 0, 0.5);
+            transform-scale: close-touch.has-hover ? 1.1 : 1;
+            animate background, transform-scale { duration: 200ms; easing: ease; }
+            Icon {
+                width: 24px;
+                height: 24px;
+                source: Icons.x;
+                color: Theme.body;
+            }
+            close-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    ProfileModals.kind = "";
+                }
+            }
+        }
+    }
+}

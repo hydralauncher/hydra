@@ -1,0 +1,426 @@
+// The profile's Library tab: library-tab.tsx, profile-library-grid.tsx,
+// user-library-game-card.{tsx,scss} on vertical-cover-card.
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, Skeleton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { PlatinumFill } from "../library/card.slint";
+import { ProfileData, ProfileGameCard } from "state.slint";
+import { VisibilityBadge } from "hero.slint";
+import { TipArea } from "widgets.slint";
+
+export global ProfileCardIcons {
+    out property <image> clock: @image-url("../../icons/clock-11.svg");
+    out property <image> alert-fill: @image-url("../../icons/alert-fill-11.svg");
+    out property <image> trophy: @image-url("../../icons/trophy-13.svg");
+    out property <image> hydra: @image-url("../../icons/hydra-source.svg");
+    out property <image> image: @image-url("../../icons/image-48.svg");
+}
+
+// One cover: VerticalCoverCard (2:3, #121212, 4px) inside the li that
+// scales 1.05 on hover and 1.02 while pressed (0.2s).
+export component ProfileCardView inherits Rectangle {
+    in property <ProfileGameCard> card;
+    callback clicked();
+    callback context-menu(length, length);
+
+    property <bool> narrow: root.width <= 140px;
+    property <bool> fade: root.card.mode != 1 && root.card.show-achievements;
+
+    body := Rectangle {
+        transform-scale: touch.pressed ? 1.02 : touch.has-hover ? 1.05 : 1;
+        animate transform-scale { duration: 200ms; easing: ease; }
+        border-radius: 4px;
+        clip: true;
+        background: Theme.background;
+        opacity: touch.pressed ? Theme.active-opacity : 1;
+
+        // ---- cover media
+        if root.card.mode == 0: Rectangle {
+            if root.card.cover.width == 0: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.card.placeholder;
+                image-fit: cover;
+            }
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.card.cover;
+                image-fit: cover;
+            }
+        }
+        // __classics-cover: blurred backdrop + the art at up to 80% x 80%
+        if root.card.mode == 1: Rectangle {
+            background: Theme.dark-background;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.card.backdrop;
+                image-fit: cover;
+                transform-scale: 1.25;
+                opacity: 0.65;
+            }
+            // width/height auto, max 80% x 80%: the natural size unless it is larger
+            if root.card.cover.width > 0: Rectangle {
+                property <float> nw: Math.max(1, root.card.natural-width);
+                property <float> nh: Math.max(1, root.card.natural-height);
+                property <float> fit: Math.min(1, parent.width * 0.8 / 1px / self.nw, parent.height * 0.8 / 1px / self.nh);
+                width: self.nw * self.fit * 1px;
+                height: self.nh * self.fit * 1px;
+                border-radius: 4px;
+                drop-shadow-offset-y: 5px;
+                drop-shadow-blur: 5px;
+                drop-shadow-color: rgba(0, 0, 0, 0.09);
+                Rectangle {
+                    border-radius: 4px;
+                    clip: true;
+                    Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: root.card.cover;
+                        image-fit: fill;
+                    }
+                }
+                Rectangle {
+                    border-radius: 4px;
+                    border-width: 1px;
+                    border-color: rgba(255, 255, 255, 0.12);
+                }
+            }
+        }
+        // __placeholder: gradient + ImageIcon (48px, white 30%)
+        if root.card.mode == 2: Rectangle {
+            background: @linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.08) 100%);
+            Icon {
+                width: 48px;
+                height: 48px;
+                source: ProfileCardIcons.image;
+                color: rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        // ---- __overlay: the bottom fade (not for classics or without achievements)
+        if root.fade: Rectangle {
+            background: @linear-gradient(0deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.26) 7%, rgba(0, 0, 0, 0.09) 14%, transparent 20%);
+        }
+
+        // __top-left: visibility badge + play time (padding 8, gap 4)
+        HorizontalLayout {
+            x: 8px;
+            y: 8px;
+            height: 27px;
+            spacing: 4px;
+            alignment: start;
+            if root.card.concealed || root.card.hidden-from-others: VerticalLayout {
+                alignment: center;
+                VisibilityBadge {
+                    concealed: root.card.concealed;
+                }
+            }
+            // __playtime: padding 4 + 1px border, gap 4, small text
+            Rectangle {
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.15);
+                background: rgba(0, 0, 0, 0.4);
+                drop-shadow-offset-y: 2px;
+                drop-shadow-blur: 4px;
+                drop-shadow-color: rgba(0, 0, 0, 0.2);
+                HorizontalLayout {
+                    padding: 5px;
+                    spacing: 4px;
+                    VerticalLayout {
+                        alignment: center;
+                        Icon {
+                            width: 11px;
+                            height: 11px;
+                            source: root.card.manual-playtime ? ProfileCardIcons.alert-fill : ProfileCardIcons.clock;
+                            color: root.card.manual-playtime ? Theme.warning : rgba(255, 255, 255, 0.8);
+                        }
+                    }
+                    Text {
+                        text: root.narrow ? root.card.playtime-short : root.card.playtime-long;
+                        font-size: Theme.small-size;
+                        color: rgba(255, 255, 255, 0.8);
+                        vertical-alignment: center;
+                    }
+                }
+                if root.card.manual-playtime: TipArea {
+                    tip: T.tr("user_profile.manual_playtime_tooltip");
+                }
+            }
+        }
+
+        // __stats: 18px header (cycling count / points, percentage), 8px, 4px bar
+        if root.card.show-achievements: Rectangle {
+            x: 8px;
+            y: parent.height - 8px - 30px;
+            width: parent.width - 16px;
+            height: 30px;
+            Rectangle {
+                y: 0;
+                height: 18px;
+                clip: true;
+                // user-library-game-stats-cycle (7s, shared phase): the column
+                // slides up 100% at 50%-57.14% and back at 92.86%-100%.
+                VerticalLayout {
+                    x: 0;
+                    y: root.card.points != "" && ProfileData.stats-up ? -18px : 0;
+                    animate y { duration: 500ms; easing: ease-in-out; }
+                    width: parent.width;
+                    HorizontalLayout {
+                        height: 18px;
+                        spacing: 8px;
+                        alignment: start;
+                        if !root.card.completed: VerticalLayout {
+                            alignment: center;
+                            Icon {
+                                width: 13px;
+                                height: 13px;
+                                source: ProfileCardIcons.trophy;
+                                color: Theme.muted;
+                            }
+                        }
+                        Text {
+                            text: root.card.unlocked + " / " + root.card.total;
+                            font-size: Theme.button-size;
+                            color: Theme.muted;
+                            vertical-alignment: center;
+                        }
+                    }
+                    if root.card.points != "": HorizontalLayout {
+                        height: 18px;
+                        spacing: 8px;
+                        alignment: start;
+                        VerticalLayout {
+                            alignment: center;
+                            Image {
+                                width: 16px;
+                                height: 16px;
+                                source: ProfileCardIcons.hydra;
+                                colorize: Theme.muted;
+                            }
+                        }
+                        Text {
+                            text: root.card.points;
+                            font-size: Theme.button-size;
+                            color: Theme.muted;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                if root.card.completed: Icon {
+                    x: parent.width - 13px;
+                    width: 13px;
+                    height: 13px;
+                    source: ProfileCardIcons.trophy;
+                    color: Theme.brand-teal;
+                }
+                if !root.card.completed: Text {
+                    x: parent.width - self.width;
+                    text: root.card.percent;
+                    font-size: Theme.button-size;
+                    color: Theme.muted;
+                    vertical-alignment: center;
+                }
+            }
+            Rectangle {
+                y: 26px;
+                height: 4px;
+                border-radius: 4px;
+                clip: true;
+                background: rgba(255, 255, 255, 0.15);
+                Rectangle {
+                    x: 0;
+                    width: parent.width * Math.min(1, root.card.unlocked / Math.max(1, root.card.total));
+                    animate width { duration: 200ms; easing: ease; }
+                    border-radius: 4px;
+                    background: Theme.muted;
+                    if root.card.completed: PlatinumFill {
+                        border-radius: 4px;
+                    }
+                }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                root.context-menu(self.absolute-position.x + self.mouse-x, self.absolute-position.y + self.mouse-y);
+            }
+        }
+    }
+}
+
+export global ProfileGrid {
+    // grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)), gap 16.
+    public pure function tracks(width: length) -> int {
+        return Math.max(1, Math.floor((width + 16px) / 216px));
+    }
+}
+
+// The pinned games: one grid, every card instantiated (few of them).
+export component PinnedGrid inherits Rectangle {
+    property <int> tracks: ProfileGrid.tracks(root.width);
+    property <length> card-width: (root.width - 16px * (root.tracks - 1)) / root.tracks;
+    property <length> card-height: root.card-width * 1.5;
+    height: Math.ceil(ProfileData.pinned.length / root.tracks) * (root.card-height + 16px) - 16px;
+    for card[i] in ProfileData.pinned: ProfileCardView {
+        x: Math.mod(i, root.tracks) * (root.card-width + 16px);
+        y: Math.floor(i / root.tracks) * (root.card-height + 16px);
+        width: root.card-width;
+        height: root.card-height;
+        card: card;
+        clicked => {
+            ProfileData.open-game(i, true);
+        }
+        context-menu(x, y) => {
+            ProfileData.game-context-menu(i, true, x, y);
+        }
+    }
+}
+
+// ProfileLibraryGrid: the virtualizer rows hold `chunk` games each (from
+// the page container's width) and each row is its own auto-fill grid, so a
+// row can wrap or leave cells empty exactly like Electron. Cards are
+// recycled slots over the rows on screen (overscan 2).
+export component LibraryGrid inherits Rectangle {
+    // getProfileGridColumns(container width)
+    in property <int> chunk;
+    // The part of the grid on screen, in the grid's coordinates.
+    in property <length> view-top;
+    in property <length> view-height;
+    property <int> count: ProfileData.games.length;
+    property <int> tracks: ProfileGrid.tracks(root.width);
+    property <length> card-width: (root.width - 16px * (root.tracks - 1)) / root.tracks;
+    property <length> card-height: root.card-width * 1.5;
+    property <int> lines-per-row: Math.ceil(root.chunk / root.tracks);
+    property <length> row-step: root.lines-per-row * (root.card-height + 16px);
+    property <int> rows: Math.ceil(root.count / root.chunk);
+    height: root.rows * root.row-step;
+    property <int> first-row: Math.max(0, Math.floor(root.view-top / root.row-step) - 2);
+    property <int> shown-rows: Math.max(0, Math.min(root.rows - root.first-row, Math.ceil(root.view-height / root.row-step) + 5));
+    property <int> first-card: root.first-row * root.chunk;
+    property <int> last-card: Math.min(root.count, (root.first-row + root.shown-rows) * root.chunk);
+    property <int> slots: Math.max(1, Math.min(root.count, (Math.ceil(root.view-height / root.row-step) + 5) * root.chunk));
+    property <int> card-px: Math.round(root.card-width / 1phx);
+
+    changed first-card => {
+        ProfileData.visible-games(root.first-card, root.last-card);
+    }
+    changed last-card => {
+        ProfileData.visible-games(root.first-card, root.last-card);
+    }
+    changed card-px => {
+        ProfileData.card-width-changed(root.card-px);
+    }
+    init => {
+        ProfileData.card-width-changed(root.card-px);
+        ProfileData.visible-games(root.first-card, root.last-card);
+    }
+
+    for k in root.slots: ProfileCardView {
+        property <int> index: root.first-card + Math.mod(k - root.first-card, root.slots);
+        property <int> in-row: Math.mod(self.index, root.chunk);
+        visible: self.index < root.last-card;
+        x: Math.mod(self.in-row, root.tracks) * (root.card-width + 16px);
+        y: Math.floor(self.index / root.chunk) * root.row-step + Math.floor(self.in-row / root.tracks) * (root.card-height + 16px);
+        width: root.card-width;
+        height: root.card-height;
+        card: ProfileData.games[self.index];
+        clicked => {
+            ProfileData.open-game(self.index, false);
+        }
+        context-menu(x, y) => {
+            ProfileData.game-context-menu(self.index, false, x, y);
+        }
+    }
+}
+
+// The section headers ("Pinned", "Library"): 21px bold + the count badge.
+export component SectionHeader inherits HorizontalLayout {
+    in property <string> title;
+    in property <string> count;
+    height: 28px;
+    spacing: 8px;
+    alignment: start;
+    Text {
+        text: root.title;
+        font-size: 21px;
+        font-weight: 700;
+        color: Theme.body;
+        vertical-alignment: center;
+    }
+    if root.count != "": VerticalLayout {
+        alignment: center;
+        Rectangle {
+            height: 25px;
+            width: Math.max(24px, badge-text.preferred-width + 16px);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            badge-text := Text {
+                text: root.count;
+                font-size: Theme.small-size;
+                font-weight: 700;
+                color: rgba(255, 255, 255, 0.7);
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+// The 12 skeleton covers while the first page loads.
+export component LibrarySkeleton inherits Rectangle {
+    property <int> tracks: ProfileGrid.tracks(root.width);
+    property <length> card-width: (root.width - 16px * (root.tracks - 1)) / root.tracks;
+    property <length> card-height: root.card-width * 1.5;
+    height: Math.ceil(12 / root.tracks) * (root.card-height + 16px) - 16px;
+    for i in 12: Skeleton {
+        x: Math.mod(i, root.tracks) * (root.card-width + 16px);
+        y: Math.floor(i / root.tracks) * (root.card-height + 16px);
+        width: root.card-width;
+        height: root.card-height;
+    }
+}
+
+// __no-games: the telescope, the title and (own profile) the hint.
+export component NoGames inherits VerticalLayout {
+    spacing: 8px;
+    alignment: center;
+    HorizontalLayout {
+        alignment: center;
+        padding-bottom: 16px;
+        Rectangle {
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.06);
+            Icon {
+                width: 24px;
+                height: 24px;
+                source: @image-url("../../icons/telescope-24.svg");
+                color: Theme.muted;
+            }
+        }
+    }
+    Text {
+        text: T.tr("user_profile.no_recent_activity_title");
+        font-size: 21px;
+        font-weight: 700;
+        color: Theme.body;
+        horizontal-alignment: center;
+    }
+    if ProfileData.is-me: Text {
+        text: T.tr("user_profile.no_recent_activity_description");
+        font-size: Theme.body-size;
+        color: Theme.body;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+}

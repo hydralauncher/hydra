@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Hydra
+Comment=Hydra
+# The package substitutes its install path. %U passes hydralauncher:// links.
+Exec=/opt/hydra/hydra %U
+Terminal=false
+Type=Application
+# hydralauncher.png installed into the hicolor icon theme (resources/icon.png).
+Icon=hydralauncher
+# The window's XDG app id (Wayland app_id, X11 WM_CLASS class).
+StartupWMClass=hydralauncher
+MimeType=x-scheme-handler/hydralauncher;
+Categories=Game;

@@ -1,0 +1,35 @@
+[package]
+name = "hydra-downloads"
+description = "Downloads for the Rust rewrite: the HTTP downloader (byte ranges, resume, throttle), hosters, debrid and the download manager"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+hydra-archive = { path = "../hydra-archive" }
+hydra-core = { path = "../hydra-core" }
+hydra-db = { path = "../hydra-db" }
+serde.workspace = true
+serde_json.workspace = true
+reqwest.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "time", "sync", "macros"] }
+tokio-util = "0.7"
+# rangeStatePath: sha256 of the file path, like Electron, so partial downloads carry over.
+sha2 = "0.10"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+# Hosters and debrid services: form bodies, magnet hashes, page scraping.
+form_urlencoded = "1"
+data-encoding = "2"
+regex = "1"
+unicode-normalization = "0.1"
+# GoFile's website token secret comes from running its obfuscated script.
+rquickjs = "0.14"
+
+[target.'cfg(windows)'.dependencies]
+# FILE_BASIC_INFO.ChangeTime: Node's ctimeMs, kept in completion receipts.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+rustls.workspace = true

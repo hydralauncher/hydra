@@ -1,0 +1,548 @@
+// The game page's ranking card (game-details/leaderboard: leaderboard-section.tsx,
+// leaderboard-controls.tsx, leaderboard-row.tsx in its strip form,
+// leaderboard.scss). Rust fills `GameLeaderboard` (game_leaderboard.rs).
+import { Theme, Icons } from "../../theme.slint";
+import { Icon, HydraButton, Skeleton } from "../../components/widgets.slint";
+import { T } from "../../globals.slint";
+import { SidebarSection } from "sidebar.slint";
+import { LbRow, LbOption } from "../leaderboards/state.slint";
+import { LbAvatar, MetricIcon, MetalStrip } from "../leaderboards/parts.slint";
+import { SelectorTip } from "../leaderboards/tip.slint";
+
+export global GameLeaderboard {
+    in property <bool> visible;
+    in property <string> title;
+    // "loading" | "error" | "ready" | "empty_week" | "empty_all" | "empty_friends" | "solo"
+    in property <string> state: "loading";
+    in property <[LbRow]> rows;
+    // the viewer row's subtitle (getLeaderboardNudge)
+    in property <string> nudge;
+    in property <bool> signed-in;
+    in property <bool> show-scope;
+    in property <bool> show-metrics;
+    in property <string> scope: "global";
+    in property <string> period: "week";
+    in property <string> metric: "playtime";
+    in property <[LbOption]> metrics;
+    callback set-scope(string);
+    callback set-period(string);
+    callback set-metric(string);
+    callback retry();
+    callback open-ranking();
+    callback open-profile(string);
+    callback find-friends();
+    callback sign-in();
+}
+
+// CardSelector: equal columns, a sliding #262626 indicator (0.46s with an
+// overshoot), names as tooltips for icon options (and for all of them when
+// the card is too narrow for the names).
+component CardSelector inherits Rectangle {
+    // "scope" | "period" | "metric"
+    in property <string> kind;
+    in property <[LbOption]> options;
+    in property <string> value;
+    in property <bool> narrow;
+    callback changed(string);
+    property <int> count: root.options.length;
+    property <int> index: root.kind == "scope" ? (root.value == "friends" ? 1 : 0) : root.kind == "period" ? (root.value == "all" ? 1 : 0) : root.metric-index;
+    property <int> metric-index;
+    property <length> segment: (root.width - 6px - (root.count - 1) * 2px) / Math.max(1, root.count);
+    // --icons: 32px columns that don't stretch, unless the card is narrow
+    property <bool> fixed: root.kind != "period" && !root.narrow;
+    property <length> fixed-width: root.count * 32px + (root.count - 1) * 2px + 6px;
+    min-width: root.fixed ? root.fixed-width : 0;
+    max-width: root.fixed ? root.fixed-width : 100000px;
+    height: 34px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.dark-background;
+    indicator := Rectangle {
+        x: 3px + root.index * (root.segment + 2px);
+        animate x { duration: 460ms; easing: cubic-bezier(0.34, 1.4, 0.64, 1); }
+        y: 3px;
+        width: root.segment;
+        height: 28px;
+        border-radius: 6px;
+        background: #262626;
+    }
+    for option[i] in root.options: Rectangle {
+        x: 3px + i * (root.segment + 2px);
+        y: 3px;
+        width: root.segment;
+        height: 28px;
+        property <bool> selected: option.id == root.value;
+        property <brush> ink: self.selected || touch.has-hover ? Theme.muted : Theme.body;
+        init => {
+            if (self.selected && root.kind == "metric") {
+                root.metric-index = i;
+            }
+        }
+        changed selected => {
+            if (self.selected && root.kind == "metric") {
+                root.metric-index = i;
+            }
+        }
+        if root.kind == "scope": Icon {
+            width: 14px;
+            height: 14px;
+            source: option.id == "friends" ? Icons.people : @image-url("../../icons/globe.svg");
+            color: parent.ink;
+        }
+        if root.kind == "period" && root.narrow: Icon {
+            width: 14px;
+            height: 14px;
+            source: option.id == "all" ? @image-url("../../icons/infinity.svg") : @image-url("../../icons/calendar.svg");
+            color: parent.ink;
+        }
+        if root.kind == "period" && !root.narrow: Text {
+            text: option.label;
+            font-size: Theme.small-size;
+            font-weight: 500;
+            color: parent.ink;
+            animate color { duration: 200ms; easing: ease; }
+        }
+        if root.kind == "metric": MetricIcon {
+            metric: option.id;
+            size: 14px;
+            tint: parent.ink;
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.changed(option.id);
+            }
+            changed has-hover => {
+                if (self.has-hover && (root.kind != "period" || root.narrow)) {
+                    SelectorTip.show(option.label, self.absolute-position.x, self.absolute-position.y, self.width);
+                } else {
+                    SelectorTip.hide();
+                }
+            }
+        }
+    }
+}
+
+// leaderboard-row.tsx with `strip`: the metal (or plain) rank strip, the
+// 40px avatar, the name and "You", the nudge under the viewer's name and the
+// value; a banner with its shade when the player has one.
+component CardRow inherits VerticalLayout {
+    in property <LbRow> item;
+    in property <string> nudge;
+    spacing: 4px;
+    if root.item.gap-before: HorizontalLayout {
+        height: 20px;
+        alignment: center;
+        spacing: 4px;
+        for i in 3: Rectangle {
+            y: (parent.height - 3px) / 2;
+            width: 3px;
+            height: 3px;
+            border-radius: 1.5px;
+            background: Theme.muted.with-alpha(0.3);
+        }
+    }
+    line := Rectangle {
+        height: 56px;
+        border-radius: 4px;
+        clip: true;
+        property <bool> hovered: touch.has-hover;
+        background: root.item.has-banner ? transparent
+            : root.item.viewer ? (self.hovered ? rgba(255, 255, 255, 0.08) : rgba(255, 255, 255, 0.05))
+            : (self.hovered ? rgba(255, 255, 255, 0.05) : rgba(255, 255, 255, 0.03));
+        animate background { duration: 200ms; easing: ease; }
+        if root.item.has-banner: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.item.banner;
+            image-fit: cover;
+        }
+        property <float> shade: line.hovered ? 1 : 0;
+        animate shade { duration: 200ms; easing: ease; }
+        if root.item.has-banner: Rectangle {
+            background: @linear-gradient(90deg, #0d0d0d.with-alpha(0.9 - 0.1 * line.shade) 0%, #0d0d0d.with-alpha(0.65 - 0.1 * line.shade) 55%, #0d0d0d.with-alpha(0.35 - 0.1 * line.shade) 100%);
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                GameLeaderboard.open-profile(root.item.user-id);
+            }
+        }
+        HorizontalLayout {
+            spacing: 12px;
+            padding-right: 16px;
+            if root.item.tier == "gold" || root.item.tier == "silver" || root.item.tier == "bronze": MetalStrip {
+                width: 40px;
+                tier: root.item.tier;
+                Text {
+                    text: root.item.rank;
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: rgba(0, 0, 0, 0.9);
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            if root.item.tier != "gold" && root.item.tier != "silver" && root.item.tier != "bronze": Rectangle {
+                width: 40px;
+                background: #1a1a1a;
+                Text {
+                    width: Math.max(parent.width, self.preferred-width);
+                    x: (parent.width - self.width) / 2;
+                    text: root.item.rank;
+                    font-size: Theme.hint-size;
+                    font-weight: 500;
+                    color: Theme.body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                LbAvatar {
+                    size: 40px;
+                    source: root.item.avatar;
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 2px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Text {
+                        text: root.item.name;
+                        font-size: Theme.body-size;
+                        font-weight: 700;
+                        color: Theme.muted;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                    if root.item.viewer: VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: you.preferred-width + 16px;
+                            height: 18px;
+                            border-radius: 9px;
+                            background: #ffffff;
+                            you := Text {
+                                text: T.tr("leaderboard.you");
+                                font-size: Theme.tiny-size;
+                                font-weight: 700;
+                                color: #000000;
+                            }
+                        }
+                    }
+                }
+                // __subtitle: the nudge, with the graph icon (12px/16)
+                if root.item.viewer && root.nudge != "": HorizontalLayout {
+                    spacing: 4px;
+                    height: 16px;
+                    Icon {
+                        y: 2px;
+                        width: 12px;
+                        height: 12px;
+                        source: Icons.graph;
+                        color: Theme.body;
+                    }
+                    Text {
+                        horizontal-stretch: 1;
+                        text: root.nudge;
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                        vertical-alignment: center;
+                        overflow: elide;
+                    }
+                }
+            }
+            Text {
+                min-width: 56px;
+                text: root.item.value;
+                font-size: Theme.body-size;
+                font-weight: 700;
+                color: Theme.muted;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+        }
+        Rectangle {
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: rgba(255, 255, 255, 0.06);
+        }
+    }
+}
+
+// .leaderboard-section__empty: icon (20px), title, description and action.
+component CardEmpty inherits VerticalLayout {
+    // "clock" | "trophy" | "people" | ""
+    in property <string> icon;
+    in property <string> title;
+    in property <string> description;
+    in property <string> action;
+    callback action-clicked();
+    padding: 16px;
+    spacing: 8px;
+    alignment: center;
+    if root.icon != "": HorizontalLayout {
+        alignment: center;
+        Icon {
+            width: 20px;
+            height: 20px;
+            color: Theme.body;
+            source: root.icon == "clock" ? Icons.clock : root.icon == "people" ? Icons.people : @image-url("../../icons/trophy.svg");
+        }
+    }
+    Text {
+        text: root.title;
+        font-size: Theme.body-size;
+        font-weight: 700;
+        color: Theme.muted;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    if root.description != "": Text {
+        text: root.description;
+        font-size: Theme.small-size;
+        color: Theme.body;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    if root.action != "": HorizontalLayout {
+        alignment: center;
+        HydraButton {
+            kind: "outline";
+            small: true;
+            text: root.action;
+            clicked => {
+                root.action-clicked();
+            }
+        }
+    }
+}
+
+// .leaderboard-section__see-all: a trophy and "View full ranking" (underlined on hover).
+component SeeAll inherits Rectangle {
+    width: row.preferred-width;
+    height: 19px;
+    property <brush> ink: touch.has-hover ? Theme.muted : Theme.body;
+    row := HorizontalLayout {
+        spacing: 4px;
+        Icon {
+            y: (parent.height - 12px) / 2;
+            width: 12px;
+            height: 12px;
+            source: @image-url("../../icons/trophy.svg");
+            color: root.ink;
+        }
+        label := Text {
+            text: T.tr("leaderboard.see_full_ranking");
+            font-size: Theme.body-size;
+            color: root.ink;
+            animate color { duration: 200ms; easing: ease; }
+            vertical-alignment: center;
+            if touch.has-hover: Rectangle {
+                x: 0;
+                y: parent.height - 2px;
+                width: parent.width;
+                height: 1px;
+                background: Theme.muted;
+            }
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            GameLeaderboard.open-ranking();
+        }
+    }
+}
+
+// The footer: a top border, padding 12 16 8, its content centered.
+component CardFooter inherits VerticalLayout {
+    padding-top: 8px;
+    Rectangle {
+        height: 1px;
+        background: Theme.border;
+    }
+    HorizontalLayout {
+        padding-top: 12px;
+        padding-bottom: 8px;
+        padding-left: 16px;
+        padding-right: 16px;
+        alignment: center;
+        @children
+    }
+}
+
+export component LeaderboardCard inherits SidebarSection {
+    title: GameLeaderboard.title;
+    VerticalLayout {
+        padding-bottom: 8px;
+        // .leaderboard-controls: padding 16 16 12, gap 8
+        controls := HorizontalLayout {
+            padding-top: 16px;
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-bottom: 12px;
+            spacing: 8px;
+            property <bool> narrow: self.width <= 360px;
+            if GameLeaderboard.show-scope: CardSelector {
+                horizontal-stretch: 1;
+                kind: "scope";
+                narrow: controls.narrow;
+                options: [
+                    { id: "global", label: T.tr("leaderboard.scope_global") },
+                    { id: "friends", label: T.tr("leaderboard.scope_friends") },
+                ];
+                value: GameLeaderboard.scope;
+                changed(id) => {
+                    GameLeaderboard.set-scope(id);
+                }
+            }
+            CardSelector {
+                horizontal-stretch: 1;
+                kind: "period";
+                narrow: controls.narrow;
+                options: [
+                    { id: "week", label: T.tr("leaderboard.period_week") },
+                    { id: "all", label: T.tr("leaderboard.period_all") },
+                ];
+                value: GameLeaderboard.period;
+                changed(id) => {
+                    GameLeaderboard.set-period(id);
+                }
+            }
+            if GameLeaderboard.show-metrics: CardSelector {
+                horizontal-stretch: 1;
+                kind: "metric";
+                narrow: controls.narrow;
+                options: GameLeaderboard.metrics;
+                value: GameLeaderboard.metric;
+                changed(id) => {
+                    GameLeaderboard.set-metric(id);
+                }
+            }
+        }
+        if GameLeaderboard.state == "loading": VerticalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-bottom: 8px;
+            spacing: 8px;
+            for i in 5: Skeleton {
+                height: 56px;
+            }
+        }
+        // the footer's space, so the card doesn't grow when the board lands
+        if GameLeaderboard.state == "loading" && GameLeaderboard.signed-in: CardFooter {
+            opacity: 0;
+            SeeAll { }
+        }
+        if GameLeaderboard.state == "error": CardEmpty {
+            title: T.tr("leaderboard.error_title");
+            action: T.tr("leaderboard.retry");
+            action-clicked => {
+                GameLeaderboard.retry();
+            }
+        }
+        if GameLeaderboard.state == "empty_week": CardEmpty {
+            icon: "clock";
+            title: T.tr("leaderboard.empty_week_title");
+            description: T.tr("leaderboard.empty_week_description");
+            action: T.tr("leaderboard.see_all_time");
+            action-clicked => {
+                GameLeaderboard.set-period("all");
+            }
+        }
+        if GameLeaderboard.state == "empty_all": CardEmpty {
+            icon: "trophy";
+            title: T.tr("leaderboard.empty_all_title");
+            description: T.tr("leaderboard.empty_all_description");
+        }
+        if GameLeaderboard.state == "empty_friends": CardEmpty {
+            icon: "people";
+            title: T.tr("leaderboard.empty_friends_title");
+            description: T.tr("leaderboard.empty_friends_description");
+        }
+        if GameLeaderboard.state == "ready" || GameLeaderboard.state == "solo" || GameLeaderboard.state == "empty_friends": VerticalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+            spacing: 8px;
+            for row in GameLeaderboard.rows: CardRow {
+                item: row;
+                nudge: GameLeaderboard.state == "ready" ? GameLeaderboard.nudge : "";
+            }
+        }
+        if GameLeaderboard.state == "empty_friends": CardFooter {
+            HydraButton {
+                kind: "outline";
+                small: true;
+                text: T.tr("leaderboard.find_friends");
+                clicked => {
+                    GameLeaderboard.find-friends();
+                }
+            }
+        }
+        if GameLeaderboard.state == "solo": CardEmpty {
+            icon: "people";
+            title: T.tr("leaderboard.solo_title");
+            description: T.tr("leaderboard.solo_description");
+            action: T.tr("leaderboard.find_friends");
+            action-clicked => {
+                GameLeaderboard.find-friends();
+            }
+        }
+        if GameLeaderboard.state == "ready" && GameLeaderboard.signed-in: CardFooter {
+            SeeAll { }
+        }
+        // __sign-in: a dashed box (drawn solid) with the hint and "Sign in"
+        if !GameLeaderboard.signed-in: HorizontalLayout {
+            padding-top: 8px;
+            padding-left: 16px;
+            padding-right: 16px;
+            Rectangle {
+                border-radius: 4px;
+                border-width: 1px;
+                border-color: rgba(255, 255, 255, 0.15);
+                height: hint.preferred-height;
+                hint := HorizontalLayout {
+                    padding: 13px;
+                    spacing: 12px;
+                    Text {
+                        horizontal-stretch: 1;
+                        text: GameLeaderboard.show-scope || GameLeaderboard.show-metrics ? T.tr("leaderboard.sign_in_hint") : T.tr("leaderboard.sign_in_hint_position");
+                        font-size: Theme.small-size;
+                        color: Theme.body;
+                        wrap: word-wrap;
+                        vertical-alignment: center;
+                    }
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            height: 28px;
+                            width: sign-in.preferred-width + 24px;
+                            border-radius: 6px;
+                            background: Theme.muted;
+                            opacity: sign-in-touch.pressed ? Theme.active-opacity : sign-in-touch.has-hover ? 0.85 : 1;
+                            animate opacity { duration: 200ms; easing: ease; }
+                            sign-in := Text {
+                                text: T.tr("leaderboard.sign_in");
+                                font-size: Theme.small-size;
+                                font-weight: 700;
+                                color: Theme.dark-background;
+                            }
+                            sign-in-touch := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    GameLeaderboard.sign-in();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
