@@ -9,6 +9,7 @@ import type { DropdownSelectOption } from "../../components/common/dropdown-sele
 import { useUserPreferences } from "../../hooks";
 import type { FocusOverrideTarget, FocusOverrides } from "../../services";
 import {
+  BIG_PICTURE_APPEARANCE_SECTION_REGION_ID,
   BIG_PICTURE_AUDIO_SECTION_REGION_ID,
   BIG_PICTURE_DIAGNOSTICS_POSITION_SELECT_ID,
   BIG_PICTURE_DIAGNOSTICS_SECTION_REGION_ID,
@@ -26,6 +27,7 @@ interface BigPictureSettingsSectionProps {
 interface BigPictureForm {
   launchInBigPicture: boolean;
   bigPictureLaunchToLibraryPage: boolean;
+  bigPictureCustomThemeEnabled: boolean;
   bigPictureSoundsEnabled: boolean;
   bigPictureVirtualKeyboardEnabled: boolean;
   bigPictureDiagnosticsEnabled: boolean;
@@ -43,6 +45,7 @@ interface BigPictureItem {
 const DEFAULT_FORM: BigPictureForm = {
   launchInBigPicture: false,
   bigPictureLaunchToLibraryPage: false,
+  bigPictureCustomThemeEnabled: false,
   bigPictureSoundsEnabled: true,
   bigPictureVirtualKeyboardEnabled: true,
   bigPictureDiagnosticsEnabled: false,
@@ -57,6 +60,8 @@ const buildForm = (preferences: UserPreferences | null): BigPictureForm =>
           preferences.bigPictureLaunchToLibraryPage ??
           preferences.launchToLibraryPage ??
           false,
+        bigPictureCustomThemeEnabled:
+          preferences.bigPictureCustomThemeEnabled ?? false,
         bigPictureSoundsEnabled: preferences.bigPictureSoundsEnabled ?? true,
         bigPictureVirtualKeyboardEnabled:
           preferences.bigPictureVirtualKeyboardEnabled ?? true,
@@ -112,6 +117,13 @@ export function BigPictureSettingsSection({
     [updateUserPreferences]
   );
 
+  const handleCustomThemeChange = useCallback(
+    (checked: boolean) => {
+      updateUserPreferences({ bigPictureCustomThemeEnabled: checked });
+    },
+    [updateUserPreferences]
+  );
+
   const handleBigPictureSoundsChange = useCallback(
     (checked: boolean) => {
       updateUserPreferences({ bigPictureSoundsEnabled: checked });
@@ -163,6 +175,18 @@ export function BigPictureSettingsSection({
     handleLaunchInBigPictureChange,
     handleLaunchToLibraryPageChange,
   ]);
+
+  const appearanceItems = useMemo<BigPictureItem[]>(() => {
+    return [
+      {
+        id: "enable-custom-theme",
+        focusId: BIG_PICTURE_ITEM_FOCUS_IDS.enableCustomTheme,
+        label: t("settings_enable_custom_theme"),
+        checked: form.bigPictureCustomThemeEnabled,
+        onChange: handleCustomThemeChange,
+      },
+    ];
+  }, [form.bigPictureCustomThemeEnabled, handleCustomThemeChange, t]);
 
   const inputItems = useMemo<BigPictureItem[]>(() => {
     return [
@@ -255,12 +279,47 @@ export function BigPictureSettingsSection({
     );
   }, [inputItems]);
 
+  const appearanceNavigationOverridesByFocusId = useMemo<
+    Record<string, FocusOverrides>
+  >(() => {
+    return Object.fromEntries(
+      appearanceItems.map((item, index) => {
+        const previousItem = appearanceItems[index - 1];
+        const nextItem = appearanceItems[index + 1];
+
+        return [
+          item.focusId,
+          {
+            up: previousItem
+              ? {
+                  type: "item",
+                  itemId: previousItem.focusId,
+                }
+              : {
+                  type: "item",
+                  itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
+                },
+            down: nextItem
+              ? {
+                  type: "item",
+                  itemId: nextItem.focusId,
+                }
+              : {
+                  type: "item",
+                  itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+                },
+          } satisfies FocusOverrides,
+        ];
+      })
+    );
+  }, [appearanceItems]);
+
   const audioNavigationOverridesByFocusId = useMemo<
     Record<string, FocusOverrides>
   >(() => {
     const previousFallback: FocusOverrideTarget = {
       type: "item",
-      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.launchToLibraryPage,
+      itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableCustomTheme,
     };
 
     return Object.fromEntries(
@@ -316,7 +375,7 @@ export function BigPictureSettingsSection({
                 }
               : {
                   type: "item",
-                  itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableSounds,
+                  itemId: BIG_PICTURE_ITEM_FOCUS_IDS.enableCustomTheme,
                 },
           } satisfies FocusOverrides,
         ];
@@ -403,6 +462,33 @@ export function BigPictureSettingsSection({
                 focusId={item.focusId}
                 navigationOverrides={
                   startupNavigationOverridesByFocusId[item.focusId]
+                }
+                block
+                onChange={item.onChange}
+              />
+            ))}
+          </div>
+        </VerticalFocusGroup>
+      </SettingsSection>
+
+      <SettingsSection
+        title={t("settings_appearance_section_title")}
+        description={t("settings_appearance_section_description")}
+      >
+        <VerticalFocusGroup
+          regionId={BIG_PICTURE_APPEARANCE_SECTION_REGION_ID}
+          asChild
+        >
+          <div className="big-picture-settings-section__content">
+            {appearanceItems.map((item) => (
+              <Checkbox
+                key={item.id}
+                id={item.id}
+                label={item.label}
+                checked={item.checked}
+                focusId={item.focusId}
+                navigationOverrides={
+                  appearanceNavigationOverridesByFocusId[item.focusId]
                 }
                 block
                 onChange={item.onChange}

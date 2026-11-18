@@ -14,7 +14,12 @@ import {
   Sidebar,
 } from "./layout";
 import { IS_DESKTOP } from "./constants";
-import { useBigPictureToast, useNavigation, useUserPreferences } from "./hooks";
+import {
+  useBigPictureToast,
+  useCustomTheme,
+  useNavigation,
+  useUserPreferences,
+} from "./hooks";
 import {
   HorizontalFocusGroup,
   InputModeProvider,
@@ -51,6 +56,7 @@ export default function App() {
     useBigPictureToast();
   const { nodes, regions, setFocusRegion } = useNavigation();
   const userPreferences = useUserPreferences();
+  useCustomTheme(userPreferences?.bigPictureCustomThemeEnabled === true);
   const inputMode = useInputModeStore((state) => state.mode);
   const [pendingRouteFocusPathname, setPendingRouteFocusPathname] = useState<
     string | null
