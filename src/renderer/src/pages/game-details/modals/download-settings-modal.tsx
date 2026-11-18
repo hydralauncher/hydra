@@ -353,6 +353,7 @@ export function DownloadSettingsModal({
 
   const selectedUri = useMemo(() => {
     if (!repack || selectedDownloader === null) return null;
+    if (!Array.isArray(repack.uris)) return null;
 
     return (
       repack.uris.find((uri) =>
