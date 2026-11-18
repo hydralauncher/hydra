@@ -137,6 +137,11 @@ linux:
     - x-scheme-handler/hydralauncher
 appImage:
   artifactName: ${name}-${version}.${ext}
+deb:
+  fpm:
+    - --deb-compression-level=9
+snap:
+  allowNativeWayland: false
 npmRebuild: false
 publish:
   provider: github
