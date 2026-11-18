@@ -102,6 +102,12 @@ export function executeLegendaryCommand(
     const diagnosticDecoder = new StringDecoder("utf8");
     let diagnosticTail = "";
     let sessionExpired = false;
+    let rateLimited = false;
+    const failureCode = () => {
+      if (sessionExpired) return "session-expired";
+      if (rateLimited) return "rate-limit";
+      return "auth-failed";
+    };
     let bytes = 0;
     let spawnFailed = false;
     let closed = false;
@@ -174,6 +180,11 @@ export function executeLegendaryCommand(
           /Stored credentials are no longer valid|Invalid refresh token|invalid_refresh_token|invalid_grant/i.test(
             diagnosticTail
           );
+        // Epic throttles the per-game metadata and achievement requests of a
+        // large library; this is not a sign-in problem.
+        rateLimited ||= /429 Client Error|Too Many Requests/i.test(
+          diagnosticTail
+        );
         diagnosticTail = diagnosticTail.slice(
           -EPIC_LEGENDARY_DIAGNOSTIC_TAIL_LENGTH
         );
@@ -186,9 +197,7 @@ export function executeLegendaryCommand(
       if (!interruption)
         settle(
           spawnFailed || code !== 0
-            ? new EpicIntegrationError(
-                sessionExpired ? "session-expired" : "auth-failed"
-              )
+            ? new EpicIntegrationError(failureCode())
             : undefined
         );
     });

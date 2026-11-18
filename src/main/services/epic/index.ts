@@ -33,6 +33,7 @@ import { EpicPlaytimeReporter } from "./playtime-reporter";
 import { EpicCloudSaveSource } from "./cloud-save-source";
 import { logger } from "../logger";
 import { configureEpicTiming, withEpicTiming } from "./timing";
+import { configureLegendaryMetadataCacheLog } from "./legendary-sync";
 import { EpicDownloadService, setEpicDownloadService } from "./download";
 import {
   configureEpicCloudSaves,
@@ -51,6 +52,9 @@ import type {
 } from "../../../types/epic-managed.types";
 
 configureEpicTiming((entry) => logger.info("[epic-timing]", entry));
+configureLegendaryMetadataCacheLog((level, message, details) =>
+  logger[level](message, details)
+);
 
 const EPIC_CONNECTION_ENDPOINT = "/profile/integrations/epic";
 let integration: EpicIntegrationCore | null = null;

@@ -344,6 +344,9 @@ function fixture(
         info: () => {},
       },
     },
+    "./legendary-sync": {
+      configureLegendaryMetadataCacheLog: () => {},
+    },
     "./timing": {
       configureEpicTiming: () => {},
       withEpicTiming: (_stage: string, task: () => unknown) => task(),

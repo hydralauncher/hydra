@@ -73,11 +73,13 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  if (mode === "revoked-credentials" || mode === "offline-refresh") {
+  if (mode === "revoked-credentials" || mode === "offline-refresh" || mode === "rate-limited") {
     await write(process.stderr, settings.canary);
     await write(process.stderr, mode === "revoked-credentials"
       ? '\n[Core] ERROR: Stored credentials are no longer valid! Please login again.\n'
-      : '\n[Core] ERROR: HTTP request for login failed: ConnectionError, please try again later.\n');
+      : mode === "rate-limited"
+        ? '\nrequests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://launcher.store.epicgames.com/graphql\n'
+        : '\n[Core] ERROR: HTTP request for login failed: ConnectionError, please try again later.\n');
     process.exitCode = 1;
     return;
   }
@@ -373,7 +375,17 @@ async function expectSafeError(promise: Promise<unknown>, code: string) {
   });
 }
 
-for (const mode of ["revoked-credentials", "offline-refresh"] as const) {
+const EXPECTED_DIAGNOSTIC_ERRORS = {
+  "revoked-credentials": "session-expired",
+  "offline-refresh": "auth-failed",
+  "rate-limited": "rate-limit",
+} as const;
+
+for (const mode of [
+  "revoked-credentials",
+  "offline-refresh",
+  "rate-limited",
+] as const) {
   test(`existing session classifies ${mode} without exposing diagnostic credentials`, async (t) => {
     const f = await fixture(t);
     const { directory } = await f.create();
@@ -388,7 +400,7 @@ for (const mode of ["revoked-credentials", "offline-refresh"] as const) {
           timeout: TEST_TIMEOUT_MS,
         }
       ),
-      mode === "revoked-credentials" ? "session-expired" : "auth-failed"
+      EXPECTED_DIAGNOSTIC_ERRORS[mode]
     );
   });
 }
