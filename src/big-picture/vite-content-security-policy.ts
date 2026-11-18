@@ -1,6 +1,13 @@
 import type { Plugin } from "vite";
 import { MONACO_VS_URL } from "../shared/monaco";
 
+// The external resources bundle loads the Chatwoot support chat SDK and the
+// Formbricks survey SDK from these hosts.
+const EXTERNAL_RESOURCES_SCRIPT_ORIGINS = [
+  "https://chatwoot.hydralauncher.gg",
+  "https://forms.hydralauncher.gg",
+];
+
 export const contentSecurityPolicy = (
   externalResourcesUrl: string | undefined
 ): Plugin => ({
@@ -9,6 +16,7 @@ export const contentSecurityPolicy = (
     const scriptSources = [
       "'self'",
       ...(externalResourcesUrl ? [new URL(externalResourcesUrl).origin] : []),
+      ...EXTERNAL_RESOURCES_SCRIPT_ORIGINS,
       `${MONACO_VS_URL}/`,
       // React Refresh injects an inline preamble that only exists on the dev server.
       ...(context.server ? ["'unsafe-inline'"] : []),
