@@ -1642,6 +1642,7 @@
     "replace_saved_big_picture_directory": "Replace this saved Big Picture directory",
     "replace_and_use_new_path": "Replace and Use New Path",
     "enable_steam_achievements": "Enable search for Steam achievements",
+    "enable_gog_achievements": "Track achievements of GOG games (installs UniverseLAN into the game when it is launched)",
     "enable_new_download_options_badges": "Show new download options badges",
     "persist_filters_and_sorting": "Keep sorting and filters after restarting Hydra",
     "achievement_custom_notification_position": "Achievement custom notification position",

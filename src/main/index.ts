@@ -54,6 +54,7 @@ import {
 } from "./services/steam-integration/steam-openid-return";
 import { steamSyncOrchestrator } from "./services/steam-integration/steam-sync-orchestrator";
 import { achievementNotificationPresenter } from "./services/achievement-notification-presenter-electron";
+import { stopUniverseLanServer } from "./services/achievements/universe-lan";
 import {
   initializeEpicIntegration,
   shutdownEpicIntegration,
@@ -479,6 +480,7 @@ app.on("before-quit", async (e) => {
     }
     DownloadOrchestrator.cancelPendingDebridPreparations();
     PowerSaveBlockerManager.reset();
+    stopUniverseLanServer();
     ScreenshotInputService.shutdown();
     try {
       await DownloadManager.pauseDownload();

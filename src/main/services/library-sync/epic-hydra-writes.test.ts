@@ -219,6 +219,9 @@ function fixture() {
         "./achievements/metadata-export": {
           abortAchievementMetadataExport: () => {},
         },
+        "./achievements/universe-lan": {
+          releaseUniverseLanServer: () => {},
+        },
         "@main/constants": { INTERVALS: { processWatcher: 1000 } },
         "./launched-game-pids": { launchedGamePids: new Map() },
         "./steam-integration/steam-game-exit-sync": {

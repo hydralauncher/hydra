@@ -26,6 +26,7 @@ const buildForm = (preferences: UserPreferences | null) => ({
   showHiddenAchievementsDescription:
     preferences?.showHiddenAchievementsDescription ?? false,
   enableSteamAchievements: preferences?.enableSteamAchievements ?? false,
+  enableGogAchievements: preferences?.enableGogAchievements ?? false,
   enableAchievementSouvenirs: isAchievementSouvenirsEnabled(
     preferences?.enableAchievementSouvenirs,
     window.electron.platform
@@ -231,6 +232,18 @@ export function SettingsContextContentGameplay() {
             })
           }
         />
+
+        {window.electron.platform === "win32" && (
+          <CheckboxField
+            label={t("enable_gog_achievements")}
+            checked={form.enableGogAchievements}
+            onChange={() =>
+              handleChange({
+                enableGogAchievements: !form.enableGogAchievements,
+              })
+            }
+          />
+        )}
 
         {hasActiveSubscription ? (
           <CheckboxField
