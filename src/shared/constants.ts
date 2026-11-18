@@ -121,25 +121,23 @@ export const LINUX_GAME_EXECUTABLE_EXTENSIONS = [
   "bin",
 ];
 
-export const DARWIN_GAME_EXECUTABLE_EXTENSIONS = ["app"];
+export const DARWIN_GAME_EXECUTABLE_EXTENSIONS = ["exe", "app"];
+
+const GAME_EXECUTABLE_EXTENSIONS_BY_PLATFORM: Record<string, string[]> = {
+  linux: LINUX_GAME_EXECUTABLE_EXTENSIONS,
+  darwin: DARWIN_GAME_EXECUTABLE_EXTENSIONS,
+};
 
 export const getGameExecutableFilters = (
   platform: string,
   labels: { executable: string; allFiles: string }
 ) => {
-  if (platform === "linux") {
-    return [
-      { name: labels.executable, extensions: LINUX_GAME_EXECUTABLE_EXTENSIONS },
-      { name: labels.allFiles, extensions: ["*"] },
-    ];
-  }
+  const platformExtensions = GAME_EXECUTABLE_EXTENSIONS_BY_PLATFORM[platform];
 
-  if (platform === "darwin") {
+  if (platformExtensions) {
     return [
-      {
-        name: labels.executable,
-        extensions: DARWIN_GAME_EXECUTABLE_EXTENSIONS,
-      },
+      { name: labels.executable, extensions: platformExtensions },
+      { name: labels.allFiles, extensions: ["*"] },
     ];
   }
 

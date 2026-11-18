@@ -32,7 +32,9 @@ const matchesGameFallback = (game: Game, shortcut: SteamShortcut) => {
   }
 
   return (
-    (game.executablePath && shortcut.Exe === game.executablePath) ||
+    (game.executablePath &&
+      (shortcut.Exe === game.executablePath ||
+        shortcut.Exe === `"${game.executablePath}"`)) ||
     shortcut.appname === game.title
   );
 };

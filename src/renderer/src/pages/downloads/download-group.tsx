@@ -5,6 +5,7 @@ import {
   Button,
   ConfirmationModal,
   GuideLink,
+  isNotProtonRequiredError,
 } from "@renderer/components";
 import {
   formatDownloadProgress,
@@ -1172,7 +1173,21 @@ export function DownloadGroup({
         game.executablePath!,
         game.launchOptions
       )
-      .catch((error) => logger.error("Failed to start game", error));
+      .catch((error) => {
+        if (isNotProtonRequiredError(error)) {
+          showErrorToast(
+            tGameDetails("macos_notproton_required_title", {
+              defaultValue:
+                "Windows (.exe) games on macOS require NotProton + CrossOver",
+            }),
+            tGameDetails("macos_notproton_required_description", {
+              defaultValue:
+                "Library repositories contain Windows games. To run them on macOS (or launch them via Add to Steam), you must have both CrossOver and NotProton installed.",
+            })
+          );
+        }
+        logger.error("Failed to start game", error);
+      });
   };
 
   const renderCompletedAction = (game: LibraryGame) => {

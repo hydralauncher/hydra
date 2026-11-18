@@ -64,6 +64,21 @@ const duckstationEntries = (
     ];
   }
 
+  if (os === "darwin") {
+    return [
+      {
+        type: "github",
+        id: "duckstation-install",
+        binary: "duckstation",
+        repo: "stenzek/duckstation",
+        channel: "rolling",
+        channelLabel: null,
+        assetPattern: /^duckstation-mac-release\.zip$/i,
+        kind: "portable-archive",
+      },
+    ];
+  }
+
   const assetPattern =
     arch === "arm64"
       ? /^DuckStation-arm64\.AppImage$/i
@@ -90,6 +105,7 @@ const duckstationEntries = (
 };
 
 const pcsx2AssetPattern = (os: InstallOs, arch: InstallArch): RegExp => {
+  if (os === "darwin") return /macos-Qt\.tar\.xz$/i;
   if (os !== "win32") return /linux-appimage-x64-Qt\.AppImage$/i;
   if (arch === "arm64") return /windows-arm64-installer\.exe$/i;
   return /windows-x64-installer\.exe$/i;
@@ -100,7 +116,8 @@ const pcsx2Entries = (
   arch: InstallArch
 ): EmulatorSourceEntry[] => {
   const isWindows = os === "win32";
-  const hasNativeBuild = isWindows || arch === "x64";
+  const isMac = os === "darwin";
+  const hasNativeBuild = isWindows || isMac || arch === "x64";
 
   const entries: EmulatorSourceEntry[] = [];
 
@@ -108,7 +125,9 @@ const pcsx2Entries = (
     const assetPattern = pcsx2AssetPattern(os, arch);
     const kind: Exclude<EmulatorInstallKind, "link"> = isWindows
       ? "windows-installer"
-      : "linux-appimage";
+      : isMac
+        ? "portable-archive"
+        : "linux-appimage";
 
     entries.push(
       {
@@ -134,7 +153,7 @@ const pcsx2Entries = (
     );
   }
 
-  if (!isWindows) {
+  if (os === "linux") {
     entries.push(
       {
         type: "link",
@@ -171,6 +190,24 @@ const rpcs3Entries = (
         channelLabel: null,
         assetPattern: /_win64\.7z$/i,
         kind: "windows-archive",
+      },
+    ];
+  }
+
+  if (os === "darwin") {
+    const isArm = arch === "arm64";
+    return [
+      {
+        type: "github",
+        id: "rpcs3-install",
+        binary: "rpcs3",
+        repo: isArm
+          ? "RPCS3/rpcs3-binaries-mac-arm64"
+          : "RPCS3/rpcs3-binaries-mac",
+        channel: "latest",
+        channelLabel: null,
+        assetPattern: isArm ? /_macos_aarch64\.7z$/i : /_macos\.7z$/i,
+        kind: "portable-archive",
       },
     ];
   }
@@ -275,7 +312,22 @@ const shadps4Entries = (
   os: InstallOs,
   arch: InstallArch
 ): EmulatorSourceEntry[] => {
-  if (arch !== "x64" || os === "darwin") return [];
+  if (os === "darwin") {
+    return [
+      {
+        type: "github",
+        id: "shadps4-install",
+        binary: "shadps4",
+        repo: "shadps4-emu/shadps4-qtlauncher",
+        channel: "prerelease",
+        channelLabel: null,
+        assetPattern: /^shadPS4QtLauncher-macos-qt-.*\.zip$/i,
+        kind: "portable-archive",
+      },
+    ];
+  }
+
+  if (arch !== "x64") return [];
 
   return [
     {
@@ -494,7 +546,9 @@ const shadps4CoreSource = (os: InstallOs): GithubAssetSource => ({
   assetPattern:
     os === "win32"
       ? /^shadps4-win64-sdl-.*\.zip$/i
-      : /^shadps4-linux-sdl-.*\.zip$/i,
+      : os === "darwin"
+        ? /^shadps4-macos-sdl-.*\.zip$/i
+        : /^shadps4-linux-sdl-.*\.zip$/i,
   kind: "portable-archive",
 });
 
@@ -502,6 +556,11 @@ export const resolveShadps4CoreOption = async (
   os: NodeJS.Platform,
   arch: string
 ): Promise<ResolvedInstallOption | null> => {
+  if (os === "darwin") {
+    const option = await resolveGithubOption(shadps4CoreSource("darwin"));
+    return option.downloadUrl ? option : null;
+  }
+
   if (normalizeArch(arch) !== "x64") return null;
   if (os !== "win32" && os !== "linux") return null;
 

@@ -2,6 +2,7 @@ import { readdirSync, type Dirent } from "node:fs";
 import path from "node:path";
 
 import { findManagedEmulatorExecutable } from "./find-managed-emulator-executable.js";
+import { matchesMacosBundleName } from "./macos-app-bundle.js";
 import { isValidEmulatorExecutableForBinary } from "./validate-emulator-executable.js";
 
 interface DownloadDetectableBinary {
@@ -29,6 +30,22 @@ const findDirect = (
     const candidate = path.join(directory, name);
     if (isValidEmulatorExecutableForBinary(candidate, binary)) {
       return candidate;
+    }
+  }
+
+  if (binary.macosBundleNames.length > 0) {
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(directory);
+    } catch {
+      return null;
+    }
+    for (const entry of entries) {
+      if (!matchesMacosBundleName(entry, binary.macosBundleNames)) continue;
+      const candidate = path.join(directory, entry);
+      if (isValidEmulatorExecutableForBinary(candidate, binary)) {
+        return candidate;
+      }
     }
   }
   return null;

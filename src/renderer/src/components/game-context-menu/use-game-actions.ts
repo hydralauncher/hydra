@@ -13,6 +13,7 @@ import {
   handleClassicsLaunchError,
 } from "@renderer/helpers";
 import { logger } from "@renderer/logger";
+import { isNotProtonRequiredError } from "@renderer/components";
 import { useGameOptionsModal } from "@renderer/context/game-options-modal/game-options-modal.context";
 import type { GameSettingsCategoryId } from "@renderer/pages/game-details/modals/game-options-modal/types";
 import type { GameContextMenuGame } from "./game-context-menu.types";
@@ -141,7 +142,20 @@ export function useGameActions(requestedGame: GameContextMenuGame) {
         game.launchOptions
       );
     } catch (error) {
-      showErrorToast("Failed to start game");
+      if (isNotProtonRequiredError(error)) {
+        showErrorToast(
+          t("macos_notproton_required_title", {
+            defaultValue:
+              "Windows (.exe) games on macOS require NotProton + CrossOver",
+          }),
+          t("macos_notproton_required_description", {
+            defaultValue:
+              "Library repositories contain Windows games. To run them on macOS (or launch them via Add to Steam), you must have both CrossOver and NotProton installed.",
+          })
+        );
+      } else {
+        showErrorToast("Failed to start game");
+      }
       logger.error("Failed to start game", error);
     }
   };

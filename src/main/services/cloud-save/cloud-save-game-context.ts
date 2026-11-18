@@ -90,7 +90,7 @@ export const getCloudSaveGameContext = async (
     : (overrides?.executablePath ?? game?.executablePath ?? undefined);
   const usesWindowsCompatibility =
     !emulatorProvider &&
-    platform === "linux" &&
+    (platform === "linux" || platform === "mac") &&
     executablePath?.toLowerCase().endsWith(".exe") === true;
   const requestedWinePrefixPath = await getRequestedWinePrefixPath(
     usesWindowsCompatibility,

@@ -258,6 +258,7 @@ export interface UserPreferences {
   autoRunGamemode?: boolean;
   hideClassicsBookmark?: boolean;
   classicsUseHeroLayout?: boolean;
+  dismissedMacosNotice?: boolean;
   hideLibraryGameBadges?: boolean;
   hideLibraryReadySizeBadges?: boolean;
   hideLibraryClassicsBadges?: boolean;

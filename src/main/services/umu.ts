@@ -28,6 +28,10 @@ import {
   findFlatpakCompatibilityTools,
   getFlatpakInstallationRoots,
 } from "./flatpak-compatibility-tools";
+import {
+  getMacCompatibilityTools,
+  isValidNotProtonDirectory,
+} from "./macos-compatibility";
 
 export type { UmuStatus } from "./umu-launch-monitor";
 
@@ -190,10 +194,18 @@ export class Umu {
   }
 
   public static isValidProtonPath(protonPath: string) {
+    if (process.platform === "darwin") {
+      return isValidNotProtonDirectory(protonPath);
+    }
+
     return isValidProtonDirectory(protonPath);
   }
 
   public static async getInstalledProtonVersions(): Promise<ProtonVersion[]> {
+    if (process.platform === "darwin") {
+      return getMacCompatibilityTools();
+    }
+
     const homePath = SystemPath.getPath("home");
     const steamRoots = STEAM_ROOT_SEGMENTS.map((segments) =>
       path.join(homePath, ...segments)

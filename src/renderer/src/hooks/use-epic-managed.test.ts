@@ -2366,6 +2366,7 @@ describe("Epic managed UI lifecycle", () => {
             Button,
             Modal,
             ConfirmationModal: () => null,
+            isNotProtonRequiredError: () => false,
           },
           "@renderer/hooks": hooks,
           "@renderer/hooks/use-epic-managed": {

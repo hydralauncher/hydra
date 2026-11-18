@@ -13,7 +13,7 @@ export class Wine {
   private static configuredDefaultPrefixPath: string | null = null;
 
   private static getBuiltInDefaultPrefixPath(): string | null {
-    if (process.platform !== "linux") {
+    if (process.platform !== "linux" && process.platform !== "darwin") {
       return null;
     }
 
@@ -32,7 +32,7 @@ export class Wine {
   }
 
   public static getLegacyDefaultPrefixPath(): string | null {
-    if (process.platform !== "linux") {
+    if (process.platform !== "linux" && process.platform !== "darwin") {
       return null;
     }
 
@@ -44,6 +44,10 @@ export class Wine {
 
     if (!defaultPrefixPath) {
       return null;
+    }
+
+    if (process.platform === "darwin") {
+      return path.join(defaultPrefixPath, objectId, "pfx");
     }
 
     return path.join(defaultPrefixPath, objectId);

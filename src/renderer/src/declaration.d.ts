@@ -51,6 +51,7 @@ import type {
   DownloadSource,
   LocalNotification,
   ProtonVersion,
+  MacCompatibilityStatus,
   CreateSteamShortcutOptions,
   TorrentFilesResponse,
   DownloadLayoutState,
@@ -547,6 +548,7 @@ declare global {
       protonPath: string | null
     ) => Promise<void>;
     getInstalledProtonVersions: () => Promise<ProtonVersion[]>;
+    getMacCompatibilityStatus: () => Promise<MacCompatibilityStatus>;
     getGameLaunchProtonVersion: (
       shop: GameShop,
       objectId: string

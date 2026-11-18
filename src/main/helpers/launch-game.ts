@@ -26,6 +26,10 @@ import {
   Wine,
   NativeAddon,
   launchedGamePids,
+  getMacCompatibilityStatus,
+  launchWindowsExecutableWithNotProton,
+  prepareMacWinePrefix,
+  NOTPROTON_REQUIRED_ERROR,
   type UmuStatus,
 } from "@main/services";
 import {
@@ -47,6 +51,7 @@ import {
 import { isGamemodeAvailable } from "./is-gamemode-available";
 import { isMangohudAvailable } from "./is-mangohud-available";
 import { resolveLaunchCommand } from "./resolve-launch-command";
+import { resolveProtonPath } from "./resolve-proton-path";
 import {
   buildWindowsBatchCommand,
   isWindowsBatchFile,
@@ -262,28 +267,6 @@ const isValidWinePrefix = (winePrefixPath: string | null) => {
   }
 };
 
-const resolveProtonPathForLaunch = async (
-  gameProtonPath?: string | null
-): Promise<string | null> => {
-  if (gameProtonPath && Umu.isValidProtonPath(gameProtonPath)) {
-    return gameProtonPath;
-  }
-
-  const userPreferences = await db
-    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
-      valueEncoding: "json",
-    })
-    .catch(() => null);
-
-  const defaultProtonPath = userPreferences?.defaultProtonPath;
-
-  if (defaultProtonPath && Umu.isValidProtonPath(defaultProtonPath)) {
-    return defaultProtonPath;
-  }
-
-  return null;
-};
-
 interface CloudSavePrefixPreparationResult {
   winePrefixPath: string | null;
   readyForRestore: boolean;
@@ -302,12 +285,20 @@ const prepareWinePrefixIfNeeded = async (
   if (prefixWasReadyForRestore) return false;
 
   try {
-    await Umu.preparePrefix({
-      winePrefixPath: context.winePrefixPath!,
-      protonPath: context.protonPath,
-      gameId: objectId,
-      onStatus: createUmuStatusReporter(gameKey),
-    });
+    if (process.platform === "darwin") {
+      await prepareMacWinePrefix({
+        winePrefixPath: context.winePrefixPath,
+        protonPath: context.protonPath,
+        objectId,
+      });
+    } else {
+      await Umu.preparePrefix({
+        winePrefixPath: context.winePrefixPath!,
+        protonPath: context.protonPath,
+        gameId: objectId,
+        onStatus: createUmuStatusReporter(gameKey),
+      });
+    }
     return false;
   } catch (error) {
     logger.error("Failed to prepare Wine prefix before cloud save restore", {
@@ -534,7 +525,10 @@ const prepareLinuxCompatibilityForLaunch = async (
   shop: GameShop,
   shouldPrepareForCloudSave: boolean
 ): Promise<PreparedLinuxCompatibility> => {
-  if (process.platform !== "linux" || !isWindowsExecutable(parsedPath)) {
+  if (
+    (process.platform !== "linux" && process.platform !== "darwin") ||
+    !isWindowsExecutable(parsedPath)
+  ) {
     return {
       context: null,
       prefixReadyForRestore: true,
@@ -547,9 +541,10 @@ const prepareLinuxCompatibilityForLaunch = async (
     objectId
   );
   let context: LinuxCompatibilityLaunchContext = {
-    protonPath: await resolveProtonPathForLaunch(game?.protonPath),
+    protonPath: await resolveProtonPath(game?.protonPath),
     winePrefixPath: await Wine.resolvePrefixPath(requestedWinePrefixPath),
   };
+
   logger.info("[Cloud Save] Resolved authoritative launch prefix", {
     shop,
     objectId,
@@ -627,6 +622,37 @@ const launchResolvedGame = async (
   useGamemode: boolean,
   shortcut: ExecutableShortcut | null = null
 ) => {
+  if (process.platform === "darwin") {
+    if (isWindowsExecutable(parsedPath)) {
+      try {
+        const pid = await launchWindowsExecutableWithNotProton({
+          executablePath: parsedPath,
+          objectId,
+          winePrefixPath: compatibilityContext?.winePrefixPath,
+          protonPath: compatibilityContext?.protonPath,
+          launchOptions,
+          shortcutArgs: shortcut?.arguments,
+          workingDirectory: shortcut?.workingDirectory,
+        });
+        if (pid !== null) launchedGamePids.set(gameKey, pid);
+        PowerSaveBlockerManager.markCompatibilityLaunchStarted(gameKey);
+        return pid;
+      } catch (error) {
+        clearCloudSaveLaunchGuard(objectId, shop);
+        WindowManager.closeGameLauncherWindow();
+        throw error;
+      }
+    }
+
+    return launchNatively(
+      parsedPath,
+      launchOptions,
+      useMangohud,
+      useGamemode,
+      shortcut
+    );
+  }
+
   if (process.platform !== "linux") {
     return launchNatively(
       parsedPath,
@@ -763,6 +789,18 @@ const launchGameWithCloudSaveChecks = async (
   const managedEpic = shop === "epic" && !!launchGameRecord?.epicInstallation;
 
   clearGameLauncherStatuses(gameKey);
+
+  if (
+    process.platform === "darwin" &&
+    isWindowsExecutable(parsedPath) &&
+    !steamProtocolLaunch
+  ) {
+    const macCompatibility = await getMacCompatibilityStatus();
+    if (!macCompatibility.isReady) {
+      throw new Error(NOTPROTON_REQUIRED_ERROR);
+    }
+  }
+
   await WindowManager.createGameLauncherWindow(shop, objectId);
 
   const shouldRunV2AutomaticSync = await canRunAutomaticCloudSaveSync(

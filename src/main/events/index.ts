@@ -56,5 +56,7 @@ ipcMain.handle("cleanupAchievementSouvenirSync", () =>
   cleanupAchievementSouvenirSync()
 );
 ipcMain.handle("getCloudIframeUrl", () =>
-  new URL("/cloud", import.meta.env.MAIN_VITE_CHECKOUT_URL).toString()
+  import.meta.env.MAIN_VITE_CHECKOUT_URL
+    ? new URL("/cloud", import.meta.env.MAIN_VITE_CHECKOUT_URL).toString()
+    : ""
 );

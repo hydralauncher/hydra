@@ -352,7 +352,8 @@ export function GameOptionsModal({
   }, [game.autoRunGamemode]);
 
   useEffect(() => {
-    if (!visible || globalThis.window.electron.platform !== "linux") return;
+    const platform = globalThis.window.electron.platform;
+    if (!visible || (platform !== "linux" && platform !== "darwin")) return;
     globalThis.window.electron
       .getInstalledProtonVersions()
       .then(setProtonVersions)
@@ -360,7 +361,8 @@ export function GameOptionsModal({
   }, [visible]);
 
   useEffect(() => {
-    if (!visible || globalThis.window.electron.platform !== "linux") {
+    const platform = globalThis.window.electron.platform;
+    if (!visible || (platform !== "linux" && platform !== "darwin")) {
       setDefaultWinePrefixPath(null);
       return;
     }
@@ -975,10 +977,13 @@ export function GameOptionsModal({
   );
   const showDownloadSettings = game.shop !== "custom";
   const shouldShowWinePrefixConfiguration =
-    globalThis.window.electron.platform === "linux";
+    globalThis.window.electron.platform === "linux" ||
+    globalThis.window.electron.platform === "darwin";
   const defaultHydraWinePrefixPath =
     game.shop !== "epic" && defaultWinePrefixPath
-      ? `${defaultWinePrefixPath}/${game.objectId}`
+      ? globalThis.window.electron.platform === "darwin"
+        ? `${defaultWinePrefixPath}/${game.objectId}/pfx`
+        : `${defaultWinePrefixPath}/${game.objectId}`
       : null;
   const displayedWinePrefixPath =
     linuxCompatibility?.winePrefixPath ??
