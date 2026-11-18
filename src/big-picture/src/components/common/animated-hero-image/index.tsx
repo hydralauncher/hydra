@@ -10,9 +10,6 @@ export interface AnimatedHeroImageProps
 
 const FALLBACK_BACKGROUND_COLOR = "rgba(8, 8, 8, 1)";
 
-const RGBA_WITH_ALPHA =
-  /^rgba\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*[\d.]+\s*\)$/;
-
 function getBackgroundColor(element: HTMLElement) {
   const elementStyles = globalThis.getComputedStyle(element);
   const rootStyles = globalThis.getComputedStyle(
@@ -28,19 +25,12 @@ function getBackgroundColor(element: HTMLElement) {
 }
 
 function withAlpha(color: string, alpha: number) {
-  const normalizedAlpha = Math.max(0, Math.min(1, alpha));
+  const resolvedColor = globalThis.CSS.supports("color", color)
+    ? color
+    : FALLBACK_BACKGROUND_COLOR;
+  const percentage = Math.max(0, Math.min(1, alpha)) * 100;
 
-  if (color.startsWith("rgb(")) {
-    return color.replace("rgb(", "rgba(").replace(")", `, ${normalizedAlpha})`);
-  }
-
-  const rgbaMatch = RGBA_WITH_ALPHA.exec(color);
-
-  if (rgbaMatch) {
-    return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${normalizedAlpha})`;
-  }
-
-  return FALLBACK_BACKGROUND_COLOR;
+  return `color-mix(in srgb, ${resolvedColor} ${percentage}%, transparent)`;
 }
 
 function getCoverCrop(
@@ -241,7 +231,7 @@ export function AnimatedHeroImage({
     verticalFade.addColorStop(0.72, withAlpha(backgroundColor, 0.418));
     verticalFade.addColorStop(0.86, withAlpha(backgroundColor, 0.748));
     verticalFade.addColorStop(0.94, withAlpha(backgroundColor, 0.99));
-    verticalFade.addColorStop(1, backgroundColor);
+    verticalFade.addColorStop(1, withAlpha(backgroundColor, 1));
     context.fillStyle = verticalFade;
     context.fillRect(0, height * 0.32, width, height * 0.68);
   }, [clearBlendCanvas]);
