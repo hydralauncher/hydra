@@ -155,7 +155,10 @@ function discoverVisualStudioGenerator() {
 }
 
 function getGeneratorArgs(arch) {
-  if (process.platform !== "win32") return [];
+  if (process.platform !== "win32") {
+    const gen = process.env.CMAKE_GENERATOR || "Ninja";
+    return ["-G", gen];
+  }
   const generator =
     process.env.CMAKE_GENERATOR || discoverVisualStudioGenerator();
   const args = ["-G", generator];
