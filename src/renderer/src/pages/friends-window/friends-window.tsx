@@ -19,6 +19,7 @@ import {
   useAppSelector,
   useUserDetails,
 } from "@renderer/hooks";
+import { useCustomTheme } from "@renderer/hooks/use-custom-theme";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
   fetchAllProfileFriends,
@@ -86,6 +87,7 @@ const getProcessedImageKey = (imageUrl: string, size: FriendImageSize) =>
   `${size.width}x${size.height}:${imageUrl}`;
 
 export default function FriendsWindow() {
+  useCustomTheme();
   const { t } = useTranslation("friends_window");
   const { t: tProfile } = useTranslation("user_profile");
   const { t: tChat } = useTranslation("chat_window");
