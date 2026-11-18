@@ -527,6 +527,7 @@ export interface UserDetails {
   displayName: string;
   profileImageUrl: string | null;
   backgroundImageUrl: string | null;
+  equippedFrame?: EquippedFrame | null;
   profileVisibility: ProfileVisibility;
   allowCloudGifts: boolean;
   allowLeaderboardNotifications?: boolean;
@@ -602,12 +603,36 @@ export interface SouvenirsResponse {
   hiddenReason: SouvenirsHiddenReason;
 }
 
+export type FrameAssetType = "IMAGE" | "VIDEO";
+
+export interface FrameAsset {
+  assetUrl: string;
+  assetType: FrameAssetType;
+}
+
+export interface EquippedFrame extends FrameAsset {
+  key: string;
+}
+
+export interface OwnedFrame extends FrameAsset {
+  key: string;
+  name: string;
+  collectionSlug: string;
+  acquiredAt: string;
+}
+
+export interface OwnedFramesResponse {
+  equippedFrameKey: string | null;
+  frames: OwnedFrame[];
+}
+
 export interface UserProfile {
   id: string;
   displayName: string;
   profileImageUrl: string | null;
   email: string | null;
   backgroundImageUrl: string | null;
+  equippedFrame?: EquippedFrame | null;
   profileVisibility: ProfileVisibility;
   souvenirsVisibility: ProfileVisibility;
   screenshotsVisibility?: ProfileVisibility;

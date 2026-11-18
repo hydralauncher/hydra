@@ -1,4 +1,5 @@
 import "./crop-profile-image";
+import "./get-banner-thumbnail";
 import "./get-me";
 import "./get-profile-image-metadata";
 import "./process-profile-image";

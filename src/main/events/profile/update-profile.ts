@@ -42,6 +42,8 @@ const uploadImage = async (
   return response["profileImageUrl"];
 };
 
+// A failed upload rejects the whole update, so the caller can tell the user
+// instead of saving the rest and reporting success.
 const updateProfile = async (
   _event: Electron.IpcMainInvokeEvent,
   updateProfile: UpdateProfileRequest
@@ -58,7 +60,7 @@ const updateProfile = async (
       const profileImageUrl = await uploadImage(
         "profile-image",
         updateProfile.profileImageUrl
-      ).catch(() => undefined);
+      );
 
       payload["profileImageUrl"] = profileImageUrl;
     }
@@ -71,7 +73,7 @@ const updateProfile = async (
       const backgroundImageUrl = await uploadImage(
         "background-image",
         updateProfile.backgroundImageUrl
-      ).catch(() => undefined);
+      );
 
       payload["backgroundImageUrl"] = backgroundImageUrl;
     }

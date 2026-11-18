@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import cn from "classnames";
 import { Avatar } from "../avatar/avatar";
 import { prefersReducedMotion } from "./gamification-colors";
+import type { FrameAsset } from "@types";
 import "./framed-avatar.scss";
 
 // Sample avatar frame: the prototype's "Aurora" (v4.2.0). The shop shows it on
@@ -174,6 +175,8 @@ export interface FramedAvatarProps {
   isFrameOnly?: boolean;
   /** Draws no frame (the "no frame" state). */
   isBare?: boolean;
+  /** The real frame to draw; without it the sample frame is drawn. */
+  frame?: FrameAsset | null;
   className?: string;
 }
 
@@ -183,6 +186,7 @@ export function FramedAvatar({
   alt,
   isFrameOnly = false,
   isBare = false,
+  frame,
   className,
 }: Readonly<FramedAvatarProps>) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -191,7 +195,7 @@ export function FramedAvatar({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || isBare) return;
+    if (!canvas || isBare || frame) return;
 
     const pixelRatio = Math.min(MAX_PIXEL_RATIO, window.devicePixelRatio || 1);
     const pixels = Math.round(canvasSize * pixelRatio);
@@ -231,7 +235,11 @@ export function FramedAvatar({
       observer.disconnect();
       cancelAnimationFrame(animationFrame);
     };
-  }, [canvasSize, isBare, isReducedMotion]);
+  }, [canvasSize, isBare, frame, isReducedMotion]);
+
+  const [failedFrameUrl, setFailedFrameUrl] = useState<string | null>(null);
+  const showsFrameAsset = !isBare && frame && failedFrameUrl !== frame.assetUrl;
+  const frameStyle = { width: canvasSize, height: canvasSize };
 
   return (
     <span
@@ -243,7 +251,32 @@ export function FramedAvatar({
       style={{ width: size, height: size }}
     >
       <Avatar size={size} src={src} alt={alt} />
-      {!isBare && (
+      {showsFrameAsset &&
+        (frame.assetType === "VIDEO" ? (
+          <video
+            key={frame.assetUrl}
+            src={frame.assetUrl}
+            className="framed-avatar__frame"
+            style={frameStyle}
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+            onError={() => setFailedFrameUrl(frame.assetUrl)}
+          />
+        ) : (
+          <img
+            key={frame.assetUrl}
+            src={frame.assetUrl}
+            className="framed-avatar__frame"
+            style={frameStyle}
+            alt=""
+            aria-hidden="true"
+            onError={() => setFailedFrameUrl(frame.assetUrl)}
+          />
+        ))}
+      {!isBare && !frame && (
         <canvas
           ref={canvasRef}
           className="framed-avatar__frame"

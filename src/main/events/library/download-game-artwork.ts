@@ -78,8 +78,8 @@ const downloadArtworkStream = async (
   return response.data;
 };
 
-const downloadGameArtwork = async (
-  _event: Electron.IpcMainInvokeEvent,
+/** Downloads a SteamGridDB image to a temp file; null when it's too large. */
+export const downloadGameArtworkFile = async (
   artworkUrl: string
 ): Promise<string | null> => {
   if (!isSteamGridDbUrl(artworkUrl)) {
@@ -127,5 +127,10 @@ const downloadGameArtwork = async (
     throw error;
   }
 };
+
+const downloadGameArtwork = async (
+  _event: Electron.IpcMainInvokeEvent,
+  artworkUrl: string
+) => downloadGameArtworkFile(artworkUrl);
 
 registerEvent("downloadGameArtwork", downloadGameArtwork);
