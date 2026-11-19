@@ -19,6 +19,7 @@ export type LibraryFilterTab = string;
 export type LibraryViewMode = "grid" | "list";
 export type LibrarySortOption =
   | "last_played"
+  | "recently_downloaded"
   | "playtime"
   | "title_asc"
   | "title_desc"
@@ -50,6 +51,13 @@ const TITLE_COMPARE_OPTIONS = { sensitivity: "base" } as const;
 
 function compareTitles(a: LibraryGame, b: LibraryGame) {
   return a.title.localeCompare(b.title, undefined, TITLE_COMPARE_OPTIONS);
+}
+
+// Cancelled downloads keep their record with status "removed", so treat them as never downloaded.
+function getDownloadTimestamp(game: LibraryGame) {
+  return game.download?.status === "removed"
+    ? 0
+    : (game.download?.timestamp ?? 0);
 }
 
 function getDateTimestamp(value?: Date | string | null) {
@@ -207,6 +215,15 @@ export function sortLibraryGames(
       return sortByLastPlayed(a, b);
     }
 
+    if (sortBy === "recently_downloaded") {
+      const downloadDifference =
+        getDownloadTimestamp(b) - getDownloadTimestamp(a);
+
+      return downloadDifference !== 0
+        ? downloadDifference
+        : compareTitles(a, b);
+    }
+
     if (sortBy === "playtime") {
       const playtimeDifference =
         getDisplayedPlayTimeInMilliseconds(b) -
@@ -268,6 +285,7 @@ export function isLibrarySortOption(
 ): value is LibrarySortOption {
   return (
     value === "last_played" ||
+    value === "recently_downloaded" ||
     value === "playtime" ||
     value === "title_asc" ||
     value === "title_desc" ||
