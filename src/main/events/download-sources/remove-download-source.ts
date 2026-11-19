@@ -1,6 +1,7 @@
 import { HydraApi } from "@main/services";
 import { downloadSourcesSublevel } from "@main/level";
 import { registerEvent } from "../register-event";
+import { downloadSourceOperationGate } from "@main/services/download-source-operation-gate";
 
 const removeDownloadSource = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -24,4 +25,8 @@ const removeDownloadSource = async (
   }
 };
 
-registerEvent("removeDownloadSource", removeDownloadSource);
+registerEvent("removeDownloadSource", (event, removeAll, downloadSourceId) =>
+  downloadSourceOperationGate.run(() =>
+    removeDownloadSource(event, removeAll, downloadSourceId)
+  )
+);
