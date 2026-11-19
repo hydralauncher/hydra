@@ -4,7 +4,9 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { useLocation } from "react-router-dom";
 
-import localeResources from "@locales";
+import { applyLanguage } from "@locales/apply-language";
+import { resolveLanguage } from "@locales/languages";
+import { loadLocale } from "@locales/load-locale";
 
 import {
   exactTranslations,
@@ -123,11 +125,13 @@ export function applyBigPictureDomTranslations() {
 
 export async function initializeBigPictureI18n() {
   if (!i18next.isInitialized) {
+    const englishLocale = await loadLocale("en");
+
     await i18next
       .use(LanguageDetector)
       .use(initReactI18next)
       .init({
-        resources: localeResources,
+        resources: { en: englishLocale.resources },
         fallbackLng: "en",
         interpolation: {
           escapeValue: false,
@@ -155,11 +159,14 @@ export async function initializeBigPictureI18n() {
   };
 
   const userPreferences = await electron?.getUserPreferences?.();
+  const requestedLanguage = userPreferences?.language ?? i18next.language;
 
-  if (userPreferences?.language) {
-    await i18next.changeLanguage(userPreferences.language);
-  } else if (electron?.updateUserPreferences) {
-    await electron.updateUserPreferences({ language: i18next.language });
+  await applyLanguage(requestedLanguage);
+
+  if (!userPreferences?.language && electron?.updateUserPreferences) {
+    await electron.updateUserPreferences({
+      language: resolveLanguage(requestedLanguage),
+    });
   }
 
   syncDocumentLanguage(i18next.language);
@@ -167,7 +174,7 @@ export async function initializeBigPictureI18n() {
 
   electron?.onUserPreferencesUpdated?.((preferences) => {
     if (preferences?.language && preferences.language !== i18next.language) {
-      i18next.changeLanguage(preferences.language).catch((error) => {
+      applyLanguage(preferences.language).catch((error) => {
         console.error("Failed to change Big Picture language", error);
       });
     }

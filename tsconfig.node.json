@@ -24,6 +24,7 @@
       "@renderer/*": ["src/renderer/*"],
       "@types": ["src/types/index.ts"],
       "@locales": ["src/locales/index.ts"],
+      "@locales/*": ["src/locales/*"],
       "@resources": ["src/resources/index.ts"],
       "@shared": ["src/shared/index.ts"]
     }

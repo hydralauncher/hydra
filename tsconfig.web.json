@@ -8,6 +8,7 @@
     "src/big-picture/src/**/*.tsx",
     "src/preload/*.d.ts",
     "src/locales/index.ts",
+    "src/locales/*.ts",
     "src/shared/**/*",
     "src/stories/**/*",
     "src/types/**/*",
@@ -23,6 +24,7 @@
       ],
       "@types": ["src/types/index.ts"],
       "@locales": ["src/locales/index.ts"],
+      "@locales/*": ["src/locales/*"],
       "@shared": ["src/shared/index.ts"]
     }
   }
