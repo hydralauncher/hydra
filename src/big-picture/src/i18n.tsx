@@ -4,7 +4,7 @@ import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { useLocation } from "react-router-dom";
 
-import localeResources from "@locales";
+import localeResources, { fallbackLng } from "@locales";
 
 import {
   exactTranslations,
@@ -43,7 +43,12 @@ export function resolveBigPictureLanguage(
 ): BigPictureLanguage {
   if (language.startsWith("ru")) return "ru";
   if (language.startsWith("pt")) return "pt-BR";
-  if (language.startsWith("es")) return "es";
+  switch (language) {
+    case "es-419":
+    case "es-ES":
+      return language;
+  }
+  if (language.startsWith("es")) return "es-419";
   if (language.startsWith("fr")) return "fr";
   if (language.startsWith("el")) return "el";
   if (language.startsWith("vi")) return "vi";
@@ -128,7 +133,7 @@ export async function initializeBigPictureI18n() {
       .use(initReactI18next)
       .init({
         resources: localeResources,
-        fallbackLng: "en",
+        fallbackLng,
         interpolation: {
           escapeValue: false,
         },

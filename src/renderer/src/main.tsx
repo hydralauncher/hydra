@@ -20,7 +20,7 @@ import { App } from "./app";
 
 import { store } from "./store";
 
-import resources from "@locales";
+import resources, { fallbackLng } from "@locales";
 
 import { logger } from "./logger";
 import { addCookieInterceptor } from "./cookies";
@@ -96,7 +96,7 @@ await i18n
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: "en",
+    fallbackLng,
     interpolation: {
       escapeValue: false,
     },
