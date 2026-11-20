@@ -1,0 +1,86 @@
+@use "../../scss/globals.scss";
+
+.play-later {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 3);
+  width: 100%;
+
+  &__header {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__sort {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: globals.$spacing-unit;
+  }
+
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: calc(globals.$spacing-unit * 2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    @include globals.page-min-width(1000px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @include globals.page-min-width(1350px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: 12px;
+  }
+
+  &__remove-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: globals.$spacing-unit;
+    border-radius: 4px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition: background-color ease 0.2s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 6) 0;
+    color: globals.$muted-color;
+    text-align: center;
+
+    h3 {
+      color: globals.$body-color;
+    }
+  }
+}
