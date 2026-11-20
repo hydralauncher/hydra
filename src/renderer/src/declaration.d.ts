@@ -148,6 +148,7 @@ import type {
   ResolveEpicCloudSaveConflictPayload,
   EpicLaunchOptions,
   EpicLinuxCompatibility,
+  PlayLaterEntry,
 } from "@types";
 import type { AxiosProgressEvent } from "axios";
 
@@ -510,6 +511,12 @@ declare global {
     ) => Promise<void>;
     addGameToFavorites: (shop: GameShop, objectId: string) => Promise<void>;
     removeGameFromFavorites: (
+      shop: GameShop,
+      objectId: string
+    ) => Promise<void>;
+    getPlayLater: () => Promise<PlayLaterEntry[]>;
+    addGameToPlayLater: (assets: ShopAssets) => Promise<PlayLaterEntry | null>;
+    removeGameFromPlayLater: (
       shop: GameShop,
       objectId: string
     ) => Promise<void>;

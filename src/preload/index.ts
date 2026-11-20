@@ -115,6 +115,7 @@ import type {
   LocalScreenshotDraft,
   LocalScreenshotUploadOptions,
   ScreenshotUploadProgress,
+  ShopAssets,
 } from "@types";
 import type { AuthPage, Downloader } from "@shared";
 import { NATIVE_WINDOW_DECORATIONS_ARGUMENT } from "../shared/window-layout";
@@ -1222,6 +1223,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("addGameToFavorites", shop, objectId),
   removeGameFromFavorites: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("removeGameFromFavorites", shop, objectId),
+  getPlayLater: () => ipcRenderer.invoke("getPlayLater"),
+  addGameToPlayLater: (assets: ShopAssets) =>
+    ipcRenderer.invoke("addGameToPlayLater", assets),
+  removeGameFromPlayLater: (shop: GameShop, objectId: string) =>
+    ipcRenderer.invoke("removeGameFromPlayLater", shop, objectId),
   assignGameToCollection: (
     shop: GameShop,
     objectId: string,

@@ -19,6 +19,7 @@ import "./download-sources";
 import "./friends";
 import "./hardware";
 import "./library";
+import "./play-later";
 import "./leveldb";
 import "./main-window-controls";
 import "./misc";
