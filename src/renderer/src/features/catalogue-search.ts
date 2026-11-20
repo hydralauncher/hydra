@@ -5,12 +5,21 @@ import type { CatalogueSearchPayload } from "@types";
 
 export type CatalogueMode = "modern" | "classics";
 
+// Set when a game page opens the catalogue on a studio, whose stored names
+// can span many filter values; the catalogue shows them as one chip.
+export interface CatalogueStudioFilter {
+  key: "developers" | "publishers";
+  name: string;
+  values: string[];
+}
+
 export interface CatalogueSearchState {
   filters: CatalogueSearchPayload;
   page: number;
   steamUserTags: Record<string, Record<string, number>>;
   steamGenres: Record<string, string[]>;
   mode: CatalogueMode;
+  studioFilter: CatalogueStudioFilter | null;
 }
 
 const initialState: CatalogueSearchState = {
@@ -31,6 +40,7 @@ const initialState: CatalogueSearchState = {
   steamGenres: {},
   page: 1,
   mode: "modern",
+  studioFilter: null,
 };
 
 export const catalogueSearchSlice = createSlice({
@@ -47,6 +57,13 @@ export const catalogueSearchSlice = createSlice({
     clearFilters: (state) => {
       state.filters = initialState.filters;
       state.page = initialState.page;
+      state.studioFilter = null;
+    },
+    setStudioFilter: (
+      state,
+      action: PayloadAction<CatalogueStudioFilter | null>
+    ) => {
+      state.studioFilter = action.payload;
     },
     setPage: (state, action: PayloadAction<number>) => {
       state.page = action.payload;
@@ -79,6 +96,7 @@ export const catalogueSearchSlice = createSlice({
         platforms: [],
         recompilation: undefined,
       };
+      state.studioFilter = null;
     },
   },
 });
@@ -91,4 +109,5 @@ export const {
   setTags,
   setGenres,
   setMode,
+  setStudioFilter,
 } = catalogueSearchSlice.actions;

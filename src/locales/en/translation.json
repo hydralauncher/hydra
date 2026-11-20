@@ -229,6 +229,8 @@
     "genres": "Genres",
     "tags": "Tags",
     "publishers": "Publishers",
+    "studio_filter_variants_one": "{{name}} (+{{count}} variant)",
+    "studio_filter_variants_other": "{{name}} (+{{count}} variants)",
     "protondb": "ProtonDB",
     "download_sources": "Download sources",
     "compatibility_requirements": "Linux compatibility",

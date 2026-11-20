@@ -219,6 +219,8 @@
     "genres": "Genres",
     "tags": "Tags",
     "publishers": "Éditeurs",
+    "studio_filter_variants_one": "{{name}} (+{{count}} variante)",
+    "studio_filter_variants_other": "{{name}} (+{{count}} variantes)",
     "download_sources": "Sources de téléchargement",
     "result_count": "{{resultCount}} résultats",
     "filter_count": "{{filterCount}} disponibles",

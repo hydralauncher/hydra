@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { gameDetailsContext } from "@renderer/context";
-import { clearFilters, setFilters, setMode } from "@renderer/features";
+import {
+  clearFilters,
+  setFilters,
+  setMode,
+  setStudioFilter,
+} from "@renderer/features";
 import { useAppDispatch } from "@renderer/hooks";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import {
@@ -67,6 +72,7 @@ export function StudiosSection() {
     dispatch(clearFilters());
     dispatch(setMode(mode));
     dispatch(setFilters(filters));
+    dispatch(setStudioFilter({ key: role, name, values: filters[role] ?? [] }));
     navigate("/catalogue");
   };
 
