@@ -31,8 +31,19 @@ export function StudiosSection() {
 
   if (rows.length === 0) return null;
 
-  const openCatalogue = (role: StudioRole, name: string) => {
-    const { mode, filters } = buildStudioCatalogueFilter(shop, role, name);
+  const openCatalogue = async (role: StudioRole, name: string) => {
+    // Cached for 24h by the main process; without it, only the exact name.
+    const catalogueNames =
+      shop === "launchbox"
+        ? []
+        : await window.electron.getCatalogueNames(role).catch(() => []);
+
+    const { mode, filters } = buildStudioCatalogueFilter(
+      shop,
+      role,
+      name,
+      catalogueNames
+    );
 
     dispatch(clearFilters());
     dispatch(setMode(mode));
