@@ -1,4 +1,10 @@
-import type { Game, PlayLaterEntry, PlayLaterSort, ShopAssets } from "@types";
+import type {
+  Game,
+  PlayLaterEntry,
+  PlayLaterSort,
+  PlayLaterViewMode,
+  ShopAssets,
+} from "@types";
 
 type GameIdentity = Pick<ShopAssets, "shop" | "objectId">;
 
@@ -25,3 +31,13 @@ export const sortPlayLater = (
       ? a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
       : b.addedAt - a.addedAt
   );
+
+const VIEW_MODES: PlayLaterViewMode[] = ["compact", "grid", "large"];
+
+/** Reads a saved view mode; anything unknown falls back to compact, like the library. */
+export const parsePlayLaterViewMode = (
+  value: string | null
+): PlayLaterViewMode => VIEW_MODES.find((mode) => mode === value) ?? "compact";
+
+export const parsePlayLaterSort = (value: string | null): PlayLaterSort =>
+  value === "title" ? "title" : "addedAt";

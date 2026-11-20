@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { GameShop, PlayLaterEntry } from "@types";
 
-import { sortPlayLater, withoutLibraryGames } from "./play-later.js";
+import {
+  parsePlayLaterSort,
+  parsePlayLaterViewMode,
+  sortPlayLater,
+  withoutLibraryGames,
+} from "./play-later.js";
 
 const entry = (shop: GameShop, objectId: string) =>
   ({ shop, objectId, title: objectId, addedAt: 0 }) as PlayLaterEntry;
@@ -69,5 +74,23 @@ describe("sortPlayLater", () => {
       input.map((item) => item.title),
       ["b", "a"]
     );
+  });
+});
+
+describe("saved Play later display choices", () => {
+  it("restores a saved view mode", () => {
+    assert.equal(parsePlayLaterViewMode("grid"), "grid");
+    assert.equal(parsePlayLaterViewMode("large"), "large");
+  });
+
+  it("falls back to the compact view, like the library", () => {
+    assert.equal(parsePlayLaterViewMode(null), "compact");
+    assert.equal(parsePlayLaterViewMode("huge"), "compact");
+  });
+
+  it("restores a saved sort and falls back to date added", () => {
+    assert.equal(parsePlayLaterSort("title"), "title");
+    assert.equal(parsePlayLaterSort(null), "addedAt");
+    assert.equal(parsePlayLaterSort("rating"), "addedAt");
   });
 });

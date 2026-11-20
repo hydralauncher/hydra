@@ -95,6 +95,9 @@ export type PlayLaterEntry = ShopAssets & { addedAt: number };
 
 export type PlayLaterSort = "addedAt" | "title";
 
+/** Same card sizes as the library. */
+export type PlayLaterViewMode = "compact" | "grid" | "large";
+
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
   platform?: string;
