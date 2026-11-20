@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import type { GameShop, PlayLaterEntry } from "@types";
 
 import {
+  isInLibrary,
   parsePlayLaterSort,
   parsePlayLaterViewMode,
   sortPlayLater,
@@ -14,6 +15,31 @@ const entry = (shop: GameShop, objectId: string) =>
 
 const at = (title: string, addedAt: number) =>
   ({ shop: "steam", objectId: title, title, addedAt }) as PlayLaterEntry;
+
+describe("isInLibrary", () => {
+  it("counts a game linked to a library game through catalogueGame", () => {
+    assert.equal(
+      isInLibrary({ shop: "steam", objectId: "123" }, [
+        {
+          shop: "epic",
+          objectId: "namespace:item",
+          isDeleted: false,
+          catalogueGame: { shop: "steam", objectId: "123" },
+        },
+      ]),
+      true
+    );
+  });
+
+  it("does not count a deleted library game", () => {
+    assert.equal(
+      isInLibrary({ shop: "steam", objectId: "1" }, [
+        { shop: "steam", objectId: "1", isDeleted: true },
+      ]),
+      false
+    );
+  });
+});
 
 describe("withoutLibraryGames", () => {
   it("drops an entry whose game is in the library", () => {

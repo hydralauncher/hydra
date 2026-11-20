@@ -11,18 +11,31 @@ type GameIdentity = Pick<ShopAssets, "shop" | "objectId">;
 
 const keyOf = ({ shop, objectId }: GameIdentity) => `${shop}:${objectId}`;
 
-/** Drops the entries whose game is in the library (deleted games don't count). */
-export const withoutLibraryGames = <T extends GameIdentity>(
-  entries: T[],
-  library: Pick<Game, "shop" | "objectId" | "isDeleted" | "catalogueGame">[]
-): T[] => {
-  // A library game also covers the catalogue game it is linked to (e.g. an Epic import).
-  const libraryKeys = new Set(
+type LibraryIdentity = Pick<
+  Game,
+  "shop" | "objectId" | "isDeleted" | "catalogueGame"
+>;
+
+// Deleted games don't count, and a library game also covers the catalogue game
+// it is linked to (e.g. an Epic import of a Steam game).
+const libraryKeysOf = (library: LibraryIdentity[]) =>
+  new Set(
     library
       .filter((game) => !game.isDeleted)
       .flatMap((game) => [keyOf(game), keyOf(getGameCatalogueIdentity(game))])
   );
 
+export const isInLibrary = (
+  game: GameIdentity,
+  library: LibraryIdentity[]
+): boolean => libraryKeysOf(library).has(keyOf(game));
+
+/** Drops the entries whose game is in the library. */
+export const withoutLibraryGames = <T extends GameIdentity>(
+  entries: T[],
+  library: LibraryIdentity[]
+): T[] => {
+  const libraryKeys = libraryKeysOf(library);
   return entries.filter((entry) => !libraryKeys.has(keyOf(entry)));
 };
 
