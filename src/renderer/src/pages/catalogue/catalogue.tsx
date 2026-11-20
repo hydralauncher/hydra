@@ -29,6 +29,7 @@ import { setFilters, setMode, setPage } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
+import { decodeHtmlText } from "@shared";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import cn from "classnames";
@@ -44,6 +45,7 @@ import { FilterItem } from "./filter-item";
 import { FilterSection } from "./filter-section";
 import { GameItem } from "./game-item";
 import { GameItemClassics } from "./game-item-classics";
+import { isStudioFilterShown } from "./studio-filter-chip";
 import { Pagination } from "./pagination";
 import {
   ClassicsOnboardingModal,
@@ -148,9 +150,8 @@ export default function Catalogue() {
   const { steamDevelopers, steamPublishers, downloadSources, loadingLists } =
     useCatalogue();
 
-  const { steamGenres, steamUserTags, filters, page, mode } = useAppSelector(
-    (state) => state.catalogueSearch
-  );
+  const { steamGenres, steamUserTags, filters, page, mode, studioFilter } =
+    useAppSelector((state) => state.catalogueSearch);
   const launchboxFilters = useLaunchboxFilters(mode === "classics");
   const deferredTitleFilter = useDeferredValue(filters.title);
 
@@ -266,9 +267,6 @@ export default function Catalogue() {
     )
   ).current;
 
-  const decodeHTML = (s: string) =>
-    s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
-
   useEffect(() => {
     hasResultsRef.current = results.length > 0;
   }, [results.length]);
@@ -369,7 +367,7 @@ export default function Catalogue() {
         title: t("publishers"),
         key: "publishers" as const,
         items: launchboxFilters.publishers.map((publisher) => ({
-          label: decodeHTML(publisher),
+          label: decodeHtmlText(publisher),
           value: publisher,
           checked: filters.publishers.includes(publisher),
         })),
@@ -436,7 +434,7 @@ export default function Catalogue() {
         value: developer,
       })),
       ...filters.publishers.map((publisher) => ({
-        label: decodeHTML(publisher),
+        label: decodeHtmlText(publisher),
         filterType: t("publishers"),
         orbColor: filterCategoryColors.publishers,
         key: "publishers",
@@ -473,6 +471,37 @@ export default function Catalogue() {
       "verified",
     ]);
 
+    const studioChips = (key: "developers" | "publishers") => {
+      const values = filters[key];
+      const chip = {
+        filterType: t(key),
+        orbColor: filterCategoryColors[key],
+        key,
+      };
+
+      if (studioFilter && isStudioFilterShown(studioFilter, key, values)) {
+        return [
+          {
+            ...chip,
+            label:
+              values.length > 1
+                ? t("studio_filter_variants", {
+                    name: studioFilter.name,
+                    count: values.length - 1,
+                  })
+                : studioFilter.name,
+            value: "studio",
+          },
+        ];
+      }
+
+      return values.map((value) => ({
+        ...chip,
+        label: decodeHtmlText(value),
+        value,
+      }));
+    };
+
     return [
       ...filters.genres.map((genre) => ({
         label: Object.keys(steamGenresMapping).find(
@@ -507,21 +536,9 @@ export default function Catalogue() {
         value: fingerprint,
       })),
 
-      ...filters.developers.map((developer) => ({
-        label: developer,
-        filterType: t("developers"),
-        orbColor: filterCategoryColors.developers,
-        key: "developers",
-        value: developer,
-      })),
+      ...studioChips("developers"),
 
-      ...filters.publishers.map((publisher) => ({
-        label: decodeHTML(publisher),
-        filterType: t("publishers"),
-        orbColor: filterCategoryColors.publishers,
-        key: "publishers",
-        value: publisher,
-      })),
+      ...studioChips("publishers"),
 
       ...(shouldShowProtonFeatures &&
       protonThreshold &&
@@ -568,6 +585,7 @@ export default function Catalogue() {
     steamGenresMapping,
     language,
     shouldShowProtonFeatures,
+    studioFilter,
     t,
   ]);
 
@@ -612,7 +630,7 @@ export default function Catalogue() {
       {
         title: t("publishers"),
         items: steamPublishers.map((publisher) => ({
-          label: decodeHTML(publisher),
+          label: decodeHtmlText(publisher),
           value: publisher,
           checked: filters.publishers.includes(publisher),
         })),
@@ -774,7 +792,10 @@ export default function Catalogue() {
                           return;
                         }
 
-                        if (filter.value === "threshold") {
+                        if (
+                          filter.value === "threshold" ||
+                          filter.value === "studio"
+                        ) {
                           dispatch(setFilters({ [filter.key]: [] }));
                           return;
                         }
