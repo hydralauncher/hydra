@@ -14,6 +14,7 @@ import { Button, Checkbox, Radio, VerticalFocusGroup } from "../../components";
 import { useUserPreferences, useBigPictureToast } from "../../hooks";
 import type { FocusOverrides } from "../../services";
 import {
+  COMPATIBILITY_AUTO_DETECT_WINE_DLL_OVERRIDES_FOCUS_ID,
   COMPATIBILITY_COMMON_REDIST_BUTTON_ID,
   COMPATIBILITY_GAMEMODE_FOCUS_ID,
   COMPATIBILITY_MANGOHUD_FOCUS_ID,
@@ -32,12 +33,14 @@ interface CompatibilityForm {
   defaultProtonPath: string;
   autoRunGamemode: boolean;
   autoRunMangohud: boolean;
+  autoDetectWineDllOverrides: boolean;
 }
 
 interface CompatibilityPreferenceValues {
   defaultProtonPath?: string | null;
   autoRunGamemode?: boolean;
   autoRunMangohud?: boolean;
+  autoDetectWineDllOverrides?: boolean;
 }
 
 interface CompatibilityItem {
@@ -58,6 +61,7 @@ const DEFAULT_FORM: CompatibilityForm = {
   defaultProtonPath: "",
   autoRunGamemode: false,
   autoRunMangohud: false,
+  autoDetectWineDllOverrides: false,
 };
 
 const buildForm = (preferences: UserPreferences | null): CompatibilityForm =>
@@ -66,6 +70,8 @@ const buildForm = (preferences: UserPreferences | null): CompatibilityForm =>
         defaultProtonPath: preferences.defaultProtonPath ?? "",
         autoRunGamemode: preferences.autoRunGamemode ?? false,
         autoRunMangohud: preferences.autoRunMangohud ?? false,
+        autoDetectWineDllOverrides:
+          preferences.autoDetectWineDllOverrides ?? false,
       }
     : DEFAULT_FORM;
 
@@ -394,6 +400,31 @@ export function CompatibilitySettingsSection({
               ) : null}
             </div>
           ),
+        },
+        {
+          focusId: COMPATIBILITY_AUTO_DETECT_WINE_DLL_OVERRIDES_FOCUS_ID,
+          disabled: !canUseBehaviorSection,
+          render: (navigationOverrides: FocusOverrides) => (
+            <div
+              key={COMPATIBILITY_AUTO_DETECT_WINE_DLL_OVERRIDES_FOCUS_ID}
+              className="compatibility-settings-section__behavior-item"
+            >
+              <Checkbox
+                id={COMPATIBILITY_AUTO_DETECT_WINE_DLL_OVERRIDES_FOCUS_ID}
+                label="Automatically detect DLL overrides for newly downloaded games"
+                checked={form.autoDetectWineDllOverrides}
+                disabled={!canUseBehaviorSection}
+                focusId={COMPATIBILITY_AUTO_DETECT_WINE_DLL_OVERRIDES_FOCUS_ID}
+                navigationOverrides={navigationOverrides}
+                block
+                onChange={(checked) => {
+                  void updateCompatibilityPreferences({
+                    autoDetectWineDllOverrides: checked,
+                  });
+                }}
+              />
+            </div>
+          ),
         }
       );
     }
@@ -427,6 +458,7 @@ export function CompatibilitySettingsSection({
     canInstallCommonRedist,
     canUseBehaviorSection,
     canUseCommonRedistSection,
+    form.autoDetectWineDllOverrides,
     form.autoRunGamemode,
     form.autoRunMangohud,
     form.defaultProtonPath,
@@ -513,7 +545,9 @@ export function CompatibilitySettingsSection({
               .filter(
                 (item) =>
                   item.focusId === COMPATIBILITY_GAMEMODE_FOCUS_ID ||
-                  item.focusId === COMPATIBILITY_MANGOHUD_FOCUS_ID
+                  item.focusId === COMPATIBILITY_MANGOHUD_FOCUS_ID ||
+                  item.focusId ===
+                    COMPATIBILITY_AUTO_DETECT_WINE_DLL_OVERRIDES_FOCUS_ID
               )
               .map((item) =>
                 item.render(navigationOverridesByFocusId[item.focusId] ?? {})

@@ -13,7 +13,8 @@ const openGame = async (
   objectId: string,
   executablePath: string,
   launchOptions?: string | null,
-  epicOptions?: unknown
+  epicOptions?: unknown,
+  skipSteamOverlayCheck?: boolean
 ) => {
   if (shop === "epic" || epicOptions !== undefined) {
     assertTrustedEpicSender(event, true);
@@ -26,6 +27,8 @@ const openGame = async (
     executablePath,
     launchOptions,
     ...parseEpicLaunchOptions(epicOptions),
+    skipSteamOverlayCheck,
+    requestingWebContents: event.sender,
   });
 };
 

@@ -534,6 +534,7 @@ interface GeneralSettingsSectionProps {
   onResetGameTitle?: () => void;
   onChangeLaunchOptions: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearLaunchOptions: () => Promise<void>;
+  onDetectWineDllOverrides: () => Promise<void>;
   onToggleHydraPlaytimeEnabled: (enabled: boolean) => Promise<void>;
   isNonSteamExecutable: boolean;
   isTransferring: boolean;
@@ -659,6 +660,7 @@ export function GeneralSettingsSection({
   onResetGameTitle,
   onChangeLaunchOptions,
   onClearLaunchOptions,
+  onDetectWineDllOverrides,
   onToggleHydraPlaytimeEnabled,
   isNonSteamExecutable,
   isTransferring,
@@ -1197,11 +1199,18 @@ export function GeneralSettingsSection({
             placeholder={t("launch_options_placeholder")}
             onChange={onChangeLaunchOptions}
             rightContent={
-              game.launchOptions && (
-                <Button onClick={onClearLaunchOptions} theme="outline">
-                  {t("clear")}
-                </Button>
-              )
+              <>
+                {shouldShowWinePrefixConfiguration && (
+                  <Button onClick={onDetectWineDllOverrides} theme="outline">
+                    {t("detect_dll_overrides")}
+                  </Button>
+                )}
+                {game.launchOptions && (
+                  <Button onClick={onClearLaunchOptions} theme="outline">
+                    {t("clear")}
+                  </Button>
+                )}
+              </>
             }
           />
         </div>

@@ -52,6 +52,9 @@ export function SettingsContextCompatibility() {
   const [autoRunGamemode, setAutoRunGamemode] = useState(
     () => userPreferences?.autoRunGamemode ?? false
   );
+  const [autoDetectWineDllOverrides, setAutoDetectWineDllOverrides] = useState(
+    () => userPreferences?.autoDetectWineDllOverrides ?? false
+  );
   const [gamemodeAvailable, setGamemodeAvailable] = useState(false);
   const [mangohudAvailable, setMangohudAvailable] = useState(false);
 
@@ -94,6 +97,9 @@ export function SettingsContextCompatibility() {
     setSelectedDefaultProtonPath(userPreferences.defaultProtonPath ?? "");
     setAutoRunMangohud(userPreferences.autoRunMangohud ?? false);
     setAutoRunGamemode(userPreferences.autoRunGamemode ?? false);
+    setAutoDetectWineDllOverrides(
+      userPreferences.autoDetectWineDllOverrides ?? false
+    );
     setDefaultWinePrefixPath(
       userPreferences.defaultWinePrefixPath ?? defaultWinePrefixBasePath
     );
@@ -381,6 +387,25 @@ export function SettingsContextCompatibility() {
                 {!mangohudAvailable && (
                   <Tooltip id="settings-mangohud-unavailable-tooltip" />
                 )}
+              </div>
+
+              <div className="settings-behavior__auto-detect-dll-overrides-toggle">
+                <CheckboxField
+                  label={t("auto_detect_wine_dll_overrides", {
+                    defaultValue:
+                      "Automatically detect DLL overrides for newly downloaded games",
+                  })}
+                  checked={autoDetectWineDllOverrides}
+                  onChange={() =>
+                    setAutoDetectWineDllOverrides((previousValue) => {
+                      const nextValue = !previousValue;
+                      updateUserPreferences({
+                        autoDetectWineDllOverrides: nextValue,
+                      });
+                      return nextValue;
+                    })
+                  }
+                />
               </div>
             </div>
           </div>
