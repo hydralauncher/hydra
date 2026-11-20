@@ -186,15 +186,9 @@
   cursor: pointer;
   transition: all ease 0.2s;
 
-  &--compact,
-  &--grid {
-    aspect-ratio: 2 / 3;
-  }
-
+  // The large view's banner; compact and grid use the shared cover card.
   // Same height as the library's large cards.
-  &--large {
-    height: 300px;
-  }
+  height: 300px;
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.3);

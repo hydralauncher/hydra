@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { PlayLaterEntry, PlayLaterViewMode } from "@types";
+import { VerticalCoverCard } from "@renderer/components";
+import { getVerticalCoverCardImageSources } from "@renderer/components/vertical-cover-card/vertical-cover-card-image-sources";
 
 interface PlayLaterCardProps {
   entry: PlayLaterEntry;
@@ -7,47 +9,84 @@ interface PlayLaterCardProps {
   onClick: () => void;
 }
 
-/** A portrait cover in the compact and grid views, a hero banner in the large one. */
+/** The shared cover card in the compact and grid views, a hero banner in the large one. */
 export function PlayLaterCard({
   entry,
   viewMode,
   onClick,
 }: Readonly<PlayLaterCardProps>) {
-  const [hasImageError, setHasImageError] = useState(false);
-  const isLarge = viewMode === "large";
+  if (viewMode !== "large") {
+    return (
+      <VerticalCoverCard
+        gameTitle={entry.title}
+        coverImageUrls={[
+          entry.coverImageUrl,
+          entry.libraryImageUrl,
+          entry.iconUrl,
+        ]}
+        catalogueImages={entry.images}
+        useClassicsLayout={entry.shop === "launchbox"}
+        onClick={onClick}
+      />
+    );
+  }
 
-  const imageUrl = isLarge
-    ? (entry.libraryHeroImageUrl ?? entry.libraryImageUrl)
-    : (entry.coverImageUrl ?? entry.libraryImageUrl);
+  const sources = getVerticalCoverCardImageSources([
+    entry.libraryHeroImageUrl,
+    entry.libraryImageUrl,
+  ]);
 
-  const showImage = imageUrl && !hasImageError;
+  // The key starts over from the first image whenever the sources change.
+  return (
+    <PlayLaterBanner
+      key={sources.join("\u0000")}
+      entry={entry}
+      sources={sources}
+      onClick={onClick}
+    />
+  );
+}
+
+function PlayLaterBanner({
+  entry,
+  sources,
+  onClick,
+}: Readonly<{
+  entry: PlayLaterEntry;
+  sources: string[];
+  onClick: () => void;
+}>) {
+  const [imageIndex, setImageIndex] = useState(0);
+  const [hasLogoError, setHasLogoError] = useState(false);
+  const imageUrl = sources[imageIndex];
 
   return (
     <button
       type="button"
-      className={`play-later-card play-later-card--${viewMode}`}
+      className="play-later-card"
       onClick={onClick}
       title={entry.title}
     >
-      {showImage ? (
+      {imageUrl ? (
         <img
           src={imageUrl}
           alt={entry.title}
           className="play-later-card__image"
           loading="lazy"
-          onError={() => setHasImageError(true)}
+          onError={() => setImageIndex((index) => index + 1)}
         />
       ) : (
         <span className="play-later-card__placeholder">{entry.title}</span>
       )}
 
-      {isLarge && showImage && (
+      {imageUrl && (
         <span className="play-later-card__overlay">
-          {entry.logoImageUrl ? (
+          {entry.logoImageUrl && !hasLogoError ? (
             <img
               src={entry.logoImageUrl}
               alt=""
               className="play-later-card__logo"
+              onError={() => setHasLogoError(true)}
             />
           ) : (
             <span className="play-later-card__title">{entry.title}</span>
