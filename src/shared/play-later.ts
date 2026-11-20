@@ -5,6 +5,7 @@ import type {
   PlayLaterViewMode,
   ShopAssets,
 } from "@types";
+import { getGameCatalogueIdentity } from "./library-catalogue.js";
 
 type GameIdentity = Pick<ShopAssets, "shop" | "objectId">;
 
@@ -13,10 +14,13 @@ const keyOf = ({ shop, objectId }: GameIdentity) => `${shop}:${objectId}`;
 /** Drops the entries whose game is in the library (deleted games don't count). */
 export const withoutLibraryGames = <T extends GameIdentity>(
   entries: T[],
-  library: Pick<Game, "shop" | "objectId" | "isDeleted">[]
+  library: Pick<Game, "shop" | "objectId" | "isDeleted" | "catalogueGame">[]
 ): T[] => {
+  // A library game also covers the catalogue game it is linked to (e.g. an Epic import).
   const libraryKeys = new Set(
-    library.filter((game) => !game.isDeleted).map(keyOf)
+    library
+      .filter((game) => !game.isDeleted)
+      .flatMap((game) => [keyOf(game), keyOf(getGameCatalogueIdentity(game))])
   );
 
   return entries.filter((entry) => !libraryKeys.has(keyOf(entry)));

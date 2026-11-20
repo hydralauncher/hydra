@@ -26,6 +26,23 @@ describe("withoutLibraryGames", () => {
     );
   });
 
+  it("drops an entry whose game is linked to a library game through catalogueGame", () => {
+    assert.deepEqual(
+      withoutLibraryGames(
+        [entry("steam", "123")],
+        [
+          {
+            shop: "epic",
+            objectId: "namespace:item",
+            isDeleted: false,
+            catalogueGame: { shop: "steam", objectId: "123" },
+          },
+        ]
+      ),
+      []
+    );
+  });
+
   it("keeps an entry whose library game is deleted", () => {
     assert.equal(
       withoutLibraryGames(
