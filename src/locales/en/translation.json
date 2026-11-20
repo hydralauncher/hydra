@@ -3726,9 +3726,10 @@
     "sort_by_date_added": "Date added",
     "sort_by_name": "Name",
     "added_on": "Added on {{date}}",
-    "remove": "Remove",
+    "remove": "Remove {{title}} from Play later",
     "empty_title": "Nothing here yet",
     "empty_description": "Use the bookmark on a game's page to save it for later.",
-    "update_failed": "Couldn't update Play later"
+    "update_failed": "Couldn't update Play later",
+    "load_failed": "Couldn't load Play later"
   }
 }

@@ -37,7 +37,11 @@ const LABELS: Record<string, Labels> = {
     fr: "Ajouté le {{date}}",
     "pt-BR": "Adicionado em {{date}}",
   },
-  "play_later.remove": { en: "Remove", fr: "Retirer", "pt-BR": "Remover" },
+  "play_later.remove": {
+    en: "Remove {{title}} from Play later",
+    fr: "Retirer {{title}} de À jouer plus tard",
+    "pt-BR": "Remover {{title}} de Jogar depois",
+  },
   "play_later.empty_title": {
     en: "Nothing here yet",
     fr: "Rien pour l'instant",
@@ -52,6 +56,11 @@ const LABELS: Record<string, Labels> = {
     en: "Couldn't update Play later",
     fr: "Impossible de mettre à jour À jouer plus tard",
     "pt-BR": "Não foi possível atualizar Jogar depois",
+  },
+  "play_later.load_failed": {
+    en: "Couldn't load Play later",
+    fr: "Impossible de charger À jouer plus tard",
+    "pt-BR": "Não foi possível carregar Jogar depois",
   },
 };
 

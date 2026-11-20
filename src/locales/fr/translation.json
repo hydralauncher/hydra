@@ -2322,9 +2322,10 @@
     "sort_by_date_added": "Date d'ajout",
     "sort_by_name": "Nom",
     "added_on": "Ajouté le {{date}}",
-    "remove": "Retirer",
+    "remove": "Retirer {{title}} de À jouer plus tard",
     "empty_title": "Rien pour l'instant",
     "empty_description": "Utilisez le marque-page sur la fiche d'un jeu pour le garder pour plus tard.",
-    "update_failed": "Impossible de mettre à jour À jouer plus tard"
+    "update_failed": "Impossible de mettre à jour À jouer plus tard",
+    "load_failed": "Impossible de charger À jouer plus tard"
   }
 }

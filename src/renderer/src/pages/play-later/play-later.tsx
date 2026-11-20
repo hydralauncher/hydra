@@ -60,7 +60,7 @@ export default function PlayLater() {
   const { t } = useTranslation(["play_later", "library"]);
   const navigate = useNavigate();
   const { formatDate } = useDate();
-  const { items, removeFromPlayLater } = usePlayLater();
+  const { items, hasLoaded, removeFromPlayLater } = usePlayLater();
   const [sort, setSort] = useState<PlayLaterSort>(() =>
     parsePlayLaterSort(readStored(SORT_STORAGE_KEY))
   );
@@ -85,13 +85,14 @@ export default function PlayLater() {
       <header className="play-later__header">
         <h2>{t("title")}</h2>
 
-        {sortedItems.length > 0 && (
+        {hasLoaded && sortedItems.length > 0 && (
           <div className="play-later__toolbar">
             <ul className="play-later__sort">
               {(Object.keys(SORT_LABELS) as PlayLaterSort[]).map((option) => (
                 <li key={option}>
                   <Button
                     theme={option === sort ? "primary" : "outline"}
+                    aria-pressed={option === sort}
                     onClick={() => handleSortChange(option)}
                   >
                     {t(SORT_LABELS[option])}
@@ -123,7 +124,8 @@ export default function PlayLater() {
         )}
       </header>
 
-      {sortedItems.length === 0 ? (
+      {/* Nothing until the list and the library are loaded, so the empty state never flashes. */}
+      {!hasLoaded ? null : sortedItems.length === 0 ? (
         <div className="play-later__empty">
           <BookmarkIcon size={24} />
           <h3>{t("empty_title")}</h3>
@@ -159,8 +161,8 @@ export default function PlayLater() {
                   onClick={() =>
                     removeFromPlayLater(entry.shop, entry.objectId)
                   }
-                  title={t("remove")}
-                  aria-label={t("remove")}
+                  title={t("remove", { title: entry.title })}
+                  aria-label={t("remove", { title: entry.title })}
                 >
                   <BookmarkFillIcon size={16} />
                 </button>

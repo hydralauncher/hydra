@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { GameShop, ShopAssets } from "@types";
-import { withoutLibraryGames } from "@shared";
+import { isInLibrary, withoutLibraryGames } from "@shared";
 import {
   removePlayLaterEntry,
   setPlayLater,
@@ -16,7 +16,11 @@ export function usePlayLater() {
   const dispatch = useAppDispatch();
   const { showErrorToast } = useToast();
   const storedItems = useAppSelector((state) => state.playLater.items);
-  const library = useAppSelector((state) => state.library.value);
+  // The full library, hidden games included, as the main process sees it.
+  const library = useAppSelector((state) => state.library.downloadLibrary);
+  const hasLoaded = useAppSelector(
+    (state) => state.playLater.hasLoaded && state.library.hasLoaded
+  );
 
   // A game added to the library leaves the list right away; the stored entry
   // is deleted on the next getPlayLater().
@@ -31,8 +35,9 @@ export function usePlayLater() {
       dispatch(setPlayLater(await window.electron.getPlayLater()));
     } catch (error) {
       logger.error("Failed to load Play later", error);
+      showErrorToast(t("load_failed"));
     }
-  }, [dispatch]);
+  }, [dispatch, showErrorToast, t]);
 
   const addToPlayLater = useCallback(
     async (assets: ShopAssets) => {
@@ -66,9 +71,17 @@ export function usePlayLater() {
     [items]
   );
 
+  const isLibraryGame = useCallback(
+    (shop: GameShop, objectId: string) =>
+      isInLibrary({ shop, objectId }, library),
+    [library]
+  );
+
   return {
     items,
+    hasLoaded,
     hasLibraryGames,
+    isLibraryGame,
     loadPlayLater,
     addToPlayLater,
     removeFromPlayLater,

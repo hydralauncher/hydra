@@ -3739,9 +3739,10 @@
     "sort_by_date_added": "Data de adição",
     "sort_by_name": "Nome",
     "added_on": "Adicionado em {{date}}",
-    "remove": "Remover",
+    "remove": "Remover {{title}} de Jogar depois",
     "empty_title": "Nada aqui ainda",
     "empty_description": "Use o marcador na página de um jogo para salvá-lo para depois.",
-    "update_failed": "Não foi possível atualizar Jogar depois"
+    "update_failed": "Não foi possível atualizar Jogar depois",
+    "load_failed": "Não foi possível carregar Jogar depois"
   }
 }

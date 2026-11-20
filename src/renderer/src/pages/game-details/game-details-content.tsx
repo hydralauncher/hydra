@@ -102,20 +102,46 @@ export function GameDetailsContent() {
 
   const { userDetails } = useUserDetails();
   const { library } = useLibrary();
-  const { isInPlayLater, addToPlayLater, removeFromPlayLater } = usePlayLater();
+  const {
+    hasLoaded: hasPlayLaterLoaded,
+    isLibraryGame,
+    isInPlayLater,
+    addToPlayLater,
+    removeFromPlayLater,
+  } = usePlayLater();
+  const [isPlayLaterPending, setIsPlayLaterPending] = useState(false);
 
-  // Only games outside the library can be saved for later.
-  const playLaterAssets = !game ? (shopDetails?.assets ?? null) : null;
+  // Only games outside the library can be saved for later. The button waits
+  // for the library and the list, so it never shows on a library game's page
+  // or in the wrong state.
+  const shopAssets = shopDetails?.assets ?? null;
+  const playLaterAssets =
+    !game &&
+    hasPlayLaterLoaded &&
+    shopAssets &&
+    !isLibraryGame(shopAssets.shop, shopAssets.objectId)
+      ? shopAssets
+      : null;
   const isInPlayLaterList = playLaterAssets
     ? isInPlayLater(playLaterAssets.shop, playLaterAssets.objectId)
     : false;
 
-  const handlePlayLaterClick = () => {
+  // Disabled while a request is pending, so fast clicks can't send an add and
+  // a remove out of order.
+  const handlePlayLaterClick = async () => {
     if (!playLaterAssets) return;
-    if (isInPlayLaterList) {
-      void removeFromPlayLater(playLaterAssets.shop, playLaterAssets.objectId);
-    } else {
-      void addToPlayLater(playLaterAssets);
+    setIsPlayLaterPending(true);
+    try {
+      if (isInPlayLaterList) {
+        await removeFromPlayLater(
+          playLaterAssets.shop,
+          playLaterAssets.objectId
+        );
+      } else {
+        await addToPlayLater(playLaterAssets);
+      }
+    } finally {
+      setIsPlayLaterPending(false);
     }
   };
 
@@ -486,14 +512,12 @@ export function GameDetailsContent() {
                   <button
                     type="button"
                     className={`game-details__play-later-button${isInPlayLaterList ? " game-details__play-later-button--active" : ""}`}
-                    onClick={handlePlayLaterClick}
+                    onClick={() => void handlePlayLaterClick()}
+                    disabled={isPlayLaterPending}
+                    // A fixed name with aria-pressed; the tooltip says what the click does.
                     aria-pressed={isInPlayLaterList}
+                    aria-label={t("play_later", { ns: "sidebar" })}
                     title={t(
-                      isInPlayLaterList
-                        ? "remove_from_play_later"
-                        : "add_to_play_later"
-                    )}
-                    aria-label={t(
                       isInPlayLaterList
                         ? "remove_from_play_later"
                         : "add_to_play_later"
