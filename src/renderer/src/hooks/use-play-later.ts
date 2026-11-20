@@ -1,0 +1,75 @@
+import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import type { GameShop, ShopAssets } from "@types";
+import { withoutLibraryGames } from "@shared";
+import {
+  removePlayLaterEntry,
+  setPlayLater,
+  upsertPlayLaterEntry,
+} from "@renderer/features";
+import { logger } from "@renderer/logger";
+import { useAppDispatch, useAppSelector } from "./redux";
+import { useToast } from "./use-toast";
+
+export function usePlayLater() {
+  const { t } = useTranslation("play_later");
+  const dispatch = useAppDispatch();
+  const { showErrorToast } = useToast();
+  const storedItems = useAppSelector((state) => state.playLater.items);
+  const library = useAppSelector((state) => state.library.value);
+
+  // A game added to the library leaves the list right away; the stored entry
+  // is deleted on the next getPlayLater().
+  const items = useMemo(
+    () => withoutLibraryGames(Object.values(storedItems), library),
+    [storedItems, library]
+  );
+
+  const loadPlayLater = useCallback(async () => {
+    try {
+      dispatch(setPlayLater(await window.electron.getPlayLater()));
+    } catch (error) {
+      logger.error("Failed to load Play later", error);
+    }
+  }, [dispatch]);
+
+  const addToPlayLater = useCallback(
+    async (assets: ShopAssets) => {
+      try {
+        const entry = await window.electron.addGameToPlayLater(assets);
+        if (entry) dispatch(upsertPlayLaterEntry(entry));
+      } catch (error) {
+        logger.error("Failed to add game to Play later", error);
+        showErrorToast(t("update_failed"));
+      }
+    },
+    [dispatch, showErrorToast, t]
+  );
+
+  const removeFromPlayLater = useCallback(
+    async (shop: GameShop, objectId: string) => {
+      try {
+        await window.electron.removeGameFromPlayLater(shop, objectId);
+        dispatch(removePlayLaterEntry({ shop, objectId }));
+      } catch (error) {
+        logger.error("Failed to remove game from Play later", error);
+        showErrorToast(t("update_failed"));
+      }
+    },
+    [dispatch, showErrorToast, t]
+  );
+
+  const isInPlayLater = useCallback(
+    (shop: GameShop, objectId: string) =>
+      items.some((item) => item.shop === shop && item.objectId === objectId),
+    [items]
+  );
+
+  return {
+    items,
+    loadPlayLater,
+    addToPlayLater,
+    removeFromPlayLater,
+    isInPlayLater,
+  };
+}

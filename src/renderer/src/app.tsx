@@ -9,6 +9,7 @@ import {
   useGamificationProgressSync,
   useDragTextSelection,
   useLibrary,
+  usePlayLater,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
@@ -78,6 +79,7 @@ type WorkWondersWithKnowledge = WorkWonders & {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library, downloadLibrary } = useLibrary();
+  const { loadPlayLater } = usePlayLater();
 
   // Listen for new download options updates
   useDownloadOptionsListener();
@@ -137,6 +139,11 @@ export function App() {
       dispatch(setUserPreferences(preferences as UserPreferences | null));
     });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
+
+  // Separate from the effect above, which runs again on every navigation.
+  useEffect(() => {
+    void loadPlayLater();
+  }, [loadPlayLater]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUserPreferencesUpdated(
