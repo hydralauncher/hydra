@@ -79,7 +79,7 @@ type WorkWondersWithKnowledge = WorkWonders & {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library, downloadLibrary } = useLibrary();
-  const { loadPlayLater } = usePlayLater();
+  const { loadPlayLater, hasLibraryGames } = usePlayLater();
 
   // Listen for new download options updates
   useDownloadOptionsListener();
@@ -144,6 +144,12 @@ export function App() {
   useEffect(() => {
     void loadPlayLater();
   }, [loadPlayLater]);
+
+  // A listed game that just entered the library is deleted now (getPlayLater
+  // prunes it), so removing it from the library later won't bring it back.
+  useEffect(() => {
+    if (hasLibraryGames) void loadPlayLater();
+  }, [hasLibraryGames, loadPlayLater]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUserPreferencesUpdated(

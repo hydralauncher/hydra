@@ -24,6 +24,7 @@ export function usePlayLater() {
     () => withoutLibraryGames(Object.values(storedItems), library),
     [storedItems, library]
   );
+  const hasLibraryGames = items.length < Object.keys(storedItems).length;
 
   const loadPlayLater = useCallback(async () => {
     try {
@@ -67,6 +68,7 @@ export function usePlayLater() {
 
   return {
     items,
+    hasLibraryGames,
     loadPlayLater,
     addToPlayLater,
     removeFromPlayLater,
