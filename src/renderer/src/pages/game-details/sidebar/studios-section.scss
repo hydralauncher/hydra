@@ -1,0 +1,45 @@
+@use "../../../scss/globals.scss";
+
+.studios-section {
+  display: flex;
+  flex-direction: column;
+  gap: globals.$spacing-unit;
+  padding: calc(globals.$spacing-unit * 2);
+
+  &__row {
+    display: flex;
+    flex-direction: row;
+    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  &__label {
+    flex-shrink: 0;
+    font-size: globals.$small-font-size;
+    font-weight: bold;
+    color: globals.$muted-color;
+  }
+
+  &__value {
+    font-size: globals.$small-font-size;
+    color: globals.$body-color;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  &__link {
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+}

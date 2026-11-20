@@ -38,6 +38,7 @@ import "./sidebar.scss";
 import { GameLanguageSection } from "./game-language-section";
 import { isAchievementConcealed } from "@shared";
 import { ControllerSupportSection } from "./controller-support-section";
+import { StudiosSection } from "./studios-section";
 import { GameScreenshots } from "../game-screenshots/game-screenshots";
 import { LeaderboardSection } from "../leaderboard/leaderboard-section";
 import { AchievementsSkeletonList } from "./achievements-skeleton-list";
@@ -403,6 +404,8 @@ export function Sidebar() {
           </div>
         </SidebarSection>
       )}
+
+      <StudiosSection />
 
       {myScreenshotsGame.shop !== "custom" && myScreenshotsGame.objectId ? (
         <GameScreenshots
