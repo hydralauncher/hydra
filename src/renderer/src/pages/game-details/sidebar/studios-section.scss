@@ -29,7 +29,7 @@
     font-size: globals.$small-font-size;
     color: globals.$body-color;
     text-align: right;
-    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
   &__link {

@@ -23,19 +23,20 @@ const STUDIO_ROLES: StudioRole[] = ["developers", "publishers"];
 const NAMES_LOOKUP_TIMEOUT_MS = 2500;
 
 export function StudiosSection() {
-  const { shop, shopDetails } = useContext(gameDetailsContext);
+  const { shop, objectId, shopDetails } = useContext(gameDetailsContext);
   const { t } = useTranslation("game_details");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const lastClickRef = useRef(0);
 
-  // Leaving or switching the game drops a names lookup still in flight.
+  // Leaving or switching the game drops a names lookup still in flight; a
+  // refresh of the same game (new shopDetails object) keeps it.
   useEffect(
     () => () => {
       lastClickRef.current += 1;
     },
-    [shopDetails]
+    [shop, objectId]
   );
 
   const rows = STUDIO_ROLES.map((role) => ({
