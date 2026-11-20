@@ -91,6 +91,10 @@ export interface ShopAssets {
   images?: CatalogueImages;
 }
 
+export type PlayLaterEntry = ShopAssets & { addedAt: number };
+
+export type PlayLaterSort = "addedAt" | "title";
+
 export type ShopDetails = SteamAppDetails & {
   objectId: string;
   platform?: string;
