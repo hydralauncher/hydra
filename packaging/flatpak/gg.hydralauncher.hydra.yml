@@ -1,0 +1,42 @@
+app-id: gg.hydralauncher.hydra
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+command: hydra
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=all
+  - --filesystem=/run/udev:ro
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --filesystem=xdg-download
+  - --filesystem=~/Games:create
+
+modules:
+  - name: hydra
+    buildsystem: simple
+    build-commands:
+      - install -d /app/lib/hydra
+      - cp -a hydra-files/. /app/lib/hydra/
+      - install -Dm755 hydra-launcher /app/bin/hydra
+      - install -Dm644 gg.hydralauncher.hydra.desktop /app/share/applications/gg.hydralauncher.hydra.desktop
+      - install -Dm644 gg.hydralauncher.hydra.metainfo.xml /app/share/metainfo/gg.hydralauncher.hydra.metainfo.xml
+      - install -Dm644 gg.hydralauncher.hydra.png /app/share/icons/hicolor/512x512/apps/gg.hydralauncher.hydra.png
+    sources:
+      - type: dir
+        path: build/hydra-files
+        dest: hydra-files
+      - type: file
+        path: hydra-launcher
+      - type: file
+        path: gg.hydralauncher.hydra.desktop
+      - type: file
+        path: gg.hydralauncher.hydra.metainfo.xml
+      - type: file
+        path: ../../build/icons/512x512.png
+        dest-filename: gg.hydralauncher.hydra.png
