@@ -22,6 +22,10 @@
   }
 
   &__value {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: calc(globals.$spacing-unit / 2);
     font-size: globals.$small-font-size;
     color: globals.$body-color;
     text-align: right;

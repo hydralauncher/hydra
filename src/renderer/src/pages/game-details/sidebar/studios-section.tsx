@@ -1,4 +1,4 @@
-import { Fragment, useContext } from "react";
+import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -50,17 +50,15 @@ export function StudiosSection() {
             </span>
 
             <span className="studios-section__value">
-              {names.map((name, index) => (
-                <Fragment key={name}>
-                  {index > 0 && ", "}
-                  <button
-                    type="button"
-                    className="studios-section__link"
-                    onClick={() => openCatalogue(role, name)}
-                  >
-                    {name}
-                  </button>
-                </Fragment>
+              {names.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className="studios-section__link"
+                  onClick={() => openCatalogue(role, name)}
+                >
+                  {name}
+                </button>
               ))}
             </span>
           </div>
