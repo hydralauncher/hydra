@@ -7,6 +7,14 @@ export const escapeHtmlText = (value: string) =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
+// Reverses escapeHtmlText; &amp; goes last so "&amp;lt;" decodes only once.
+export const decodeHtmlText = (value: string) =>
+  value
+    .replaceAll("&quot;", '"')
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+
 export const toRichTextHtml = (value: string) => {
   if (HTML_TAG_PATTERN.test(value)) return value;
 

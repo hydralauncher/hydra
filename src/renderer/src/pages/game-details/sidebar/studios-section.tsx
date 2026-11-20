@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -8,12 +8,14 @@ import { useAppDispatch } from "@renderer/hooks";
 import { SidebarSection } from "../sidebar-section/sidebar-section";
 import {
   buildStudioCatalogueFilter,
+  getStudioNames,
   type StudioRole,
 } from "./studio-catalogue-filter";
 
 import "./studios-section.scss";
 
 const STUDIO_ROLES: StudioRole[] = ["developers", "publishers"];
+const NAMES_LOOKUP_TIMEOUT_MS = 2500;
 
 export function StudiosSection() {
   const { shop, shopDetails } = useContext(gameDetailsContext);
@@ -21,22 +23,39 @@ export function StudiosSection() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const rows = STUDIO_ROLES.map((role) => {
-    const names = shopDetails?.[role];
-    return {
-      role,
-      names: Array.isArray(names) ? names.filter((name) => name.trim()) : [],
-    };
-  }).filter(({ names }) => names.length > 0);
+  const lastClickRef = useRef(0);
+
+  // Leaving or switching the game drops a names lookup still in flight.
+  useEffect(
+    () => () => {
+      lastClickRef.current += 1;
+    },
+    [shopDetails]
+  );
+
+  const rows = STUDIO_ROLES.map((role) => ({
+    role,
+    names: getStudioNames(shopDetails?.[role]),
+  })).filter(({ names }) => names.length > 0);
 
   if (rows.length === 0) return null;
 
   const openCatalogue = async (role: StudioRole, name: string) => {
-    // Cached for 24h by the main process; without it, only the exact name.
+    const click = ++lastClickRef.current;
+
+    // The main process caches the list for 24h; a cold cache downloads it.
+    // Without the list, the filter falls back to the exact name.
     const catalogueNames =
       shop === "launchbox"
         ? []
-        : await window.electron.getCatalogueNames(role).catch(() => []);
+        : await Promise.race([
+            window.electron.getCatalogueNames(role).catch(() => []),
+            new Promise<string[]>((resolve) =>
+              setTimeout(() => resolve([]), NAMES_LOOKUP_TIMEOUT_MS)
+            ),
+          ]);
+
+    if (click !== lastClickRef.current) return;
 
     const { mode, filters } = buildStudioCatalogueFilter(
       shop,

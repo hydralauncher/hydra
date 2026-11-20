@@ -29,6 +29,7 @@ import { setFilters, setMode, setPage } from "@renderer/features";
 import { useCatalogue } from "@renderer/hooks/use-catalogue";
 import { useLaunchboxFilters } from "@renderer/hooks/use-launchbox-filters";
 import { debounce } from "lodash-es";
+import { decodeHtmlText } from "@shared";
 import { useTranslation } from "react-i18next";
 import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import cn from "classnames";
@@ -266,13 +267,6 @@ export default function Catalogue() {
     )
   ).current;
 
-  const decodeHTML = (s: string) =>
-    s
-      .replaceAll("&quot;", '"')
-      .replaceAll("&amp;", "&")
-      .replaceAll("&lt;", "<")
-      .replaceAll("&gt;", ">");
-
   useEffect(() => {
     hasResultsRef.current = results.length > 0;
   }, [results.length]);
@@ -373,7 +367,7 @@ export default function Catalogue() {
         title: t("publishers"),
         key: "publishers" as const,
         items: launchboxFilters.publishers.map((publisher) => ({
-          label: decodeHTML(publisher),
+          label: decodeHtmlText(publisher),
           value: publisher,
           checked: filters.publishers.includes(publisher),
         })),
@@ -440,7 +434,7 @@ export default function Catalogue() {
         value: developer,
       })),
       ...filters.publishers.map((publisher) => ({
-        label: decodeHTML(publisher),
+        label: decodeHtmlText(publisher),
         filterType: t("publishers"),
         orbColor: filterCategoryColors.publishers,
         key: "publishers",
@@ -512,7 +506,7 @@ export default function Catalogue() {
       })),
 
       ...filters.developers.map((developer) => ({
-        label: decodeHTML(developer),
+        label: decodeHtmlText(developer),
         filterType: t("developers"),
         orbColor: filterCategoryColors.developers,
         key: "developers",
@@ -520,7 +514,7 @@ export default function Catalogue() {
       })),
 
       ...filters.publishers.map((publisher) => ({
-        label: decodeHTML(publisher),
+        label: decodeHtmlText(publisher),
         filterType: t("publishers"),
         orbColor: filterCategoryColors.publishers,
         key: "publishers",
@@ -616,7 +610,7 @@ export default function Catalogue() {
       {
         title: t("publishers"),
         items: steamPublishers.map((publisher) => ({
-          label: decodeHTML(publisher),
+          label: decodeHtmlText(publisher),
           value: publisher,
           checked: filters.publishers.includes(publisher),
         })),
