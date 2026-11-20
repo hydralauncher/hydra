@@ -26,7 +26,7 @@ export const getStudioNames = (value: unknown): string[] =>
 // Its search matches whole stored names, ignoring case, and ORs the values of
 // one filter. So the filter lists every stored name that is the studio or
 // contains it as a comma-separated part, exactly as stored.
-// ponytail: substring scan of the full names list; generic names ("LIMITED")
+// Limits: a linear scan of the full names list; generic names ("LIMITED")
 // also match legal suffixes. Drop it once the API stores each name separately.
 const findStoredNames = (catalogueNames: string[], name: string) => {
   const needle = name.toLowerCase();
