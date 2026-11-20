@@ -302,7 +302,8 @@ $hero-height: 350px;
     }
   }
 
-  &__edit-custom-game-button {
+  &__edit-custom-game-button,
+  &__play-later-button {
     height: 40px;
     width: 40px;
     padding: 0 calc(globals.$spacing-unit * 1.5);
@@ -327,6 +328,10 @@ $hero-height: 350px;
       background-color: rgba(0, 0, 0, 0.5);
       color: globals.$body-color;
     }
+  }
+
+  &__play-later-button--active {
+    color: globals.$body-color;
   }
 
   &__hero-logo-backdrop {

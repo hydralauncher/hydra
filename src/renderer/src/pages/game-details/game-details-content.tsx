@@ -6,7 +6,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { PencilIcon } from "@primer/octicons-react";
+import {
+  BookmarkFillIcon,
+  BookmarkIcon,
+  PencilIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -28,7 +32,12 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
-import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
+import {
+  useUserDetails,
+  useLibrary,
+  useAppSelector,
+  usePlayLater,
+} from "@renderer/hooks";
 import {
   CLASSICS_PS_PLATFORM_LABELS,
   resolveClassicsBadge,
@@ -93,6 +102,22 @@ export function GameDetailsContent() {
 
   const { userDetails } = useUserDetails();
   const { library } = useLibrary();
+  const { isInPlayLater, addToPlayLater, removeFromPlayLater } = usePlayLater();
+
+  // Only games outside the library can be saved for later.
+  const playLaterAssets = !game ? (shopDetails?.assets ?? null) : null;
+  const isInPlayLaterList = playLaterAssets
+    ? isInPlayLater(playLaterAssets.shop, playLaterAssets.objectId)
+    : false;
+
+  const handlePlayLaterClick = () => {
+    if (!playLaterAssets) return;
+    if (isInPlayLaterList) {
+      void removeFromPlayLater(playLaterAssets.shop, playLaterAssets.objectId);
+    } else {
+      void addToPlayLater(playLaterAssets);
+    }
+  };
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
   const cloudSaveVisibility = game
@@ -457,6 +482,31 @@ export function GameDetailsContent() {
               )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
+                {playLaterAssets && (
+                  <button
+                    type="button"
+                    className={`game-details__play-later-button${isInPlayLaterList ? " game-details__play-later-button--active" : ""}`}
+                    onClick={handlePlayLaterClick}
+                    aria-pressed={isInPlayLaterList}
+                    title={t(
+                      isInPlayLaterList
+                        ? "remove_from_play_later"
+                        : "add_to_play_later"
+                    )}
+                    aria-label={t(
+                      isInPlayLaterList
+                        ? "remove_from_play_later"
+                        : "add_to_play_later"
+                    )}
+                  >
+                    {isInPlayLaterList ? (
+                      <BookmarkFillIcon size={16} />
+                    ) : (
+                      <BookmarkIcon size={16} />
+                    )}
+                  </button>
+                )}
+
                 {game && (
                   <button
                     type="button"

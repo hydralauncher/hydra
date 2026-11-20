@@ -40,6 +40,7 @@
     "favorites": "Favoris",
     "playable_button_title": "Afficher uniquement les jeux que vous pouvez jouer maintenant",
     "library": "Bibliothèque",
+    "play_later": "À jouer plus tard",
     "add_custom_game_tooltip": "Ajouter un jeu personnalisé",
     "filter_sort_tooltip": "Trier et filtrer",
     "platforms_label": "Plateformes",
@@ -646,6 +647,8 @@
     "you_might_need_to_restart_steam": "Vous devrez peut-être redémarrer Steam pour voir les changements",
     "add_to_favorites": "Ajouter aux favoris",
     "remove_from_favorites": "Retirer des favoris",
+    "add_to_play_later": "Ajouter à À jouer plus tard",
+    "remove_from_play_later": "Retirer de À jouer plus tard",
     "failed_update_favorites": "Échec de la mise à jour des favoris",
     "game_removed_from_library": "Jeu retiré de la bibliothèque",
     "failed_remove_from_library": "Échec de la suppression du jeu de la bibliothèque",
@@ -2313,5 +2316,15 @@
     "clear_search": "Effacer la recherche",
     "minimize": "Réduire",
     "close": "Fermer"
+  },
+  "play_later": {
+    "title": "À jouer plus tard",
+    "sort_by_date_added": "Date d'ajout",
+    "sort_by_name": "Nom",
+    "added_on": "Ajouté le {{date}}",
+    "remove": "Retirer",
+    "empty_title": "Rien pour l'instant",
+    "empty_description": "Utilisez le marque-page sur la fiche d'un jeu pour le garder pour plus tard.",
+    "update_failed": "Impossible de mettre à jour À jouer plus tard"
   }
 }
