@@ -267,7 +267,11 @@ export default function Catalogue() {
   ).current;
 
   const decodeHTML = (s: string) =>
-    s.replaceAll("&amp;", "&").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
+    s
+      .replaceAll("&quot;", '"')
+      .replaceAll("&amp;", "&")
+      .replaceAll("&lt;", "<")
+      .replaceAll("&gt;", ">");
 
   useEffect(() => {
     hasResultsRef.current = results.length > 0;
@@ -508,7 +512,7 @@ export default function Catalogue() {
       })),
 
       ...filters.developers.map((developer) => ({
-        label: developer,
+        label: decodeHTML(developer),
         filterType: t("developers"),
         orbColor: filterCategoryColors.developers,
         key: "developers",
