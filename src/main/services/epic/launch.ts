@@ -303,6 +303,7 @@ export async function launchPreparedEpicLinuxGame(
     launchOptions?: string | null;
     useGamemode?: boolean;
     useMangohud?: boolean;
+    gamescopeArgs?: string[];
     onStatus?: UmuStatusListener;
   } = {}
 ): Promise<UmuProcessHandle> {
