@@ -24,6 +24,7 @@
     "achievements": "🏆 Games to beat"
   },
   "sidebar": {
+    "toggle_sidebar": "Toggle sidebar",
     "leaderboards": "Leaderboards",
     "catalogue": "Catalogue",
     "library": "Library",

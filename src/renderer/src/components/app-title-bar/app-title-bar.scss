@@ -45,6 +45,39 @@
     padding-left: 80px;
   }
 
+  &--sidebar-hidden &__brand {
+    width: auto;
+    padding-right: globals.$spacing-unit;
+  }
+
+  &__sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: globals.$muted-color;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    transition:
+      color ease 0.1s,
+      background-color ease 0.1s;
+
+    &:hover:not(:disabled) {
+      color: globals.$body-color;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
   &__cloud-text {
     background: linear-gradient(
       270deg,
