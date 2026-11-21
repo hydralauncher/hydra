@@ -923,6 +923,8 @@ export async function launchEpicLinuxGame(
     wasGameDetected?: () => boolean;
     onSpawn?: (handle: UmuProcessHandle) => void;
     lease?: EpicLinuxPrefixLease;
+    protonLogEnabled?: boolean;
+    compatibilityEnvironmentVariables?: Record<string, string>;
   } = {}
 ): Promise<UmuProcessHandle> {
   assertSignal(options.signal);
@@ -968,8 +970,12 @@ export async function launchEpicLinuxGame(
       environment: {
         ...process.env,
         ...parameters.environment,
+        ...options.compatibilityEnvironmentVariables,
         ...resolved.env,
         ...runtimeEnvironment(context),
+        ...(options.protonLogEnabled !== undefined
+          ? { PROTON_LOG: options.protonLogEnabled ? "1" : "0" }
+          : {}),
         ...(options.useMangohud ? { MANGOHUD: "1" } : {}),
       },
       signal: options.signal,

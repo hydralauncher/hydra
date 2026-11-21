@@ -4,8 +4,8 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 
 import { registerEvent } from "../register-event";
-import { downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
-import type { Download, GameShop } from "@types";
+import { db, downloadsSublevel, gamesSublevel, levelKeys } from "@main/level";
+import type { Download, GameShop, UserPreferences } from "@types";
 import {
   GameFilesManager,
   logger,
@@ -24,11 +24,14 @@ import {
   startInstalledExecutablePolling,
   stopInstalledExecutablePolling,
 } from "@main/helpers/installed-executable-poller";
+import { parseCompatibilityEnvironmentVariables } from "@main/helpers/parse-compatibility-environment-variables";
 
 interface InstallerLaunchOptions {
   gameId?: string;
   winePrefixPath?: string | null;
   protonPath?: string | null;
+  protonLogEnabled?: boolean;
+  compatibilityEnvironmentVariables?: Record<string, string>;
   onExit: (exitCode: number | null) => void;
   onCancel: () => void;
   onUntrackedLaunch: () => void;
@@ -228,6 +231,9 @@ const launchInstallerWithUmu = async (
       gameId: options.gameId,
       winePrefixPath: options.winePrefixPath,
       protonPath: options.protonPath,
+      protonLogEnabled: options.protonLogEnabled,
+      compatibilityEnvironmentVariables:
+        options.compatibilityEnvironmentVariables,
       onExit: (exitCode) => {
         if (launched) options.onExit(exitCode);
       },
@@ -302,9 +308,11 @@ const executeLinuxInstaller = async (
     command: "wine",
     args: [filePath],
     cwd: path.dirname(filePath),
-    env: options.winePrefixPath
-      ? { ...process.env, WINEPREFIX: options.winePrefixPath }
-      : undefined,
+    env: {
+      ...process.env,
+      ...options.compatibilityEnvironmentVariables,
+      ...(options.winePrefixPath ? { WINEPREFIX: options.winePrefixPath } : {}),
+    },
     failureMessage: "Failed to execute game installer with wine",
     onExit: options.onExit,
   });
@@ -437,6 +445,25 @@ const openGameInstaller = async (
     objectId
   );
 
+  const userPreferences = await db
+    .get<string, UserPreferences | null>(levelKeys.userPreferences, {
+      valueEncoding: "json",
+    })
+    .catch(() => null);
+
+  const protonLogEnabled =
+    userPreferences?.protonLogEnabled === true ||
+    game?.protonLogEnabled === true;
+
+  const compatibilityEnvironmentVariablesEnabled =
+    userPreferences?.compatibilityEnvironmentVariablesEnabled ?? false;
+  const compatibilityEnvironmentVariables =
+    process.platform === "linux" && compatibilityEnvironmentVariablesEnabled
+      ? parseCompatibilityEnvironmentVariables(
+          userPreferences?.compatibilityEnvironmentVariables
+        )
+      : {};
+
   const gamePath = download ? await getDownloadFolderPath(download) : null;
 
   if (!gamePath || !fs.existsSync(gamePath)) {
@@ -487,6 +514,8 @@ const openGameInstaller = async (
     gameId: objectId,
     winePrefixPath,
     protonPath: game?.protonPath,
+    protonLogEnabled,
+    compatibilityEnvironmentVariables,
     onExit: (exitCode) =>
       afterLaunchRecorded(() =>
         handleInstallerExit(

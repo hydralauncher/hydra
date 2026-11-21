@@ -94,6 +94,7 @@ export const getThemeSoundPath = (
 };
 
 export * from "./reg-parser";
+export * from "./parse-compatibility-environment-variables";
 export * from "./launch-game";
 export * from "./launch-classics-game";
 export * from "./open-classics-game";
