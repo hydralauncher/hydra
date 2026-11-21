@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Tooltip } from "react-tooltip";
 import { Modal } from "@renderer/components";
 import { userProfileContext } from "@renderer/context";
+import { getTranslatedBadgeDescription } from "@renderer/helpers";
 import { useDate } from "@renderer/hooks";
 import "./all-badges-modal.scss";
 
@@ -67,7 +68,7 @@ export function AllBadgesModal({
                     {badge.title}
                   </h3>
                   <p className="all-badges-modal__item-description">
-                    {badge.description}
+                    {getTranslatedBadgeDescription(badge)}
                   </p>
                 </div>
               </div>

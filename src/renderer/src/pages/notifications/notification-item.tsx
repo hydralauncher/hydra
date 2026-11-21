@@ -13,6 +13,7 @@ import retroAchievementsLogo from "@renderer/assets/icons/retroachievements.png"
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@renderer/components";
+import { getTranslatedBadgeDescription } from "@renderer/helpers";
 import { useDate, useUserDetails } from "@renderer/hooks";
 import cn from "classnames";
 import {
@@ -229,7 +230,10 @@ export function NotificationItem({
       case "BADGE_RECEIVED":
         return {
           title: t("badge_received_title"),
-          description: badge?.description || notification.variables.badgeName,
+          description: getTranslatedBadgeDescription(
+            badge,
+            notification.variables.badgeName
+          ),
           showActions: false,
         };
       case "REVIEW_UPVOTE":
