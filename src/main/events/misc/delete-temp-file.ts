@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { logger } from "@main/services";
 import { registerEvent } from "../register-event";
 
 const deleteTempFile = async (
@@ -11,7 +12,7 @@ const deleteTempFile = async (
     }
   } catch (error) {
     // Silently fail - temp files will be cleaned up by OS eventually
-    console.warn(`Failed to delete temp file: ${error}`);
+    logger.warn(`Failed to delete temp file: ${error}`);
   }
 };
 
