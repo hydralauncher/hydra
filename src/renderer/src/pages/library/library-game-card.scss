@@ -1,6 +1,11 @@
 @use "../../scss/globals.scss";
 
 .library-game-card {
+  &__container {
+    position: relative;
+    width: 100%;
+  }
+
   &__wrapper {
     cursor: pointer;
     transition: transform ease 0.2s;
@@ -460,6 +465,24 @@
   50% {
     opacity: 0.5;
   }
+}
+
+.library-game-card__container:hover .library-game-card__wrapper {
+  transform: scale(1.02);
+}
+
+.library-game-card__container:hover .library-game-card__wrapper::before {
+  opacity: 1;
+  transform: translateY(-20%);
+}
+
+.library-game-card__container:hover
+  .library-game-card__overlay--quick-play
+  .library-game-card__achievements,
+.library-game-card__container:focus-within
+  .library-game-card__overlay--quick-play
+  .library-game-card__achievements {
+  transform: translateY(-40px);
 }
 
 /* Responsive sizing for compact grid cells */

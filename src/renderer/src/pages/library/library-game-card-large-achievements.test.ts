@@ -47,6 +47,7 @@ it("refreshes grouped progress on member changes and preserves known offline tot
         markFailed: () => false,
       }),
       useViewportCatalogueImageUrl: () => null,
+      canLaunchGame: () => false,
     },
     "./library-category": {
       getLibraryPresentationImportSources: () => ({
@@ -66,6 +67,7 @@ it("refreshes grouped progress on member changes and preserves known offline tot
     },
     "@renderer/components": {
       SteamLibraryBadge: () => null,
+      QuickLaunchButton: () => null,
       AchievementProgress: (props: Record<string, unknown>) =>
         React.createElement("output", null, JSON.stringify(props)),
     },

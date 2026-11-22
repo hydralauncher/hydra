@@ -24,6 +24,7 @@ export * from "./suspense-wrapper/suspense-wrapper";
 export * from "./context-menu/context-menu";
 export * from "./game-context-menu/game-context-menu";
 export * from "./game-context-menu/use-game-actions";
+export * from "./quick-launch-button/quick-launch-button";
 export * from "./star-rating/star-rating";
 export * from "./rank-medal/rank-medal";
 export * from "./rank-medal/rank-tier";

@@ -10,6 +10,7 @@ import {
   useAnimatedSourceWarmup,
   useCatalogueImage,
   useViewportCatalogueImageUrl,
+  canLaunchGame,
 } from "@renderer/hooks";
 import {
   getCatalogueImageDensitySrcSet,
@@ -20,7 +21,11 @@ import {
   isGameReadyToPlay,
   resolveClassicsBadge,
 } from "@renderer/helpers";
-import { AchievementProgress, SteamLibraryBadge } from "@renderer/components";
+import {
+  AchievementProgress,
+  QuickLaunchButton,
+  SteamLibraryBadge,
+} from "@renderer/components";
 import { GameVisibilityBadge } from "@renderer/components/game-visibility-badge/game-visibility-badge";
 import { formatBytes, getDisplayedPlayTimeInMilliseconds } from "@shared";
 import {
@@ -113,6 +118,8 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     userPreferences?.hideLibraryAchievementProgress ?? false;
   const autoplayAnimatedArtwork =
     userPreferences?.autoplayAnimatedArtwork ?? false;
+  const showQuickPlay = userPreferences?.showLibraryQuickPlayButton ?? true;
+  const canQuickPlay = canLaunchGame(game);
 
   const [isCoverHovered, setIsCoverHovered] = useState(false);
 
@@ -403,154 +410,169 @@ export const LibraryGameCardLarge = memo(function LibraryGameCardLarge({
     ) : null;
 
   return (
-    <button
-      type="button"
-      className={`library-game-card-large ${renderClassicsBlurred ? "library-game-card-large--classics" : ""}`}
+    <div
+      className="library-game-card-large__container"
       onMouseEnter={() => setIsCoverHovered(true)}
       onMouseLeave={() => setIsCoverHovered(false)}
-      onClick={handleCardClick}
-      onContextMenu={handleContextMenuClick}
     >
-      <div
-        className="library-game-card-large__background"
-        style={backgroundStyle}
-      />
-      {usesAnimatedHeroLayer && animatedHeroSource && (
-        <img
-          src={animatedHeroSource}
-          alt=""
-          aria-hidden="true"
-          className="library-game-card-large__animated-hero"
+      <button
+        type="button"
+        className={`library-game-card-large ${renderClassicsBlurred ? "library-game-card-large--classics" : ""}`}
+        onClick={handleCardClick}
+        onContextMenu={handleContextMenuClick}
+      >
+        <div
+          className="library-game-card-large__background"
+          style={backgroundStyle}
         />
-      )}
-      {classicsForegroundUrl && (
-        <img
-          src={classicsForegroundUrl}
-          alt={game.title}
-          className="library-game-card-large__classics-foreground"
-          loading="lazy"
-        />
-      )}
-      {!hideAchievementProgress &&
-        (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
-          <div className="library-game-card-large__gradient" />
+        {usesAnimatedHeroLayer && animatedHeroSource && (
+          <img
+            src={animatedHeroSource}
+            alt=""
+            aria-hidden="true"
+            className="library-game-card-large__animated-hero"
+          />
         )}
+        {classicsForegroundUrl && (
+          <img
+            src={classicsForegroundUrl}
+            alt={game.title}
+            className="library-game-card-large__classics-foreground"
+            loading="lazy"
+          />
+        )}
+        {!hideAchievementProgress &&
+          (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
+            <div className="library-game-card-large__gradient" />
+          )}
 
-      <div className="library-game-card-large__overlay">
-        <div className="library-game-card-large__top-section">
-          {!hideReadySizeBadges && sizeBars.length > 0 && (
-            <div className="library-game-card-large__size-badges">
-              {sizeBars.map((bar) => (
-                <div
-                  key={bar.type}
-                  className="library-game-card-large__size-bar"
-                  title={t(bar.tooltipKey)}
-                >
-                  <bar.icon size={11} />
+        <div
+          className={cn("library-game-card-large__overlay", {
+            "library-game-card-large__overlay--quick-play":
+              showQuickPlay && canQuickPlay,
+          })}
+        >
+          <div className="library-game-card-large__top-section">
+            {!hideReadySizeBadges && sizeBars.length > 0 && (
+              <div className="library-game-card-large__size-badges">
+                {sizeBars.map((bar) => (
                   <div
-                    className={`library-game-card-large__size-bar-line library-game-card-large__size-bar-line--${bar.type}`}
-                    style={{ width: `${bar.widthPx}px` }}
-                  />
-                  <span className="library-game-card-large__size-bar-text">
-                    {bar.formatted}
+                    key={bar.type}
+                    className="library-game-card-large__size-bar"
+                    title={t(bar.tooltipKey)}
+                  >
+                    <bar.icon size={11} />
+                    <div
+                      className={`library-game-card-large__size-bar-line library-game-card-large__size-bar-line--${bar.type}`}
+                      style={{ width: `${bar.widthPx}px` }}
+                    />
+                    <span className="library-game-card-large__size-bar-text">
+                      {bar.formatted}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="library-game-card-large__top-right">
+              <GameVisibilityBadge
+                variant="large"
+                isHiddenFromOthers={game.isHiddenFromOthers}
+                isConcealed={game.isConcealed}
+              />
+              {!hideBadges && (
+                <div className="library-game-card-large__playtime">
+                  {game.hasManuallyUpdatedPlaytime ? (
+                    <AlertFillIcon
+                      size={11}
+                      className="library-game-card-large__manual-playtime"
+                    />
+                  ) : (
+                    <ClockIcon size={11} />
+                  )}
+                  <span className="library-game-card-large__playtime-text">
+                    {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
                   </span>
                 </div>
-              ))}
+              )}
+              {(showSteamLibraryBadge || showEpicLibraryBadge) && (
+                <div className="library-game-card-large__import-badges">
+                  {showSteamLibraryBadge && (
+                    <SteamLibraryBadge
+                      variant="large"
+                      availableShops={game.availableShops}
+                    />
+                  )}
+                  {showEpicLibraryBadge && (
+                    <SteamLibraryBadge
+                      source="epic"
+                      variant="large"
+                      availableShops={game.availableShops}
+                    />
+                  )}
+                </div>
+              )}
+
+              {!hideClassicsBadges && classicsPlatformLabel && (
+                <div className="library-game-card-large__classics-badges">
+                  <span className="library-game-card-large__platform-badge">
+                    {classicsPlatformLabel}
+                  </span>
+                </div>
+              )}
+
+              {installedBadge}
             </div>
-          )}
+          </div>
 
-          <div className="library-game-card-large__top-right">
-            <GameVisibilityBadge
-              variant="large"
-              isHiddenFromOthers={game.isHiddenFromOthers}
-              isConcealed={game.isConcealed}
-            />
-            {!hideBadges && (
-              <div className="library-game-card-large__playtime">
-                {game.hasManuallyUpdatedPlaytime ? (
-                  <AlertFillIcon
-                    size={11}
-                    className="library-game-card-large__manual-playtime"
-                  />
-                ) : (
-                  <ClockIcon size={11} />
-                )}
-                <span className="library-game-card-large__playtime-text">
-                  {formatPlayTime(getDisplayedPlayTimeInMilliseconds(game))}
-                </span>
-              </div>
+          <div className="library-game-card-large__logo-container">
+            {logoImage ? (
+              <img
+                src={
+                  logoVariants
+                    ? pickCatalogueImageUrl(logoVariants, LOGO_DISPLAY_WIDTH)
+                    : logoImage
+                }
+                srcSet={
+                  logoVariants
+                    ? getCatalogueImageDensitySrcSet(
+                        logoVariants,
+                        LOGO_DISPLAY_WIDTH
+                      )
+                    : undefined
+                }
+                alt={game.title}
+                className="library-game-card-large__logo"
+                onError={logoCatalogueImage.markFailed}
+              />
+            ) : (
+              <h3 className="library-game-card-large__title">{game.title}</h3>
             )}
-            {(showSteamLibraryBadge || showEpicLibraryBadge) && (
-              <div className="library-game-card-large__import-badges">
-                {showSteamLibraryBadge && (
-                  <SteamLibraryBadge
-                    variant="large"
-                    availableShops={game.availableShops}
-                  />
-                )}
-                {showEpicLibraryBadge && (
-                  <SteamLibraryBadge
-                    source="epic"
-                    variant="large"
-                    availableShops={game.availableShops}
-                  />
-                )}
-              </div>
-            )}
+          </div>
 
-            {!hideClassicsBadges && classicsPlatformLabel && (
-              <div className="library-game-card-large__classics-badges">
-                <span className="library-game-card-large__platform-badge">
-                  {classicsPlatformLabel}
-                </span>
-              </div>
-            )}
-
-            {installedBadge}
+          <div className="library-game-card-large__info-bar">
+            {!hideAchievementProgress &&
+              (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
+                <AchievementProgress
+                  achievementCount={Math.max(
+                    totalAchievementsCount,
+                    unlockedAchievementsCount
+                  )}
+                  unlockedAchievementCount={unlockedAchievementsCount}
+                  classNamePrefix="library-game-card-large"
+                  label={`${game.title} achievements`}
+                  trophyIconSize={14}
+                />
+              )}
           </div>
         </div>
+      </button>
 
-        <div className="library-game-card-large__logo-container">
-          {logoImage ? (
-            <img
-              src={
-                logoVariants
-                  ? pickCatalogueImageUrl(logoVariants, LOGO_DISPLAY_WIDTH)
-                  : logoImage
-              }
-              srcSet={
-                logoVariants
-                  ? getCatalogueImageDensitySrcSet(
-                      logoVariants,
-                      LOGO_DISPLAY_WIDTH
-                    )
-                  : undefined
-              }
-              alt={game.title}
-              className="library-game-card-large__logo"
-              onError={logoCatalogueImage.markFailed}
-            />
-          ) : (
-            <h3 className="library-game-card-large__title">{game.title}</h3>
-          )}
+      {showQuickPlay && canQuickPlay && (
+        <div className="library-game-card-large__quick-play">
+          <QuickLaunchButton game={game} />
         </div>
-
-        <div className="library-game-card-large__info-bar">
-          {!hideAchievementProgress &&
-            (totalAchievementsCount > 0 || unlockedAchievementsCount > 0) && (
-              <AchievementProgress
-                achievementCount={Math.max(
-                  totalAchievementsCount,
-                  unlockedAchievementsCount
-                )}
-                unlockedAchievementCount={unlockedAchievementsCount}
-                classNamePrefix="library-game-card-large"
-                label={`${game.title} achievements`}
-                trophyIconSize={14}
-              />
-            )}
-        </div>
-      </div>
-    </button>
+      )}
+    </div>
   );
 });

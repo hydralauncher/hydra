@@ -42,6 +42,7 @@ const buildForm = (preferences: UserPreferences | null) => ({
   hideLibraryAchievementProgress:
     preferences?.hideLibraryAchievementProgress ?? false,
   autoplayAnimatedArtwork: preferences?.autoplayAnimatedArtwork ?? false,
+  showLibraryQuickPlayButton: preferences?.showLibraryQuickPlayButton ?? true,
   persistFiltersAndSorting: preferences?.persistFiltersAndSorting ?? false,
 });
 
@@ -369,6 +370,16 @@ export function SettingsContextContentGameplay() {
           onChange={() =>
             handleChange({
               autoplayAnimatedArtwork: !form.autoplayAnimatedArtwork,
+            })
+          }
+        />
+
+        <CheckboxField
+          label={t("show_library_quick_play")}
+          checked={form.showLibraryQuickPlayButton}
+          onChange={() =>
+            handleChange({
+              showLibraryQuickPlayButton: !form.showLibraryQuickPlayButton,
             })
           }
         />

@@ -19,6 +19,7 @@ export * from "./use-feature";
 export * from "./use-global-leaderboards-feature";
 export * from "./use-download-options-listener";
 export * from "./use-game-card";
+export * from "./use-game-launch";
 export * from "./use-search-history";
 export * from "./use-search-suggestions";
 export * from "./use-similar-games";

@@ -60,6 +60,7 @@ function renderCard(
         markFailed: () => false,
       }),
       useFormat: () => ({ numberFormatter: new Intl.NumberFormat("en") }),
+      canLaunchGame: () => false,
     },
     "@renderer/helpers/catalogue-images": {
       getCatalogueImageSrcSet: () => "",
@@ -92,6 +93,7 @@ function renderCard(
         ),
       VerticalCoverCard: ({ children }: { children: React.ReactNode }) =>
         React.createElement("div", null, children),
+      QuickLaunchButton: () => null,
     },
     "@renderer/components/game-visibility-badge/game-visibility-badge": {
       GameVisibilityBadge: visibilityBadge,
