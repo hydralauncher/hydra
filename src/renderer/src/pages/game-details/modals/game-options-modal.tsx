@@ -428,15 +428,11 @@ export function GameOptionsModal({
         }
       }
     };
-    (globalThis.window.electron as any).on(
+    const unsubscribe = globalThis.window.electron.on(
       "on-game-transfer-progress",
       onProgress
     );
-    return () =>
-      (globalThis.window.electron as any).off(
-        "on-game-transfer-progress",
-        onProgress
-      );
+    return unsubscribe;
   }, [game]);
 
   const debounceUpdateLaunchOptions = useRef(
