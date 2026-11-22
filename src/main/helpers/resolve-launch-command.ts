@@ -1,4 +1,4 @@
-import { parseLaunchOptions } from "@main/events/helpers/parse-launch-options";
+import { parseLaunchOptions } from "../events/helpers/parse-launch-options.js";
 import path from "node:path";
 
 const commandPlaceholder = "%command%";
@@ -18,6 +18,20 @@ export interface ResolvedLaunchCommand {
   env: Record<string, string>;
 }
 
+const unquoteEnvValue = (value: string) => {
+  const quote = value[0];
+
+  if (
+    value.length >= 2 &&
+    (quote === '"' || quote === "'") &&
+    value.endsWith(quote)
+  ) {
+    return value.slice(1, -1);
+  }
+
+  return value;
+};
+
 const extractLeadingEnvAssignments = (tokens: string[]) => {
   const env: Record<string, string> = {};
   let tokenIndex = 0;
@@ -35,7 +49,7 @@ const extractLeadingEnvAssignments = (tokens: string[]) => {
       break;
     }
 
-    env[name] = token.slice(separatorIndex + 1);
+    env[name] = unquoteEnvValue(token.slice(separatorIndex + 1));
     tokenIndex += 1;
   }
 
