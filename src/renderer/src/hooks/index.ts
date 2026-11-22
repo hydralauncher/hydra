@@ -33,4 +33,5 @@ export * from "./use-processed-image";
 export * from "./use-gamification-progress";
 export * from "./use-gamification-missions";
 export * from "./use-file-icons";
+export * from "./use-ps4-folder-versions";
 export * from "./use-drag-text-selection";

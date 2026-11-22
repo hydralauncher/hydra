@@ -5,7 +5,9 @@ import { CheckIcon, ChevronRightIcon, PlayIcon } from "@primer/octicons-react";
 import type {
   RecompilationActionResult,
   RecompilationDetails,
+  RecompilationInstallState,
   RecompilationPrepareProgress,
+  RecompilationRomState,
   RecompilationReleaseAsset,
 } from "@types";
 import { formatBytes } from "@shared";
@@ -25,6 +27,12 @@ import {
 } from "@renderer/context";
 import { useFormat, useLibrary, useToast } from "@renderer/hooks";
 import { RomSourcesPanel } from "./rom-source-list";
+import { isProtonAsset } from "./proton-build";
+import {
+  getExtractionPercent,
+  isIdentifyingVersion,
+  toExtractionBar,
+} from "./extraction-progress";
 import { splitRomRequirement } from "./rom-requirement";
 import {
   getInstallErrorKey,
@@ -77,7 +85,7 @@ const folderOf = (filePath: string) =>
 
 const toBarProgress = (progress?: InstallProgressLike) => {
   if (!progress) return undefined;
-  if (progress.phase === "extracting") return { phase: "extracting" };
+  if (progress.phase === "extracting") return toExtractionBar(progress);
   if (!progress.total) return { phase: "downloading", loaded: 0, total: 1 };
   return { ...progress, phase: "downloading" };
 };
@@ -145,6 +153,28 @@ function ChoiceRow({
     </button>
   );
 }
+
+const STEPS_WITH_CONTINUE = new Set<InstallStep>(["rom", "location", "done"]);
+
+const needsLinkedUpdate = (state: RecompilationInstallState | null) =>
+  state?.installed === true && state.linked === true && !state.verified;
+
+const isRomReadyToPlay = (
+  romState: RecompilationRomState | null,
+  handlesRom: boolean,
+  needsPreparation: boolean
+) =>
+  !handlesRom ||
+  Boolean(romState?.isReady || (!needsPreparation && romState?.romPath));
+
+const canCloseAtStep = (
+  step: InstallStep,
+  isRomDownloading: boolean,
+  prepare: RecompilationPrepareProgress | null
+) =>
+  step === "done" ||
+  (step === "rom" && isRomDownloading) ||
+  (step === "prepare" && prepare?.phase !== "error");
 
 function InstallModalContent({
   details,
@@ -524,7 +554,13 @@ function InstallModalContent({
     onClose();
     const played = await install.play();
     if (played === "already_running") showErrorToast(t("already_running"));
-    if (played === "pkg_job_running") {
+    if (played === "port_update_required") {
+      showErrorToast(t("link_folder_update_first"));
+    } else if (played === "folder_missing" || played === "program_missing") {
+      showErrorToast(
+        t(`recompilation_${played}_toast`, { ns: "game_details" })
+      );
+    } else if (played === "pkg_job_running") {
       showErrorToast(t("ps4_pkg_busy", { ns: "game_details" }));
     } else if (!played) showErrorToast(t("play_failed"));
   };
@@ -535,41 +571,66 @@ function InstallModalContent({
     }
   }, [progress?.phase]);
 
+  const renderInstalledStatus = () =>
+    isIdentifyingVersion(progress) ? (
+      <StatusLine
+        label={t("install_port_installed")}
+        detail={t("version_checking")}
+        progress={{ phase: "extracting" }}
+      />
+    ) : (
+      <StatusLine
+        label={t("install_port_installed")}
+        detail={
+          state?.version
+            ? formatRecompilationVersion(state.version)
+            : t("version_unknown")
+        }
+        isDone
+      />
+    );
+
+  const renderExtractingStatus = (extracting: InstallProgressLike) => {
+    const percent = getExtractionPercent(extracting);
+    return (
+      <StatusLine
+        label={t("install_port_extracting")}
+        detail={percent === null ? undefined : `${percent}%`}
+        progress={extracting}
+      />
+    );
+  };
+
+  const renderDownloadingStatus = (downloading: InstallProgressLike) => {
+    const { loaded, total } = downloading;
+    const percent =
+      total && loaded !== undefined
+        ? Math.min(100, Math.round((loaded / total) * 100))
+        : 0;
+    const detail =
+      total !== undefined && loaded !== undefined
+        ? t("downloading_value", {
+            loaded: formatBytes(loaded),
+            total: formatBytes(total),
+            percent,
+          })
+        : `${percent}%`;
+    return (
+      <StatusLine
+        label={t("install_port_downloading")}
+        detail={detail}
+        progress={downloading}
+      />
+    );
+  };
+
   const renderPortStatus = () => {
-    if (isInstalled && !install.isBusy) {
-      return (
-        <StatusLine
-          label={t("install_port_installed")}
-          detail={formatRecompilationVersion(state.version)}
-          isDone
-        />
-      );
-    }
+    if (isInstalled && !install.isBusy) return renderInstalledStatus();
     if (progress?.phase === "extracting") {
-      return (
-        <StatusLine label={t("install_port_extracting")} progress={progress} />
-      );
+      return renderExtractingStatus(progress);
     }
     if (progress?.phase === "downloading") {
-      const percent =
-        progress.total && progress.loaded !== undefined
-          ? Math.min(100, Math.round((progress.loaded / progress.total) * 100))
-          : 0;
-      return (
-        <StatusLine
-          label={t("install_port_downloading")}
-          detail={
-            progress.total !== undefined && progress.loaded !== undefined
-              ? t("downloading_value", {
-                  loaded: formatBytes(progress.loaded),
-                  total: formatBytes(progress.total),
-                  percent,
-                })
-              : `${percent}%`
-          }
-          progress={progress}
-        />
-      );
+      return renderDownloadingStatus(progress);
     }
     if (hasSeenPortProgress && progress?.phase !== "error") {
       return <StatusLine label={t("install_port_extracting")} />;
@@ -583,7 +644,8 @@ function InstallModalContent({
       return (
         <StatusLine
           label={t("rom_extracting")}
-          progress={{ phase: "extracting" }}
+          detail={`${romPercent}%`}
+          progress={{ phase: "downloading", loaded: romPercent, total: 100 }}
         />
       );
     }
@@ -646,6 +708,11 @@ function InstallModalContent({
 
       {renderRomStatus()}
       {renderPortStatus()}
+      {isRomDownloading && (
+        <p className="recompilation-install__waiting-note">
+          {t("install_waiting")}
+        </p>
+      )}
     </>
   );
 
@@ -713,6 +780,12 @@ function InstallModalContent({
               <dd>{formatBytes(installAsset.size)}</dd>
             </div>
           )}
+          {isProtonAsset(installAsset) && (
+            <div>
+              <dt>{t("row_build")}</dt>
+              <dd>{t("windows_via_proton")}</dd>
+            </div>
+          )}
           <div>
             <dt>{t("downloads")}</dt>
             <dd>{numberFormatter.format(details.downloadCount)}</dd>
@@ -752,6 +825,7 @@ function InstallModalContent({
       <RomSourcesPanel
         objectId={details.game.objectId}
         gameTitle={details.game.title}
+        romRequirement={details.romRequirement}
         onStarted={() => {
           setPickedFile(null);
           setSkipLibrary(false);
@@ -762,11 +836,12 @@ function InstallModalContent({
     </>
   );
 
+  const needsPortUpdate = needsLinkedUpdate(state);
   const canPlay =
     isInstalled &&
+    !needsPortUpdate &&
     !install.isBusy &&
-    (!handlesRom ||
-      Boolean(romState?.isReady || (!needsPreparation && romState?.romPath)));
+    isRomReadyToPlay(romState, handlesRom, needsPreparation);
 
   const renderPrepareStatus = () => {
     if (prepare?.phase === "error") {
@@ -813,15 +888,18 @@ function InstallModalContent({
       {renderPortStatus()}
       {renderPrepareStatus()}
       {prepare?.phase !== "error" && (
-        <div className="recompilation-install__prepare-footer">
-          <span>{t(prepare ? "prepare_can_close" : "install_waiting")}</span>
-          <Button theme="outline" onClick={onClose}>
-            {t("close")}
-          </Button>
-        </div>
+        <p className="recompilation-install__waiting-note">
+          {t(prepare ? "prepare_can_close" : "install_waiting")}
+        </p>
       )}
     </>
   );
+
+  const getDoneMessage = () => {
+    if (canPlay) return t("install_ready", { name: details.name });
+    if (needsPortUpdate) return t("link_folder_update_first");
+    return t("install_waiting");
+  };
 
   const renderDoneStep = () => (
     <div className="setup-modal__done">
@@ -831,11 +909,7 @@ function InstallModalContent({
       <h3 className="setup-modal__done-title">
         {canPlay ? t("install_done_title") : t("install_wait_title")}
       </h3>
-      <p className="setup-modal__done-body">
-        {canPlay
-          ? t("install_ready", { name: details.name })
-          : t("install_waiting")}
-      </p>
+      <p className="setup-modal__done-body">{getDoneMessage()}</p>
       {!handlesRom && (
         <p className="setup-modal__done-body">{t("install_port_asks_rom")}</p>
       )}
@@ -845,17 +919,28 @@ function InstallModalContent({
           {renderPortStatus()}
         </div>
       )}
-      <div className="setup-modal__done-actions">
-        <Button theme="outline" onClick={onClose}>
-          {t("close")}
-        </Button>
-        <Button onClick={play} disabled={!canPlay || install.isLaunching}>
-          <PlayIcon />
-          {t("play")}
-        </Button>
-      </div>
     </div>
   );
+
+  const getContinueLabel = () =>
+    step === "done" ? (
+      <>
+        <PlayIcon />
+        {t("play")}
+      </>
+    ) : undefined;
+
+  const getContinueDisabled = () => {
+    if (step === "location") return !parentDirectory || !hasEnoughSpace;
+    if (step === "done") return !canPlay || install.isLaunching;
+    return !romSource || isSaving || isRomDownloading;
+  };
+
+  const getContinueAction = () => {
+    if (step === "location") return startInstall;
+    if (step === "done") return () => void play();
+    return saveChoice;
+  };
 
   const stepOrder: InstallStep[] = [
     ...(hasLocationStep ? (["location"] as const) : []),
@@ -882,15 +967,17 @@ function InstallModalContent({
         totalSteps={stepOrder.length}
         showBack={step === "sources" || (step === "update" && !openOnUpdate)}
         showSkip={false}
-        continueHidden={step !== "rom" && step !== "location"}
-        continueDisabled={
-          step === "location"
-            ? !parentDirectory || !hasEnoughSpace
-            : !romSource || isSaving || isRomDownloading
+        continueHidden={!STEPS_WITH_CONTINUE.has(step)}
+        continueLabel={getContinueLabel()}
+        continueDisabled={getContinueDisabled()}
+        secondaryAction={
+          canCloseAtStep(step, isRomDownloading, prepare)
+            ? { label: t("close"), onClick: onClose }
+            : null
         }
         onBack={() => setStep("rom")}
         onSkip={() => {}}
-        onContinue={step === "location" ? startInstall : saveChoice}
+        onContinue={getContinueAction()}
       />
     </div>
   );

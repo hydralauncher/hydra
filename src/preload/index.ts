@@ -650,8 +650,17 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getRecompilationInstallState", ref),
   installRecompilation: (ref: RecompilationRef, parentDirectory?: string) =>
     ipcRenderer.invoke("installRecompilation", ref, parentDirectory),
+  linkRecompilationFolder: (
+    ref: RecompilationRef,
+    directory: string,
+    options?: { force?: boolean }
+  ) => ipcRenderer.invoke("linkRecompilationFolder", ref, directory, options),
+  warmRecompilationFolderCheck: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("warmRecompilationFolderCheck", ref),
   uninstallRecompilation: (ref: RecompilationRef) =>
     ipcRenderer.invoke("uninstallRecompilation", ref),
+  unlinkRecompilation: (ref: RecompilationRef) =>
+    ipcRenderer.invoke("unlinkRecompilation", ref),
   openRecompilationFolder: (ref: RecompilationRef) =>
     ipcRenderer.invoke("openRecompilationFolder", ref),
   playRecompilation: (ref: RecompilationRef) =>
@@ -670,6 +679,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("extractRecompilationRomPkg", ref, pkgPath),
   hasPs4GameFolder: (shop: GameShop, objectId: string) =>
     ipcRenderer.invoke("hasPs4GameFolder", shop, objectId),
+  getPs4FolderVersions: (discPaths: string[]) =>
+    ipcRenderer.invoke("getPs4FolderVersions", discPaths),
   checkPs4Pkg: (
     shop: GameShop,
     objectId: string,
@@ -678,6 +689,8 @@ contextBridge.exposeInMainWorld("electron", {
   ) => ipcRenderer.invoke("checkPs4Pkg", shop, objectId, pkgPath, accept),
   applyPs4Update: (shop: GameShop, objectId: string, pkgPath: string) =>
     ipcRenderer.invoke("applyPs4Update", shop, objectId, pkgPath),
+  applyPs4Dlc: (shop: GameShop, objectId: string, pkgPath: string) =>
+    ipcRenderer.invoke("applyPs4Dlc", shop, objectId, pkgPath),
   extractPs4GamePkg: (
     shop: GameShop,
     objectId: string,
@@ -1005,7 +1018,12 @@ contextBridge.exposeInMainWorld("electron", {
             unmatched: number;
             unmatchedFiles: {
               name: string;
-              reason: "wrong_platform" | "unmatched" | "unsupported_package";
+              reason:
+                | "wrong_platform"
+                | "unmatched"
+                | "unsupported_package"
+                | "update_package"
+                | "dlc_package";
             }[];
           }
         | {
@@ -1477,14 +1495,20 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("on-extraction-complete", listener);
   },
   onExtractionProgress: (
-    cb: (shop: GameShop, objectId: string, progress: number) => void
+    cb: (
+      shop: GameShop,
+      objectId: string,
+      progress: number,
+      stage?: "install" | "update" | "dlc"
+    ) => void
   ) => {
     const listener = (
       _event: Electron.IpcRendererEvent,
       shop: GameShop,
       objectId: string,
-      progress: number
-    ) => cb(shop, objectId, progress);
+      progress: number,
+      stage?: "install" | "update" | "dlc"
+    ) => cb(shop, objectId, progress, stage);
     ipcRenderer.on("on-extraction-progress", listener);
     return () => ipcRenderer.removeListener("on-extraction-progress", listener);
   },

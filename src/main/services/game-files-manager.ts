@@ -95,6 +95,14 @@ const findExtractedPs4Game = (
   return undefined;
 };
 
+type ExtractionStage = "install" | "update" | "dlc";
+
+const PS4_PKG_STAGES: Record<"game" | "patch" | "addon", ExtractionStage> = {
+  game: "install",
+  patch: "update",
+  addon: "dlc",
+};
+
 const findPs4Pkgs = async (directory: string, depth = 0): Promise<string[]> => {
   const entries = await fs.promises.readdir(directory, { withFileTypes: true });
   const found: string[] = [];
@@ -111,7 +119,7 @@ const findPs4Pkgs = async (directory: string, depth = 0): Promise<string[]> => {
   return found;
 };
 
-const PS4_PKG_KIND_ORDER = { game: 0, patch: 1 } as const;
+const PS4_PKG_KIND_ORDER = { game: 0, patch: 1, addon: 2 } as const;
 
 const IN_PLACE_EXTRACTION_FEATURE = "IN_PLACE_ARCHIVE_EXTRACTION";
 const FEATURES_REQUEST_TIMEOUT_MS = 10_000;
@@ -177,6 +185,8 @@ export class GameFilesManager {
     return levelKeys.game(this.shop, this.objectId);
   }
 
+  private extractionStage: ExtractionStage | undefined;
+
   private updateExtractionProgress(progress: number, force = false) {
     const now = Date.now();
 
@@ -195,7 +205,8 @@ export class GameFilesManager {
       "on-extraction-progress",
       this.shop,
       this.objectId,
-      progress
+      progress,
+      this.extractionStage
     );
   }
 
@@ -545,7 +556,7 @@ export class GameFilesManager {
     const pkgs: {
       pkgPath: string;
       titleId: string;
-      kind: "game" | "patch";
+      kind: "game" | "patch" | "addon";
       appVersion: string;
       size: number;
     }[] = [];
@@ -555,7 +566,7 @@ export class GameFilesManager {
       if (
         !info ||
         info.isDeltaPatch ||
-        (info.kind !== "game" && info.kind !== "patch")
+        (info.kind !== "game" && info.kind !== "patch" && info.kind !== "addon")
       ) {
         logger.info(
           `[GameFilesManager] Keeping PS4 PKG as is: ${pkgPath}`,
@@ -596,17 +607,22 @@ export class GameFilesManager {
 
       const totalSize = pkgs.reduce((sum, pkg) => sum + pkg.size, 0) || 1;
       const gameDirectories = new Map<string, string>();
-      // A PKG the download keeps (setting, or a torrent still seeding) stays.
-      const deletePkg =
-        (await this.shouldDeleteArchives(download)) && !download.shouldSeed;
+      // Only a torrent still seeding keeps its PKGs.
+      const deletePkg = !download.shouldSeed;
       const searchRoot = fs.statSync(sourcePath).isDirectory()
         ? sourcePath
         : path.dirname(sourcePath);
+      const addonDirectory = pkgs.some((pkg) => pkg.kind === "addon")
+        ? await import("@main/events/emulators/ps4-pkg-actions")
+            .then(({ getPs4AddonDirectory }) => getPs4AddonDirectory())
+            .catch(() => null)
+        : null;
       let doneSize = 0;
       this.updateExtractionProgress(0, true);
 
       for (const pkg of pkgs) {
         currentPkg = pkg.pkgPath;
+        this.extractionStage = PS4_PKG_STAGES[pkg.kind];
         const install = () =>
           installPs4Pkg({
             pkgPath: pkg.pkgPath,
@@ -614,6 +630,7 @@ export class GameFilesManager {
               gameDirectories.get(pkg.titleId) ??
               findExtractedPs4Game(searchRoot, pkg.titleId),
             deletePkg,
+            addonDirectory,
             signal: controller.signal,
             onProgress: (fraction) =>
               this.updateExtractionProgress(
@@ -624,8 +641,8 @@ export class GameFilesManager {
         if (pkg.kind === "game") {
           gameDirectories.set(pkg.titleId, (await install()).gameDirectory);
         } else {
-          // An update that does not fit (wrong game, not newer) is kept, and
-          // the game it came with still finishes extracting.
+          // An update or DLC that does not fit (wrong game, not newer) is kept,
+          // and the game it came with still finishes extracting.
           await install().catch((error) => {
             if (
               error instanceof Ps4PkgError &&
@@ -634,7 +651,7 @@ export class GameFilesManager {
               throw error;
             }
             logger.warn(
-              `[GameFilesManager] Skipped PS4 update PKG ${pkg.pkgPath}`,
+              `[GameFilesManager] Skipped PS4 ${pkg.kind} PKG ${pkg.pkgPath}`,
               error
             );
           });
@@ -688,6 +705,7 @@ export class GameFilesManager {
       );
       return false;
     } finally {
+      this.extractionStage = undefined;
       if (GameFilesManager.ps4Extractions.get(this.gameKey) === controller) {
         GameFilesManager.ps4Extractions.delete(this.gameKey);
       }

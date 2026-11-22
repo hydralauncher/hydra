@@ -20,11 +20,11 @@ const ALWAYS_SESSION_SCOPED_KEYS = [
   SETTINGS_CATEGORY_STORAGE_KEY,
   SETTINGS_EMULATION_VIEW_STORAGE_KEY,
   SETTINGS_RETROARCH_TAB_STORAGE_KEY,
-  "library-view-mode",
-  "hydra:big-picture:library-view-mode",
 ];
 
 const FILTER_SESSION_SCOPED_KEYS = [
+  "library-view-mode",
+  "hydra:big-picture:library-view-mode",
   "library-sort-by",
   "library-category",
   "library-collection",

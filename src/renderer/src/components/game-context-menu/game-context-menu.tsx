@@ -28,6 +28,7 @@ import {
   LockIcon,
   SyncIcon,
 } from "@primer/octicons-react";
+import { PackagePlus } from "lucide-react";
 import SteamLogo from "@renderer/assets/steam-logo.svg?react";
 import {
   ContextMenu,
@@ -157,6 +158,7 @@ export function GameContextMenu({
   }, [visible, game.shop, game.objectId]);
 
   const ps4Update = usePs4PkgPicker(game.shop, game.objectId, "update");
+  const ps4Dlc = usePs4PkgPicker(game.shop, game.objectId, "dlc");
 
   const targetSource =
     group ??
@@ -484,6 +486,13 @@ export function GameContextMenu({
                 icon: <SyncIcon size={16} />,
                 onClick: () => void ps4Update.pick(),
                 disabled: isDeleting || ps4Update.isBusy,
+              },
+              {
+                id: "apply-ps4-dlc",
+                label: t("apply_ps4_dlc"),
+                icon: <PackagePlus size={16} />,
+                onClick: () => void ps4Dlc.pick(),
+                disabled: isDeleting || ps4Dlc.isBusy,
               },
             ]
           : []),

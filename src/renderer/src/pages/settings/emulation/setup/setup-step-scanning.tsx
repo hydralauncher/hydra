@@ -27,7 +27,12 @@ interface Props {
   sizeBytes: number;
   unmatchedFiles: {
     name: string;
-    reason: "wrong_platform" | "unmatched" | "unsupported_package";
+    reason:
+      | "wrong_platform"
+      | "unmatched"
+      | "unsupported_package"
+      | "update_package"
+      | "dlc_package";
   }[];
 }
 
@@ -46,6 +51,8 @@ const REASON_LABEL_KEYS = {
   wrong_platform: "setup_match_wrong_platform",
   unmatched: "setup_match_unmatched",
   unsupported_package: "setup_match_unsupported_package",
+  update_package: "setup_match_update_package",
+  dlc_package: "setup_match_dlc_package",
 } as const;
 
 export function SetupStepScanning({

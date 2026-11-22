@@ -16,6 +16,7 @@ interface SetupFooterProps {
   continueHidden?: boolean;
   continueLabel?: React.ReactNode;
   endAction?: FooterEndAction | null;
+  secondaryAction?: FooterEndAction | null;
   onBack: () => void;
   onSkip: () => void;
   onContinue: () => void;
@@ -30,6 +31,7 @@ export function SetupFooter({
   continueHidden,
   continueLabel,
   endAction,
+  secondaryAction,
   onBack,
   onSkip,
   onContinue,
@@ -66,6 +68,11 @@ export function SetupFooter({
         {showSkip && (
           <Button theme="outline" onClick={onSkip}>
             {t("setup_skip")}
+          </Button>
+        )}
+        {secondaryAction && (
+          <Button theme="outline" onClick={secondaryAction.onClick}>
+            {secondaryAction.label}
           </Button>
         )}
         {!continueHidden && (

@@ -436,6 +436,7 @@ export class Umu {
       onStatus?: UmuStatusListener;
       wasGameDetected?: () => boolean;
       onExit?: (exitCode: number | null) => void;
+      env?: Record<string, string>;
     }
   ): Promise<number | undefined> {
     const QUICK_EXIT_THRESHOLD_MS = 3000;
@@ -465,6 +466,7 @@ export class Umu {
         : {}),
       ...(options?.protonPath ? { PROTONPATH: options.protonPath } : {}),
       ...(options?.useMangohud ? { MANGOHUD: "1" } : {}),
+      ...options?.env,
       ...resolvedLaunchCommand.env,
     };
 
