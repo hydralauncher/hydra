@@ -201,6 +201,14 @@
     transform: translateY(-2px);
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: border-color ease 0.2s;
+
+    &:hover {
+      transform: none;
+    }
+  }
+
   &__image {
     width: 100%;
     height: 100%;
