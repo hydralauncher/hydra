@@ -13,6 +13,7 @@ import {
   mergeChatMessages,
   mergePendingMessages,
   removeUnsentMessage,
+  selectMessagesToKeep,
   setMessageAttachmentIds,
   setMessageFailed,
   setMessageStatus,
@@ -622,5 +623,47 @@ describe("mergePendingMessages", () => {
     );
 
     assert.deepEqual(merged, [delivered]);
+  });
+});
+
+describe("selectMessagesToKeep", () => {
+  const unsent = createPendingMessage("draft", "nonce-1", CREATED_AT);
+  const cached = [stored(101), stored(151), stored(205), unsent];
+  const seqs = (messages: ChatMessage[]) =>
+    messages.map((message) => message.seq ?? "unsent");
+
+  it("drops live messages older than the first page, so no gap is left", () => {
+    assert.deepEqual(
+      seqs(
+        selectMessagesToKeep(cached, 151, { replace: false, isFirstLoad: true })
+      ),
+      [151, 205, "unsent"]
+    );
+  });
+
+  it("keeps everything on later loads", () => {
+    assert.equal(
+      selectMessagesToKeep(cached, 151, { replace: false, isFirstLoad: false }),
+      cached
+    );
+  });
+
+  it("keeps everything when the first page is empty", () => {
+    assert.equal(
+      selectMessagesToKeep(cached, undefined, {
+        replace: false,
+        isFirstLoad: true,
+      }),
+      cached
+    );
+  });
+
+  it("keeps only unsent messages on a replace", () => {
+    assert.deepEqual(
+      seqs(
+        selectMessagesToKeep(cached, 151, { replace: true, isFirstLoad: true })
+      ),
+      ["unsent"]
+    );
   });
 });
