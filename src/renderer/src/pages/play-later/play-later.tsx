@@ -101,9 +101,8 @@ export default function PlayLater() {
               ))}
             </ul>
 
-            <div
+            <fieldset
               className="play-later__views"
-              role="group"
               aria-label={t("view_mode", { ns: "library" })}
             >
               {VIEW_OPTIONS.map((option) => (
@@ -119,19 +118,21 @@ export default function PlayLater() {
                   {option.icon}
                 </button>
               ))}
-            </div>
+            </fieldset>
           </div>
         )}
       </header>
 
       {/* Nothing until the list and the library are loaded, so the empty state never flashes. */}
-      {!hasLoaded ? null : sortedItems.length === 0 ? (
+      {hasLoaded && sortedItems.length === 0 && (
         <div className="play-later__empty">
           <BookmarkIcon size={24} />
           <h3>{t("empty_title")}</h3>
           <p>{t("empty_description")}</p>
         </div>
-      ) : (
+      )}
+
+      {hasLoaded && sortedItems.length > 0 && (
         <ul className={`play-later__cards play-later__cards--${viewMode}`}>
           {sortedItems.map((entry) => (
             <li
