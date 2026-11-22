@@ -184,7 +184,7 @@ export const listArchiveVolumes = async (archivePath: string) => {
 export const findDownloadInstaller = async (
   download: Download | undefined | null
 ): Promise<string | null> => {
-  if (!download || process.platform === "darwin") return null;
+  if (!download) return null;
 
   const folderPath = await getDownloadFolderPath(download);
   if (!folderPath) return null;

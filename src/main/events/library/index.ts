@@ -29,6 +29,7 @@ import "./has-source-archive";
 import "./recheck-installed-executable";
 import "./get-executable-picker-path";
 import "./get-game-launch-proton-version";
+import "./get-mac-compatibility-status";
 import "./get-game-save-folder";
 import "./get-games-running";
 import "./get-library";

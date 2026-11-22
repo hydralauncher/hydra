@@ -12,7 +12,9 @@ if (!app.isPackaged && developmentUserDataPath) {
 
 export const defaultDownloadsPath = SystemPath.getPath("downloads");
 
-export const isStaging = import.meta.env.MAIN_VITE_API_URL.includes("staging");
+export const isStaging = Boolean(
+  import.meta.env.MAIN_VITE_API_URL?.includes("staging")
+);
 
 export const windowsStartMenuPath = path.join(
   SystemPath.getPath("appData"),

@@ -1181,6 +1181,8 @@ export class WindowManager {
 
     if (!parentWindow || parentWindow.isDestroyed()) return;
 
+    if (!import.meta.env.MAIN_VITE_AUTH_URL) return;
+
     const authUrl = `${import.meta.env.MAIN_VITE_AUTH_URL}${page}?${searchParams.toString()}`;
 
     if (process.platform === "linux") {
@@ -1193,7 +1195,9 @@ export class WindowManager {
       height: AUTH_WINDOW_CONTENT_HEIGHT,
       backgroundColor: "#1c1c1c",
       parent: parentWindow,
-      modal: true,
+      // On macOS, child + modal turns the window into a sheet with no close button.
+      modal: process.platform !== "darwin",
+      closable: true,
       show: false,
       maximizable: false,
       resizable: false,
@@ -1205,6 +1209,16 @@ export class WindowManager {
     });
 
     authWindow.removeMenu();
+
+    authWindow.webContents.on("before-input-event", (_event, input) => {
+      if (
+        input.type === "keyDown" &&
+        input.key === "Escape" &&
+        !authWindow.isDestroyed()
+      ) {
+        authWindow.close();
+      }
+    });
 
     if (!app.isPackaged) authWindow.webContents.openDevTools();
 
@@ -1320,7 +1334,8 @@ export class WindowManager {
       title: "Hydra",
       backgroundColor: "#1c1c1c",
       parent: parentWindow,
-      modal: true,
+      modal: process.platform !== "darwin",
+      closable: true,
       show: false,
       maximizable: false,
       resizable: false,
@@ -1332,6 +1347,15 @@ export class WindowManager {
 
     this.retroAchievementsConnectionWindow = connectionWindow;
     connectionWindow.removeMenu();
+    connectionWindow.webContents.on("before-input-event", (_event, input) => {
+      if (
+        input.type === "keyDown" &&
+        input.key === "Escape" &&
+        !connectionWindow.isDestroyed()
+      ) {
+        connectionWindow.close();
+      }
+    });
     void this.loadWindowURL(connectionWindow, "retroachievements-connection");
 
     connectionWindow.once("ready-to-show", () => {

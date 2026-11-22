@@ -24,6 +24,7 @@ export * from "./disk-usage";
 export * from "./library-sync";
 export * from "./wine";
 export * from "./umu";
+export * from "./macos-compatibility";
 export * from "./lock";
 export * from "./decky-plugin";
 export * from "./user";

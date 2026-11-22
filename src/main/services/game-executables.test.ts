@@ -32,6 +32,18 @@ describe("game executable catalogue", () => {
     });
   });
 
+  it("keeps native and compatibility executables on macOS", () => {
+    const macCatalog = {
+      ...catalog,
+      "30": [{ name: "Game.app/Contents/MacOS/Game", os: "macos" }],
+    };
+    assert.deepEqual(normalizeGameExecutableCatalog(macCatalog, "darwin"), {
+      "10": [{ name: "folder/game.exe", exe: "game.exe" }],
+      "20": [{ name: "other/tool.exe", exe: "tool.exe" }],
+      "30": [{ name: "game.app/contents/macos/game", exe: "game" }],
+    });
+  });
+
   it("retries a failed load and caches the successful catalogue", async () => {
     const store = new GameExecutableCatalogStore("linux");
     let calls = 0;

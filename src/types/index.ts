@@ -64,6 +64,14 @@ export interface ProtonVersion {
   source?: "steam" | "compatibility_tools" | "unknown";
 }
 
+export interface MacCompatibilityStatus {
+  hasCrossOver: boolean;
+  hasNotProtonApp: boolean;
+  crossOverPath: string | null;
+  notProtonTools: ProtonVersion[];
+  isReady: boolean;
+}
+
 export interface CatalogueImageVariants {
   base: string;
   widths: number[];

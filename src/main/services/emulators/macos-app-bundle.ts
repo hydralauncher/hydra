@@ -24,6 +24,22 @@ export const isMacAppBundlePath = (targetPath: string): boolean =>
   path.extname(path.normalize(targetPath)).toLowerCase() ===
     MACOS_APP_EXTENSION;
 
+/** Matches exact `.app` names and versioned names like `PCSX2-v2.8.2.app`. */
+export const matchesMacosBundleName = (
+  entryName: string,
+  bundleNames: readonly string[]
+): boolean => {
+  const lower = entryName.toLowerCase();
+  if (!lower.endsWith(MACOS_APP_EXTENSION)) return false;
+
+  return bundleNames.some((bundleName) => {
+    const normalizedBundle = bundleName.toLowerCase();
+    if (lower === normalizedBundle) return true;
+    const prefix = normalizedBundle.slice(0, -MACOS_APP_EXTENSION.length);
+    return lower.startsWith(`${prefix}-`) || lower.startsWith(`${prefix} `);
+  });
+};
+
 export const findMacAppBundleRoot = (targetPath: string): string | null => {
   if (process.platform !== "darwin" || !targetPath) return null;
 

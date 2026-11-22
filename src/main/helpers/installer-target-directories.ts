@@ -144,7 +144,7 @@ export const getInstallerTargetDirectories = (
     return getWindowsTargetDirectories(downloadPath);
   }
 
-  if (process.platform === "linux") {
+  if (process.platform === "linux" || process.platform === "darwin") {
     return getWinePrefixTargetDirectories(winePrefixPath);
   }
 

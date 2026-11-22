@@ -96,7 +96,7 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     displayName: "shadPS4",
     linuxNames: ["shadPS4QtLauncher-qt.AppImage"],
     windowsNames: ["shadPS4QtLauncher.exe"],
-    macosBundleNames: [],
+    macosBundleNames: ["shadPS4QtLauncher.app", "shadPS4.app"],
     flatpakIds: [],
     versionFlags: [],
     readVersion: readShadps4InstalledVersion,
