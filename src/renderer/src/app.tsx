@@ -9,6 +9,7 @@ import {
   useGamificationProgressSync,
   useDragTextSelection,
   useLibrary,
+  usePlayLater,
   useToast,
   useUserDetails,
 } from "@renderer/hooks";
@@ -78,6 +79,7 @@ type WorkWondersWithKnowledge = WorkWonders & {
 export function App() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { updateLibrary, library, downloadLibrary } = useLibrary();
+  const { loadPlayLater, hasLibraryGames } = usePlayLater();
 
   // Listen for new download options updates
   useDownloadOptionsListener();
@@ -137,6 +139,17 @@ export function App() {
       dispatch(setUserPreferences(preferences as UserPreferences | null));
     });
   }, [navigate, location.pathname, dispatch, updateLibrary]);
+
+  // Separate from the effect above, which runs again on every navigation.
+  useEffect(() => {
+    void loadPlayLater();
+  }, [loadPlayLater]);
+
+  // A listed game that just entered the library is deleted now (getPlayLater
+  // prunes it), so removing it from the library later won't bring it back.
+  useEffect(() => {
+    if (hasLibraryGames) void loadPlayLater();
+  }, [hasLibraryGames, loadPlayLater]);
 
   useEffect(() => {
     const unsubscribe = window.electron.onUserPreferencesUpdated(

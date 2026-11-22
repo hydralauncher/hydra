@@ -38,6 +38,7 @@ import Profile from "./pages/profile/profile";
 import Achievements from "./pages/achievements/achievements";
 import ThemeEditor from "./pages/theme-editor/theme-editor";
 import Library from "./pages/library/library";
+import PlayLater from "./pages/play-later/play-later";
 import Notifications from "./pages/notifications/notifications";
 import Shop from "./pages/shop/shop";
 import Leaderboards from "./pages/leaderboards/leaderboards";
@@ -142,6 +143,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                   <Route path="/" element={<Home />} />
                   <Route path="/catalogue" element={<Catalogue />} />
                   <Route path="/library" element={<Library />} />
+                  <Route path="/play-later" element={<PlayLater />} />
                   <Route path="/downloads" element={<Downloads />} />
                   <Route
                     path="/game/:shop/:objectId"

@@ -1,4 +1,10 @@
-import { AppsIcon, GearIcon, HomeIcon, BookIcon } from "@primer/octicons-react";
+import {
+  AppsIcon,
+  GearIcon,
+  HomeIcon,
+  BookIcon,
+  BookmarkIcon,
+} from "@primer/octicons-react";
 
 import { SidebarDownloadIcon } from "./sidebar-download-icon";
 
@@ -40,6 +46,11 @@ export const routes = [
     path: "/library",
     nameKey: "library",
     render: () => <BookIcon />,
+  },
+  {
+    path: "/play-later",
+    nameKey: "play_later",
+    render: () => <BookmarkIcon />,
   },
   {
     path: "/downloads",

@@ -10,6 +10,7 @@ import {
   useAppSelector,
   useDownload,
   useLibrary,
+  usePlayLater,
   useToast,
   useGlobalLeaderboardsFeature,
 } from "@renderer/hooks";
@@ -83,6 +84,7 @@ export function Sidebar() {
   const { isEnabled: isGlobalLeaderboardsEnabled } =
     useGlobalLeaderboardsFeature();
   const { library, updateLibrary } = useLibrary();
+  const { items: playLaterItems } = usePlayLater();
   const isLibraryLoading = useAppSelector(selectIsLibraryLoading);
   const groupedLibrary = useAppSelector(selectGroupedLibrary);
   const [deckyPluginInfo, setDeckyPluginInfo] = useState<{
@@ -521,6 +523,11 @@ export function Sidebar() {
                     >
                       {render()}
                       <span>{t(nameKey)}</span>
+                      {path === "/play-later" && playLaterItems.length > 0 && (
+                        <span className="sidebar__collection-count">
+                          {playLaterItems.length}
+                        </span>
+                      )}
                     </button>
                   </li>
                 ))}

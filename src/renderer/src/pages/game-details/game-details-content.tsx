@@ -6,7 +6,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { PencilIcon } from "@primer/octicons-react";
+import {
+  BookmarkFillIcon,
+  BookmarkIcon,
+  PencilIcon,
+} from "@primer/octicons-react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -28,7 +32,12 @@ import { cloudSyncContext, gameDetailsContext } from "@renderer/context";
 
 import cloudIconAnimated from "@renderer/assets/icons/cloud-animated.gif";
 import tvEffectVideo from "@renderer/assets/emulation/tv-effect.mp4";
-import { useUserDetails, useLibrary, useAppSelector } from "@renderer/hooks";
+import {
+  useUserDetails,
+  useLibrary,
+  useAppSelector,
+  usePlayLater,
+} from "@renderer/hooks";
 import {
   CLASSICS_PS_PLATFORM_LABELS,
   resolveClassicsBadge,
@@ -93,6 +102,48 @@ export function GameDetailsContent() {
 
   const { userDetails } = useUserDetails();
   const { library } = useLibrary();
+  const {
+    hasLoaded: hasPlayLaterLoaded,
+    isLibraryGame,
+    isInPlayLater,
+    addToPlayLater,
+    removeFromPlayLater,
+  } = usePlayLater();
+  const [isPlayLaterPending, setIsPlayLaterPending] = useState(false);
+
+  // Only games outside the library can be saved for later. The button waits
+  // for the library and the list, so it never shows on a library game's page
+  // or in the wrong state.
+  const shopAssets = shopDetails?.assets ?? null;
+  const playLaterAssets =
+    !game &&
+    hasPlayLaterLoaded &&
+    shopAssets &&
+    !isLibraryGame(shopAssets.shop, shopAssets.objectId)
+      ? shopAssets
+      : null;
+  const isInPlayLaterList = playLaterAssets
+    ? isInPlayLater(playLaterAssets.shop, playLaterAssets.objectId)
+    : false;
+
+  // Disabled while a request is pending, so fast clicks can't send an add and
+  // a remove out of order.
+  const handlePlayLaterClick = async () => {
+    if (!playLaterAssets) return;
+    setIsPlayLaterPending(true);
+    try {
+      if (isInPlayLaterList) {
+        await removeFromPlayLater(
+          playLaterAssets.shop,
+          playLaterAssets.objectId
+        );
+      } else {
+        await addToPlayLater(playLaterAssets);
+      }
+    } finally {
+      setIsPlayLaterPending(false);
+    }
+  };
 
   const { getGameArtifacts } = useContext(cloudSyncContext);
   const cloudSaveVisibility = game
@@ -457,6 +508,29 @@ export function GameDetailsContent() {
               )}
 
               <div className="game-details__hero-buttons game-details__hero-buttons--right">
+                {playLaterAssets && (
+                  <button
+                    type="button"
+                    className={`game-details__play-later-button${isInPlayLaterList ? " game-details__play-later-button--active" : ""}`}
+                    onClick={() => void handlePlayLaterClick()}
+                    disabled={isPlayLaterPending}
+                    // A fixed name with aria-pressed; the tooltip says what the click does.
+                    aria-pressed={isInPlayLaterList}
+                    aria-label={t("play_later", { ns: "sidebar" })}
+                    title={t(
+                      isInPlayLaterList
+                        ? "remove_from_play_later"
+                        : "add_to_play_later"
+                    )}
+                  >
+                    {isInPlayLaterList ? (
+                      <BookmarkFillIcon size={16} />
+                    ) : (
+                      <BookmarkIcon size={16} />
+                    )}
+                  </button>
+                )}
+
                 {game && (
                   <button
                     type="button"

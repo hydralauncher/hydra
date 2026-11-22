@@ -1,0 +1,250 @@
+@use "../../scss/globals.scss";
+
+.play-later {
+  display: flex;
+  flex-direction: column;
+  gap: calc(globals.$spacing-unit * 2);
+  padding: calc(globals.$spacing-unit * 3);
+  width: 100%;
+
+  &__header {
+    display: flex;
+    gap: globals.$spacing-unit;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: calc(globals.$spacing-unit * 2);
+  }
+
+  &__sort {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: globals.$spacing-unit;
+  }
+
+  &__views {
+    display: flex;
+    gap: 2px;
+    margin: 0;
+    min-width: 0;
+    padding: 2px;
+    border: solid 1px globals.$border-color;
+    border-radius: 8px;
+  }
+
+  &__view {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    color: globals.$muted-color;
+    cursor: pointer;
+    transition:
+      color ease 0.2s,
+      background-color ease 0.2s;
+
+    &:hover {
+      color: globals.$body-color;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &--active {
+      color: globals.$body-color;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__cards {
+    display: grid;
+    gap: calc(globals.$spacing-unit * 2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    // Column counts copied from the library grid so the cards match in size.
+    &--compact {
+      grid-template-columns: repeat(3, 1fr);
+
+      @include globals.page-min-width(900px) {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      @include globals.page-min-width(1300px) {
+        grid-template-columns: repeat(7, 1fr);
+      }
+
+      @include globals.page-min-width(2000px) {
+        grid-template-columns: repeat(9, 1fr);
+      }
+
+      @include globals.page-min-width(2600px) {
+        grid-template-columns: repeat(12, 1fr);
+      }
+
+      @include globals.page-min-width(3000px) {
+        grid-template-columns: repeat(14, 1fr);
+      }
+    }
+
+    &--grid {
+      grid-template-columns: repeat(2, 1fr);
+
+      @include globals.page-min-width(900px) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      @include globals.page-min-width(1300px) {
+        grid-template-columns: repeat(5, 1fr);
+      }
+
+      @include globals.page-min-width(2000px) {
+        grid-template-columns: repeat(6, 1fr);
+      }
+
+      @include globals.page-min-width(2600px) {
+        grid-template-columns: repeat(8, 1fr);
+      }
+
+      @include globals.page-min-width(3000px) {
+        grid-template-columns: repeat(12, 1fr);
+      }
+    }
+
+    &--large {
+      grid-template-columns: 1fr;
+
+      @include globals.page-min-width(900px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  }
+
+  &__added-on {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: globals.$spacing-unit;
+  }
+
+  &__item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: globals.$spacing-unit;
+    color: globals.$muted-color;
+    font-size: 12px;
+  }
+
+  &__remove-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: globals.$spacing-unit;
+    border-radius: 4px;
+    color: globals.$body-color;
+    cursor: pointer;
+    transition: background-color ease 0.2s;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: globals.$spacing-unit;
+    padding: calc(globals.$spacing-unit * 6) 0;
+    color: globals.$muted-color;
+    text-align: center;
+
+    h3 {
+      color: globals.$body-color;
+    }
+  }
+}
+
+.play-later-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  border: solid 1px globals.$border-color;
+  background-color: globals.$dark-background-color;
+  cursor: pointer;
+  transition:
+    border-color ease 0.2s,
+    transform ease 0.2s;
+
+  // The large view's banner; compact and grid use the shared cover card.
+  // Same height as the library's large cards.
+  height: 300px;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: border-color ease 0.2s;
+
+    &:hover {
+      transform: none;
+    }
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: globals.$spacing-unit;
+    color: globals.$muted-color;
+    text-align: center;
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: calc(globals.$spacing-unit * 2);
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.7) 0%, transparent 60%);
+  }
+
+  &__logo {
+    max-width: 50%;
+    max-height: 45%;
+    object-fit: contain;
+  }
+
+  &__title {
+    color: globals.$body-color;
+    font-size: 18px;
+    font-weight: 700;
+  }
+}
