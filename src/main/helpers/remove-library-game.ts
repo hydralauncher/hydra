@@ -12,6 +12,7 @@ import {
   type ClassicsEmulatorTarget,
 } from "@shared";
 import fs from "node:fs";
+import { forgetPlayLaterGame } from "./forget-play-later-game";
 import { groupedSouvenirWorker } from "@main/services/achievements/grouped-souvenir-worker";
 
 const collectAssetPathsToDelete = (game: Game): string[] => {
@@ -97,6 +98,9 @@ export const removeLibraryGame = async (shop: GameShop, objectId: string) => {
   const assetPathsToDelete = collectAssetPathsToDelete(game);
 
   await updateGameAsDeleted(game, gameKey);
+  await forgetPlayLaterGame(game).catch((error) => {
+    logger.error("Failed to clear Play later for a removed game", error);
+  });
   void groupedSouvenirWorker.trigger().catch((error) => {
     logger.warn(
       "Failed to stop souvenir synchronization for a removed game",
