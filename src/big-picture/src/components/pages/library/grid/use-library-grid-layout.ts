@@ -1,5 +1,9 @@
 import { type CSSProperties, useLayoutEffect, useMemo, useState } from "react";
 import { LIBRARY_FOCUS_GRID_REGION_ID } from "../navigation";
+import {
+  getLibraryGridColumnCount,
+  type LibraryCardSize,
+} from "../library-card-size";
 
 const GRID_NARROW_CARD_MIN_WIDTH = 260;
 const GRID_NARROW_COLUMN_GAP = 24;
@@ -71,7 +75,10 @@ function getInitialLayout(): LibraryGridLayout {
   return getLayoutForViewport(globalThis.innerWidth, 0);
 }
 
-export function useLibraryGridLayout(itemCount: number) {
+export function useLibraryGridLayout(
+  itemCount: number,
+  cardSize: LibraryCardSize
+) {
   const [layout, setLayout] = useState<LibraryGridLayout>(getInitialLayout);
 
   useLayoutEffect(() => {
@@ -107,9 +114,12 @@ export function useLibraryGridLayout(itemCount: number) {
   return useMemo(
     () =>
       ({
-        "--library-focus-grid-column-count": `${layout.columnCount}`,
+        "--library-focus-grid-column-count": `${getLibraryGridColumnCount(
+          layout.columnCount,
+          cardSize
+        )}`,
         "--library-focus-grid-column-gap": `${layout.columnGap}px`,
       }) as CSSProperties,
-    [layout]
+    [cardSize, layout]
   );
 }

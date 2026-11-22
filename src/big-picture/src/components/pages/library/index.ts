@@ -7,6 +7,7 @@ export * from "./game-context-menu-items";
 export * from "./game-settings-modal";
 export * from "./filters/filters";
 export * from "./library-data";
+export * from "./library-card-size";
 export * from "./use-library-favorite";
 export * from "./use-library-launch-game";
 export * from "./use-library-page-data";

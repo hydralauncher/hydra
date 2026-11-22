@@ -19,6 +19,7 @@ import {
   FunnelIcon,
   ListDashesIcon,
   MagnifyingGlassIcon,
+  ResizeIcon,
   SortAscendingIcon,
   SquaresFourIcon,
 } from "@phosphor-icons/react";
@@ -26,6 +27,7 @@ import type { FocusOverrides } from "../../../../services";
 import { BIG_PICTURE_SIDEBAR_ITEM_IDS } from "../../../../layout";
 import {
   getLibraryFiltersTabFocusId,
+  LIBRARY_FILTERS_CARD_SIZE_SELECT_ID,
   LIBRARY_FILTERS_FILTER_SELECT_ID,
   LIBRARY_FILTERS_GRID_VIEW_BUTTON_ID,
   LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
@@ -42,6 +44,7 @@ import {
   type LibrarySortOption,
   type LibraryViewMode,
 } from "../library-data";
+import type { LibraryCardSize } from "../library-card-size";
 
 const SORT_OPTIONS = [
   { value: "last_played", label: "Last Played" },
@@ -58,6 +61,12 @@ const FILTER_OPTIONS = [
   { value: "not_installed", label: "Not Installed" },
   { value: "never_played", label: "Never Played" },
 ] satisfies Array<DropdownSelectOption<LibrarySecondaryFilter>>;
+
+const CARD_SIZE_OPTIONS = [
+  { value: "small", label: "Small Cards" },
+  { value: "medium", label: "Medium Cards" },
+  { value: "large", label: "Large Cards" },
+] satisfies Array<DropdownSelectOption<LibraryCardSize>>;
 
 const TITLE_COMPARE_COLLECTIONS = { sensitivity: "base" } as const;
 
@@ -77,6 +86,8 @@ export interface LibraryFiltersProps {
   onSelectedTabChange: (tab: LibraryFilterTab) => void;
   viewMode: LibraryViewMode;
   onViewModeChange: (viewMode: LibraryViewMode) => void;
+  cardSize: LibraryCardSize;
+  onCardSizeChange: (cardSize: LibraryCardSize) => void;
   sortBy: LibrarySortOption;
   onSortByChange: (sortBy: LibrarySortOption) => void;
   filterBy: LibrarySecondaryFilter;
@@ -94,6 +105,8 @@ export function LibraryFilters({
   onSelectedTabChange,
   viewMode,
   onViewModeChange,
+  cardSize,
+  onCardSizeChange,
   sortBy,
   onSortByChange,
   filterBy,
@@ -250,6 +263,18 @@ export function LibraryFilters({
     },
     right: {
       type: "item",
+      itemId: LIBRARY_FILTERS_CARD_SIZE_SELECT_ID,
+    },
+    up: toolbarUpOverride,
+    down: toolbarDownOverride,
+  };
+  const cardSizeNavigationOverrides: FocusOverrides = {
+    left: {
+      type: "item",
+      itemId: LIBRARY_FILTERS_FILTER_SELECT_ID,
+    },
+    right: {
+      type: "item",
       itemId: LIBRARY_FILTERS_LIST_VIEW_BUTTON_ID,
     },
     up: toolbarUpOverride,
@@ -258,7 +283,7 @@ export function LibraryFilters({
   const listViewNavigationOverrides: FocusOverrides = {
     left: {
       type: "item",
-      itemId: LIBRARY_FILTERS_FILTER_SELECT_ID,
+      itemId: LIBRARY_FILTERS_CARD_SIZE_SELECT_ID,
     },
     right: {
       type: "item",
@@ -328,6 +353,18 @@ export function LibraryFilters({
             value={filterBy}
             options={FILTER_OPTIONS}
             onValueChange={onFilterByChange}
+          />
+
+          <DropdownSelect
+            className="library-filters__select"
+            hideLabel
+            leadingIcon={<ResizeIcon size={20} />}
+            ariaLabel="Library card size"
+            focusId={LIBRARY_FILTERS_CARD_SIZE_SELECT_ID}
+            focusNavigationOverrides={cardSizeNavigationOverrides}
+            value={cardSize}
+            options={CARD_SIZE_OPTIONS}
+            onValueChange={onCardSizeChange}
           />
         </div>
 

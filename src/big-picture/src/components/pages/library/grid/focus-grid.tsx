@@ -7,11 +7,13 @@ import {
 import { useLibraryGridNavigation } from "../grid-navigation";
 import { useLibraryGridLayout } from "./use-library-grid-layout";
 import { VerticalLibraryGameCard } from "../game-card";
+import type { LibraryCardSize } from "../library-card-size";
 
 import "./focus-grid.scss";
 
 export interface LibraryFocusGridProps {
   games: LibraryGame[];
+  cardSize: LibraryCardSize;
   contextMenuGameId?: string | null;
   onOpenContextMenu?: (
     game: LibraryGame,
@@ -22,11 +24,12 @@ export interface LibraryFocusGridProps {
 
 export function LibraryFocusGrid({
   games,
+  cardSize,
   contextMenuGameId = null,
   onOpenContextMenu,
 }: Readonly<LibraryFocusGridProps>) {
   const navigationOverridesByItemId = useLibraryGridNavigation(games);
-  const style = useLibraryGridLayout(games.length);
+  const style = useLibraryGridLayout(games.length, cardSize);
 
   if (games.length === 0) return null;
 
