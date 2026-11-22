@@ -9,10 +9,15 @@ import {
 
 const catalogStore = new GameExecutableCatalogStore(process.platform);
 
+// Without a timeout, a stalled connection keeps loadPromise pending forever,
+// so the retry in ensureLoaded never runs (see #2749).
+const LOAD_TIMEOUT_MS = 30_000;
+
 const loadGameExecutables = async () => {
   try {
     const response = await axios.get<GameExecutableCatalogResponse>(
-      `${import.meta.env.MAIN_VITE_API_URL}/catalogue/steam/executables`
+      `${import.meta.env.MAIN_VITE_API_URL}/catalogue/steam/executables`,
+      { timeout: LOAD_TIMEOUT_MS }
     );
     return response.data;
   } catch (error) {
