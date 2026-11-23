@@ -28,6 +28,7 @@ import { Wine } from "../wine";
 import { AchievementMemoryStore } from "./achievement-memory-store";
 import { UnlockedAchievementsCache } from "./unlocked-achievements-cache";
 import { CombinedAchievementsRequests } from "./combined-achievements-requests";
+import { getCombinedAchievementNotificationMode } from "./combined-achievement-notification-mode";
 import { achievementNotificationPresenter } from "../achievement-notification-presenter-electron";
 import { readRpcs3TrophyUnlocks } from "../emulators/rpcs3-trophy-sources";
 
@@ -604,12 +605,14 @@ export class AchievementWatcherManager {
       }
     );
 
-    const shouldUseCustomNotification =
-      userPreferences.achievementNotificationsEnabled !== false &&
-      userPreferences.achievementCustomNotificationsEnabled !== false &&
-      process.platform === "win32";
+    const mode = getCombinedAchievementNotificationMode(
+      userPreferences,
+      process.platform
+    );
 
-    if (shouldUseCustomNotification) {
+    if (mode === "none") return;
+
+    if (mode === "custom") {
       achievementNotificationPresenter.enqueueCombined(
         userPreferences.achievementCustomNotificationPosition ?? "top-left",
         totalNewGamesWithAchievements,
