@@ -167,7 +167,7 @@ const saveAchievementsInMemory = async (
         current,
         since
       );
-      WindowManager.mainWindow?.webContents.send(
+      WindowManager.sendToAchievementWindows(
         `on-update-achievements-${objectId}-${shop}`,
         achievements
       );

@@ -51,6 +51,7 @@ interface AchievementListProps {
   scrollElement: HTMLElement | null;
   viewerUnlockedNames?: ReadonlySet<string>;
   pointsSummary?: { earned: number; total: number };
+  compact?: boolean;
 }
 
 const getEntryKey = (entry: AchievementListEntry<UserAchievement>) =>
@@ -63,6 +64,7 @@ export function AchievementList({
   scrollElement,
   viewerUnlockedNames,
   pointsSummary,
+  compact = false,
 }: Readonly<AchievementListProps>) {
   const isOtherUser = viewerUnlockedNames !== undefined;
   const { t, i18n } = useTranslation("achievement");
@@ -372,19 +374,21 @@ export function AchievementList({
               </span>
             )}
 
-            {hasActiveSubscription && achievement.points != null && (
-              <div
-                className="achievements__item-points"
-                title={t("achievement_earn_points", {
-                  points: achievement.points,
-                })}
-              >
-                <HydraIcon className="achievements__item-points-icon" />
-                <span className="achievements__item-points-value">
-                  {achievement.points}
-                </span>
-              </div>
-            )}
+            {!compact &&
+              hasActiveSubscription &&
+              achievement.points != null && (
+                <div
+                  className="achievements__item-points"
+                  title={t("achievement_earn_points", {
+                    points: achievement.points,
+                  })}
+                >
+                  <HydraIcon className="achievements__item-points-icon" />
+                  <span className="achievements__item-points-value">
+                    {achievement.points}
+                  </span>
+                </div>
+              )}
           </div>
         </div>
       </li>
@@ -392,7 +396,11 @@ export function AchievementList({
   };
 
   return (
-    <div className="achievements__list-container">
+    <div
+      className={cn("achievements__list-container", {
+        "achievements__list-container--compact": compact,
+      })}
+    >
       <div className="achievements__toolbar">
         <div className="achievements__toolbar-search">
           <TextField
@@ -420,36 +428,37 @@ export function AchievementList({
         />
 
         <div className="achievements__toolbar-end">
-          {!isOtherUser && (
+          {!compact && !isOtherUser && (
             <RetroAchievementsConnectBanner className="achievements__toolbar-retro-achievements" />
           )}
 
-          {hasActiveSubscription ? (
-            <div className="achievements__toolbar-points">
-              <span className="achievements__toolbar-points-label">
-                {t("earned_points")}
-              </span>
-              <HydraIcon className="achievements__toolbar-points-icon" />
-              <span>
-                {earnedPoints} / {totalPoints}
-              </span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="achievements__toolbar-points achievements__toolbar-points--locked"
-              title={t("how_to_earn_achievements_points")}
-              onClick={() => showHydraCloudModal("achievements-points")}
-            >
-              <span className="achievements__toolbar-points-label">
-                {t("earned_points")}
-              </span>
-              <HydraIcon className="achievements__toolbar-points-icon" />
-              <span className="achievements__toolbar-points-value">
-                ??? / ???
-              </span>
-            </button>
-          )}
+          {!compact &&
+            (hasActiveSubscription ? (
+              <div className="achievements__toolbar-points">
+                <span className="achievements__toolbar-points-label">
+                  {t("earned_points")}
+                </span>
+                <HydraIcon className="achievements__toolbar-points-icon" />
+                <span>
+                  {earnedPoints} / {totalPoints}
+                </span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="achievements__toolbar-points achievements__toolbar-points--locked"
+                title={t("how_to_earn_achievements_points")}
+                onClick={() => showHydraCloudModal("achievements-points")}
+              >
+                <span className="achievements__toolbar-points-label">
+                  {t("earned_points")}
+                </span>
+                <HydraIcon className="achievements__toolbar-points-icon" />
+                <span className="achievements__toolbar-points-value">
+                  ??? / ???
+                </span>
+              </button>
+            ))}
         </div>
       </div>
 

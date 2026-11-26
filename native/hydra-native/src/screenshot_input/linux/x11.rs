@@ -83,6 +83,7 @@ impl Listener {
     fn listen(&self, context: &Context, wake: &WakePipe) -> bool {
         let mut modifiers = self.held_modifiers();
         let mut hotkey = HotkeyMatcher::default();
+        let mut overlay_hotkey = HotkeyMatcher::default();
         loop {
             loop {
                 if context.is_stopped() {
@@ -107,11 +108,26 @@ impl Listener {
                 if modifiers.update(code, pressed) {
                     continue;
                 }
-                let Some(binding) = context.binding().hotkey else {
-                    continue;
-                };
-                if hotkey.on_key(code, pressed, &binding, modifiers.current()) {
-                    context.emit(TriggerSource::Keyboard, Backend::X11XInput2);
+                let binding = context.binding();
+                if let Some(hotkey_binding) = binding.hotkey {
+                    if hotkey.on_key(
+                        code,
+                        pressed,
+                        &hotkey_binding,
+                        modifiers.current(),
+                    ) {
+                        context.emit(TriggerSource::Keyboard, Backend::X11XInput2);
+                    }
+                }
+                if let Some(overlay_binding) = binding.overlay_hotkey {
+                    if overlay_hotkey.on_key(
+                        code,
+                        pressed,
+                        &overlay_binding,
+                        modifiers.current(),
+                    ) {
+                        context.emit(TriggerSource::Overlay, Backend::X11XInput2);
+                    }
                 }
             }
 
