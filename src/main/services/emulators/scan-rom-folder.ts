@@ -338,6 +338,7 @@ const dedupGames = (binary: KnownBinary, files: Candidate[]): GameGroup[] => {
       case "ps4":
       case "psp":
       case "dolphin":
+      case "nintendo-switch":
         games.push(...applySimpleRules(group));
         break;
     }

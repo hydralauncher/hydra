@@ -141,6 +141,18 @@ export const KNOWN_BINARIES: Record<EmulatorSystem, KnownBinary> = {
     ],
     romDirectoryMarkers: [],
   },
+  "nintendo-switch": {
+    system: "nintendo-switch",
+    binary: "ryujinx",
+    displayName: "Ryujinx",
+    linuxNames: ["ryujinx", "Ryujinx"],
+    windowsNames: ["ryujinx.exe"],
+    macosBundleNames: ["Ryujinx.app"],
+    flatpakIds: [],
+    versionFlags: ["--version"],
+    romExtensions: [".nsp", ".xci", ".nsz", ".xcz"],
+    romDirectoryMarkers: [],
+  },
 };
 
 const EMULATOR_BINARIES: readonly EmulatorBinary[] = Array.from(

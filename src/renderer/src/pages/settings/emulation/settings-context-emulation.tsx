@@ -77,6 +77,7 @@ const SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps4: "PlayStation 4",
   psp: "PlayStation Portable",
   dolphin: "GameCube & Wii",
+  "nintendo-switch": "Nintendo Switch",
 };
 
 const SYSTEM_ART: Record<EmulatorSystem, string | readonly string[]> = {
@@ -86,6 +87,7 @@ const SYSTEM_ART: Record<EmulatorSystem, string | readonly string[]> = {
   ps4: ps4Art,
   psp: pspArt,
   dolphin: [gameCubeArt, wiiArt],
+  "nintendo-switch": [],
 };
 
 const SYSTEM_REQUIREMENTS: Partial<

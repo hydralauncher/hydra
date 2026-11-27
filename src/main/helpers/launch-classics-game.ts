@@ -148,7 +148,10 @@ const buildEmulatorArgs = (
       return ["--pause-menu-exit", "--fullscreen", discPath];
     case "dolphin":
       return ["--batch", "--exec", discPath];
+    case "ryujinx":
+      return [discPath];
   }
+  return [discPath];
 };
 
 const assertBiosInstalled = async (

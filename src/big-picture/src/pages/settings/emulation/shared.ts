@@ -24,6 +24,7 @@ export const EMULATION_SYSTEM_LABELS: Record<EmulatorSystem, string> = {
   ps4: "PlayStation 4",
   psp: "PlayStation Portable",
   dolphin: "GameCube & Wii",
+  "nintendo-switch": "Nintendo Switch",
 };
 
 export const EMULATION_SYSTEM_ART: Record<EmulatorSystem, string> = {
@@ -33,6 +34,7 @@ export const EMULATION_SYSTEM_ART: Record<EmulatorSystem, string> = {
   ps4: ps4Art,
   psp: pspArt,
   dolphin: dolphinArt,
+  "nintendo-switch": "",
 };
 
 export function formatBytes(bytes: number): string {

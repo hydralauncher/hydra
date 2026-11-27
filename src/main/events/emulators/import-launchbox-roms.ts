@@ -170,6 +170,7 @@ const SYSTEM_DEFAULT_PLATFORM: Record<EmulatorSystem, string | null> = {
   ps4: "PlayStation 4",
   psp: "PlayStation Portable",
   dolphin: null,
+  "nintendo-switch": null,
 };
 
 export const persistEntryLocally = async (
@@ -370,6 +371,7 @@ const SYSTEM_CATALOGUE_PLATFORMS: Record<EmulatorSystem, string[]> = {
   ps4: ["Sony Playstation 4"],
   psp: ["Sony PSP"],
   dolphin: ["Nintendo GameCube", "Nintendo Wii"],
+  "nintendo-switch": ["Nintendo Switch"],
 };
 
 const normalizePlatformName = (value: string): string =>

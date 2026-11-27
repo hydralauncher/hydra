@@ -28,6 +28,7 @@ const LOG_FORMATS: Record<
     pattern: /Achievement unlocked: '(.*)' \((\d+)\)/,
     titleFirst: true,
   },
+  "nintendo-switch": null,
   dolphin: RCHEEVOS_AWARD_FORMAT,
   nes: RCHEEVOS_AWARD_FORMAT,
   snes: RCHEEVOS_AWARD_FORMAT,
