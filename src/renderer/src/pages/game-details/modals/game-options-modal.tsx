@@ -1155,6 +1155,8 @@ export function GameOptionsModal({
   };
   const shouldShowCreateStartMenuShortcut =
     globalThis.window.electron.platform === "win32";
+  const shouldShowCreateApplicationMenuShortcut =
+    globalThis.window.electron.platform === "linux";
 
   const handleResetAchievements = async () => {
     setIsDeletingAchievements(true);
@@ -1249,6 +1251,7 @@ export function GameOptionsModal({
       updatingGameTitle,
       creatingSteamShortcut,
       shouldShowCreateStartMenuShortcut,
+      shouldShowCreateApplicationMenuShortcut,
       shouldShowWinePrefixConfiguration,
       loadingSaveFolder,
       saveFolderPath,
@@ -1286,6 +1289,7 @@ export function GameOptionsModal({
       updatingGameTitle,
       creatingSteamShortcut,
       shouldShowCreateStartMenuShortcut,
+      shouldShowCreateApplicationMenuShortcut,
       shouldShowWinePrefixConfiguration,
       loadingSaveFolder,
       saveFolderPath,

@@ -744,6 +744,7 @@
     "automatically_extract_downloaded_files": "Extrair automaticamente os arquivos baixados",
     "delete_archive_files_after_extraction": "Deletar arquivos compactados automaticamente após a extração",
     "create_start_menu_shortcut": "Menu Iniciar",
+    "create_application_menu_shortcut": "Menu de aplicativos",
     "invalid_wine_prefix_path": "Caminho do prefixo Wine inválido",
     "invalid_wine_prefix_path_description": "O caminho para o prefixo Wine é inválido. Por favor, verifique o caminho e tente novamente.",
     "artifact_renamed": "Backup renomeado com sucesso",

@@ -153,10 +153,22 @@ const getWindowsOutputPath = (location: ShortcutLocation) => {
       );
 };
 
+const getLinuxOutputPath = (location: ShortcutLocation) => {
+  return location === "desktop"
+    ? SystemPath.getPath("desktop")
+    : path.join(
+        process.env.XDG_DATA_HOME ||
+          path.join(SystemPath.getPath("home"), ".local", "share"),
+        "applications"
+      );
+};
+
 const getShortcutOutputPath = (location: ShortcutLocation) =>
   process.platform === "win32"
     ? getWindowsOutputPath(location)
-    : SystemPath.getPath("desktop");
+    : process.platform === "linux"
+      ? getLinuxOutputPath(location)
+      : SystemPath.getPath("desktop");
 
 const createWindowsShortcut = (
   shortcutName: string,
@@ -218,6 +230,10 @@ const createGameShortcut = async (
 
   if (location === "start_menu" && process.platform !== "win32") {
     throw new Error("Start Menu shortcuts are only available on Windows.");
+  }
+
+  if (location === "xdg_applications" && process.platform !== "linux") {
+    throw new Error("Application Menu shortcuts are only available on Linux.");
   }
 
   const shortcutName =

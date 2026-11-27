@@ -1,6 +1,6 @@
 export type GameShop = "steam" | "epic" | "custom" | "launchbox";
 
-export type ShortcutLocation = "desktop" | "start_menu";
+export type ShortcutLocation = "desktop" | "start_menu" | "xdg_applications";
 
 export interface UnlockedAchievement {
   name: string;

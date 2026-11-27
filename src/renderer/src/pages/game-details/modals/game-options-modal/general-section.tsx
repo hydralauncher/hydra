@@ -516,6 +516,7 @@ interface GeneralSettingsSectionProps {
   updatingGameTitle: boolean;
   creatingSteamShortcut: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
+  shouldShowCreateApplicationMenuShortcut: boolean;
   shouldShowWinePrefixConfiguration: boolean;
   loadingSaveFolder: boolean;
   saveFolderPath: string | null;
@@ -641,6 +642,7 @@ export function GeneralSettingsSection({
   updatingGameTitle,
   creatingSteamShortcut,
   shouldShowCreateStartMenuShortcut,
+  shouldShowCreateApplicationMenuShortcut,
   shouldShowWinePrefixConfiguration,
   loadingSaveFolder,
   saveFolderPath,
@@ -1167,6 +1169,18 @@ export function GeneralSettingsSection({
                   <ButtonLabel>{t("create_start_menu_shortcut")}</ButtonLabel>
                 </Button>
               )}
+              {hasShortcutLaunchTarget &&
+                shouldShowCreateApplicationMenuShortcut && (
+                  <Button
+                    onClick={() => onCreateShortcut("xdg_applications")}
+                    theme="outline"
+                    title={t("create_application_menu_shortcut")}
+                  >
+                    <ButtonLabel>
+                      {t("create_application_menu_shortcut")}
+                    </ButtonLabel>
+                  </Button>
+                )}
             </div>
           </div>
         )}
