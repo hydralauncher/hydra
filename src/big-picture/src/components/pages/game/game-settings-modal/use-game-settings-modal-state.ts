@@ -1,4 +1,4 @@
-import type { LibraryGame } from "@types";
+import type { LibraryGame, ShortcutLocation } from "@types";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -542,7 +542,7 @@ export function useGameSettingsModalState({
   }, [game, updateGame]);
 
   const handleCreateShortcut = useCallback(
-    async (location: "desktop" | "start_menu") => {
+    async (location: ShortcutLocation) => {
       if (!game) return;
 
       const success = await globalThis.window.electron
@@ -785,6 +785,8 @@ export function useGameSettingsModalState({
       steamShortcutExists,
       shouldShowCreateStartMenuShortcut:
         globalThis.window.electron.platform === "win32",
+      shouldShowCreateApplicationMenuShortcut:
+        globalThis.window.electron.platform === "linux",
       execPickerInitialPath,
       execPickerFilters,
       discPickerFilters,

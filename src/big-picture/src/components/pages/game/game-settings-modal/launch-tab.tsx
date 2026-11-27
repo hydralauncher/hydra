@@ -41,6 +41,8 @@ const GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID =
   "game-launch-settings-shortcut-steam";
 const GAME_LAUNCH_SETTINGS_SHORTCUT_START_MENU_ID =
   "game-launch-settings-shortcut-start-menu";
+const GAME_LAUNCH_SETTINGS_SHORTCUT_APPLICATION_MENU_ID =
+  "game-launch-settings-shortcut-application-menu";
 const GAME_LAUNCH_SETTINGS_ADD_DISC_FILE_ID =
   "game-launch-settings-add-disc-file";
 const GAME_LAUNCH_SETTINGS_ADD_DISC_EXECUTABLE_ID =
@@ -70,6 +72,7 @@ export interface GameLaunchSettingsProps {
   creatingSteamShortcut: boolean;
   steamShortcutExists: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
+  shouldShowCreateApplicationMenuShortcut: boolean;
   execPickerInitialPath: string;
   execPickerFilters: FileFilter[];
   discPickerFilters: FileFilter[];
@@ -412,6 +415,7 @@ interface ShortcutSectionProps {
   canCreateShortcuts: boolean;
   isCustomGame: boolean;
   shouldShowCreateStartMenuShortcut: boolean;
+  shouldShowCreateApplicationMenuShortcut: boolean;
   creatingSteamShortcut: boolean;
   steamShortcutExists: boolean;
   onCreateShortcut: (location: ShortcutLocation) => Promise<void>;
@@ -423,6 +427,7 @@ function ShortcutSection({
   canCreateShortcuts,
   isCustomGame,
   shouldShowCreateStartMenuShortcut,
+  shouldShowCreateApplicationMenuShortcut,
   creatingSteamShortcut,
   steamShortcutExists,
   onCreateShortcut,
@@ -523,6 +528,26 @@ function ShortcutSection({
               {t("create_start_menu_shortcut")}
             </Button>
           ) : null}
+
+          {canCreateShortcuts && shouldShowCreateApplicationMenuShortcut ? (
+            <Button
+              focusId={GAME_LAUNCH_SETTINGS_SHORTCUT_APPLICATION_MENU_ID}
+              variant="secondary"
+              onClick={() => {
+                void onCreateShortcut("xdg_applications");
+              }}
+              focusNavigationOverrides={{
+                left: {
+                  type: "item",
+                  itemId: isCustomGame
+                    ? GAME_LAUNCH_SETTINGS_SHORTCUT_DESKTOP_ID
+                    : GAME_LAUNCH_SETTINGS_SHORTCUT_STEAM_ID,
+                },
+              }}
+            >
+              {t("create_application_menu_shortcut")}
+            </Button>
+          ) : null}
         </HorizontalFocusGroup>
       </div>
     </SettingsSection>
@@ -608,6 +633,7 @@ export function GameLaunchSettingsTab({
   creatingSteamShortcut,
   steamShortcutExists,
   shouldShowCreateStartMenuShortcut,
+  shouldShowCreateApplicationMenuShortcut,
   execPickerInitialPath,
   execPickerFilters,
   discPickerFilters,
@@ -732,6 +758,9 @@ export function GameLaunchSettingsTab({
             isCustomGame={isCustomGame}
             shouldShowCreateStartMenuShortcut={
               shouldShowCreateStartMenuShortcut
+            }
+            shouldShowCreateApplicationMenuShortcut={
+              shouldShowCreateApplicationMenuShortcut
             }
             creatingSteamShortcut={creatingSteamShortcut}
             steamShortcutExists={steamShortcutExists}

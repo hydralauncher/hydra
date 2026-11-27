@@ -1019,6 +1019,7 @@
     "automatically_extract_downloaded_files": "Automatically extract downloaded files",
     "delete_archive_files_after_extraction": "Automatically delete archive files after extraction",
     "create_start_menu_shortcut": "Start Menu",
+    "create_application_menu_shortcut": "Application Menu",
     "invalid_wine_prefix_path": "Invalid Wine prefix path",
     "invalid_wine_prefix_path_description": "The path to the Wine prefix is invalid. Please check the path and try again.",
     "missing_wine_prefix": "Wine prefix is required to create a backup on Linux",
