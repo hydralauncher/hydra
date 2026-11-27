@@ -969,6 +969,7 @@
     "automatically_extract_downloaded_files": "Автоматическая распаковка загруженных файлов",
     "delete_archive_files_after_extraction": "Всегда удалять архивные файлы после извлечения",
     "create_start_menu_shortcut": "Меню «Пуск»",
+    "create_application_menu_shortcut": "Меню приложений",
     "invalid_wine_prefix_path": "Недопустимый путь префикса Wine",
     "invalid_wine_prefix_path_description": "Путь к префиксу Wine недействителен. Пожалуйста, проверьте путь и попробуйте снова.",
     "missing_wine_prefix": "Префикс Wine необходим для создания резервной копии в Linux",

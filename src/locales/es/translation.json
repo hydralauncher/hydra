@@ -774,6 +774,7 @@
     "automatically_extract_downloaded_files": "Extraer automáticamente archivos descargados",
     "delete_archive_files_after_extraction": "Eliminar automáticamente los archivos comprimidos después de extraerlos",
     "create_start_menu_shortcut": "Menú Inicio",
+    "create_application_menu_shortcut": "Menú de aplicaciones",
     "invalid_wine_prefix_path": "Ruta inválida del prefijo de Wine",
     "invalid_wine_prefix_path_description": "La ruta al prefijo de Wine es inválida. Por favor revisá la ruta y probá de nuevo.",
     "missing_wine_prefix": "EL prefijo de Wine es requerido para hacer una copia en Linux",
