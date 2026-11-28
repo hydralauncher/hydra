@@ -1714,6 +1714,7 @@
     "cores_missing": "No cores installed",
     "cores_missing_hint": "{{name}} needs at least one core to run games. Install one to finish.",
     "start_setup": "Setup",
+    "download_emulator": "Download Emulator",
     "rescan_library": "Rescan Library",
     "rescan": "Rescan",
     "emulator_section_title": "Emulator",

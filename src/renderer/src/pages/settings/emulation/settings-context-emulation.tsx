@@ -284,6 +284,26 @@ export function SettingsContextEmulation() {
     await refreshRetroArch();
   }, [refreshRetroArch]);
 
+  const handleDownloadEmulator = useCallback(
+    async (system: EmulatorSystem) => {
+      const config = configs[system];
+      if (!config) return;
+
+      const binary = config.binary;
+      const options = await window.electron.getEmulatorInstallOptions(binary);
+
+      const installable = options.filter(
+        (option) => option.kind !== "link" && option.downloadUrl
+      );
+
+      if (installable.length === 0) return;
+
+      // Prefer the first non-link installable option (e.g., GitHub release)
+      await window.electron.installEmulator(binary, installable[0].id);
+    },
+    [configs]
+  );
+
   const handleBack = useCallback(() => {
     setView({ kind: "grid" });
   }, []);
@@ -375,6 +395,7 @@ export function SettingsContextEmulation() {
             }}
             onConfigure={() => handleConfigure(system)}
             onStartSetup={() => handleStartSetup(system)}
+            onDownloadEmulator={() => handleDownloadEmulator(system)}
           />
         ))}
         <ConsoleCard
