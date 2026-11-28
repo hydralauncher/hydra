@@ -105,6 +105,7 @@ export function ConsoleCard({
   return (
     <div
       className={`console-card ${isConfigured ? "" : "console-card--unconfigured"}`}
+      data-testid={`console-card-${title.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <div
         className={`console-card__art ${
@@ -228,6 +229,7 @@ export function ConsoleCard({
             type="button"
             className="console-card__cta console-card__cta--download"
             onClick={onDownloadEmulator}
+            data-testid="download-emulator-btn"
           >
             <DownloadIcon size={14} />
             <span>{t("download_emulator")}</span>

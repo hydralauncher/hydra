@@ -16,7 +16,8 @@
   "scripts": {
     "format": "prettier --write .",
     "format-check": "prettier --check .",
-    "test": "node --import ./scripts/register-ts-node.mjs --test \"src/**/*.test.ts\" \"src/**/*.test.cjs\" \"scripts/*.test.mjs\"",
+    "test": "node --import ./scripts/register-ts-node.mjs --test \\\"src/**/*.test.ts\\\" \\\"src/**/*.test.cjs\\\" \\\"scripts/*.test.mjs\\\"",
+    "test:e2e": "node --import ./scripts/register-ts-node.mjs --test \\\"src/test/e2e/*.test.ts\\\"",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
@@ -158,6 +159,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sass-embedded": "^1.80.6",
+    "spectron": "^19",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "vite": "6.4.3",
