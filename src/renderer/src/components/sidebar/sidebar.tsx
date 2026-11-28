@@ -518,6 +518,7 @@ export function Sidebar() {
                       type="button"
                       className="sidebar__menu-item-button"
                       onClick={() => handleSidebarItemClick(path)}
+                      data-testid={`sidebar-button-${nameKey}`}
                     >
                       {render()}
                       <span>{t(nameKey)}</span>

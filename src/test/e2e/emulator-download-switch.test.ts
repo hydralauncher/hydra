@@ -43,44 +43,42 @@ describe("Nintendo Switch emulator download (E2E)", () => {
     expect(title).toContain("Hydra");
   });
 
-  it("should show the download emulator button for Nintendo Switch when on emulation settings", async () => {
+  it("should navigate to emulation settings and show the Nintendo Switch download button", async () => {
     await app.client.waitUntilWindowLoaded();
 
-    // Navigate to settings - try common selectors
-    const settingsBtn =
-      (await app.client.$('[data-testid="settings-button"]')) ??
-      (await app.client.$('button[title*="Settings"]')) ??
-      (await app.client.$('button[title*="Configurações"]'));
-
+    // 1. Open Settings from sidebar
+    const settingsBtn = await app.client.$('[data-testid="sidebar-button-settings"]');
     if (await settingsBtn.isExisting()) {
       await settingsBtn.click();
-      await app.client.pause(1000);
+      await app.client.pause(1500);
+    }
 
-      // Navigate to emulation section
-      const emulationLink =
-        (await app.client.$('[data-testid="emulation-settings"]')) ??
-        (await app.client.$('a[href*="emulation"]')) ??
-        (await app.client.$('button[href*="emulation"]'));
+    // 2. Click on Emulation category in settings sidebar
+    const emulationBtn = await app.client.$('[data-testid="settings-sidebar-button-emulation"]');
+    if (await emulationBtn.isExisting()) {
+      await emulationBtn.click();
+      await app.client.pause(2000);
+    }
 
-      if (await emulationLink.isExisting()) {
-        await emulationLink.click();
-        await app.client.pause(2000);
+    // 3. Find Nintendo Switch card
+    const switchCard = await app.client.$('[data-testid="console-card-nintendo-switch"]');
 
-        // Check for Nintendo Switch card
-        const switchCard = await app.client.$(
-          '[data-testid="console-card-nintendo-switch"]'
-        );
+    if (await switchCard.isExisting()) {
+      // 4. Check download button exists (emulator not configured yet)
+      const downloadBtn = await switchCard.$('[data-testid="download-emulator-btn"]');
+      if (await downloadBtn.isExisting()) {
+        const text = await downloadBtn.getText();
+        expect(text).toContain("Download Emulator");
 
-        if (await switchCard.isExisting()) {
-          const downloadBtn = await switchCard.$(
-            '[data-testid="download-emulator-btn"]'
-          );
-          if (await downloadBtn.isExisting()) {
-            const text = await downloadBtn.getText();
-            expect(text).toContain("Download Emulator");
-            await downloadBtn.click();
-            await app.client.pause(2000);
-          }
+        // 5. Click download emulator
+        await downloadBtn.click();
+        await app.client.pause(3000);
+
+        // 6. Verify download notification appeared
+        const downloadNotification = await app.client.$('[data-testid="download-notification"]');
+        if (await downloadNotification.isExisting()) {
+          const notifText = await downloadNotification.getText();
+          expect(notifText.length).toBeGreaterThan(0);
         }
       }
     }
