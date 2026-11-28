@@ -80,6 +80,7 @@ const BINARY_TO_SYSTEM: Record<EmulatorBinary, EmulatorSystem> = {
   shadps4: "ps4",
   ppsspp: "psp",
   dolphin: "dolphin",
+  ryujinx: "nintendo-switch",
 };
 
 const emulatorInstallDirectory = async (

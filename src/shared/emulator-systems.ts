@@ -7,4 +7,5 @@ export const EMULATOR_SYSTEMS: readonly EmulatorSystem[] = [
   "ps4",
   "psp",
   "dolphin",
+  "nintendo-switch",
 ];

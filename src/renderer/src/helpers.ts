@@ -104,6 +104,7 @@ export const SYSTEM_TO_BINARY: Record<EmulatorSystem, EmulatorBinary> = {
   ps4: "shadps4",
   psp: "ppsspp",
   dolphin: "dolphin",
+  "nintendo-switch": "ryujinx",
 };
 
 export {

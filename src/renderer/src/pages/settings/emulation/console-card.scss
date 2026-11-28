@@ -234,5 +234,13 @@
       opacity: globals.$disabled-opacity;
       cursor: not-allowed;
     }
+
+    &--download {
+      color: globals.$success-color;
+
+      &:hover:not(&--disabled) {
+        color: globals.$muted-color;
+      }
+    }
   }
 }

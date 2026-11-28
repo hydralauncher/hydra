@@ -294,6 +294,57 @@ const shadps4Entries = (
   ];
 };
 
+const ryujinxEntries = (
+  os: InstallOs,
+  arch: InstallArch
+): EmulatorSourceEntry[] => {
+  const entries: EmulatorSourceEntry[] = [];
+
+  if (os === "win32") {
+    entries.push({
+      type: "github",
+      id: "ryujinx-install",
+      binary: "ryujinx",
+      repo: "Ryujinx/Ryujinx",
+      channel: "latest",
+      channelLabel: null,
+      assetPattern:
+        arch === "arm64"
+          ? /^ryujinx-.*-win64-arm64\.zip$/i
+          : /^ryujinx-.*-win64-x64\.zip$/i,
+      kind: "portable-archive",
+    });
+  }
+
+  if (os === "linux") {
+    entries.push({
+      type: "github",
+      id: "ryujinx-install",
+      binary: "ryujinx",
+      repo: "Ryujinx/Ryujinx",
+      channel: "latest",
+      channelLabel: null,
+      assetPattern:
+        arch === "arm64"
+          ? /^ryujinx-.*-linux-aarch64\.tar\.gz$/i
+          : /^ryujinx-.*-linux-x64\.tar\.gz$/i,
+      kind: "portable-archive",
+    });
+  }
+
+  if (os !== "win32") {
+    entries.push({
+      type: "link",
+      id: "ryujinx-aur",
+      binary: "ryujinx",
+      linkKind: "aur",
+      url: "https://aur.archlinux.org/packages/ryujinx",
+    });
+  }
+
+  return entries;
+};
+
 interface GithubTag {
   name: string;
 }
@@ -368,6 +419,7 @@ const githubEntries = (
   if (binary === "rpcs3") return rpcs3Entries(os, arch);
   if (binary === "shadps4") return shadps4Entries(os, arch);
   if (binary === "ppsspp") return ppssppEntries(os, arch);
+  if (binary === "ryujinx") return ryujinxEntries(os, arch);
   return [];
 };
 

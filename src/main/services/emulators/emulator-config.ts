@@ -79,12 +79,60 @@ export const pcsx2ConfigCandidates = (
   ];
 };
 
+export const ryujinxConfigCandidates = (
+  executablePath: string | null
+): string[] => {
+  const home = homedir();
+  const beside = executablePath
+    ? path.join(path.dirname(executablePath), "config.ini")
+    : null;
+
+  if (process.platform === "win32") {
+    const local =
+      process.env["LOCALAPPDATA"] ?? path.join(home, "AppData", "Local");
+    return [
+      path.join(local, "Ryujinx", "config.ini"),
+      ...windowsDocumentsDirs(home).map((docs) =>
+        path.join(docs, "Ryujinx", "config.ini")
+      ),
+      ...(beside ? [beside] : []),
+    ];
+  }
+  if (process.platform === "darwin") {
+    return [
+      path.join(
+        home,
+        "Library",
+        "Application Support",
+        "Ryujinx",
+        "config.ini"
+      ),
+      ...(beside ? [beside] : []),
+    ];
+  }
+  return [
+    path.join(home, ".config", "ryujinx", "config.ini"),
+    path.join(
+      home,
+      ".var",
+      "app",
+      "net.rubiojr.Ryujinx",
+      "data",
+      "ryujinx",
+      "config.ini"
+    ),
+    ...(beside ? [beside] : []),
+  ];
+};
+
 const configCandidates = (
   system: EmulatorSystem,
   executablePath: string | null
 ): string[] => {
   if (system === "ps1") return duckstationConfigCandidates();
   if (system === "ps2") return pcsx2ConfigCandidates(executablePath);
+  if (system === "nintendo-switch")
+    return ryujinxConfigCandidates(executablePath);
   return [];
 };
 

@@ -192,6 +192,7 @@ export default function Settings() {
                               : ""
                           }`}
                           onClick={() => setCurrentCategoryId(category.id)}
+                          data-testid={`settings-sidebar-button-${category.id}`}
                         >
                           <span className="settings__sidebar-button-icon">
                             {category.icon}

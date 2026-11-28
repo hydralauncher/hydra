@@ -1616,6 +1616,7 @@
     "cores_missing": "Ningún núcleo instalado",
     "cores_missing_hint": "{{name}} necesita al menos un núcleo para ejecutar juegos. Instala uno para terminar.",
     "start_setup": "Configurar",
+    "download_emulator": "Descargar Emulador",
     "rescan_library": "Reescanear librería",
     "rescan": "Reescanear",
     "emulator_section_title": "Emulador",

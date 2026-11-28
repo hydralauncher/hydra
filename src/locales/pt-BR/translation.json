@@ -1682,6 +1682,7 @@
     "cores_missing": "Nenhum core instalado",
     "cores_missing_hint": "O {{name}} precisa de pelo menos um core para rodar jogos. Instale um para concluir.",
     "start_setup": "Configurar",
+    "download_emulator": "Baixar Emulador",
     "rescan_library": "Reescanear Biblioteca",
     "rescan": "Reescanear",
     "emulator_section_title": "Emulador",

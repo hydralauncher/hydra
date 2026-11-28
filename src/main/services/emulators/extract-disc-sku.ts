@@ -425,6 +425,8 @@ export const extractDiscSku = async (
       return extractPspDiscId(primaryPath);
     case "dolphin":
       return extractDolphinGameId(primaryPath);
+    case "nintendo-switch":
+      return null;
   }
 };
 

@@ -381,6 +381,12 @@ export function EmulationSettingsSection({
       },
       dolphin: {
         left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.psp),
+        right: getItemFocusTarget(
+          EMULATION_OVERVIEW_CARD_FOCUS_IDS["nintendo-switch"]
+        ),
+      },
+      "nintendo-switch": {
+        left: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.dolphin),
         right: getItemFocusTarget(EMULATION_OVERVIEW_CARD_FOCUS_IDS.retroarch),
       },
       retroarch: {

@@ -7,4 +7,5 @@ export const KNOWN_BINARY_LABELS: Record<EmulatorBinary, string> = {
   shadps4: "shadPS4",
   ppsspp: "PPSSPP",
   dolphin: "Dolphin",
+  ryujinx: "Ryujinx",
 };

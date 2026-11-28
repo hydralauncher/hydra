@@ -1,6 +1,13 @@
 import type { GameShop } from "./game.types";
 
-export type EmulatorSystem = "ps1" | "ps2" | "ps3" | "ps4" | "psp" | "dolphin";
+export type EmulatorSystem =
+  | "ps1"
+  | "ps2"
+  | "ps3"
+  | "ps4"
+  | "psp"
+  | "dolphin"
+  | "nintendo-switch";
 
 export type SkuRegion = "US" | "EU" | "JP" | "KR" | "ASIA";
 
@@ -10,7 +17,8 @@ export type EmulatorBinary =
   | "rpcs3"
   | "shadps4"
   | "ppsspp"
-  | "dolphin";
+  | "dolphin"
+  | "ryujinx";
 
 export interface RomFolder {
   id: string;

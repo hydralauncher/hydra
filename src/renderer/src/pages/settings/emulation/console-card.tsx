@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ChevronRightIcon, GearIcon, AlertIcon } from "@primer/octicons-react";
+import { ChevronRightIcon, GearIcon, AlertIcon, DownloadIcon } from "@primer/octicons-react";
 import { Tooltip } from "react-tooltip";
 
 import { formatRelativeShort } from "./relative-time";
@@ -25,6 +25,7 @@ interface ConsoleCardProps {
   requirementKey?: unknown;
   onConfigure: () => void;
   onStartSetup: () => void;
+  onDownloadEmulator?: () => void;
 }
 
 export function ConsoleCard({
@@ -43,6 +44,7 @@ export function ConsoleCard({
   requirementKey,
   onConfigure,
   onStartSetup,
+  onDownloadEmulator,
 }: Readonly<ConsoleCardProps>) {
   const { t, i18n } = useTranslation("settings");
   const tooltipId = useId();
@@ -103,6 +105,7 @@ export function ConsoleCard({
   return (
     <div
       className={`console-card ${isConfigured ? "" : "console-card--unconfigured"}`}
+      data-testid={`console-card-${title.toLowerCase().replace(/\s+/g, "-")}`}
     >
       <div
         className={`console-card__art ${
@@ -219,6 +222,18 @@ export function ConsoleCard({
             <span className="console-card__chip-dot" />
             {t("setup_needed")}
           </span>
+        )}
+
+        {!isConfigured && onDownloadEmulator && (
+          <button
+            type="button"
+            className="console-card__cta console-card__cta--download"
+            onClick={onDownloadEmulator}
+            data-testid="download-emulator-btn"
+          >
+            <DownloadIcon size={14} />
+            <span>{t("download_emulator")}</span>
+          </button>
         )}
 
         {isConfigured ? (

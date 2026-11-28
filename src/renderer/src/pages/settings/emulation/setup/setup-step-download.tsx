@@ -30,6 +30,7 @@ const OFFICIAL_WEBSITES: Record<EmulatorBinary, string> = {
   shadps4: "https://shadps4.net/",
   ppsspp: "https://www.ppsspp.org/",
   dolphin: "https://dolphin-emu.org/",
+  ryujinx: "https://ryujinx.org/",
 };
 
 const ARTICLE_KEYS: Partial<Record<EmulatorBinary, string>> = {
